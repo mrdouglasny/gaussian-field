@@ -24,33 +24,32 @@ $$C(f,g) = \int \frac{\hat{f}(p)\,\overline{\hat{g}(p)}}{|p|^2 + m^2}\,dp$$
 
 ## API
 
-### Input: `GaussianMeasureData D F`
+### Input: `T : SchwartzMap D F →L[ℝ] H`
 
-```lean
-structure GaussianMeasureData (D : Type*) (F : Type*)
-    [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
-    [NormedAddCommGroup F] [NormedSpace ℝ F] where
-  H : Type*                          -- target Hilbert space
-  [instNACG : NormedAddCommGroup H]
-  [instIPS : InnerProductSpace ℝ H]
-  [instCS : CompleteSpace H]
-  [instSep : SeparableSpace H]
-  h_inf : ¬ FiniteDimensional ℝ H    -- infinite-dimensional
-  T : SchwartzMap D F →L[ℝ] H        -- the CLM
-```
+The user provides:
+- Finite-dimensional domain `D` and coefficient space `F`
+- A separable infinite-dimensional real Hilbert space `H` (with instances)
+- A CLM `T : SchwartzMap D F →L[ℝ] H`
+- A proof `h_inf : ¬ FiniteDimensional ℝ H`
 
 ### Output
 
 | Definition / Theorem | Type | Description |
 |---|---|---|
-| `data.measure` | `ProbabilityMeasure (Configuration D F)` | The Gaussian measure |
-| `data.covariance f g` | `ℝ` | $C(f,g) = \langle T(f), T(g) \rangle_H$ |
-| `data.charFun f` | integral identity | $\mathbb{E}[e^{i\omega(f)}] = e^{-\frac{1}{2}\|Tf\|^2}$ |
-| `pairing_is_gaussian` | pushforward identity | $\omega(f) \sim N(0, \|Tf\|^2)$ |
+| `measure T h_inf` | `ProbabilityMeasure (Configuration D F)` | The Gaussian measure |
+| `covariance T f g` | `ℝ` | $C(f,g) = \langle T(f), T(g) \rangle_H$ |
+| `charFun T h_inf f` | integral identity | $\mathbb{E}[e^{i\omega(f)}] = e^{-\frac{1}{2}\|Tf\|^2}$ |
 | `measure_centered` | integral = 0 | $\mathbb{E}[\omega(f)] = 0$ |
 | `second_moment_eq_covariance` | integral identity | $\mathbb{E}[\omega(f)^2] = \|Tf\|^2$ |
 | `cross_moment_eq_covariance` | integral identity | $\mathbb{E}[\omega(f)\omega(g)] = \langle Tf, Tg \rangle$ |
-| `pairing_memLp` | `Memℒp` | $\omega(f) \in L^p(\mu)$ for $p < \infty$ |
+| `pairing_integrable` | `Integrable` | $\omega(f)$ is integrable |
+
+### Design note
+
+The current API uses explicit `T` and `h_inf` arguments. An alternative bundled
+`GaussianMeasureData` structure (carrying `H` with its instances) would give cleaner
+dot-notation but requires careful handling of Lean's instance resolution for bundled
+type class fields. See the comment in `Construction.lean` for details.
 
 ## Module structure
 

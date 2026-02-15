@@ -33,6 +33,9 @@ The multi-dimensional Schwartz space S(D,F) admits a countable basis
 
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.InnerProductSpace.l2Space
+import Mathlib.Analysis.InnerProductSpace.Spectrum
+import Mathlib.Analysis.InnerProductSpace.Adjoint
+import Mathlib.Analysis.Normed.Operator.Compact
 import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
 import Mathlib.Topology.Algebra.Module.FiniteDimension
 
@@ -57,7 +60,7 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteS
     ball would not be compact, contradicting compactness of T. -/
 axiom compact_operator_eigenspace_finiteDimensional
     {T : E →L[ℝ] E} (hT : IsCompactOperator T) {μ : ℝ} (hμ : μ ≠ 0) :
-    FiniteDimensional ℝ (LinearMap.eigenspace (T : E →ₗ[ℝ] E) μ)
+    FiniteDimensional ℝ (Module.End.eigenspace (T : E →ₗ[ℝ] E) μ)
 
 /-- A compact self-adjoint operator has at most finitely many eigenvalues
     with absolute value exceeding any ε > 0.

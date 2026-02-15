@@ -29,6 +29,8 @@ noncomputable section
 
 namespace GaussianMeasure
 
+open TopologicalSpace
+
 variable {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
 variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
 
@@ -39,7 +41,7 @@ variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     adapted ONB. -/
 theorem schwartz_clm_target_factorization
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    [SeparableSpace H] (h_inf : ¬ FiniteDimensional ℝ H)
+    [TopologicalSpace.SeparableSpace H] (h_inf : ¬ FiniteDimensional ℝ H)
     (T : (SchwartzMap D F) →L[ℝ] H) :
     ∃ (e : ℕ → H)
       (K : Type) (_ : NormedAddCommGroup K) (_ : InnerProductSpace ℝ K) (_ : CompleteSpace K)

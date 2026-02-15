@@ -21,6 +21,8 @@ noncomputable section
 
 namespace GaussianMeasure
 
+open TopologicalSpace
+
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
   [CompleteSpace H] [SeparableSpace H]
 

@@ -18,7 +18,7 @@ factorization vectors guarantees a.s. convergence of the Gaussian series.
 
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
 
 noncomputable section
 
@@ -34,7 +34,7 @@ variable {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteS
     so ∑ ‖ξₙ vₙ‖ < ∞ a.s., hence ∑ ξₙ vₙ converges a.s. -/
 theorem hilbert_gaussian_series_converges
     (v : ℕ → K) (hv : Summable (fun n => ‖v n‖)) :
-    ∀ᵐ ξ ∂(MeasureTheory.Measure.pi (fun _ : ℕ => ProbabilityTheory.gaussianReal 0 1)),
+    ∀ᵐ ξ ∂(MeasureTheory.Measure.infinitePi (fun _ : ℕ => ProbabilityTheory.gaussianReal 0 1)),
       Summable (fun n => ξ n • v n) := by
   sorry
 

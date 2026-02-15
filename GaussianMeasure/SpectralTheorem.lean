@@ -41,7 +41,7 @@ theorem compact_selfAdjoint_hasEigenvector
     Proved via the "restrict to complement" argument. -/
 theorem compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot
     {T : E →L[ℝ] E} (hT_sa : IsSelfAdjoint T) (hT_compact : IsCompactOperator T) :
-    (⨆ μ, LinearMap.eigenspace (T : E →ₗ[ℝ] E) μ)ᗮ = ⊥ := by
+    (⨆ μ, Module.End.eigenspace (T : E →ₗ[ℝ] E) μ)ᗮ = ⊥ := by
   sorry
 
 /-- **Spectral Theorem**: Every compact self-adjoint operator on a real Hilbert
