@@ -33,36 +33,16 @@ C(f,g) = ⟨T(f), T(g)⟩_H.
 
 - `charFun` — characteristic functional identity
 - See `Properties.lean` for moments and integrability.
-
-## API design note
-
-The current API takes `T` and `h_inf` as explicit arguments to each definition.
-An alternative design would bundle everything into a structure:
-
-```
-structure GaussianMeasureData (D F : Type*) [...] where
-  H : Type*
-  [instNACG : NormedAddCommGroup H]
-  [instIPS : InnerProductSpace ℝ H]
-  [instCS : CompleteSpace H]
-  [instSep : TopologicalSpace.SeparableSpace H]
-  h_inf : ¬ FiniteDimensional ℝ H
-  T : SchwartzMap D F →L[ℝ] H
-```
-
-This would give a cleaner dot-notation API (`data.measure`, `data.covariance`, etc.)
-but requires careful handling of bundled instances (the `@`-explicit instance fields
-interact poorly with Lean's instance resolution). A future refactor could adopt this
-pattern once the proofs are in place and the instance plumbing is sorted out. The
-key difficulty is making `@FiniteDimensional ℝ H _ instNACG.toModuleEquivClass`
-resolve correctly — the Module instance path from NormedAddCommGroup is nontrivial.
 -/
 
 import GaussianMeasure.TargetFactorization
 import GaussianMeasure.SeriesConvergence
 import Mathlib.Probability.Distributions.Gaussian.Real
 import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.Independence.Integration
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.MeasureTheory.Measure.CharacteristicFunction
 import Mathlib.Topology.Algebra.Module.WeakDual
 import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
 
@@ -71,6 +51,8 @@ noncomputable section
 namespace GaussianMeasure
 
 open MeasureTheory ProbabilityTheory TopologicalSpace
+open scoped BigOperators
+open Classical
 
 /-- Configuration space: tempered distributions on D with values in F. -/
 abbrev Configuration (D F : Type*)
@@ -87,6 +69,22 @@ instance instMeasurableSpaceConfiguration :
     MeasurableSpace (Configuration D F) :=
   MeasurableSpace.comap (fun ω f => ω f) MeasurableSpace.pi
 
+/-- A function into Configuration is measurable iff all evaluations are measurable. -/
+theorem configuration_measurable_of_eval_measurable
+    {X : Type*} [MeasurableSpace X] (g : X → Configuration D F)
+    (h : ∀ φ : SchwartzMap D F, Measurable (fun x => g x φ)) :
+    @Measurable X (Configuration D F) _ instMeasurableSpaceConfiguration g := by
+  rw [measurable_iff_comap_le]
+  show (MeasurableSpace.comap (fun ω f => ω f) MeasurableSpace.pi).comap g ≤ _
+  rw [MeasurableSpace.comap_comp]
+  exact (measurable_pi_lambda _ h).comap_le
+
+/-- Each evaluation map ω ↦ ω(f) is measurable w.r.t. the cylindrical σ-algebra. -/
+theorem configuration_eval_measurable (φ : SchwartzMap D F) :
+    @Measurable (Configuration D F) ℝ instMeasurableSpaceConfiguration _ (fun ω => ω φ) := by
+  intro s hs
+  exact ⟨(fun f => f φ) ⁻¹' s, measurable_pi_apply φ hs, rfl⟩
+
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
   [CompleteSpace H] [SeparableSpace H]
 
@@ -94,16 +92,424 @@ variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
 def covariance (T : SchwartzMap D F →L[ℝ] H) (f g : SchwartzMap D F) : ℝ :=
   @inner ℝ H _ (T f) (T g)
 
+/-! ## Factorization Extraction
+
+We extract the factorization data from `schwartz_clm_target_factorization` using
+noncomputable choice. This gives us the adapted ONB, intermediate space K, CLM j,
+and nuclear vectors v. -/
+
+/-- The full factorization result, privately stored. -/
+private noncomputable def fullFactorization
+    (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :=
+  schwartz_clm_target_factorization h_inf T
+
+private noncomputable def factProps (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) :=
+  (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec
+
+/-- The adapted ONB from the nuclear factorization. -/
+private noncomputable def adaptedONB (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : ℕ → H :=
+  (fullFactorization T h_inf).choose
+
+/-- The intermediate Hilbert space type K from the factorization. -/
+private noncomputable def FactK (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : Type :=
+  (fullFactorization T h_inf).choose_spec.choose
+
+private noncomputable instance instNACG_FactK (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : NormedAddCommGroup (FactK T h_inf) :=
+  (fullFactorization T h_inf).choose_spec.choose_spec.choose
+
+private noncomputable instance instIPS_FactK (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : InnerProductSpace ℝ (FactK T h_inf) :=
+  (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose
+
+private noncomputable instance instCS_FactK (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : CompleteSpace (FactK T h_inf) :=
+  (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose
+
+/-- The CLM j : S(D,F) → K from the factorization. -/
+private noncomputable def factJ (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : SchwartzMap D F →L[ℝ] FactK T h_inf :=
+  (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose
+
+/-- The vectors v_n ∈ K from the factorization. -/
+private noncomputable def factV (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : ℕ → FactK T h_inf :=
+  (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose
+
+private lemma adaptedONB_orthonormal (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : Orthonormal ℝ (adaptedONB T h_inf) :=
+  (factProps T h_inf).1
+
+private lemma adaptedONB_spans (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) :
+    ⊤ ≤ (Submodule.span ℝ (Set.range (adaptedONB T h_inf))).topologicalClosure :=
+  (factProps T h_inf).2.1
+
+private lemma factV_summable (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : Summable (fun n => ‖factV T h_inf n‖) :=
+  (factProps T h_inf).2.2.1
+
+private lemma factV_inner_eq (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (f : SchwartzMap D F) (n : ℕ) :
+    @inner ℝ H _ (adaptedONB T h_inf n) (T f) =
+    @inner ℝ (FactK T h_inf) _ (factV T h_inf n) (factJ T h_inf f) :=
+  (factProps T h_inf).2.2.2 f n
+
+/-- The adapted HilbertBasis for real Parseval identity. -/
+private noncomputable def adaptedBasis (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) : HilbertBasis ℕ ℝ H :=
+  HilbertBasis.mk (adaptedONB_orthonormal T h_inf) (adaptedONB_spans T h_inf)
+
+private lemma adaptedBasis_eq_ONB (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) :
+    ⇑(adaptedBasis T h_inf) = adaptedONB T h_inf :=
+  HilbertBasis.coe_mk _ _
+
+/-- The coefficient of T f in the n-th ONB direction. -/
+private noncomputable def coeff (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (n : ℕ) (f : SchwartzMap D F) : ℝ :=
+  @inner ℝ H _ (adaptedONB T h_inf n) (T f)
+
+/-- Summability of squared coefficients (by Parseval). -/
+private lemma coeff_sq_summable (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (f : SchwartzMap D F) :
+    Summable (fun n => (coeff T h_inf n f) ^ 2) := by
+  set c := (adaptedBasis T h_inf).repr (T f) with hc_def
+  have hsumm := Memℓp.summable (by norm_num : (0 : ℝ) < (2 : ENNReal).toReal) c.property
+  simp only [ENNReal.toReal_ofNat] at hsumm
+  have hsumm' : Summable (fun n => ‖(c : ℕ → ℝ) n‖^(2 : ℕ)) := by
+    simp only [← Real.rpow_natCast] at hsumm ⊢
+    convert hsumm using 2
+  convert hsumm' using 2 with n
+  rw [coeff, show adaptedONB T h_inf n = adaptedBasis T h_inf n from
+    (adaptedBasis_eq_ONB T h_inf).symm ▸ rfl]
+  rw [show @inner ℝ H _ (adaptedBasis T h_inf n) (T f) =
+    (adaptedBasis T h_inf).repr (T f) n from
+    ((adaptedBasis T h_inf).repr_apply_apply (T f) n).symm]
+  simp [sq_abs, ← hc_def]
+
+/-- Parseval identity: sum of squared coefficients = ‖T f‖². -/
+private lemma coeff_parseval (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (f : SchwartzMap D F) :
+    ∑' n, (coeff T h_inf n f) ^ 2 = ‖T f‖ ^ 2 := by
+  set x := T f with hx_def
+  set c := (adaptedBasis T h_inf).repr x with hc_def
+  have hiso : ‖x‖ = ‖c‖ := ((adaptedBasis T h_inf).repr.norm_map x).symm
+  have hlp := lp.norm_rpow_eq_tsum (p := 2) (by norm_num : (0 : ℝ) < (2 : ENNReal).toReal) c
+  simp only [ENNReal.toReal_ofNat] at hlp
+  have hlp' : ‖c‖^(2 : ℕ) = ∑' n, ‖(c : ℕ → ℝ) n‖^(2 : ℕ) := by
+    simp only [← Real.rpow_natCast] at hlp ⊢
+    convert hlp using 2
+  calc ∑' n, (coeff T h_inf n f)^2
+      = ∑' n, ‖(c : ℕ → ℝ) n‖^2 := by
+        congr 1; ext n
+        rw [coeff, show adaptedONB T h_inf n = adaptedBasis T h_inf n from
+          (adaptedBasis_eq_ONB T h_inf).symm ▸ rfl]
+        rw [show @inner ℝ H _ (adaptedBasis T h_inf n) x =
+          (adaptedBasis T h_inf).repr x n from
+          ((adaptedBasis T h_inf).repr_apply_apply x n).symm]
+        simp [sq_abs, ← hc_def]
+    _ = ‖c‖^2 := hlp'.symm
+    _ = ‖x‖^2 := by rw [hiso]
+
+/-! ## Noise Measure -/
+
+/-- The space of noise sequences ξ : ℕ → ℝ. -/
+abbrev NoiseSpace := ℕ → ℝ
+
+/-- The infinite product measure of standard Gaussians. -/
+private noncomputable def noiseMeasure : Measure NoiseSpace :=
+  Measure.infinitePi (fun _ => gaussianReal 0 1)
+
+private instance noiseMeasure_isProbability : IsProbabilityMeasure noiseMeasure :=
+  Measure.instIsProbabilityMeasureForallInfinitePi _
+
+/-! ## Series Limit Map -/
+
+/-- Predicate: ξ is "good" if the K-valued Gaussian series converges. -/
+private def IsGoodNoise (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
+    (ξ : NoiseSpace) : Prop :=
+  Summable (fun n => ξ n • factV T h_inf n)
+
+/-- K-valued summability implies scalar summability for each test function. -/
+private lemma IsGoodNoise.scalar_summable
+    {T : SchwartzMap D F →L[ℝ] H} {h_inf : ¬ FiniteDimensional ℝ H} {ξ : NoiseSpace}
+    (h : IsGoodNoise T h_inf ξ) (f : SchwartzMap D F) :
+    Summable (fun n => ξ n * coeff T h_inf n f) := by
+  have hK := (innerSL ℝ (factJ T h_inf f)).summable h
+  exact hK.congr fun n => by
+    rw [innerSL_apply_apply, real_inner_smul_right, real_inner_comm,
+        ← factV_inner_eq T h_inf f n]; rfl
+
+/-- The series limit as a raw function. -/
+private noncomputable def seriesLimitFun
+    (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
+    (ξ : NoiseSpace) (f : SchwartzMap D F) : ℝ :=
+  if IsGoodNoise T h_inf ξ
+  then ∑' n, ξ n * coeff T h_inf n f
+  else 0
+
+/-- The series limit as a linear map. -/
+private noncomputable def seriesLimitLinear
+    (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
+    (ξ : NoiseSpace) : SchwartzMap D F →ₗ[ℝ] ℝ where
+  toFun := seriesLimitFun T h_inf ξ
+  map_add' := fun f g => by
+    simp only [seriesLimitFun]
+    split_ifs with h
+    · have hf := h.scalar_summable f
+      have hg := h.scalar_summable g
+      have heq : (fun n => ξ n * coeff T h_inf n (f + g)) =
+                 (fun n => ξ n * coeff T h_inf n f + ξ n * coeff T h_inf n g) := by
+        ext n; simp [coeff, inner_add_right, mul_add]
+      conv_lhs => rw [heq]
+      exact hf.tsum_add hg
+    · simp
+  map_smul' := fun c f => by
+    simp only [seriesLimitFun, RingHom.id_apply, smul_eq_mul]
+    split_ifs with h
+    · have hf := h.scalar_summable f
+      have heq : (fun n => ξ n * coeff T h_inf n (c • f)) =
+                 (fun n => c • (ξ n * coeff T h_inf n f)) := by
+        ext n; simp [coeff, real_inner_smul_right, smul_eq_mul]; ring
+      conv_lhs => rw [heq]
+      rw [hf.tsum_const_smul c, smul_eq_mul]
+    · rw [mul_zero]
+
+/-- The series limit as an element of Configuration D F (weak dual).
+    Continuity is proved via CLM composition through K. -/
+private noncomputable def seriesLimit
+    (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
+    (ξ : NoiseSpace) : Configuration D F :=
+  ⟨seriesLimitLinear T h_inf ξ, by
+    by_cases h : IsGoodNoise T h_inf ξ
+    · -- Good noise: functional = ⟨w, j(·)⟩_K, continuous via CLM composition
+      let w : FactK T h_inf := ∑' n, ξ n • factV T h_inf n
+      have h_eq : ∀ f, ∑' n, ξ n * coeff T h_inf n f =
+          @inner ℝ (FactK T h_inf) _ w (factJ T h_inf f) := by
+        intro f
+        simp_rw [coeff, factV_inner_eq T h_inf f]
+        have h_clm := (innerSL ℝ (factJ T h_inf f)).map_tsum h
+        rw [show @inner ℝ (FactK T h_inf) _ w (factJ T h_inf f) =
+              @inner ℝ (FactK T h_inf) _ (factJ T h_inf f) w from
+                real_inner_comm _ _]
+        rw [show @inner ℝ (FactK T h_inf) _ (factJ T h_inf f) w =
+              (innerSL ℝ (factJ T h_inf f)) w from rfl]
+        rw [h_clm]
+        congr 1; ext n
+        simp [innerSL_apply_apply, real_inner_comm (factV T h_inf n) (factJ T h_inf f)]
+      have h_cont : Continuous (fun f => @inner ℝ (FactK T h_inf) _ w (factJ T h_inf f)) :=
+        ((innerSL ℝ w).comp (factJ T h_inf)).continuous
+      convert h_cont using 1
+      ext f
+      show seriesLimitFun T h_inf ξ f = _
+      simp only [seriesLimitFun, if_pos h]
+      exact h_eq f
+    · -- Bad noise: functional is 0, trivially continuous
+      have h0 : (seriesLimitLinear T h_inf ξ).toFun = fun _ => 0 := by
+        ext f; show seriesLimitFun T h_inf ξ f = 0
+        simp only [seriesLimitFun, if_neg h]
+      simp only [h0]
+      exact continuous_const⟩
+
+/-- IsGoodNoise holds a.e. under noiseMeasure. -/
+private theorem isGoodNoise_ae (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) :
+    ∀ᵐ ξ ∂noiseMeasure, IsGoodNoise T h_inf ξ :=
+  hilbert_gaussian_series_converges (factV T h_inf) (factV_summable T h_inf)
+
+/-- The limUnder of partial sums is measurable (for a fixed test function). -/
+private theorem limUnder_partialSum_measurable
+    (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
+    (φ : SchwartzMap D F) :
+    Measurable (fun ξ : NoiseSpace =>
+      limUnder Filter.atTop (fun N => ∑ k ∈ Finset.range N,
+        ξ k * coeff T h_inf k φ)) := by
+  apply MeasureTheory.StronglyMeasurable.measurable
+  apply MeasureTheory.StronglyMeasurable.limUnder
+  intro N
+  have : (fun ξ : NoiseSpace => ∑ k ∈ Finset.range N, ξ k * coeff T h_inf k φ) =
+    ∑ k ∈ Finset.range N, (fun ξ => ξ k * coeff T h_inf k φ) := by
+    ext ξ; simp [Finset.sum_apply]
+  rw [this]
+  apply Finset.stronglyMeasurable_sum
+  intro k _
+  exact ((measurable_pi_apply k).stronglyMeasurable).mul stronglyMeasurable_const
+
+/-- The series limit is AE-measurable. -/
+private theorem aemeasurable_seriesLimit (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) :
+    AEMeasurable (seriesLimit T h_inf) noiseMeasure := by
+  have h_null : noiseMeasure {ξ | ¬IsGoodNoise T h_inf ξ} = 0 :=
+    ae_iff.mp (isGoodNoise_ae T h_inf)
+  obtain ⟨N, hN_sub, hN_meas, hN_null⟩ := exists_measurable_superset_of_null h_null
+  set S := Nᶜ with hS_def
+  have hS_meas : MeasurableSet S := hN_meas.compl
+  have hS_sub : ∀ ξ ∈ S, IsGoodNoise T h_inf ξ := fun ξ hξ => by
+    by_contra h; exact hξ (hN_sub h)
+  have hS_null : noiseMeasure Sᶜ = 0 := by rwa [hS_def, compl_compl]
+  let g : NoiseSpace → Configuration D F := S.indicator (seriesLimit T h_inf)
+  have hg_meas : @Measurable NoiseSpace (Configuration D F) _ instMeasurableSpaceConfiguration g := by
+    apply configuration_measurable_of_eval_measurable
+    intro φ
+    have h_eval : (fun ξ => g ξ φ) = S.indicator (fun ξ => seriesLimit T h_inf ξ φ) := by
+      ext ξ; simp only [g, Set.indicator]; split_ifs <;> rfl
+    rw [h_eval]
+    have h_eq : S.indicator (fun ξ => seriesLimit T h_inf ξ φ) =
+        S.indicator (fun ξ => limUnder Filter.atTop
+          (fun N => ∑ k ∈ Finset.range N, ξ k * coeff T h_inf k φ)) := by
+      ext ξ; simp only [Set.indicator]; split_ifs with h
+      · have hgood := hS_sub ξ h
+        show seriesLimitFun T h_inf ξ φ = _
+        simp only [seriesLimitFun, if_pos hgood]
+        exact ((hgood.scalar_summable φ).hasSum.tendsto_sum_nat).limUnder_eq.symm
+      · rfl
+    rw [h_eq]
+    exact (limUnder_partialSum_measurable T h_inf φ).indicator hS_meas
+  have hg_ae : seriesLimit T h_inf =ᵐ[noiseMeasure] g := by
+    rw [Filter.EventuallyEq, Filter.eventually_iff_exists_mem]
+    exact ⟨S, mem_ae_iff.mpr hS_null, fun ξ hξ => by simp [g, hξ]⟩
+  exact ⟨g, hg_meas, hg_ae⟩
+
+/-! ## Measure Definition -/
+
 /-- The Gaussian measure on S'(D,F) constructed from a CLM T : S(D,F) → H.
 
     This is the pushforward of the infinite product of iid N(0,1) random
-    variables under the series limit map ξ ↦ (f ↦ ∑ₙ ξₙ ⟨eₙ, T(f)⟩),
-    where {eₙ} is the adapted ONB from the target factorization.
+    variables under the series limit map.
 
     Requires H to be infinite-dimensional. -/
 def measure (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :
-    ProbabilityMeasure (Configuration D F) := by
-  sorry
+    @Measure (Configuration D F) instMeasurableSpaceConfiguration :=
+  @Measure.map NoiseSpace (Configuration D F) _ instMeasurableSpaceConfiguration
+    (seriesLimit T h_inf) noiseMeasure
+
+instance measure_isProbability (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :
+    @IsProbabilityMeasure (Configuration D F) instMeasurableSpaceConfiguration
+      (measure T h_inf) :=
+  Measure.isProbabilityMeasure_map (aemeasurable_seriesLimit T h_inf)
+
+/-! ## Characteristic Functional -/
+
+/-- For a.e. ξ, partial sums converge to the series limit. -/
+private theorem partialSum_tendsto (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (f : SchwartzMap D F) :
+    ∀ᵐ ξ ∂noiseMeasure, Filter.Tendsto
+      (fun N => ∑ k ∈ Finset.range N, ξ k * coeff T h_inf k f)
+      Filter.atTop
+      (nhds (seriesLimit T h_inf ξ f)) := by
+  filter_upwards [isGoodNoise_ae T h_inf] with ξ hgood
+  have hsummable := hgood.scalar_summable f
+  have hlimit : (seriesLimit T h_inf ξ f) =
+      ∑' n, ξ n * coeff T h_inf n f := by
+    show seriesLimitFun T h_inf ξ f = _
+    simp only [seriesLimitFun, if_pos hgood]
+  rw [hlimit]
+  exact hsummable.hasSum.tendsto_sum_nat
+
+/-- Coordinate projections are iIndepFun under the noise measure. -/
+private theorem coord_projections_indep :
+    iIndepFun (m := fun _ => inferInstance)
+    (fun i (ξ : NoiseSpace) ↦ ξ i) noiseMeasure := by
+  have h := @iIndepFun_infinitePi ℕ (fun _ => ℝ) (fun _ => inferInstance)
+    (fun _ => ℝ) (fun _ => inferInstance) (fun _ => gaussianReal 0 1) _
+    (fun _ => id) (fun _ => measurable_id)
+  simp only [id_eq] at h
+  exact h
+
+/-- Independence factorization for integrals over the noise measure. -/
+private theorem noise_integral_factor (n : ℕ)
+    (g : NoiseSpace → ℂ) (h : ℝ → ℂ)
+    (hg : ∀ ξ ξ', (∀ k < n, ξ k = ξ' k) → g ξ = g ξ')
+    (hg_meas : Measurable g)
+    (hh_meas : Measurable h) :
+    ∫ ξ, g ξ * h (ξ n) ∂noiseMeasure =
+      (∫ ξ, g ξ ∂noiseMeasure) * (∫ x, h x ∂gaussianReal 0 1) := by
+  have hdisj : Disjoint (Finset.range n) ({n} : Finset ℕ) := by
+    rw [Finset.disjoint_left]; intro a ha hn
+    simp only [Finset.mem_singleton] at hn
+    simp only [Finset.mem_range] at ha; omega
+  let X : NoiseSpace → (Finset.range n → ℝ) := fun ξ i => ξ i
+  let Y : NoiseSpace → ℝ := fun ξ => ξ n
+  have hX_meas : Measurable X := measurable_pi_lambda _ (fun i => measurable_pi_apply _)
+  have hY_meas : Measurable Y := measurable_pi_apply n
+  let Y' : NoiseSpace → ({n} : Finset ℕ) → ℝ := fun ξ i => ξ i
+  have hindep' : IndepFun X Y' noiseMeasure :=
+    coord_projections_indep.indepFun_finset (Finset.range n) {n} hdisj
+      (fun _ => measurable_pi_apply _)
+  have hindep : IndepFun X Y noiseMeasure := by
+    have hY_eq : Y = (fun f => f ⟨n, Finset.mem_singleton_self n⟩) ∘ Y' := rfl
+    rw [hY_eq]
+    exact hindep'.comp measurable_id (measurable_pi_apply _)
+  let extend_to_full : (Finset.range n → ℝ) → NoiseSpace :=
+    fun f k => if hk : k < n then f ⟨k, Finset.mem_range.mpr hk⟩ else 0
+  have hext_meas : Measurable extend_to_full := by
+    apply measurable_pi_lambda; intro k; by_cases hk : k < n
+    · simp only [extend_to_full, dif_pos hk]; exact measurable_pi_apply _
+    · simp only [extend_to_full, dif_neg hk]; exact measurable_const
+  let g' : (Finset.range n → ℝ) → ℂ := g ∘ extend_to_full
+  have hg'_meas : Measurable g' := hg_meas.comp hext_meas
+  have hg_factor : ∀ ξ, g ξ = g' (X ξ) := by
+    intro ξ; simp only [g', Function.comp_apply]
+    apply hg; intro k hk; simp only [extend_to_full, X, dif_pos hk]
+  have heval : MeasurePreserving Y noiseMeasure (gaussianReal 0 1) :=
+    measurePreserving_eval_infinitePi (fun _ => gaussianReal 0 1) n
+  have hY_int : ∫ x, h x ∂gaussianReal 0 1 = ∫ ξ, h (Y ξ) ∂noiseMeasure := by
+    simp only [← heval.map_eq]
+    exact integral_map hY_meas.aemeasurable hh_meas.aestronglyMeasurable
+  rw [hY_int]
+  conv_lhs => arg 2; ext ξ; rw [hg_factor ξ]
+  conv_rhs => arg 1; arg 2; ext ξ; rw [hg_factor ξ]
+  conv_lhs => arg 2; ext ξ; rw [show h (ξ n) = h (Y ξ) from rfl]
+  exact hindep.integral_fun_comp_mul_comp hX_meas.aemeasurable hY_meas.aemeasurable
+    hg'_meas.aestronglyMeasurable hh_meas.aestronglyMeasurable
+
+/-- Characteristic functional of the partial sum. -/
+private theorem partial_sum_charFun (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (f : SchwartzMap D F) (N : ℕ) :
+    ∫ ξ, Complex.exp (Complex.I * ↑(∑ k ∈ Finset.range N,
+      ξ k * coeff T h_inf k f)) ∂noiseMeasure =
+    Complex.exp (-(1/2 : ℂ) * ∑ k ∈ Finset.range N,
+      (coeff T h_inf k f : ℂ) ^ 2) := by
+  simp_rw [Complex.ofReal_sum, Complex.ofReal_mul]
+  conv_lhs => arg 2; ext ξ; rw [Finset.mul_sum]
+  simp_rw [Complex.exp_sum]
+  induction N with
+  | zero =>
+    simp only [Finset.range_zero, Finset.prod_empty, Finset.sum_empty, mul_zero,
+      Complex.exp_zero, integral_const]
+    have h : noiseMeasure.real Set.univ = 1 := by
+      simp only [Measure.real, measure_univ, ENNReal.toReal_one]
+    simp only [h, one_smul]
+  | succ n ih =>
+    simp only [Finset.range_add_one, Finset.prod_insert Finset.notMem_range_self,
+               Finset.sum_insert Finset.notMem_range_self]
+    conv_lhs => arg 2; ext xi; rw [mul_comm]
+    let g := fun xi : NoiseSpace =>
+      ∏ x ∈ Finset.range n, Complex.exp (Complex.I * (↑(xi x) * ↑(coeff T h_inf x f)))
+    let h := fun x : ℝ => Complex.exp (Complex.I * (↑x * ↑(coeff T h_inf n f)))
+    have hfactor : ∫ xi, g xi * h (xi n) ∂noiseMeasure =
+        (∫ xi, g xi ∂noiseMeasure) * (∫ x, h x ∂gaussianReal 0 1) := by
+      apply noise_integral_factor
+      · intro xi xi' hcoords; simp only [g]
+        apply Finset.prod_congr rfl
+        intro k hk; rw [hcoords k (Finset.mem_range.mp hk)]
+      · exact (by continuity : Continuous g).measurable
+      · exact (by continuity : Continuous h).measurable
+    rw [hfactor, ih]
+    have hcf : ∫ x, h x ∂gaussianReal 0 1 =
+        Complex.exp (-(1/2 : ℂ) * (coeff T h_inf n f : ℂ) ^ 2) := by
+      simp only [h]
+      have hcf' := charFun_gaussianReal (μ := 0) (v := 1) (coeff T h_inf n f)
+      simp only [charFun_apply_real] at hcf'
+      convert hcf' using 1
+      · apply integral_congr_ae; filter_upwards with x; congr 1; ring
+      · congr 1; simp only [Complex.ofReal_zero, mul_zero, zero_mul, zero_sub]
+        norm_cast; push_cast; ring
+    rw [hcf, ← Complex.exp_add]; congr 1; ring
 
 /-- **Characteristic functional identity**: The constructed measure has
     characteristic functional exp(-½ ‖T(f)‖²).
@@ -115,8 +521,60 @@ def measure (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ 
 theorem charFun (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (f : SchwartzMap D F) :
     ∫ ω : Configuration D F,
-      Complex.exp (Complex.I * ↑(ω f)) ∂(measure T h_inf).toMeasure =
+      Complex.exp (Complex.I * ↑(ω f)) ∂(measure T h_inf) =
     Complex.exp (-(1/2 : ℂ) * ↑(@inner ℝ H _ (T f) (T f))) := by
-  sorry
+  -- Step 1: Pushforward formula
+  unfold measure
+  rw [integral_map (aemeasurable_seriesLimit T h_inf)]
+  swap
+  · exact (Complex.continuous_exp.measurable.comp
+      (measurable_const.mul (Complex.continuous_ofReal.measurable.comp
+        (configuration_eval_measurable f)))).aestronglyMeasurable
+  -- Step 2: Parseval identity for the target
+  have hparseval : (@inner ℝ H _ (T f) (T f) : ℂ) =
+      ∑' n, (coeff T h_inf n f : ℂ) ^ 2 := by
+    have h := coeff_parseval T h_inf f
+    rw [← real_inner_self_eq_norm_sq] at h
+    simp only [← Complex.ofReal_pow] at h ⊢
+    rw [← h]; simp only [Complex.ofReal_tsum]
+  rw [hparseval]
+  -- Step 3: Summability of the complex coefficient series
+  have hsummable : Summable (fun n => (coeff T h_inf n f : ℂ) ^ 2) := by
+    have hr := coeff_sq_summable T h_inf f
+    simp only [← Complex.ofReal_pow]
+    exact Complex.summable_ofReal.mpr hr
+  -- Step 4: The target limit
+  have hcf_limit : Filter.Tendsto
+      (fun N => Complex.exp (-(1/2 : ℂ) * ∑ k ∈ Finset.range N,
+        (coeff T h_inf k f : ℂ) ^ 2))
+      Filter.atTop
+      (nhds (Complex.exp (-(1/2 : ℂ) * ∑' n, (coeff T h_inf n f : ℂ) ^ 2))) := by
+    apply Complex.continuous_exp.continuousAt.tendsto.comp
+    apply Filter.Tendsto.const_mul
+    exact hsummable.hasSum.tendsto_sum_nat
+  -- Step 5: By partial_sum_charFun, for each N:
+  have hpartial : ∀ N, ∫ ξ, Complex.exp (Complex.I *
+      ↑(∑ k ∈ Finset.range N, ξ k * coeff T h_inf k f)) ∂noiseMeasure =
+      Complex.exp (-(1/2 : ℂ) * ∑ k ∈ Finset.range N,
+        (coeff T h_inf k f : ℂ) ^ 2) :=
+    fun N => partial_sum_charFun T h_inf f N
+  -- Step 6: DCT argument
+  have hdct : Filter.Tendsto
+      (fun N => ∫ ξ, Complex.exp (Complex.I *
+        ↑(∑ k ∈ Finset.range N, ξ k * coeff T h_inf k f)) ∂noiseMeasure)
+      Filter.atTop
+      (nhds (∫ ξ, Complex.exp (Complex.I * ↑(seriesLimit T h_inf ξ f)) ∂noiseMeasure)) := by
+    apply MeasureTheory.tendsto_integral_of_dominated_convergence (fun _ => (1 : ℝ))
+    · intro N; apply Continuous.aestronglyMeasurable; continuity
+    · exact integrable_const 1
+    · intro N; filter_upwards with ξ
+      rw [mul_comm, Complex.norm_exp_ofReal_mul_I]
+    · filter_upwards [partialSum_tendsto T h_inf f] with ξ htends
+      apply Complex.continuous_exp.continuousAt.tendsto.comp
+      apply Filter.Tendsto.const_mul
+      exact Complex.continuous_ofReal.continuousAt.tendsto.comp htends
+  -- Step 7: Combine via uniqueness of limits
+  exact tendsto_nhds_unique hdct
+    (Filter.Tendsto.congr (fun N => (hpartial N).symm) hcf_limit)
 
 end GaussianMeasure

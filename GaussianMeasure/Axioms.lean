@@ -126,16 +126,22 @@ axiom schwartz_hermite_expansion
     are controlled by powers of H. -/
 axiom schwartz_hermite_seminorm_growth
     (k l : ℕ) : ∃ (C : ℝ) (s : ℝ), C > 0 ∧ s ≥ 0 ∧
-    ∀ m : ℕ, SchwartzMap.seminorm ℝ k l (schwartzHermiteBasis D F m) ≤ C * (1 + m) ^ s
+    ∀ m : ℕ, SchwartzMap.seminorm ℝ k l (schwartzHermiteBasis D F m) ≤ C * (1 + (m : ℝ)) ^ s
 
-/-- Coefficient decay: coefficients decay faster than any polynomial.
+/-- Coefficient decay: coefficients decay faster than any polynomial,
+    uniformly controlled by a single Schwartz seminorm.
 
-    For every k ≥ 0 and every f ∈ S(D,F), the sequence
-      m ↦ |c_m(f)| · (1 + m)^k
-    is summable. This is the Schwartz-space analogue of "smooth functions
-    have rapidly decaying Fourier coefficients." -/
+    For every k ≥ 0 there exist C > 0 and a Schwartz seminorm index q
+    such that for all f ∈ S(D,F) and m ∈ ℕ:
+      |c_m(f)| · (1 + m)^k ≤ C · p_q(f)
+
+    This is the Schwartz-space analogue of "smooth functions have rapidly
+    decaying Fourier coefficients" — the equicontinuity version needed for
+    the nuclear representation theorem. -/
 axiom schwartz_hermite_coefficient_decay
-    (k : ℕ) (f : SchwartzMap D F) :
-    Summable (fun m => |schwartzHermiteCoeff D F m f| * (1 + m) ^ k)
+    (k : ℝ) : ∃ (C : ℝ) (q : ℕ × ℕ), C > 0 ∧
+    ∀ (f : SchwartzMap D F) (m : ℕ),
+      |schwartzHermiteCoeff D F m f| * (1 + (m : ℝ)) ^ k ≤
+        C * SchwartzMap.seminorm ℝ q.1 q.2 f
 
 end GaussianMeasure
