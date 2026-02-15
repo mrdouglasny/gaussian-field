@@ -36,13 +36,16 @@ The user provides:
 
 | Definition / Theorem | Type | Description |
 |---|---|---|
-| `measure T h_inf` | `ProbabilityMeasure (Configuration D F)` | The Gaussian measure |
+| `measure T h_inf` | `Measure (Configuration D F)` | The Gaussian measure (with `IsProbabilityMeasure` instance) |
 | `covariance T f g` | `ℝ` | $C(f,g) = \langle T(f), T(g) \rangle_H$ |
 | `charFun T h_inf f` | integral identity | $\mathbb{E}[e^{i\omega(f)}] = e^{-\frac{1}{2}\|Tf\|^2}$ |
+| `pairing_is_gaussian` | measure equality | Pushforward by $\omega \mapsto \omega(f)$ is $N(0, \|Tf\|^2)$ |
 | `measure_centered` | integral = 0 | $\mathbb{E}[\omega(f)] = 0$ |
 | `second_moment_eq_covariance` | integral identity | $\mathbb{E}[\omega(f)^2] = \|Tf\|^2$ |
 | `cross_moment_eq_covariance` | integral identity | $\mathbb{E}[\omega(f)\omega(g)] = \langle Tf, Tg \rangle$ |
 | `pairing_integrable` | `Integrable` | $\omega(f)$ is integrable |
+| `pairing_memLp` | `MemLp` | $\omega(f) \in L^p$ for all finite $p$ (Fernique-type) |
+| `pairing_product_integrable` | `Integrable` | $\omega(f)\omega(g)$ is integrable |
 
 ### Design note
 
