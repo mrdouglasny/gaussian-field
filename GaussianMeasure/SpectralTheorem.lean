@@ -5,13 +5,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Spectral Theorem for Compact Self-Adjoint Operators
 
 Proves the spectral theorem for compact self-adjoint operators on
-real Hilbert spaces from 2 axioms:
-- `compact_operator_eigenspace_finiteDimensional`
-- `compact_selfAdjoint_eigenvalues_finite_above_eps`
+real Hilbert spaces with no custom axioms — all results are fully proved
+using only Mathlib.
 
-Plus 2 proved lemmas:
-- `compact_selfAdjoint_hasEigenvector` (proved inline)
-- `compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot` (proved inline)
+Key proved lemmas:
+- `compact_selfAdjoint_hasEigenvector` (proved via maximizing sequence + T² approach)
+- `compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot` (proved via restrict-to-complement)
 
 ## Main result
 
@@ -29,6 +28,9 @@ Hilbert space, there exist a HilbertBasis of eigenvectors and eigenvalues
 import GaussianMeasure.Axioms
 import Mathlib.Analysis.InnerProductSpace.Rayleigh
 import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+import Mathlib.Analysis.InnerProductSpace.Spectrum
+import Mathlib.Analysis.InnerProductSpace.Adjoint
+import Mathlib.Analysis.Normed.Operator.Compact
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.Module
 import Mathlib.Topology.Algebra.InfiniteSum.Module
