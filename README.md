@@ -142,6 +142,28 @@ instance schwartz_nuclearSpace : NuclearSpace (SchwartzMap D F) where
 
 The 5 axioms encode standard results about multi-dimensional Hermite functions that are not yet in Mathlib.
 
+### Which spaces are nuclear?
+
+The test function space $E$ **must** be nuclear Fréchet for the construction to
+apply. Not every function space qualifies. A theorem of Grothendieck: an
+infinite-dimensional Banach (or Hilbert) space is never nuclear. Nuclearity
+requires the topology to be strictly weaker than any single norm — it needs
+a *family* of seminorms with specific decay properties between them.
+
+| Space | Nuclear? | Why |
+|---|---|---|
+| $C^\infty(M)$, $M$ compact | Yes | Projective limit of Sobolev spaces; linking maps are nuclear |
+| $\mathcal{S}(\mathbb{R}^d)$ | Yes | Same structure with Hermite eigenbasis |
+| $s(\mathbb{Z}^d)$ (rapidly decaying sequences) | Yes | Discrete analogue of Schwartz space |
+| $H^s(M)$ for fixed $s$ | **No** | Hilbert space, infinite-dimensional |
+| $\ell^2(\mathbb{Z}^d)$ | **No** | Hilbert space, infinite-dimensional |
+| $L^2(\mathbb{R}^d)$ | **No** | Hilbert space, infinite-dimensional |
+| $\mathbb{R}^N$ (finite lattice) | Yes | Finite-dimensional (trivially nuclear) |
+
+The pattern: $C^\infty = \bigcap_k H^k$ is nuclear (intersection of all Sobolev
+levels), but any individual $H^k$ is not. The Gaussian measure lives on the dual
+$\mathcal{D}' = \bigcup_k H^{-k}$ (distributions), which contains every $H^{-k}$.
+
 ### Target instances for other spaces
 
 **$C^\infty(S^1)$ via Fourier basis.** Basis: Fourier modes $e^{inx}$. Seminorms: Sobolev norms $\|f\|_k = \sum_n (1+|n|)^{2k} |\hat{f}(n)|^2$. Growth: $\|e^{inx}\|_k = (1+|n|)^k$. Decay: $|\hat{f}(n)| \cdot (1+|n|)^k \le C \|f\|_{k+1}$.
@@ -149,6 +171,8 @@ The 5 axioms encode standard results about multi-dimensional Hermite functions t
 **$C^\infty(M)$ for compact Riemannian $M$.** Basis: eigenfunctions of the Laplace-Beltrami operator. Growth from Weyl asymptotics: eigenvalue growth $\sim n^{2/\dim M}$. Decay from smoothness.
 
 **Finite lattice spaces $\Lambda \to \mathbb{R}$.** Finite-dimensional spaces are trivially nuclear. Standard basis; growth/decay are trivial since finitely many terms are nonzero.
+
+**Infinite lattice $\mathbb{Z}^d$: rapidly decaying sequences $s(\mathbb{Z}^d)$.** The space $\ell^2(\mathbb{Z}^d)$ is a Hilbert space and therefore **not** nuclear. To get a nuclear space on an infinite lattice, use $s(\mathbb{Z}^d)$ — sequences $f : \mathbb{Z}^d \to \mathbb{R}$ satisfying $\sum_n |f(n)|^2 (1+|n|)^{2k} < \infty$ for all $k$. This is the discrete analogue of Schwartz space. Basis: standard delta functions $e_n$. Coefficients: point evaluations $f \mapsto f(n)$. Growth: $p_k(e_n) = (1+|n|)^k$. Decay: $|f(n)| (1+|n|)^k \le p_k(f)$. No axioms needed — all proofs are elementary. This is the easiest infinite-dimensional instance to formalize.
 
 **Half-line via Laguerre basis.** Laguerre functions on $\mathbb{R}_+$ play the role of Hermite functions on $\mathbb{R}$. Growth and decay estimates map 1:1 to the Hermite case.
 

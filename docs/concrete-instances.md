@@ -202,6 +202,94 @@ of the test function space.
 
 ---
 
+## 2b. Infinite lattice $\mathbb{Z}^d$: rapidly decaying sequences
+
+### Why $\ell^2(\mathbb{Z}^d)$ doesn't work
+
+A theorem of Grothendieck: an infinite-dimensional Banach space is never
+nuclear. Since $\ell^2(\mathbb{Z}^d)$ is an infinite-dimensional Hilbert
+space, it cannot carry a `NuclearSpace` instance. The same applies to any
+fixed Sobolev space $\ell^2_s(\mathbb{Z}^d)$.
+
+Nuclearity requires the topology to be strictly weaker than any single norm.
+It needs a *family* of seminorms with specific decay properties between them.
+
+### The nuclear alternative: $s(\mathbb{Z}^d)$
+
+The discrete analogue of Schwartz space is the space of **rapidly decaying
+sequences**:
+
+$$s(\mathbb{Z}^d) = \left\{ f : \mathbb{Z}^d \to \mathbb{R} \;\middle|\;
+\forall k \in \mathbb{N},\, \sum_{n \in \mathbb{Z}^d} |f(n)|^2 (1+|n|)^{2k} < \infty \right\}$$
+
+This is a nuclear Fréchet space, topologized by the weighted $\ell^2$ seminorms:
+
+$$p_k(f) = \left(\sum_{n \in \mathbb{Z}^d} |f(n)|^2 (1+|n|)^{2k}\right)^{1/2}$$
+
+Its dual $s'(\mathbb{Z}^d)$ consists of sequences of at most polynomial growth —
+the discrete tempered distributions.
+
+The Gel'fand triple is:
+$$s(\mathbb{Z}^d) \subset \ell^2(\mathbb{Z}^d) \subset s'(\mathbb{Z}^d)$$
+
+### Basis and coefficients
+
+This is the simplest infinite-dimensional instance because the basis and
+coefficients are trivial:
+
+- **Basis:** standard delta functions $e_n$, reindexed via a bijection
+  $\sigma : \mathbb{N} \to \mathbb{Z}^d$
+- **Coefficients:** point evaluations $c_n(f) = f(n)$
+- **Growth:** $p_k(e_n) = (1 + |n|)^k$ — polynomial
+- **Decay:** $|f(n)| \cdot (1+|n|)^k \le p_k(f)$ — immediate from the
+  seminorm definition (Cauchy-Schwarz on a single term)
+
+No axioms needed. All proofs are elementary.
+
+### Lean sketch
+
+```lean
+/-- Rapidly decaying sequences on ℤ^d — the discrete Schwartz space. -/
+structure RapidDecaySeq (d : ℕ) where
+  val : (Fin d → ℤ) → ℝ
+  rapid : ∀ k : ℕ, Summable fun n => |val n| ^ 2 * (1 + ‖(n : Fin d → ℤ)‖) ^ (2 * k)
+
+-- Reindex ℤ^d to ℕ via some computable bijection
+def enumZd (d : ℕ) : ℕ ≃ (Fin d → ℤ) := sorry
+
+instance rapidDecaySeq_nuclearSpace :
+    NuclearSpace (RapidDecaySeq d) where
+  ι := ℕ                               -- weight parameter k
+  p := fun k => sorry                   -- p_k(f) = (Σ |f(n)|² (1+|n|)^{2k})^{1/2}
+  h_with := sorry                       -- topology = seminorm topology
+  basis := fun m =>
+    let n := (enumZd d) m
+    ⟨fun n' => if n' = n then 1 else 0, sorry⟩
+  coeff := fun m =>
+    let n := (enumZd d) m
+    sorry  -- CLM: f ↦ f.val n
+  expansion := by sorry   -- f = Σ_n f(n) · e_n (straightforward)
+  basis_growth := by      -- p_k(e_n) = (1+|n|)^k
+    intro k; exact ⟨1, one_pos, k, fun m => by sorry⟩
+  coeff_decay := by       -- |f(n)| · (1+|n|)^k ≤ p_k(f) (Cauchy-Schwarz)
+    intro k; exact ⟨1, one_pos, k, fun f m => by sorry⟩
+```
+
+### Relation to finite lattices
+
+For lattice QFT, the standard approach is:
+
+1. Work on a **finite** lattice $(\mathbb{Z}/N\mathbb{Z})^d$ — trivially nuclear,
+   all computations are linear algebra
+2. Take the **infinite-volume limit** $N \to \infty$ — the limiting space is
+   $s(\mathbb{Z}^d)$ (or $C^\infty$ on a torus in the periodic case)
+
+The finite lattice instance (Section 2) handles step 1. Step 2 is a convergence
+statement analogous to the lattice-continuum limit in
+[lattice-continuum-limit.md](lattice-continuum-limit.md).
+
+---
+
 ## 3. Finite lattice on $S^1_L$ with spacing $a = L/N$
 
 ### Mathematical setup
@@ -502,13 +590,36 @@ in each factor separately.
 
 ---
 
+## Which spaces are nuclear?
+
+Not every function space is nuclear. A theorem of Grothendieck: an
+infinite-dimensional Banach (or Hilbert) space is never nuclear.
+
+| Space | Nuclear? | Reason |
+|---|---|---|
+| $C^\infty(S^1_L)$ | **Yes** | Projective limit of Sobolev spaces |
+| $\mathcal{S}(\mathbb{R}^d)$ | **Yes** | Projective limit of weighted Sobolev spaces |
+| $s(\mathbb{Z}^d)$ (rapidly decaying) | **Yes** | Projective limit of weighted $\ell^2$ |
+| $\mathbb{R}^N$ (finite lattice) | **Yes** | Finite-dimensional |
+| $H^k(S^1_L)$ for fixed $k$ | **No** | Infinite-dimensional Hilbert space |
+| $\ell^2(\mathbb{Z}^d)$ | **No** | Infinite-dimensional Hilbert space |
+| $L^2(\mathbb{R}^d)$ | **No** | Infinite-dimensional Hilbert space |
+
+The pattern: $C^\infty = \bigcap_k H^k$ is nuclear (intersection of all Sobolev
+levels), but any individual $H^k$ is not. Similarly $s(\mathbb{Z}^d) = \bigcap_k \ell^2_k(\mathbb{Z}^d)$ is nuclear,
+but any individual $\ell^2_k$ is not.
+
+The Gaussian measure lives on the dual — distributions $\mathcal{D}' = \bigcup_k H^{-k}$
+or polynomially growing sequences $s' = \bigcup_k \ell^2_{-k}$.
+
 ## Summary table
 
 | Space | `E` in Lean | `ι` | Basis | Axioms needed |
 |---|---|---|---|---|
 | $\mathcal{S}(\mathbb{R}^d)$ | `SchwartzMap D F` | `ℕ × ℕ` | Hermite | 5 (current) |
 | $C^\infty(S^1_L)$ | `SmoothCircle L` | `ℕ` | Fourier | 5 (analogous) |
-| $\{0,a,\ldots,(N\!-\!1)a\}$ | `FiniteLattice N` | `Unit` | Standard | 0 (trivial) |
+| $s(\mathbb{Z}^d)$ | `RapidDecaySeq d` | `ℕ` | Standard $e_n$ | 0 (elementary) |
+| Finite lattice | `FiniteLattice N` | `Unit` | Standard | 0 (trivial) |
 | Periodic lattice on $S^1_L$ | `PeriodicLattice N` | `Unit` | Standard/DFT | 0 (trivial) |
 | $E_1 \hat{\otimes} E_2$ | `NuclearTensorProduct E₁ E₂` | `ι₁ × ι₂` | Product | From factors |
 | $T^2_{L_1,L_2}$ | `Torus2 L₁ L₂` | `ℕ × ℕ` | Fourier² | From circle |
