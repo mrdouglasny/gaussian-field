@@ -5,8 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Gaussian Measure Construction
 
 Given a CLM T : S(D,F) → H from a Schwartz space to a separable
-infinite-dimensional Hilbert space, constructs a centered Gaussian
-probability measure μ on the weak dual S'(D,F) with covariance
+Hilbert space (finite- or infinite-dimensional), constructs a centered
+Gaussian probability measure μ on the weak dual S'(D,F) with covariance
 C(f,g) = ⟨T(f), T(g)⟩_H.
 
 ## Construction overview
@@ -27,7 +27,7 @@ C(f,g) = ⟨T(f), T(g)⟩_H.
 
 - `Configuration D F` — the configuration space S'(D,F) = WeakDual ℝ (SchwartzMap D F)
 - `covariance T f g` — the covariance bilinear form C(f,g) = ⟨T(f), T(g)⟩_H
-- `measure T h_inf` — the constructed probability measure
+- `measure T` — the constructed probability measure
 
 ## Main theorems
 
@@ -374,23 +374,76 @@ private theorem aemeasurable_seriesLimit (T : SchwartzMap D F →L[ℝ] H)
     exact ⟨S, mem_ae_iff.mpr hS_null, fun ξ hξ => by simp [g, hξ]⟩
   exact ⟨g, hg_meas, hg_ae⟩
 
+/-! ## Isometric Embedding for Finite-Dimensional H
+
+When H is finite-dimensional, we embed it isometrically into ℓ² and apply
+the infinite-dimensional construction there. This allows the public API
+to work without requiring `¬ FiniteDimensional ℝ H`. -/
+
+/-- Isometric embedding of a finite-dimensional H into ℓ² via an ONB.
+    Maps x ↦ ∑_i ⟨b_i, x⟩ • e_i where b is the stdOrthonormalBasis of H. -/
+private noncomputable def hilbertEmbedding (hfin : FiniteDimensional ℝ H) : H →L[ℝ] ell2' := by
+  haveI := hfin
+  exact ∑ i : Fin (Module.finrank ℝ H),
+    (innerSL ℝ ((stdOrthonormalBasis ℝ H) i)).smulRight (ell2_basis i.val)
+
+/-- The embedding maps x to ∑_i ⟨b_i, x⟩ • e_i. -/
+private lemma hilbertEmbedding_apply (hfin : FiniteDimensional ℝ H) (x : H) :
+    hilbertEmbedding hfin x = ∑ i : Fin (Module.finrank ℝ H),
+      @inner ℝ H _ ((stdOrthonormalBasis ℝ H) i) x • ell2_basis i.val := by
+  simp only [hilbertEmbedding, ContinuousLinearMap.sum_apply,
+             ContinuousLinearMap.smulRight_apply, innerSL_apply_apply]
+
+/-- The embedding preserves inner products.
+    Both sides equal Σ_i ⟨b_i, x⟩ * ⟨b_i, y⟩: the RHS by Parseval for the
+    finite ONB, the LHS by orthonormality of ell2_basis. -/
+private lemma hilbertEmbedding_inner (hfin : FiniteDimensional ℝ H) (x y : H) :
+    @inner ℝ ell2' _ (hilbertEmbedding hfin x) (hilbertEmbedding hfin y) =
+    @inner ℝ H _ x y := by
+  haveI := hfin
+  rw [hilbertEmbedding_apply, hilbertEmbedding_apply]
+  -- Expand using bilinearity of inner product
+  simp only [sum_inner, inner_sum, inner_smul_left, inner_smul_right,
+             starRingEnd_apply, star_trivial]
+  -- Use orthonormality of ell2_basis to collapse the double sum
+  simp_rw [show ∀ (i j : Fin (Module.finrank ℝ H)),
+      @inner ℝ ell2' _ (ell2_basis i.val) (ell2_basis j.val) =
+      if i = j then 1 else 0 from fun i j => by
+    rcases eq_or_ne i j with h | h
+    · rw [if_pos h, h, real_inner_self_eq_norm_sq,
+          ell2_basis_orthonormal.1 j.val, one_pow]
+    · rw [if_neg h]; exact ell2_basis_orthonormal.2 (show i.val ≠ j.val from
+        fun h' => h (Fin.ext h'))]
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  -- RHS: Parseval for the finite ONB
+  rw [← (stdOrthonormalBasis ℝ H).repr.inner_map_map x y, PiLp.inner_apply]
+  simp only [RCLike.inner_apply, starRingEnd_apply, star_trivial,
+             OrthonormalBasis.repr_apply_apply]
+
 /-! ## Measure Definition -/
 
 /-- The Gaussian measure on S'(D,F) constructed from a CLM T : S(D,F) → H.
 
     This is the pushforward of the infinite product of iid N(0,1) random
-    variables under the series limit map.
-
-    Requires H to be infinite-dimensional. -/
-def measure (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :
+    variables under the series limit map. Works for both finite- and
+    infinite-dimensional H: in the finite-dimensional case, H is embedded
+    isometrically into ℓ² and the construction is applied there. -/
+def measure (T : SchwartzMap D F →L[ℝ] H) :
     @Measure (Configuration D F) instMeasurableSpaceConfiguration :=
-  @Measure.map NoiseSpace (Configuration D F) _ instMeasurableSpaceConfiguration
-    (seriesLimit T h_inf) noiseMeasure
+  if hfin : FiniteDimensional ℝ H then
+    @Measure.map NoiseSpace (Configuration D F) _ instMeasurableSpaceConfiguration
+      (seriesLimit ((hilbertEmbedding hfin).comp T) ell2_not_finiteDimensional) noiseMeasure
+  else
+    @Measure.map NoiseSpace (Configuration D F) _ instMeasurableSpaceConfiguration
+      (seriesLimit T hfin) noiseMeasure
 
-instance measure_isProbability (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :
+instance measure_isProbability (T : SchwartzMap D F →L[ℝ] H) :
     @IsProbabilityMeasure (Configuration D F) instMeasurableSpaceConfiguration
-      (measure T h_inf) :=
-  Measure.isProbabilityMeasure_map (aemeasurable_seriesLimit T h_inf)
+      (measure T) := by
+  unfold measure; split_ifs with hfin
+  · exact Measure.isProbabilityMeasure_map
+      (aemeasurable_seriesLimit ((hilbertEmbedding hfin).comp T) ell2_not_finiteDimensional)
+  · exact Measure.isProbabilityMeasure_map (aemeasurable_seriesLimit T hfin)
 
 /-! ## Characteristic Functional -/
 
@@ -511,26 +564,13 @@ private theorem partial_sum_charFun (T : SchwartzMap D F →L[ℝ] H)
         norm_cast; push_cast; ring
     rw [hcf, ← Complex.exp_add]; congr 1; ring
 
-/-- **Characteristic functional identity**: The constructed measure has
-    characteristic functional exp(-½ ‖T(f)‖²).
-
-    E[exp(i⟨ω, f⟩)] = exp(-½ ‖T(f)‖²_H) = exp(-½ C(f,f))
-
-    Proof: independence of the ξₙ gives a product of 1D Gaussian CFs,
-    which telescopes via Parseval's identity. -/
-theorem charFun (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
-    (f : SchwartzMap D F) :
-    ∫ ω : Configuration D F,
-      Complex.exp (Complex.I * ↑(ω f)) ∂(measure T h_inf) =
+/-- Core computation: the noise integral equals the Gaussian characteristic functional.
+    Proved for infinite-dimensional H where the nuclear SVD applies. -/
+private theorem charFun_noise_integral (T : SchwartzMap D F →L[ℝ] H)
+    (h_inf : ¬ FiniteDimensional ℝ H) (f : SchwartzMap D F) :
+    ∫ ξ : NoiseSpace, Complex.exp (Complex.I * ↑(seriesLimit T h_inf ξ f)) ∂noiseMeasure =
     Complex.exp (-(1/2 : ℂ) * ↑(@inner ℝ H _ (T f) (T f))) := by
-  -- Step 1: Pushforward formula
-  unfold measure
-  rw [integral_map (aemeasurable_seriesLimit T h_inf)]
-  swap
-  · exact (Complex.continuous_exp.measurable.comp
-      (measurable_const.mul (Complex.continuous_ofReal.measurable.comp
-        (configuration_eval_measurable f)))).aestronglyMeasurable
-  -- Step 2: Parseval identity for the target
+  -- Parseval identity for the target
   have hparseval : (@inner ℝ H _ (T f) (T f) : ℂ) =
       ∑' n, (coeff T h_inf n f : ℂ) ^ 2 := by
     have h := coeff_parseval T h_inf f
@@ -538,12 +578,12 @@ theorem charFun (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional 
     simp only [← Complex.ofReal_pow] at h ⊢
     rw [← h]; simp only [Complex.ofReal_tsum]
   rw [hparseval]
-  -- Step 3: Summability of the complex coefficient series
+  -- Summability of the complex coefficient series
   have hsummable : Summable (fun n => (coeff T h_inf n f : ℂ) ^ 2) := by
     have hr := coeff_sq_summable T h_inf f
     simp only [← Complex.ofReal_pow]
     exact Complex.summable_ofReal.mpr hr
-  -- Step 4: The target limit
+  -- The target limit
   have hcf_limit : Filter.Tendsto
       (fun N => Complex.exp (-(1/2 : ℂ) * ∑ k ∈ Finset.range N,
         (coeff T h_inf k f : ℂ) ^ 2))
@@ -552,13 +592,13 @@ theorem charFun (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional 
     apply Complex.continuous_exp.continuousAt.tendsto.comp
     apply Filter.Tendsto.const_mul
     exact hsummable.hasSum.tendsto_sum_nat
-  -- Step 5: By partial_sum_charFun, for each N:
+  -- By partial_sum_charFun, for each N:
   have hpartial : ∀ N, ∫ ξ, Complex.exp (Complex.I *
       ↑(∑ k ∈ Finset.range N, ξ k * coeff T h_inf k f)) ∂noiseMeasure =
       Complex.exp (-(1/2 : ℂ) * ∑ k ∈ Finset.range N,
         (coeff T h_inf k f : ℂ) ^ 2) :=
     fun N => partial_sum_charFun T h_inf f N
-  -- Step 6: DCT argument
+  -- DCT argument
   have hdct : Filter.Tendsto
       (fun N => ∫ ξ, Complex.exp (Complex.I *
         ↑(∑ k ∈ Finset.range N, ξ k * coeff T h_inf k f)) ∂noiseMeasure)
@@ -573,8 +613,45 @@ theorem charFun (T : SchwartzMap D F →L[ℝ] H) (h_inf : ¬ FiniteDimensional 
       apply Complex.continuous_exp.continuousAt.tendsto.comp
       apply Filter.Tendsto.const_mul
       exact Complex.continuous_ofReal.continuousAt.tendsto.comp htends
-  -- Step 7: Combine via uniqueness of limits
+  -- Combine via uniqueness of limits
   exact tendsto_nhds_unique hdct
     (Filter.Tendsto.congr (fun N => (hpartial N).symm) hcf_limit)
+
+/-- **Characteristic functional identity**: The constructed measure has
+    characteristic functional exp(-½ ‖T(f)‖²).
+
+    E[exp(i⟨ω, f⟩)] = exp(-½ ‖T(f)‖²_H) = exp(-½ C(f,f))
+
+    Proof: independence of the ξₙ gives a product of 1D Gaussian CFs,
+    which telescopes via Parseval's identity. For finite-dimensional H,
+    we embed H isometrically into ℓ² and apply the infinite-dimensional
+    construction there. -/
+theorem charFun (T : SchwartzMap D F →L[ℝ] H) (f : SchwartzMap D F) :
+    ∫ ω : Configuration D F,
+      Complex.exp (Complex.I * ↑(ω f)) ∂(measure T) =
+    Complex.exp (-(1/2 : ℂ) * ↑(@inner ℝ H _ (T f) (T f))) := by
+  have hmeas_integrand : ∀ (μ : @Measure (Configuration D F) instMeasurableSpaceConfiguration),
+      AEStronglyMeasurable (fun ω : Configuration D F =>
+        Complex.exp (Complex.I * ↑(ω f))) μ :=
+    fun _ => (Complex.continuous_exp.measurable.comp
+      (measurable_const.mul (Complex.continuous_ofReal.measurable.comp
+        (configuration_eval_measurable f)))).aestronglyMeasurable
+  unfold measure
+  by_cases hfin : FiniteDimensional ℝ H
+  · -- Finite-dimensional case: embed H into ℓ² isometrically
+    rw [dif_pos hfin]
+    rw [integral_map
+      (aemeasurable_seriesLimit ((hilbertEmbedding hfin).comp T) ell2_not_finiteDimensional)
+      (hmeas_integrand _)]
+    -- Apply core computation for (embed ∘ T) on ℓ²
+    have h := charFun_noise_integral ((hilbertEmbedding hfin).comp T)
+      ell2_not_finiteDimensional f
+    -- Rewrite ⟨embed(Tf), embed(Tf)⟩_ℓ² = ⟨Tf, Tf⟩_H
+    simp only [ContinuousLinearMap.comp_apply] at h
+    rwa [hilbertEmbedding_inner] at h
+  · -- Infinite-dimensional case: direct argument
+    rw [dif_neg hfin]
+    rw [integral_map (aemeasurable_seriesLimit T hfin) (hmeas_integrand _)]
+    exact charFun_noise_integral T hfin f
 
 end GaussianMeasure
