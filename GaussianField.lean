@@ -6,6 +6,7 @@
 --   E[exp(i⟨ω, f⟩)] = exp(-½ ‖T(f)‖²)
 
 import GaussianField.Axioms
+import GaussianField.NuclearTensorProduct
 import GaussianField.SpectralTheorem
 import GaussianField.NuclearSVD
 import GaussianField.NuclearFactorization
