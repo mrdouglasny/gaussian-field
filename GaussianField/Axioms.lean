@@ -21,13 +21,13 @@ multi-dimensional Hermite functions that are not yet in Mathlib.
 - Thangavelu, "Lectures on Hermite and Laguerre Expansions", Ch. 1
 -/
 
-import GaussianMeasure.NuclearSpace
+import GaussianField.NuclearSpace
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 /-! ## Hermite Basis Axioms for Schwartz Space
 
@@ -95,4 +95,4 @@ noncomputable instance schwartz_nuclearSpace :
   basis_growth := fun ⟨k, l⟩ => schwartz_hermite_seminorm_growth k l
   coeff_decay := fun k => schwartz_hermite_coefficient_decay k
 
-end GaussianMeasure
+end GaussianField

@@ -1,4 +1,4 @@
-# gaussian-measure
+# gaussian-field
 
 A Lean 4 / Mathlib library for constructing **centered Gaussian probability measures on duals of nuclear Fréchet spaces**.
 
@@ -354,7 +354,7 @@ gives $T = A^{-1/2}$ directly via `CFC.rpow`, without needing the heat kernel.
 Once you have `[NuclearSpace E]` and `T : E →L[ℝ] H`, everything else is automatic:
 
 ```lean
-open GaussianMeasure in
+open GaussianField in
 
 -- The Gaussian probability measure on E' = WeakDual ℝ E
 #check measure T                             -- Measure (Configuration E)
@@ -401,7 +401,7 @@ def T  := matrixToCLM (heatKernel A (s / 2))
 -- Layer 3: the library gives us everything
 -- μ = centered Gaussian on (Fin N₁ × Fin N₂ → ℝ)' with covariance
 --   C(f,g) = ⟨f, e^{-sA} g⟩ = e^{-m²s} ⟨f, e^{-sΔ₁} ⊗ e^{-sΔ₂} g⟩
-def μ := GaussianMeasure.measure T
+def μ := GaussianField.measure T
 
 -- All properties are inherited:
 -- μ is a probability measure
@@ -423,7 +423,7 @@ points. See [lattice-continuum limit](docs/lattice-continuum-limit.md) for detai
 ## Module structure
 
 ```
-GaussianMeasure/
+GaussianField/
   NuclearSpace.lean            -- NuclearSpace typeclass + expansion_H lemma
   Axioms.lean                  -- 5 axioms (Hermite basis) → Schwartz instance
   SpectralTheorem.lean         -- Compact self-adjoint spectral theorem

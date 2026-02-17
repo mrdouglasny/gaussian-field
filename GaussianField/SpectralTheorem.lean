@@ -25,7 +25,7 @@ Hilbert space, there exist a HilbertBasis of eigenvectors and eigenvalues
 - Brezis, "Functional Analysis", Thm 6.11
 -/
 
-import GaussianMeasure.Axioms
+import GaussianField.Axioms
 import Mathlib.Analysis.InnerProductSpace.Rayleigh
 import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
 import Mathlib.Analysis.InnerProductSpace.Spectrum
@@ -37,7 +37,7 @@ import Mathlib.Topology.Algebra.InfiniteSum.Module
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 open scoped InnerProductSpace
 open LinearMap Submodule Filter Metric
@@ -465,4 +465,4 @@ theorem compact_selfAdjoint_spectral
   simp_rw [key] at hT_sum
   exact hT_sum
 
-end GaussianMeasure
+end GaussianField

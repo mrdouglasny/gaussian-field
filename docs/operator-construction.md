@@ -132,7 +132,7 @@ for use with the Gaussian measure API.
 ### Core definitions
 
 ```lean
-namespace GaussianMeasure
+namespace GaussianField
 
 /-- Heat kernel on a finite lattice: e^{-s·A} for real symmetric A.
     This is a bounded operator for all s, even when interpreted as
@@ -158,13 +158,13 @@ theorem heatKernel_add {N : ℕ} (A : Matrix (Fin N) (Fin N) ℝ) (s t : ℝ) :
   simp [heatKernel, ← exp_add_of_commute (Commute.smul_smul _ _ _)]
   ring_nf
 
-end GaussianMeasure
+end GaussianField
 ```
 
 ### Factorization over products
 
 ```lean
-namespace GaussianMeasure
+namespace GaussianField
 
 open Matrix in
 /-- Kronecker product: A ⊗_K B as a matrix on (Fin N₁ × Fin N₂). -/
@@ -213,13 +213,13 @@ theorem heatKernel_add_scalar {N : ℕ}
   -- exp(-csI) = e^{-cs} · I
   sorry
 
-end GaussianMeasure
+end GaussianField
 ```
 
 ### Building the covariance operator T
 
 ```lean
-namespace GaussianMeasure
+namespace GaussianField
 
 /-- Package a matrix as a CLM on Fin N → ℝ. -/
 def matrixToCLM {N : ℕ} (M : Matrix (Fin N) (Fin N) ℝ) :
@@ -248,13 +248,13 @@ theorem heatCovarianceOp_product {N₁ N₂ : ℕ}
       sorry -- kron (heatCovarianceOp A₁ s) (heatCovarianceOp A₂ s) as CLM
   := sorry
 
-end GaussianMeasure
+end GaussianField
 ```
 
 ### The discrete Laplacian
 
 ```lean
-namespace GaussianMeasure
+namespace GaussianField
 
 /-- Discrete Laplacian on N sites with spacing a and Dirichlet BC.
     (Δ_a f)(k) = (f(k+1) - 2f(k) + f(k-1)) / a² -/
@@ -286,7 +286,7 @@ theorem discretePeriodicLaplacian_eigenvalues (L : ℝ) (N : ℕ) (k : Fin N) :
     sorry -- eigenvalue k equals 4 * (N/L)^2 * sin(π * k / N)^2
   := sorry
 
-end GaussianMeasure
+end GaussianField
 ```
 
 ## Putting it all together
@@ -314,7 +314,7 @@ def T_product := heatCovarianceOp (A_product L₁ L₂ N₁ N₂ mass) s
 
 -- The Gaussian measure on the product lattice
 -- (needs NuclearSpace instance for Fin N₁ × Fin N₂ → ℝ)
-#check GaussianMeasure.measure (T_product L₁ L₂ N₁ N₂ mass s)
+#check GaussianField.measure (T_product L₁ L₂ N₁ N₂ mass s)
 ```
 
 ### The factorization in action

@@ -106,7 +106,7 @@ instance smoothCircle_nuclearSpace :
 variable (L : ℝ) [Fact (0 < L)] (m : ℝ)
 variable (T : SmoothCircle L →L[ℝ] H)  -- e.g., (-d²/dx² + m²)^{-1/2}
 
-#check GaussianMeasure.measure T  -- Measure (Configuration (SmoothCircle L))
+#check GaussianField.measure T  -- Measure (Configuration (SmoothCircle L))
 ```
 
 The circumference $L$ propagates through the construction: it determines
@@ -188,7 +188,7 @@ def latticeGFF_T (a : ℝ) (N : ℕ) (mass : ℝ) :
   sorry  -- (-Δ_a + m²)^{-1/2}
 
 -- The lattice Gaussian measure
-#check GaussianMeasure.measure (latticeGFF_T a N mass)
+#check GaussianField.measure (latticeGFF_T a N mass)
 -- : Measure (Configuration (FiniteLattice N))
 ```
 
@@ -346,7 +346,7 @@ def periodicLatticeGFF_T (L : ℝ) (N : ℕ) (mass : ℝ) :
 
 -- The lattice Gaussian measure on the discrete circle
 variable (L : ℝ) [Fact (0 < L)] (N : ℕ) [NeZero N] (mass : ℝ)
-#check GaussianMeasure.measure (periodicLatticeGFF_T L N mass)
+#check GaussianField.measure (periodicLatticeGFF_T L N mass)
 ```
 
 ### Continuum limit
@@ -423,7 +423,7 @@ Still super-polynomial decay controlled by a product seminorm.
 ### Lean sketch
 
 ```lean
-namespace GaussianMeasure
+namespace GaussianField
 
 /-- Cantor pairing utilities. -/
 private def pair : ℕ × ℕ → ℕ := fun ⟨i, j⟩ => Nat.pair i j
@@ -505,7 +505,7 @@ def NuclearTensorProduct.pure [NuclearSpace E₁] [NuclearSpace E₂]
     NuclearSpace.coeff i f₁ * NuclearSpace.coeff j f₂
   rapid_decay := sorry
 
-end GaussianMeasure
+end GaussianField
 ```
 
 ### Usage: measures on product spaces
@@ -517,7 +517,7 @@ abbrev Cylinder (L : ℝ) [Fact (0 < L)] :=
   NuclearTensorProduct (SmoothCircle L) (SchwartzMap (EuclideanSpace ℝ (Fin 1)) ℝ)
 
 variable (T : Cylinder L →L[ℝ] H)
-#check GaussianMeasure.measure T
+#check GaussianField.measure T
 -- : Measure (Configuration (Cylinder L))
 
 -- Gaussian measure on distributions on the torus T²_{L₁,L₂}
@@ -526,7 +526,7 @@ abbrev Torus2 (L₁ L₂ : ℝ) [Fact (0 < L₁)] [Fact (0 < L₂)] :=
   NuclearTensorProduct (SmoothCircle L₁) (SmoothCircle L₂)
 
 variable (T₂ : Torus2 L₁ L₂ →L[ℝ] H)
-#check GaussianMeasure.measure T₂
+#check GaussianField.measure T₂
 -- : Measure (Configuration (Torus2 L₁ L₂))
 ```
 

@@ -22,13 +22,13 @@ Downstream consequences of the characteristic functional identity.
 - `pairing_memLp`: w(f) is in Lᵖ for all finite p (Fernique-type)
 -/
 
-import GaussianMeasure.Construction
+import GaussianField.Construction
 import Mathlib.Probability.Moments.Variance
 import Mathlib.MeasureTheory.Function.L2Space
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 open MeasureTheory ProbabilityTheory TopologicalSpace Complex
 open scoped BigOperators NNReal
@@ -190,4 +190,4 @@ theorem cross_moment_eq_covariance (f g : E) :
   rw [second_moment_eq_covariance T (f + g),
       second_moment_eq_covariance T (f - g)]
 
-end GaussianMeasure
+end GaussianField

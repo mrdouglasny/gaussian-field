@@ -37,7 +37,7 @@ import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 open MeasureTheory ProbabilityTheory TopologicalSpace
 
@@ -96,4 +96,4 @@ theorem hilbert_gaussian_series_converges
       rw [NNReal.coe_mul, coe_nnnorm, coe_nnnorm, norm_smul]
     exact hξ''.of_norm
 
-end GaussianMeasure
+end GaussianField

@@ -22,7 +22,7 @@ operator A : ℓ² → H, A(e_m) = y_m.
 5. Verify all required properties
 -/
 
-import GaussianMeasure.SpectralTheorem
+import GaussianField.SpectralTheorem
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
@@ -42,7 +42,7 @@ open Filter TopologicalSpace
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 /-! ## Section 0: ℓ² basics -/
 
@@ -637,4 +637,4 @@ theorem nuclear_sequence_svd
     show (if σ_ n = 0 then 0 else (σ_ n)⁻¹ * (A.adjoint (e n) : ℕ → ℝ) m) = 0
     simp [hσ]
 
-end GaussianMeasure
+end GaussianField

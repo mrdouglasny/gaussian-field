@@ -22,15 +22,15 @@ The key point is that the ONB is *output* (adapted to T's nuclear structure),
 not input — the construction fails for arbitrary ONBs.
 -/
 
-import GaussianMeasure.NuclearFactorization
-import GaussianMeasure.NuclearSVD
+import GaussianField.NuclearFactorization
+import GaussianField.NuclearSVD
 
 open scoped BigOperators
 open Filter TopologicalSpace
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
@@ -327,4 +327,4 @@ theorem nuclear_clm_target_factorization
     rw [lhs, rhs]
     congr 1; ext m; ring
 
-end GaussianMeasure
+end GaussianField

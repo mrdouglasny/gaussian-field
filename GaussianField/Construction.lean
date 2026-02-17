@@ -35,8 +35,8 @@ C(f,g) = ⟨T(f), T(g)⟩_H.
 - See `Properties.lean` for moments and integrability.
 -/
 
-import GaussianMeasure.TargetFactorization
-import GaussianMeasure.SeriesConvergence
+import GaussianField.TargetFactorization
+import GaussianField.SeriesConvergence
 import Mathlib.Probability.Distributions.Gaussian.Real
 import Mathlib.Probability.ProductMeasure
 import Mathlib.Probability.Independence.InfinitePi
@@ -47,7 +47,7 @@ import Mathlib.Topology.Algebra.Module.WeakDual
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 open MeasureTheory ProbabilityTheory TopologicalSpace
 open scoped BigOperators
@@ -654,4 +654,4 @@ theorem charFun (T : E →L[ℝ] H) (f : E) :
     rw [integral_map (aemeasurable_seriesLimit T hfin) (hmeas_integrand _)]
     exact charFun_noise_integral T hfin f
 
-end GaussianMeasure
+end GaussianField

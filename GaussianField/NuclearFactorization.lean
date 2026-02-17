@@ -24,7 +24,7 @@ seminorm) and y_m ∈ H.
 - Gel'fand, Vilenkin, "Generalized Functions" Vol 4, Ch 3-4
 -/
 
-import GaussianMeasure.NuclearSpace
+import GaussianField.NuclearSpace
 import Mathlib.Analysis.PSeries
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Topology.Algebra.InfiniteSum.Module
@@ -35,7 +35,7 @@ open Finset
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
@@ -187,4 +187,4 @@ theorem nuclear_clm_representation
     have hne : (1 + (↑m : ℝ)) ^ s_real ≠ 0 := (Real.rpow_pos_of_pos hpos s_real).ne'
     field_simp; rfl
 
-end GaussianMeasure
+end GaussianField

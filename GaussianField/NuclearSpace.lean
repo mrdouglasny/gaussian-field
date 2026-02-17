@@ -30,7 +30,7 @@ import Mathlib.Topology.Algebra.Module.Basic
 
 noncomputable section
 
-namespace GaussianMeasure
+namespace GaussianField
 
 /-- A nuclear Fréchet space with a countable Schauder basis.
 
@@ -73,4 +73,4 @@ theorem NuclearSpace.expansion_H
   simp only [ContinuousLinearMap.comp_apply, innerSL_apply_apply] at hφ
   exact hφ
 
-end GaussianMeasure
+end GaussianField
