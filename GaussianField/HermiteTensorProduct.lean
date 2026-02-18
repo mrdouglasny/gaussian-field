@@ -25,7 +25,7 @@ the continuous linear equivalence.
 **Sorrys** (reduced from 5 axioms):
 - `multiIndexEquiv` — bijection `(Fin d → ℕ) ≃ ℕ` (combinatorial)
 - `multiIndexEquiv_growth` / `multiIndexEquiv_symm_growth` — polynomial bounds
-- `schwartzHermiteBasisNd` — tensor product Hermite function as Schwartz map
+- `hermiteFunctionNd_decay` — Schwartz decay of tensor Hermite function (smoothness proved)
 - `hermiteCoeffNd_decay` — rapid decay of multi-index Hermite coefficients
 - `schwartzHermiteBasisNd_growth` — polynomial growth of basis seminorms
 - `toRapidDecayNdCLM` / `fromRapidDecayNdCLM` — forward/backward CLMs
@@ -591,18 +591,171 @@ def MultiIndex.abs {d : ℕ} (α : MultiIndex d) : ℕ :=
   ∑ i, α i
 
 /-- To flatten s(ℕ^d) to s(ℕ), we need a bijection that is polynomially bounded
-in both directions. Such a bijection exists (e.g., ordering by sum, then lexicographically). -/
-noncomputable def multiIndexEquiv (d : ℕ) : MultiIndex d ≃ ℕ := sorry
+in both directions. We use iterated Cantor pairing: peel off the last coordinate
+via `Fin.succFunEquiv`, recurse, then pair with `Nat.pairEquiv`. -/
+noncomputable def multiIndexEquiv : (d : ℕ) → MultiIndex d ≃ ℕ
+  | 0 => sorry -- Fin 0 → ℕ is a singleton, not bijectable with ℕ. Never used.
+  | 1 => Equiv.funUnique (Fin 1) ℕ
+  | (d + 2) => (Fin.succFunEquiv ℕ (d + 1)).trans
+      ((Equiv.prodCongr (multiIndexEquiv (d + 1)) (Equiv.refl ℕ)).trans Nat.pairEquiv)
+
+/-- Auxiliary: `multiIndexEquiv (d+2)` unfolds to pairing. -/
+private lemma multiIndexEquiv_succ_apply (d : ℕ) (α : MultiIndex (d + 2)) :
+    multiIndexEquiv (d + 2) α =
+      Nat.pair (multiIndexEquiv (d + 1) ((Fin.succFunEquiv ℕ (d + 1) α).1))
+        ((Fin.succFunEquiv ℕ (d + 1) α).2) := by
+  simp [multiIndexEquiv, Equiv.trans_apply, Equiv.prodCongr_apply, Nat.pairEquiv]
+
+/-- Auxiliary: `(multiIndexEquiv (d+2)).symm` unfolds through unpairing. -/
+private lemma multiIndexEquiv_succ_symm (d : ℕ) (n : ℕ) :
+    (multiIndexEquiv (d + 2)).symm n =
+      (Fin.succFunEquiv ℕ (d + 1)).symm
+        ((multiIndexEquiv (d + 1)).symm (Nat.unpair n).1, (Nat.unpair n).2) := by
+  apply (multiIndexEquiv (d + 2)).injective
+  simp only [Equiv.apply_symm_apply]
+  rw [multiIndexEquiv_succ_apply]
+  simp only [Equiv.apply_symm_apply, Nat.pair_unpair]
+
+/-- Auxiliary: `MultiIndex.abs` decomposes along `Fin.succFunEquiv` for `d + 2`. -/
+private lemma multiIndex_abs_succ (d : ℕ) (α : MultiIndex (d + 2)) :
+    (MultiIndex.abs α : ℝ) =
+      (MultiIndex.abs ((Fin.succFunEquiv ℕ (d + 1) α).1) : ℝ) +
+        ((Fin.succFunEquiv ℕ (d + 1) α).2 : ℝ) := by
+  simp only [MultiIndex.abs]
+  push_cast
+  rw [Fin.sum_univ_castSucc (n := d + 1)]
+  congr 1
+
+/-- Auxiliary: `MultiIndex.abs` of the inverse at `d+2` decomposes through unpairing. -/
+private lemma multiIndex_abs_succ_symm (d : ℕ) (n : ℕ) :
+    (MultiIndex.abs ((multiIndexEquiv (d + 2)).symm n) : ℝ) =
+      (MultiIndex.abs ((multiIndexEquiv (d + 1)).symm (Nat.unpair n).1) : ℝ) +
+        ((Nat.unpair n).2 : ℝ) := by
+  rw [multiIndexEquiv_succ_symm]
+  have h := multiIndex_abs_succ d
+    ((Fin.succFunEquiv ℕ (d + 1)).symm
+      ((multiIndexEquiv (d + 1)).symm (Nat.unpair n).1, (Nat.unpair n).2))
+  simp only [Equiv.apply_symm_apply] at h
+  exact h
 
 /-- The multi-index enumeration has polynomial growth. -/
 private lemma multiIndexEquiv_growth (d : ℕ) :
     ∃ C > 0, ∃ k : ℕ, ∀ α : MultiIndex d,
-      (1 + (multiIndexEquiv d α : ℝ)) ≤ C * (1 + (MultiIndex.abs α : ℝ)) ^ k := sorry
+      (1 + (multiIndexEquiv d α : ℝ)) ≤ C * (1 + (MultiIndex.abs α : ℝ)) ^ k := by
+  induction d with
+  | zero =>
+    -- Fin 0 → ℕ is subsingleton; pick C large enough for the unique element
+    refine ⟨1 + (multiIndexEquiv 0 Fin.elim0 : ℝ), by positivity, 0, fun α => ?_⟩
+    have : α = Fin.elim0 := Subsingleton.elim α Fin.elim0
+    subst this; simp
+  | succ n ih =>
+    match n, ih with
+    | 0, _ =>
+      -- d = 1: identity map
+      refine ⟨1, one_pos, 1, fun α => ?_⟩
+      simp only [multiIndexEquiv, Equiv.funUnique_apply, one_mul, pow_one]
+      suffices h : (α default : ℝ) ≤ (MultiIndex.abs α : ℝ) by linarith
+      gcongr
+      show α default ≤ ∑ i, α i
+      rw [Fin.default_eq_zero]
+      exact Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ 0)
+    | d + 1, ih =>
+      -- d + 2: pairing with IH
+      obtain ⟨C₁, hC₁, k₁, hbound₁⟩ := ih
+      refine ⟨(C₁ + 1) ^ 2, by positivity, 2 * (k₁ + 1), fun α => ?_⟩
+      rw [multiIndexEquiv_succ_apply]
+      set β := (Fin.succFunEquiv ℕ (d + 1) α).1
+      set a := (Fin.succFunEquiv ℕ (d + 1) α).2
+      set m := multiIndexEquiv (d + 1) β
+      have h_abs := multiIndex_abs_succ d α
+      have h_pair_bound : (1 : ℝ) + ↑(Nat.pair m a) ≤ ((1 + ↑m) + ↑a) ^ 2 := by
+        have h1 : Nat.pair m a < (max m a + 1) ^ 2 := Nat.pair_lt_max_add_one_sq m a
+        have h2 : max m a + 1 ≤ m + a + 1 := by omega
+        have h3 : (max m a + 1) ^ 2 ≤ (m + a + 1) ^ 2 := Nat.pow_le_pow_left h2 2
+        have h4 : Nat.pair m a + 1 ≤ (m + a + 1) ^ 2 := by omega
+        have h5 : ((Nat.pair m a + 1 : ℕ) : ℝ) ≤ (((m + a + 1) ^ 2 : ℕ) : ℝ) :=
+          Nat.cast_le.mpr h4
+        simp only [Nat.cast_add, Nat.cast_one, Nat.cast_pow] at h5
+        linarith
+      have h_ih := hbound₁ β
+      have h_one_abs : (1 : ℝ) ≤ 1 + (MultiIndex.abs α : ℝ) :=
+        le_add_of_nonneg_right (Nat.cast_nonneg _)
+      have h_β_le : (1 + (MultiIndex.abs β : ℝ)) ≤ (1 + (MultiIndex.abs α : ℝ)) := by
+        linarith [h_abs, (show (0 : ℝ) ≤ ↑a from Nat.cast_nonneg a)]
+      have h_a_le : (a : ℝ) ≤ (1 + (MultiIndex.abs α : ℝ)) := by
+        linarith [h_abs, (show (0 : ℝ) ≤ (MultiIndex.abs β : ℝ) from Nat.cast_nonneg _)]
+      have h_sum : (1 + (m : ℝ)) + ↑a ≤ (C₁ + 1) * (1 + (MultiIndex.abs α : ℝ)) ^ (k₁ + 1) := by
+        have hm : (1 : ℝ) + ↑m ≤ C₁ * (1 + (MultiIndex.abs α : ℝ)) ^ (k₁ + 1) := by
+          calc (1 : ℝ) + ↑m ≤ C₁ * (1 + (MultiIndex.abs β : ℝ)) ^ k₁ := h_ih
+            _ ≤ C₁ * (1 + (MultiIndex.abs α : ℝ)) ^ k₁ := by
+                apply mul_le_mul_of_nonneg_left _ hC₁.le
+                exact pow_le_pow_left₀ (by positivity) h_β_le k₁
+            _ ≤ C₁ * (1 + (MultiIndex.abs α : ℝ)) ^ (k₁ + 1) := by
+                apply mul_le_mul_of_nonneg_left _ hC₁.le
+                exact pow_le_pow_right₀ h_one_abs (Nat.le_succ k₁)
+        have ha : (a : ℝ) ≤ 1 * (1 + (MultiIndex.abs α : ℝ)) ^ (k₁ + 1) := by
+          rw [one_mul]
+          calc (a : ℝ) ≤ (1 + (MultiIndex.abs α : ℝ)) ^ 1 := by rw [pow_one]; exact h_a_le
+            _ ≤ (1 + (MultiIndex.abs α : ℝ)) ^ (k₁ + 1) :=
+                pow_le_pow_right₀ h_one_abs (by omega)
+        linarith
+      calc (1 : ℝ) + ↑(Nat.pair m a)
+          ≤ ((1 + ↑m) + ↑a) ^ 2 := h_pair_bound
+        _ ≤ ((C₁ + 1) * (1 + (MultiIndex.abs α : ℝ)) ^ (k₁ + 1)) ^ 2 := by
+            apply pow_le_pow_left₀ (by positivity) h_sum
+        _ = (C₁ + 1) ^ 2 * (1 + (MultiIndex.abs α : ℝ)) ^ (2 * (k₁ + 1)) := by
+            rw [mul_pow]; ring_nf
 
 /-- The inverse of the multi-index enumeration has polynomial growth. -/
 private lemma multiIndexEquiv_symm_growth (d : ℕ) :
     ∃ C > 0, ∃ k : ℕ, ∀ n : ℕ,
-      (1 + (MultiIndex.abs ((multiIndexEquiv d).symm n) : ℝ)) ≤ C * (1 + (n : ℝ)) ^ k := sorry
+      (1 + (MultiIndex.abs ((multiIndexEquiv d).symm n) : ℝ)) ≤ C * (1 + (n : ℝ)) ^ k := by
+  induction d with
+  | zero =>
+    refine ⟨1, one_pos, 0, fun n => ?_⟩
+    simp only [pow_zero, mul_one]
+    have : (multiIndexEquiv 0).symm n = Fin.elim0 :=
+      Subsingleton.elim _ Fin.elim0
+    rw [this]; simp [MultiIndex.abs]
+  | succ n ih =>
+    match n, ih with
+    | 0, _ =>
+      -- d = 1: identity map
+      refine ⟨1, one_pos, 1, fun n => ?_⟩
+      simp only [multiIndexEquiv, one_mul, pow_one, MultiIndex.abs]
+      show (1 : ℝ) + ↑((Equiv.funUnique (Fin 1) ℕ).symm n 0) ≤ 1 + ↑n
+      simp [Equiv.funUnique]
+    | d + 1, ih =>
+      -- d + 2: unpairing with IH
+      obtain ⟨C₁, hC₁, k₁, hbound₁⟩ := ih
+      refine ⟨C₁ + 1, by linarith, k₁ + 1, fun n => ?_⟩
+      rw [multiIndex_abs_succ_symm]
+      set p := (Nat.unpair n).1
+      set q := (Nat.unpair n).2
+      have h_unpair : (p : ℝ) + ↑q ≤ ↑n := by
+        exact_mod_cast Nat.unpair_add_le n
+      have h_p_le : (p : ℝ) ≤ ↑n := by linarith [show (0 : ℝ) ≤ ↑q from Nat.cast_nonneg q]
+      have h_q_le : (q : ℝ) ≤ ↑n := by linarith [show (0 : ℝ) ≤ ↑p from Nat.cast_nonneg p]
+      have h_one_n : (1 : ℝ) ≤ 1 + (n : ℝ) := le_add_of_nonneg_right (Nat.cast_nonneg n)
+      have h_ih := hbound₁ p
+      have h_1p : (1 : ℝ) + ↑p ≤ 1 + ↑n := by linarith
+      have h_beta : (1 : ℝ) + ↑(MultiIndex.abs ((multiIndexEquiv (d + 1)).symm p)) ≤
+          C₁ * (1 + ↑n) ^ k₁ := by
+        calc _ ≤ C₁ * (1 + ↑p) ^ k₁ := h_ih
+          _ ≤ C₁ * (1 + ↑n) ^ k₁ := by
+              apply mul_le_mul_of_nonneg_left _ hC₁.le
+              exact pow_le_pow_left₀ (by positivity) h_1p k₁
+      calc (1 : ℝ) + (↑(MultiIndex.abs ((multiIndexEquiv (d + 1)).symm p)) + ↑q)
+          ≤ C₁ * (1 + ↑n) ^ k₁ + ↑n := by linarith [h_beta, h_q_le]
+        _ ≤ C₁ * (1 + ↑n) ^ (k₁ + 1) + (1 + ↑n) ^ (k₁ + 1) := by
+            have hk : C₁ * (1 + ↑n) ^ k₁ ≤ C₁ * (1 + ↑n) ^ (k₁ + 1) := by
+              apply mul_le_mul_of_nonneg_left _ hC₁.le
+              exact pow_le_pow_right₀ h_one_n (Nat.le_succ k₁)
+            have hn : (n : ℝ) ≤ (1 + ↑n) ^ (k₁ + 1) := by
+              calc (n : ℝ) ≤ (1 + ↑n) ^ 1 := by rw [pow_one]; linarith
+                _ ≤ (1 + ↑n) ^ (k₁ + 1) := pow_le_pow_right₀ h_one_n (by omega)
+            linarith
+        _ = (C₁ + 1) * (1 + ↑n) ^ (k₁ + 1) := by ring
 
 /-! ## Multi-Dimensional Hermite Analysis -/
 
@@ -611,9 +764,37 @@ noncomputable def hermiteFunctionNd (d : ℕ) (α : MultiIndex d) :
     EuclideanSpace ℝ (Fin d) → ℝ :=
   fun x => ∏ i : Fin d, hermiteFunction (α i) (x i)
 
+/-- Each factor `fun x => hermiteFunction (α i) (x i)` is smooth on `EuclideanSpace ℝ (Fin d)`. -/
+private lemma hermiteFunctionNd_factor_contDiff (d : ℕ) (α : MultiIndex d) (i : Fin d) (m : ℕ) :
+    ContDiff ℝ m (fun x : EuclideanSpace ℝ (Fin d) => hermiteFunction (α i) (x i)) :=
+  (hermiteFunction_contDiff (α i) m).comp (contDiff_piLp_apply (p := 2))
+
+/-- The multidimensional Hermite function is smooth. -/
+private lemma hermiteFunctionNd_contDiff (d : ℕ) (α : MultiIndex d) :
+    ContDiff ℝ ∞ (hermiteFunctionNd d α) := by
+  apply contDiff_infty.mpr
+  intro m
+  exact contDiff_prod (fun i _ => hermiteFunctionNd_factor_contDiff d α i m)
+
+/-- The multidimensional Hermite function has Schwartz decay.
+
+The proof uses the product structure: each 1D factor `hermiteFunction (α i)` is Schwartz,
+so for any `k`, the factor at coordinate `i` satisfies `|x_i|^k * |D^m ψ_{α_i}(x_i)| ≤ C`.
+The `iteratedFDeriv` of the product decomposes via the multilinear Leibniz rule into sums of
+products of individual derivatives. Each term has at most one "active" coordinate that absorbs
+the `‖x‖^k` factor through Schwartz decay, while all other coordinates contribute bounded
+derivative values. -/
+private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) :
+    ∃ C : ℝ, ∀ x : EuclideanSpace ℝ (Fin d),
+      ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (hermiteFunctionNd d α) x‖ ≤ C := by
+  sorry
+
 /-- The multidimensional Hermite function as a Schwartz map. -/
 noncomputable def schwartzHermiteBasisNd (d : ℕ) (α : MultiIndex d) :
-    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ := sorry
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ where
+  toFun := hermiteFunctionNd d α
+  smooth' := hermiteFunctionNd_contDiff d α
+  decay' := hermiteFunctionNd_decay d α
 
 /-- The coefficient of a Schwartz function against a multidimensional Hermite function. -/
 noncomputable def hermiteCoeffNd (d : ℕ) (α : MultiIndex d)
