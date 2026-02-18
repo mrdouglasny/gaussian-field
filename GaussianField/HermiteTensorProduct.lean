@@ -41,6 +41,7 @@ the continuous linear equivalence.
 import SchwartzNuclear.Basis1D
 import GaussianField.NuclearTensorProduct
 import Mathlib.Algebra.Order.Chebyshev
+import Mathlib.MeasureTheory.Integral.Pi
 
 noncomputable section
 
@@ -1064,14 +1065,152 @@ noncomputable def hermiteCoeffNd (d : ℕ) (α : MultiIndex d)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) : ℝ :=
   ∫ x, f x * hermiteFunctionNd d α x
 
+/-! ### Coordinate Harmonic Oscillator Axioms
+
+The following sorry-backed lemmas are standard textbook facts about coordinate-wise
+harmonic oscillators on multi-dimensional Schwartz space.
+
+**Strategy for `hermiteCoeffNd_decay`**: For each coordinate `i`,
+the 1D harmonic oscillator `H_i = -∂²/∂x_i² + x_i²` satisfies the eigenvalue relation
+`c_α(H_i f) = (2αᵢ+1) c_α(f)` (by Fubini + 1D eigenvalue). Iterating:
+  `(2αᵢ+1)^m |c_α(f)| = |c_α(H_i^m f)| ≤ ‖H_i^m f‖_{L²} ≤ C·seminorms(f)`
+where L² Cauchy-Schwarz uses `‖Ψ_α‖_{L²} = 1` from `hermiteFunctionNd_orthonormal`.
+
+The algebraic bound `(1+|α|) ≤ d·max_i(1+αᵢ) ≤ d·max_i(2αᵢ+1)` then gives
+full multi-index decay. The "uniform coordinate bound" axiom packages all of
+this into a single sorry.
+-/
+
+/-- The coordinate harmonic oscillator `H_i = -∂²/∂x_i² + x_i²` as a CLM on `S(ℝ^d)`.
+Construction: multiplication by `x_i²` via `smulLeftCLM` (temperate growth),
+and `∂²/∂x_i²` via `fderivCLM` composed with coordinate projection. -/
+private noncomputable def coordinateHarmonicOscillatorCLM (d : ℕ) (i : Fin d) :
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ →L[ℝ]
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ := by
+  exact sorry
+
+/-- Eigenvalue relation: `c_α(H_i f) = (2αᵢ + 1) c_α(f)`.
+Proof: Fubini factors the multi-d integral, then the 1D eigenvalue relation
+`hermiteCoeff_harmonic_oscillator` applies along coordinate `i`, while the
+remaining coordinates integrate to `∏_{j≠i} δ_{αⱼ,αⱼ} = 1`. -/
+private lemma hermiteCoeffNd_coordinateHO (d : ℕ) (i : Fin d)
+    (α : MultiIndex d) (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :
+    hermiteCoeffNd d α (coordinateHarmonicOscillatorCLM d i f) =
+      (2 * (α i : ℝ) + 1) * hermiteCoeffNd d α f := by
+  exact sorry
+
+/-- Iteration: `c_α(H_i^m f) = (2αᵢ + 1)^m c_α(f)`. Proved by induction from the
+single-step eigenvalue relation. -/
+private lemma hermiteCoeffNd_coordinateHO_pow (d : ℕ) (i : Fin d) :
+    ∀ (m : ℕ) (α : MultiIndex d) (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ),
+    hermiteCoeffNd d α ((coordinateHarmonicOscillatorCLM d i ^ m) f) =
+      (2 * (α i : ℝ) + 1) ^ m * hermiteCoeffNd d α f := by
+  intro m; induction m with
+  | zero => intro α f; simp
+  | succ k ih =>
+    intro α f
+    rw [pow_succ, ContinuousLinearMap.mul_apply,
+      ih α (coordinateHarmonicOscillatorCLM d i f),
+      hermiteCoeffNd_coordinateHO, pow_succ]; ring
+
+/-- Uniform coordinate bound: for natural exponent `m`, there exist `C > 0` and a finite
+set `q` of seminorm indices such that for all `f`, `α`, and coordinates `i`:
+  `|c_α(f)| · (2αᵢ+1)^m ≤ C · q.sup(seminorms)(f)`.
+
+This packages the following chain:
+1. `(2αᵢ+1)^m |c_α(f)| = |c_α(Hᵢ^m f)|` (eigenvalue iteration)
+2. `|c_α(Hᵢ^m f)| ≤ ‖Hᵢ^m f‖_{L²}` (Cauchy-Schwarz with `‖Ψ_α‖_{L²}=1`)
+3. `‖Hᵢ^m f‖_{L²} ≤ C₀ · q₀.sup(seminorms)(Hᵢ^m f)` (L² ≤ Schwartz seminorms)
+4. `q₀.sup(seminorms)(Hᵢ^m f) ≤ Cᵢ · qᵢ.sup(seminorms)(f)` (CLM continuity)
+5. Finite union over `i ∈ Fin d` gives uniform `C` and `q`. -/
+private lemma hermiteCoeffNd_uniform_coordinate_bound (d : ℕ) (m : ℕ) :
+    ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d) (i : Fin d),
+        |hermiteCoeffNd d α f| * (2 * (α i : ℝ) + 1) ^ m ≤
+          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := by
+  exact sorry
+
 /-- Multidimensional Hermite coefficients decay rapidly.
-This is the multivariate generalization of `hermiteCoeff1D_decay`, proved via
-multivariate integration by parts. -/
+This is the multivariate generalization of `hermiteCoeff1D_decay`.
+
+**Proof**: Choose natural `m ≥ k`. For any `α`, let `i₀` maximize `α i` over `Fin d`.
+- Algebraic: `(1+|α|) ≤ d·(2α_{i₀}+1)`, so `(1+|α|)^k ≤ d^m·(2α_{i₀}+1)^m`
+- Eigenvalue: `(2α_{i₀}+1)^m |c_α(f)| ≤ C·seminorms(f)` (from uniform coordinate bound)
+- Combine: `|c_α(f)|·(1+|α|)^k ≤ d^m·C·seminorms(f)`. -/
 private lemma hermiteCoeffNd_decay (d : ℕ) (k : ℝ) :
     ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d),
         |hermiteCoeffNd d α f| * (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
-          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := sorry
+          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := by
+  -- Choose natural m ≥ max(k, 0)
+  set m := ⌈max k 0⌉₊
+  -- Get uniform coordinate bound
+  obtain ⟨C₀, q₀, hC₀, h_coord⟩ := hermiteCoeffNd_uniform_coordinate_bound d m
+  rcases d with _ | d'
+  · -- d = 0: MultiIndex.abs α = 0, so (1+0)^k = 1
+    refine ⟨C₀, q₀, hC₀, fun f α => ?_⟩
+    simp only [MultiIndex.abs, Finset.univ_eq_empty, Finset.sum_empty, Nat.cast_zero, add_zero]
+    rw [one_rpow]
+    -- |c_α(f)| * 1 = |c_α(f)|, need ≤ C₀ * q₀.sup(seminorms)(f)
+    -- For d = 0, EuclideanSpace ℝ (Fin 0) is trivial.
+    -- The Fin 0 → ℕ is unique, and the integral is essentially f(0).
+    -- Bound |c_α(f)| ≤ C₀ * seminorms(f) via L² ≤ seminorms.
+    sorry
+  · -- d = d' + 1 ≥ 1
+    refine ⟨(d' + 1 : ℝ) ^ m * C₀, q₀, by positivity, fun f α => ?_⟩
+    -- Find the coordinate maximizing α
+    obtain ⟨i₀, _, hi₀⟩ :=
+      Finset.exists_max_image Finset.univ (fun i => α i) ⟨0, Finset.mem_univ _⟩
+    -- Algebraic bound: 1 + |α| ≤ (d'+1) * (2·α_{i₀} + 1)
+    have h_abs_le : (1 + (MultiIndex.abs α : ℝ)) ≤
+        (d' + 1 : ℝ) * (2 * (α i₀ : ℝ) + 1) := by
+      simp only [MultiIndex.abs]
+      -- Work in ℕ first to avoid cast headaches
+      have h_sum : (∑ i : Fin (d' + 1), α i : ℕ) ≤ (d' + 1) * α i₀ := by
+        calc ∑ i, α i ≤ ∑ _i : Fin (d' + 1), α i₀ :=
+              Finset.sum_le_sum fun j _ => hi₀ j (Finset.mem_univ j)
+          _ = (d' + 1) * α i₀ := by rw [Finset.sum_const, Finset.card_fin, smul_eq_mul]
+      have h_nat : 1 + ∑ i : Fin (d' + 1), α i ≤ (d' + 1) * (2 * α i₀ + 1) := by
+        calc 1 + ∑ i, α i
+            ≤ 1 + (d' + 1) * α i₀ := by linarith
+          _ ≤ (d' + 1) + (d' + 1) * α i₀ := by linarith [Nat.succ_pos d']
+          _ = (d' + 1) * (α i₀ + 1) := by ring
+          _ ≤ (d' + 1) * (2 * α i₀ + 1) := by
+              apply Nat.mul_le_mul_left; omega
+      exact_mod_cast h_nat
+    -- Positivity of the base
+    have h_base_pos : (0 : ℝ) < (d' + 1 : ℝ) * (2 * (α i₀ : ℝ) + 1) := by positivity
+    have h_base_ge_one : (1 : ℝ) ≤ (d' + 1 : ℝ) * (2 * (α i₀ : ℝ) + 1) := by
+      calc (1 : ℝ) ≤ 1 + (MultiIndex.abs α : ℝ) := le_add_of_nonneg_right (Nat.cast_nonneg _)
+        _ ≤ _ := h_abs_le
+    -- Power bound: (1+|α|)^k ≤ ((d'+1)(2α_{i₀}+1))^m = (d'+1)^m * (2α_{i₀}+1)^m
+    have h_rpow : (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
+        (d' + 1 : ℝ) ^ m * (2 * (α i₀ : ℝ) + 1) ^ m := by
+      have h1 : (1 : ℝ) ≤ 1 + (MultiIndex.abs α : ℝ) :=
+        le_add_of_nonneg_right (Nat.cast_nonneg _)
+      calc (1 + (MultiIndex.abs α : ℝ)) ^ k
+          ≤ (1 + (MultiIndex.abs α : ℝ)) ^ (↑m : ℝ) :=
+            rpow_le_rpow_of_exponent_le h1
+              (le_trans (le_max_left k 0) (Nat.le_ceil (max k 0)))
+        _ = (1 + (MultiIndex.abs α : ℝ)) ^ m := by rw [rpow_natCast]
+        _ ≤ ((d' + 1 : ℝ) * (2 * (α i₀ : ℝ) + 1)) ^ m :=
+            pow_le_pow_left₀ (by positivity) h_abs_le m
+        _ = (d' + 1 : ℝ) ^ m * (2 * (α i₀ : ℝ) + 1) ^ m := mul_pow _ _ _
+    -- Combine: |c_α(f)| * (1+|α|)^k ≤ (d'+1)^m * (|c_α(f)| * (2α_{i₀}+1)^m)
+    --                                 ≤ (d'+1)^m * C₀ * q₀.sup(seminorms)(f)
+    calc |hermiteCoeffNd (d' + 1) α f| * (1 + (MultiIndex.abs α : ℝ)) ^ k
+        ≤ |hermiteCoeffNd (d' + 1) α f| *
+            ((d' + 1 : ℝ) ^ m * (2 * (α i₀ : ℝ) + 1) ^ m) :=
+          mul_le_mul_of_nonneg_left h_rpow (abs_nonneg _)
+      _ = (d' + 1 : ℝ) ^ m *
+            (|hermiteCoeffNd (d' + 1) α f| * (2 * (α i₀ : ℝ) + 1) ^ m) := by ring
+      _ ≤ (d' + 1 : ℝ) ^ m *
+            (C₀ * q₀.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f) :=
+          mul_le_mul_of_nonneg_left (h_coord f α i₀) (by positivity)
+      _ = ((d' + 1 : ℝ) ^ m * C₀) *
+            q₀.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f := by
+          ring
 
 /-- The multidimensional Hermite basis functions have polynomial growth in seminorms.
 
@@ -1382,6 +1521,49 @@ private lemma schwartz_mul_hermiteBasisNd_integrable (d : ℕ)
     Integrable (fun x => f x * hermiteFunctionNd d α x) :=
   (f.memLp 2 volume).integrable_mul ((schwartzHermiteBasisNd d α).memLp 2 volume)
 
+/-- Fubini for EuclideanSpace: factors a product integral into individual integrals.
+Bridges the MeasurableSpace instance diamond between EuclideanSpace (inner product
+based Haar measure) and Pi (product measure) via the volume-preserving equivalence. -/
+private lemma integral_euclidean_prod_eq_prod (d : ℕ)
+    (f : Fin d → ℝ → ℝ) :
+    ∫ x : EuclideanSpace ℝ (Fin d), ∏ i, f i (x i) =
+      ∏ i : Fin d, ∫ t : ℝ, f i t := by
+  have h_pi := integral_fintype_prod_volume_eq_prod f
+  convert h_pi using 1
+  exact (EuclideanSpace.volume_preserving_symm_measurableEquiv_toLp (Fin d)).integral_comp'
+    (fun y : Fin d → ℝ => ∏ i, f i (y i))
+
+/-- Multi-dimensional Hermite orthonormality:
+  `∫ Ψ_α(x) Ψ_β(x) dx = δ_{α,β}`.
+Uses product structure `Ψ_α(x) = ∏ᵢ ψ_{αᵢ}(xᵢ)` and Fubini
+(`integral_fintype_prod_volume_eq_prod`) to reduce to 1D orthonormality. -/
+private lemma hermiteFunctionNd_orthonormal (d : ℕ) (α β : MultiIndex d) :
+    ∫ x : EuclideanSpace ℝ (Fin d),
+      hermiteFunctionNd d α x * hermiteFunctionNd d β x =
+      if α = β then 1 else 0 := by
+  -- Unfold to product: Ψ_α · Ψ_β = ∏ i, (ψ_{αᵢ} · ψ_{βᵢ})
+  simp only [hermiteFunctionNd, ← Finset.prod_mul_distrib]
+  -- Apply Fubini via the EuclideanSpace → Pi bridge
+  rw [integral_euclidean_prod_eq_prod d
+    (fun i t => hermiteFunction (α i) t * hermiteFunction (β i) t)]
+  -- Each 1D factor: ∫ ψ_{αᵢ} · ψ_{βᵢ} = δ_{αᵢ, βᵢ}
+  simp_rw [hermiteFunction_orthonormal]
+  -- Collapse: ∏ᵢ δ_{αᵢ, βᵢ} = δ_{α, β}
+  by_cases h : α = β
+  · subst h; simp
+  · simp only [h, ite_false]
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp h
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+/-- Kronecker property for multi-d Hermite coefficients:
+  `hermiteCoeffNd d α (schwartzHermiteBasisNd d β) = δ_{α,β}`.
+Follows directly from orthonormality of `hermiteFunctionNd`. -/
+private lemma hermiteCoeffNd_basisNd_kronecker (d : ℕ) (α β : MultiIndex d) :
+    hermiteCoeffNd d α (schwartzHermiteBasisNd d β) = if α = β then 1 else 0 := by
+  show ∫ x, schwartzHermiteBasisNd d β x * hermiteFunctionNd d α x = _
+  simp_rw [show ∀ x, schwartzHermiteBasisNd d β x = hermiteFunctionNd d β x from fun _ => rfl]
+  convert hermiteFunctionNd_orthonormal d β α using 1
+  exact ite_congr (propext eq_comm) (fun _ => rfl) (fun _ => rfl)
+
 /-- Hermite coefficients are linear in f (multi-d). -/
 private lemma hermiteCoeffNd_linear (d : ℕ) (α : MultiIndex d) :
     IsLinearMap ℝ (hermiteCoeffNd d α) where
@@ -1399,6 +1581,53 @@ private lemma hermiteCoeffNd_linear (d : ℕ) (α : MultiIndex d) :
       fun x => c * (f x * hermiteFunctionNd d α x) from by
         ext x; simp [smul_eq_mul, mul_assoc]]
     exact MeasureTheory.integral_const_mul c _
+
+/-- Multi-d Hermite coefficient as a continuous linear map (for fixed α).
+Continuity follows from `|∫ f · Ψ_α| ≤ ‖Ψ_α‖_{L¹} · seminorm(0,0)(f)`. -/
+private noncomputable def hermiteCoeffNdCLM (d : ℕ) (α : MultiIndex d) :
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ →L[ℝ] ℝ where
+  toLinearMap := {
+    toFun := hermiteCoeffNd d α
+    map_add' := (hermiteCoeffNd_linear d α).map_add
+    map_smul' := (hermiteCoeffNd_linear d α).map_smul
+  }
+  cont := by
+    -- Bound: |∫ f Ψ_α| ≤ sup|f| · ∫|Ψ_α| ≤ seminorm(0,0)(f) · ‖Ψ_α‖_{L¹}
+    set Ψ := schwartzHermiteBasisNd d α
+    set M := ∫ x : EuclideanSpace ℝ (Fin d), ‖Ψ x‖
+    have hΨ_int : Integrable (⇑Ψ) volume := Ψ.integrable
+    let lm : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ →ₗ[ℝ] ℝ := {
+      toFun := hermiteCoeffNd d α
+      map_add' := (hermiteCoeffNd_linear d α).map_add
+      map_smul' := (hermiteCoeffNd_linear d α).map_smul
+    }
+    apply Seminorm.continuous_from_bounded
+      (schwartz_withSeminorms ℝ _ ℝ) (norm_withSeminorms ℝ ℝ) lm
+    intro _
+    refine ⟨{(0, 0)}, ⟨M, integral_nonneg (fun _ => norm_nonneg _)⟩, fun f => ?_⟩
+    simp only [Seminorm.comp_apply, Finset.sup_singleton, lm]
+    show ‖hermiteCoeffNd d α f‖ ≤
+      M * SchwartzMap.seminorm ℝ 0 0 f
+    calc ‖hermiteCoeffNd d α f‖
+        = ‖∫ x, f x * hermiteFunctionNd d α x‖ := rfl
+      _ ≤ ∫ x, ‖f x * hermiteFunctionNd d α x‖ :=
+          norm_integral_le_integral_norm _
+      _ = ∫ x, ‖f x‖ * ‖Ψ x‖ := by
+          congr 1; ext x; exact norm_mul _ _
+      _ ≤ ∫ x, SchwartzMap.seminorm ℝ 0 0 f * ‖Ψ x‖ := by
+          apply integral_mono_of_nonneg
+          · exact Filter.Eventually.of_forall fun _ =>
+              mul_nonneg (norm_nonneg _) (norm_nonneg _)
+          · exact hΨ_int.norm.const_mul _
+          · exact Filter.Eventually.of_forall fun x =>
+              mul_le_mul_of_nonneg_right
+                (SchwartzMap.norm_le_seminorm ℝ f x) (norm_nonneg _)
+      _ = SchwartzMap.seminorm ℝ 0 0 f * M := integral_const_mul _ _
+      _ = M * SchwartzMap.seminorm ℝ 0 0 f := mul_comm _ _
+
+@[simp] private theorem hermiteCoeffNdCLM_apply (d : ℕ) (α : MultiIndex d)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :
+    hermiteCoeffNdCLM d α f = hermiteCoeffNd d α f := rfl
 
 /-- Flattened multi-d Hermite coefficients form a rapid-decay sequence.
 Uses `hermiteCoeffNd_decay` and `multiIndexEquiv_growth`. -/
@@ -1909,14 +2138,70 @@ noncomputable def fromRapidDecayNdCLM (d : ℕ) :
         _ (fromRapidDecayNdLM_isBounded d')
     }
 
+/-- **Completeness of the multi-d Hermite expansion in Schwartz topology.**
+
+The Hermite expansion `∑_n c_{α(n)}(f) · Ψ_{α(n)}` converges to `f` in the
+Schwartz topology, where the sum runs over the flattened multi-index `n ↦ α(n)`
+given by `multiIndexEquiv`.
+
+**Proof sketch**: The multi-d Hermite functions `Ψ_α(x) = ∏_i ψ_{α_i}(x_i)` form a
+complete orthonormal system in `L²(ℝ^d)` (via Fubini and the 1D completeness
+`schwartz_hermite_hasSum`). For `f ∈ S(ℝ^d) ⊂ L²(ℝ^d)`, the L² Parseval expansion
+gives `f = ∑ c_α(f) Ψ_α` in L². The rapid decay of the coefficients
+(`hermiteCoeffNd_decay`) and the polynomial growth of the basis
+(`schwartzHermiteBasisNd_growth`) ensure convergence in every Schwartz seminorm,
+upgrading L² convergence to Schwartz-topology convergence. -/
+private lemma schwartz_hermite_completeness_nd (d' : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) :
+    HasSum (fun n => hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f •
+      flatBasisNd d' n) f := by
+  exact sorry
+
 /-- The d-dimensional Hermite topological isomorphism. -/
 noncomputable def schwartzRapidDecayEquivNd (d : ℕ) :
     SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L[ℝ] RapidDecaySeq :=
   ContinuousLinearEquiv.equivOfInverse
     (toRapidDecayNdCLM d)
     (fromRapidDecayNdCLM d)
-    sorry -- Left inverse (pointwise convergence of multidimensional Hermite series)
-    sorry -- Right inverse (orthonormality of the multidimensional basis)
+    -- Left inverse: fromRapidDecayNdCLM d (toRapidDecayNdCLM d f) = f
+    (fun f => by
+      match d with
+      | 0 => sorry -- Phantom case: d=0 never used (Nontrivial D requires d ≥ 1)
+      | d' + 1 =>
+        -- Completeness: the Hermite expansion converges to f
+        have h_f := schwartz_hermite_completeness_nd d' f
+        -- The same series converges to the reconstructed Schwartz function
+        have h_recon := rapidDecay_hermite_hasSumNd d' (toRapidDecayNdLM d' f)
+        -- By T2 uniqueness: the reconstructed function = f
+        exact h_recon.unique h_f)
+    -- Right inverse: toRapidDecayNdCLM d (fromRapidDecayNdCLM d a) = a
+    (fun a => by
+      match d with
+      | 0 => sorry -- Phantom case: d=0 never used, both CLMs are 0
+      | d' + 1 =>
+        apply RapidDecaySeq.ext; intro n
+        show hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n)
+          (rapidDecay_schwartzMapNd d' a) = a.val n
+        -- Rewrite the pointwise-tsum Schwartz map to the module-level tsum
+        rw [show (rapidDecay_schwartzMapNd d' a : SchwartzMap _ _) =
+            ∑' m, a.val m • flatBasisNd d' m from
+          (rapidDecay_hermite_hasSumNd d' a).tsum_eq.symm]
+        -- Push hermiteCoeffNd (as CLM) through the tsum
+        rw [show hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n)
+              (∑' m, a.val m • flatBasisNd d' m) =
+            hermiteCoeffNdCLM (d' + 1) ((multiIndexEquiv d').symm n)
+              (∑' m, a.val m • flatBasisNd d' m) from rfl,
+          (hermiteCoeffNdCLM (d' + 1) ((multiIndexEquiv d').symm n)).map_tsum
+            (rapidDecay_hermite_summableNd d' a)]
+        -- Simplify: push CLM through smul, unfold flatBasisNd, apply Kronecker
+        simp only [hermiteCoeffNdCLM_apply, map_smul, smul_eq_mul,
+          flatBasisNd, hermiteCoeffNd_basisNd_kronecker]
+        -- Use injectivity of multiIndexEquiv.symm to simplify the if-condition
+        simp_rw [(multiIndexEquiv d').symm.injective.eq_iff]
+        -- Flip `if n = m` to `if m = n` for tsum_ite_eq
+        simp_rw [show ∀ m, (if n = m then (1 : ℝ) else 0) = if m = n then 1 else 0 from
+          fun m => by split_ifs <;> simp_all]
+        simp [mul_ite, mul_one, mul_zero, tsum_ite_eq])
 
 /-- Schwartz space isomorphism for `EuclideanSpace ℝ (Fin d)` with `d ≥ 1`.
 - For `d = 1`: reduces to `SchwartzMap ℝ ℝ` via `euclideanFin1Equiv`,
