@@ -1403,7 +1403,7 @@ private lemma schwartz_seminorm_remainder_le (f : SchwartzMap ℝ ℝ) (k l : �
         exact h_le
 
 set_option maxHeartbeats 1600000 in
-private lemma schwartz_hermite_hasSum (f : SchwartzMap ℝ ℝ) :
+lemma schwartz_hermite_hasSum (f : SchwartzMap ℝ ℝ) :
     HasSum (fun n => hermiteCoeff1D n f • schwartzHermiteBasis1D n) f := by
   rw [HasSum]
   show Filter.Tendsto _ Filter.atTop _
