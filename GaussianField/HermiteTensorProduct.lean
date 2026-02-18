@@ -92,6 +92,22 @@ noncomputable def schwartzDomCongr {D E F : Type*}
 noncomputable def euclideanFin1Equiv : EuclideanSpace ℝ (Fin 1) ≃L[ℝ] ℝ :=
   (EuclideanSpace.equiv (Fin 1) ℝ).trans (ContinuousLinearEquiv.funUnique (Fin 1) ℝ ℝ)
 
+/-- Measurable equivalence `EuclideanSpace ℝ (Fin 1) ≃ᵐ ℝ`, composing the `WithLp`
+unwrapping with the `Fin 1 → ℝ ≃ᵐ ℝ` unique-function equivalence. -/
+noncomputable def euclideanFin1MeasEquiv : EuclideanSpace ℝ (Fin 1) ≃ᵐ ℝ :=
+  (MeasurableEquiv.toLp 2 (Fin 1 → ℝ)).symm.trans (MeasurableEquiv.funUnique (Fin 1) ℝ)
+
+/-- `euclideanFin1MeasEquiv` preserves the volume measure. -/
+lemma euclideanFin1MeasEquiv_mp :
+    MeasureTheory.MeasurePreserving euclideanFin1MeasEquiv volume volume :=
+  (EuclideanSpace.volume_preserving_symm_measurableEquiv_toLp (Fin 1)).trans
+    (MeasureTheory.volume_preserving_funUnique (Fin 1) ℝ)
+
+/-- `euclideanFin1MeasEquiv x` extracts the unique coordinate. -/
+lemma euclideanFin1MeasEquiv_apply (x : EuclideanSpace ℝ (Fin 1)) :
+    euclideanFin1MeasEquiv x = x 0 := by
+  simp [euclideanFin1MeasEquiv, MeasurableEquiv.funUnique, MeasurableEquiv.toLp, WithLp.equiv]
+
 /-! ## 1D Hermite Isomorphism
 
 The Hermite expansion gives a topological isomorphism `SchwartzMap ℝ ℝ ≃L[ℝ] RapidDecaySeq`.
@@ -1065,111 +1081,125 @@ noncomputable def hermiteCoeffNd (d : ℕ) (α : MultiIndex d)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) : ℝ :=
   ∫ x, f x * hermiteFunctionNd d α x
 
-/-! ### Coordinate Harmonic Oscillator Axioms
+/-- For `d = 1`, the multi-dimensional Hermite coefficient reduces to the 1D coefficient
+transferred through `euclideanFin1Equiv`. Uses `euclideanFin1MeasEquiv` for the
+measure-preserving change of variables. -/
+lemma hermiteCoeffNd_eq_hermiteCoeff1D
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin 1)) ℝ) (n : ℕ) :
+    hermiteCoeffNd 1 (fun _ : Fin 1 => n) f =
+    hermiteCoeff1D n ((schwartzDomCongr euclideanFin1Equiv).symm f) := by
+  unfold hermiteCoeffNd hermiteCoeff1D hermiteFunctionNd
+  simp only [Fin.prod_univ_one]
+  symm
+  rw [← euclideanFin1MeasEquiv_mp.integral_comp']
+  congr 1; ext x
+  simp only [euclideanFin1MeasEquiv_apply]
+  congr 1
+  show f (euclideanFin1Equiv.symm (x 0)) = f x
+  congr 1; simp [euclideanFin1Equiv]; ext i; fin_cases i; rfl
 
-The following sorry-backed lemmas are standard textbook facts about coordinate-wise
-harmonic oscillators on multi-dimensional Schwartz space.
+/-! ### Slicing-Based Axioms for Multi-Dimensional Hermite Analysis
 
-**Strategy for `hermiteCoeffNd_decay`**: For each coordinate `i`,
-the 1D harmonic oscillator `H_i = -∂²/∂x_i² + x_i²` satisfies the eigenvalue relation
-`c_α(H_i f) = (2αᵢ+1) c_α(f)` (by Fubini + 1D eigenvalue). Iterating:
-  `(2αᵢ+1)^m |c_α(f)| = |c_α(H_i^m f)| ≤ ‖H_i^m f‖_{L²} ≤ C·seminorms(f)`
-where L² Cauchy-Schwarz uses `‖Ψ_α‖_{L²} = 1` from `hermiteFunctionNd_orthonormal`.
-
-The algebraic bound `(1+|α|) ≤ d·max_i(1+αᵢ) ≤ d·max_i(2αᵢ+1)` then gives
-full multi-index decay. The "uniform coordinate bound" axiom packages all of
-this into a single sorry.
+The following sorry-backed lemmas isolate the calculus of Fubini slicing.
+By factoring `c_α(f)` along a single coordinate, we inherit 1D injectivity
+and 1D rapid decay natively, avoiding multi-dimensional operators entirely.
+These represent the boundary of Mathlib's current multivariable calculus and
+integration API (specifically, slicing Schwartz maps and integrating their seminorms).
 -/
 
-/-- The coordinate harmonic oscillator `H_i = -∂²/∂x_i² + x_i²` as a CLM on `S(ℝ^d)`.
-Construction: multiplication by `x_i²` via `smulLeftCLM` (temperate growth),
-and `∂²/∂x_i²` via `fderivCLM` composed with coordinate projection. -/
-private noncomputable def coordinateHarmonicOscillatorCLM (d : ℕ) (i : Fin d) :
-    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ →L[ℝ]
-    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ := by
+/-- Inductive step for injectivity: reduces d' + 2 to d' + 1.
+Proved by Fubini: c_α(f) = ∫ c_{α_d}^{1D}(slice f x_{rest}) Ψ_{α_{rest}} dx_{rest}.
+If all coefficients vanish, then for each fixed x_{rest}, all 1D coefficients of
+the slice vanish → slice = 0 by 1D injectivity → by IH the function is zero. -/
+private lemma hermiteCoeffNd_injective_succ (d' : ℕ)
+    (ih : ∀ f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ,
+      (∀ α : MultiIndex (d' + 1), hermiteCoeffNd (d' + 1) α f = 0) → f = 0)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 2))) ℝ)
+    (h : ∀ α : MultiIndex (d' + 2), hermiteCoeffNd (d' + 2) α f = 0) : f = 0 := by
   exact sorry
 
-/-- Eigenvalue relation: `c_α(H_i f) = (2αᵢ + 1) c_α(f)`.
-Proof: Fubini factors the multi-d integral, then the 1D eigenvalue relation
-`hermiteCoeff_harmonic_oscillator` applies along coordinate `i`, while the
-remaining coordinates integrate to `∏_{j≠i} δ_{αⱼ,αⱼ} = 1`. -/
-private lemma hermiteCoeffNd_coordinateHO (d : ℕ) (i : Fin d)
-    (α : MultiIndex d) (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :
-    hermiteCoeffNd d α (coordinateHarmonicOscillatorCLM d i f) =
-      (2 * (α i : ℝ) + 1) * hermiteCoeffNd d α f := by
+/-- If all multi-dimensional Hermite coefficients are zero, the Schwartz function is zero.
+For `d = d' + 1 ≥ 1`, proved by induction on `d'`:
+- **Base case** (`d' = 0`, i.e. d = 1): from 1D completeness (`schwartz_hermite_hasSum`)
+  transferred through `euclideanFin1Equiv`.
+- **Inductive step** (`d' + 1`, i.e. d = d'+2 from d'+1):
+  `hermiteCoeffNd_injective_succ` via Fubini slicing. -/
+private lemma hermiteCoeffNd_injective (d' : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ)
+    (h : ∀ α : MultiIndex (d' + 1), hermiteCoeffNd (d' + 1) α f = 0) : f = 0 := by
+  induction d' with
+  | zero =>
+    -- d = 1: transfer through euclideanFin1Equiv to use schwartz_hermite_hasSum
+    let g := (schwartzDomCongr euclideanFin1Equiv).symm f
+    have h_coeff : ∀ n : ℕ, hermiteCoeff1D n g = 0 := by
+      intro n
+      rw [← hermiteCoeffNd_eq_hermiteCoeff1D]
+      exact h (fun _ => n)
+    have hg : g = 0 := by
+      have hs := schwartz_hermite_hasSum g
+      have heq : (fun n => hermiteCoeff1D n g • schwartzHermiteBasis1D n) = fun _ => 0 := by
+        ext n; simp [h_coeff n]
+      rw [heq] at hs
+      exact hs.unique hasSum_zero
+    change (schwartzDomCongr euclideanFin1Equiv).symm f = 0 at hg
+    exact (ContinuousLinearEquiv.injective _) (by rw [hg, map_zero])
+  | succ d'' ih =>
+    exact hermiteCoeffNd_injective_succ d''
+      (fun g hg => ih g hg) f h
+
+/-- For any specific coordinate `i`, the 1D Hermite decay bound transfers to the
+multi-dimensional coefficient via Fubini and L² Cauchy-Schwarz. -/
+private lemma hermiteCoeffNd_coordinate_bound (d' : ℕ) (i : Fin (d' + 1)) (m : ℕ) :
+    ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) (α : MultiIndex (d' + 1)),
+        |hermiteCoeffNd (d' + 1) α f| * (2 * (α i : ℝ) + 1) ^ m ≤
+          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f := by
   exact sorry
 
-/-- Iteration: `c_α(H_i^m f) = (2αᵢ + 1)^m c_α(f)`. Proved by induction from the
-single-step eigenvalue relation. -/
-private lemma hermiteCoeffNd_coordinateHO_pow (d : ℕ) (i : Fin d) :
-    ∀ (m : ℕ) (α : MultiIndex d) (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ),
-    hermiteCoeffNd d α ((coordinateHarmonicOscillatorCLM d i ^ m) f) =
-      (2 * (α i : ℝ) + 1) ^ m * hermiteCoeffNd d α f := by
-  intro m; induction m with
-  | zero => intro α f; simp
-  | succ k ih =>
-    intro α f
-    rw [pow_succ, ContinuousLinearMap.mul_apply,
-      ih α (coordinateHarmonicOscillatorCLM d i f),
-      hermiteCoeffNd_coordinateHO, pow_succ]; ring
-
-/-- Uniform coordinate bound: for natural exponent `m`, there exist `C > 0` and a finite
-set `q` of seminorm indices such that for all `f`, `α`, and coordinates `i`:
-  `|c_α(f)| · (2αᵢ+1)^m ≤ C · q.sup(seminorms)(f)`.
-
-This packages the following chain:
-1. `(2αᵢ+1)^m |c_α(f)| = |c_α(Hᵢ^m f)|` (eigenvalue iteration)
-2. `|c_α(Hᵢ^m f)| ≤ ‖Hᵢ^m f‖_{L²}` (Cauchy-Schwarz with `‖Ψ_α‖_{L²}=1`)
-3. `‖Hᵢ^m f‖_{L²} ≤ C₀ · q₀.sup(seminorms)(Hᵢ^m f)` (L² ≤ Schwartz seminorms)
-4. `q₀.sup(seminorms)(Hᵢ^m f) ≤ Cᵢ · qᵢ.sup(seminorms)(f)` (CLM continuity)
-5. Finite union over `i ∈ Fin d` gives uniform `C` and `q`. -/
+/-- Uniform coordinate bound: packages the coordinate-wise bounds uniformly across all coordinates
+using pure algebra and Finset operations. -/
 private lemma hermiteCoeffNd_uniform_coordinate_bound (d : ℕ) (m : ℕ) :
     ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d) (i : Fin d),
         |hermiteCoeffNd d α f| * (2 * (α i : ℝ) + 1) ^ m ≤
           C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := by
-  exact sorry
+  rcases d with _ | d'
+  · exact ⟨1, ∅, zero_lt_one, fun _ _ i => Fin.elim0 i⟩
+  · choose C_coord q_coord hC_pos h_bound using fun (i : Fin (d' + 1)) =>
+      hermiteCoeffNd_coordinate_bound d' i m
+    set C_max := (Finset.univ : Finset (Fin (d' + 1))).sup' Finset.univ_nonempty C_coord
+    have hC_max_pos : 0 < C_max :=
+      lt_of_lt_of_le (hC_pos 0) (Finset.le_sup' C_coord (Finset.mem_univ 0))
+    set q_union := (Finset.univ : Finset (Fin (d' + 1))).biUnion q_coord
+    refine ⟨C_max, q_union, hC_max_pos, fun f α i => ?_⟩
+    calc |hermiteCoeffNd (d' + 1) α f| * (2 * (α i : ℝ) + 1) ^ m
+        ≤ C_coord i * (q_coord i).sup (schwartzSeminormFamily ℝ
+            (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f := h_bound i f α
+      _ ≤ C_max * q_union.sup (schwartzSeminormFamily ℝ
+            (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f := by
+          apply mul_le_mul
+          · exact Finset.le_sup' C_coord (Finset.mem_univ i)
+          · exact Finset.sup_mono (f := schwartzSeminormFamily ℝ _ ℝ)
+              (Finset.subset_biUnion_of_mem (fun j => q_coord j) (Finset.mem_univ i)) f
+          · positivity
+          · exact hC_max_pos.le
 
-/-- **Injectivity of multidimensional Hermite coefficients.**
-
-If all Hermite coefficients of a Schwartz function vanish, the function is zero.
-This follows from the L² completeness of multi-d Hermite functions: the product
-system `{Ψ_α = ∏_i ψ_{α_i}}` is a complete orthonormal basis of `L²(ℝ^d)` (by Fubini
-and 1D completeness). A Schwartz function with all zero Fourier-Hermite coefficients
-is orthogonal to every basis function, hence zero in L², hence zero as a continuous
-function. -/
-private lemma hermiteCoeffNd_injective_nd (d : ℕ)
-    (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ)
-    (h : ∀ α : MultiIndex d, hermiteCoeffNd d α f = 0) : f = 0 := by
-  exact sorry
-
-/-- Multidimensional Hermite coefficients decay rapidly.
+/-- Multidimensional Hermite coefficients decay rapidly (for `d = d' + 1 ≥ 1`).
 This is the multivariate generalization of `hermiteCoeff1D_decay`.
 
-**Proof**: Choose natural `m ≥ k`. For any `α`, let `i₀` maximize `α i` over `Fin d`.
-- Algebraic: `(1+|α|) ≤ d·(2α_{i₀}+1)`, so `(1+|α|)^k ≤ d^m·(2α_{i₀}+1)^m`
-- Eigenvalue: `(2α_{i₀}+1)^m |c_α(f)| ≤ C·seminorms(f)` (from uniform coordinate bound)
-- Combine: `|c_α(f)|·(1+|α|)^k ≤ d^m·C·seminorms(f)`. -/
-private lemma hermiteCoeffNd_decay (d : ℕ) (k : ℝ) :
+Choose natural `m ≥ k`. For any `α`, let `i₀` maximize `α i` over `Fin (d'+1)`.
+- Algebraic: `(1+|α|) ≤ (d'+1)·(2α_{i₀}+1)`, so `(1+|α|)^k ≤ (d'+1)^m·(2α_{i₀}+1)^m`
+- Coordinate bound: `(2α_{i₀}+1)^m |c_α(f)| ≤ C·seminorms(f)` (uniform coordinate bound)
+- Combine: `|c_α(f)|·(1+|α|)^k ≤ (d'+1)^m·C·seminorms(f)`. -/
+private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
     ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
-      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d),
-        |hermiteCoeffNd d α f| * (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
-          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := by
-  -- Choose natural m ≥ max(k, 0)
-  set m := ⌈max k 0⌉₊
-  -- Get uniform coordinate bound
-  obtain ⟨C₀, q₀, hC₀, h_coord⟩ := hermiteCoeffNd_uniform_coordinate_bound d m
-  rcases d with _ | d'
-  · -- d = 0: MultiIndex.abs α = 0, so (1+0)^k = 1
-    refine ⟨C₀, q₀, hC₀, fun f α => ?_⟩
-    simp only [MultiIndex.abs, Finset.univ_eq_empty, Finset.sum_empty, Nat.cast_zero, add_zero]
-    rw [one_rpow]
-    -- |c_α(f)| * 1 = |c_α(f)|, need ≤ C₀ * q₀.sup(seminorms)(f)
-    -- For d = 0, EuclideanSpace ℝ (Fin 0) is trivial.
-    -- The Fin 0 → ℕ is unique, and the integral is essentially f(0).
-    -- Bound |c_α(f)| ≤ C₀ * seminorms(f) via L² ≤ seminorms.
-    sorry
-  · -- d = d' + 1 ≥ 1
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) (α : MultiIndex (d' + 1)),
+        |hermiteCoeffNd (d' + 1) α f| * (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
+          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f := by
+    -- Choose natural m ≥ max(k, 0)
+    set m := ⌈max k 0⌉₊
+    -- Get uniform coordinate bound
+    obtain ⟨C₀, q₀, hC₀, h_coord⟩ := hermiteCoeffNd_uniform_coordinate_bound (d' + 1) m
     refine ⟨(d' + 1 : ℝ) ^ m * C₀, q₀, by positivity, fun f α => ?_⟩
     -- Find the coordinate maximizing α
     obtain ⟨i₀, _, hi₀⟩ :=
@@ -1649,7 +1679,7 @@ private theorem hermiteCoeffNd_rapid_decayFlat (d' : ℕ)
     Summable (fun n => |hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f| *
       (1 + (n : ℝ)) ^ k) := by
   obtain ⟨C₁, hC₁, k₁, hgrowth⟩ := multiIndexEquiv_growth d'
-  obtain ⟨D, q, hD, hdecay⟩ := hermiteCoeffNd_decay (d' + 1) (↑(k₁ * (k + 2)) : ℝ)
+  obtain ⟨D, q, hD, hdecay⟩ := hermiteCoeffNd_decay d' (↑(k₁ * (k + 2)) : ℝ)
   set S := q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f
   -- Bound each term
   have h_le : ∀ n : ℕ,
@@ -1717,7 +1747,7 @@ private lemma toRapidDecayNdLM_isBounded (d' : ℕ) :
       (toRapidDecayNdLM d') := by
   intro k
   obtain ⟨C₁, hC₁, k₁, hgrowth⟩ := multiIndexEquiv_growth d'
-  obtain ⟨D, q, hD, hdecay⟩ := hermiteCoeffNd_decay (d' + 1) (↑(k₁ * (k + 2)) : ℝ)
+  obtain ⟨D, q, hD, hdecay⟩ := hermiteCoeffNd_decay d' (↑(k₁ * (k + 2)) : ℝ)
   have h_rpow_sum : Summable (fun n : ℕ => (1 + (n : ℝ)) ^ ((-2) : ℝ)) :=
     ((summable_nat_rpow.mpr (by norm_num : (-2 : ℝ) < -1)).comp_injective
       (fun a b h => Nat.succ_injective h)).congr
@@ -2151,115 +2181,82 @@ noncomputable def fromRapidDecayNdCLM (d : ℕ) :
         _ (fromRapidDecayNdLM_isBounded d')
     }
 
-/-- The Hermite coefficients of the reconstruction equal the original sequence values.
-For any rapid decay sequence `a`, `c_α(∑ aₙ Φₙ) = a(enum(α))`.
-This is the analytic core shared by both the right inverse and completeness proofs. -/
-private lemma hermiteCoeffNd_reconstruction (d' : ℕ) (a : RapidDecaySeq)
-    (α : MultiIndex (d' + 1)) :
-    hermiteCoeffNd (d' + 1) α (rapidDecay_schwartzMapNd d' a) =
-      a.val (multiIndexEquiv d' α) := by
+/-! ### Left Inverse and Completeness via Injectivity -/
+
+/-- Right inverse property extracted as a lemma: the Hermite coefficients of the reconstructed
+Schwartz function exactly match the input sequence. -/
+private lemma hermiteCoeffNd_rapidDecay_schwartzMapNd (d' : ℕ) (a : RapidDecaySeq) (n : ℕ) :
+    hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n)
+      (rapidDecay_schwartzMapNd d' a) = a.val n := by
+  -- Rewrite the pointwise-tsum Schwartz map to the module-level tsum
   rw [show (rapidDecay_schwartzMapNd d' a : SchwartzMap _ _) =
       ∑' m, a.val m • flatBasisNd d' m from
-    (rapidDecay_hermite_hasSumNd d' a).tsum_eq.symm,
-    show hermiteCoeffNd (d' + 1) α (∑' m, a.val m • flatBasisNd d' m) =
-      hermiteCoeffNdCLM (d' + 1) α (∑' m, a.val m • flatBasisNd d' m) from rfl,
-    (hermiteCoeffNdCLM (d' + 1) α).map_tsum (rapidDecay_hermite_summableNd d' a)]
+    (rapidDecay_hermite_hasSumNd d' a).tsum_eq.symm]
+  -- Push hermiteCoeffNd (as CLM) through the tsum
+  rw [show hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n)
+        (∑' m, a.val m • flatBasisNd d' m) =
+      hermiteCoeffNdCLM (d' + 1) ((multiIndexEquiv d').symm n)
+        (∑' m, a.val m • flatBasisNd d' m) from rfl,
+    (hermiteCoeffNdCLM (d' + 1) ((multiIndexEquiv d').symm n)).map_tsum
+      (rapidDecay_hermite_summableNd d' a)]
+  -- Simplify: push CLM through smul, unfold flatBasisNd, apply Kronecker
   simp only [hermiteCoeffNdCLM_apply, map_smul, smul_eq_mul,
-    flatBasisNd, hermiteCoeffNd_basisNd_kronecker, mul_ite, mul_one, mul_zero]
-  -- Rewrite if-condition: α = σ.symm m ↔ m = σ α
-  have h_ite : ∀ m, (if α = (multiIndexEquiv d').symm m then a.val m else (0 : ℝ)) =
-      if m = multiIndexEquiv d' α then a.val m else 0 := by
-    intro m
-    by_cases hm : m = multiIndexEquiv d' α
-    · simp [hm, Equiv.symm_apply_apply]
-    · simp only [hm, ite_false]
-      have : ¬ (α = (multiIndexEquiv d').symm m) := by
-        intro heq; exact hm (by rw [heq, Equiv.apply_symm_apply])
-      simp [this]
-  simp_rw [h_ite]
-  exact tsum_ite_eq _ _
+    flatBasisNd, hermiteCoeffNd_basisNd_kronecker]
+  -- Use injectivity of multiIndexEquiv.symm to simplify the if-condition
+  simp_rw [(multiIndexEquiv d').symm.injective.eq_iff]
+  -- Flip `if n = m` to `if m = n` for tsum_ite_eq
+  simp_rw [show ∀ m, (if n = m then (1 : ℝ) else 0) = if m = n then 1 else 0 from
+    fun m => by split_ifs <;> simp_all]
+  simp [mul_ite, mul_one, mul_zero, tsum_ite_eq]
 
 /-- **Completeness of the multi-d Hermite expansion in Schwartz topology.**
-
-The Hermite expansion `∑_n c_{α(n)}(f) · Ψ_{α(n)}` converges to `f` in the
-Schwartz topology, where the sum runs over the flattened multi-index `n ↦ α(n)`
-given by `multiIndexEquiv`.
-
-**Proof strategy**: The series `∑ c_α(f) Φ_α` converges to some `g ∈ S(ℝ^d)` by
-`rapidDecay_hermite_hasSumNd`. Push `hermiteCoeffNd` through the tsum (via CLM
-continuity and Kronecker) to get `c_α(g) = c_α(f)` for all `α`.
-By `hermiteCoeffNd_injective_nd`, `g - f = 0`, so the limit is `f`. -/
+Proved purely algebraically! The series converges to `S_f := from(to(f))`.
+By the right inverse (Kronecker), `c_α(S_f) = c_α(f)` for all `α`.
+By `hermiteCoeffNd_injective`, `S_f - f = 0`, so `S_f = f`. -/
 private lemma schwartz_hermite_completeness_nd (d' : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) :
     HasSum (fun n => hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f •
       flatBasisNd d' n) f := by
-  -- The coefficients of f form a rapid decay sequence
-  set a := toRapidDecayNdLM d' f with ha_def
-  -- The Hermite expansion converges to g := rapidDecay_schwartzMapNd d' a
-  -- Convert summand from a.val n to hermiteCoeffNd ... n f (definitionally equal)
-  have h_conv : HasSum
-      (fun n => hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f •
-        flatBasisNd d' n) (rapidDecay_schwartzMapNd d' a) := by
-    convert rapidDecay_hermite_hasSumNd d' a using 1
-  -- Suffices to show g = f (then HasSum ... g → HasSum ... f by substitution)
-  suffices hgf : rapidDecay_schwartzMapNd d' a = f from hgf ▸ h_conv
-  -- By injectivity: show all Hermite coefficients of g - f vanish
-  rw [← sub_eq_zero]
-  apply hermiteCoeffNd_injective_nd (d' + 1)
-  intro α
-  rw [(hermiteCoeffNd_linear (d' + 1) α).map_sub,
-    hermiteCoeffNd_reconstruction d' a α]
-  -- a.val (multiIndexEquiv d' α) = hermiteCoeffNd (d'+1) α f by def of toRapidDecayNdLM
-  rw [ha_def, show (toRapidDecayNdLM d' f).val (multiIndexEquiv d' α) =
-    hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm (multiIndexEquiv d' α)) f from rfl,
-    Equiv.symm_apply_apply]
-  exact sub_self _
+  set a := toRapidDecayNdLM d' f
+  set S_f := fromRapidDecayNdLM d' a
+  -- The expansion converges to S_f in Schwartz topology
+  have h_sum : HasSum (fun n => a.val n • flatBasisNd d' n) S_f :=
+    rapidDecay_hermite_hasSumNd d' a
+  -- S_f = f because their Hermite coefficients agree (right inverse + injectivity)
+  have h_eq : S_f = f := by
+    have h_sub : S_f - f = 0 := by
+      apply hermiteCoeffNd_injective d'
+      intro α
+      rw [(hermiteCoeffNd_linear (d' + 1) α).map_sub, sub_eq_zero]
+      set n := multiIndexEquiv d' α
+      have h_alpha : α = (multiIndexEquiv d').symm n :=
+        ((multiIndexEquiv d').symm_apply_apply α).symm
+      rw [h_alpha]
+      have h_Sf := hermiteCoeffNd_rapidDecay_schwartzMapNd d' a n
+      have h_a : a.val n = hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f := rfl
+      rw [h_a] at h_Sf
+      exact h_Sf
+    exact sub_eq_zero.mp h_sub
+  rwa [h_eq] at h_sum
 
-/-- The d-dimensional Hermite topological isomorphism. -/
-noncomputable def schwartzRapidDecayEquivNd (d : ℕ) :
-    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L[ℝ] RapidDecaySeq :=
+/-- The d-dimensional Hermite topological isomorphism (for d = d' + 1 ≥ 1).
+The `d' + 1` signature avoids the d=0 branch entirely —
+`EuclideanSpace ℝ (Fin 0)` is topologically degenerate and never reached
+because `Nontrivial D` forces `finrank ℝ D ≥ 1`. -/
+noncomputable def schwartzRapidDecayEquivNd (d' : ℕ) :
+    SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ ≃L[ℝ] RapidDecaySeq :=
   ContinuousLinearEquiv.equivOfInverse
-    (toRapidDecayNdCLM d)
-    (fromRapidDecayNdCLM d)
-    -- Left inverse: fromRapidDecayNdCLM d (toRapidDecayNdCLM d f) = f
+    (toRapidDecayNdCLM (d' + 1))
+    (fromRapidDecayNdCLM (d' + 1))
+    -- Left inverse: from(to(f)) = f
     (fun f => by
-      match d with
-      | 0 => sorry -- Phantom case: d=0 never used (Nontrivial D requires d ≥ 1)
-      | d' + 1 =>
-        -- Completeness: the Hermite expansion converges to f
-        have h_f := schwartz_hermite_completeness_nd d' f
-        -- The same series converges to the reconstructed Schwartz function
-        have h_recon := rapidDecay_hermite_hasSumNd d' (toRapidDecayNdLM d' f)
-        -- By T2 uniqueness: the reconstructed function = f
-        exact h_recon.unique h_f)
-    -- Right inverse: toRapidDecayNdCLM d (fromRapidDecayNdCLM d a) = a
+      have h_f := schwartz_hermite_completeness_nd d' f
+      have h_recon := rapidDecay_hermite_hasSumNd d' (toRapidDecayNdLM d' f)
+      exact h_recon.unique h_f)
+    -- Right inverse: to(from(a)) = a
     (fun a => by
-      match d with
-      | 0 => sorry -- Phantom case: d=0 never used, both CLMs are 0
-      | d' + 1 =>
-        apply RapidDecaySeq.ext; intro n
-        show hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n)
-          (rapidDecay_schwartzMapNd d' a) = a.val n
-        -- Rewrite the pointwise-tsum Schwartz map to the module-level tsum
-        rw [show (rapidDecay_schwartzMapNd d' a : SchwartzMap _ _) =
-            ∑' m, a.val m • flatBasisNd d' m from
-          (rapidDecay_hermite_hasSumNd d' a).tsum_eq.symm]
-        -- Push hermiteCoeffNd (as CLM) through the tsum
-        rw [show hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n)
-              (∑' m, a.val m • flatBasisNd d' m) =
-            hermiteCoeffNdCLM (d' + 1) ((multiIndexEquiv d').symm n)
-              (∑' m, a.val m • flatBasisNd d' m) from rfl,
-          (hermiteCoeffNdCLM (d' + 1) ((multiIndexEquiv d').symm n)).map_tsum
-            (rapidDecay_hermite_summableNd d' a)]
-        -- Simplify: push CLM through smul, unfold flatBasisNd, apply Kronecker
-        simp only [hermiteCoeffNdCLM_apply, map_smul, smul_eq_mul,
-          flatBasisNd, hermiteCoeffNd_basisNd_kronecker]
-        -- Use injectivity of multiIndexEquiv.symm to simplify the if-condition
-        simp_rw [(multiIndexEquiv d').symm.injective.eq_iff]
-        -- Flip `if n = m` to `if m = n` for tsum_ite_eq
-        simp_rw [show ∀ m, (if n = m then (1 : ℝ) else 0) = if m = n then 1 else 0 from
-          fun m => by split_ifs <;> simp_all]
-        simp [mul_ite, mul_one, mul_zero, tsum_ite_eq])
+      apply RapidDecaySeq.ext; intro n
+      exact hermiteCoeffNd_rapidDecay_schwartzMapNd d' a n)
 
 /-- Schwartz space isomorphism for `EuclideanSpace ℝ (Fin d)` with `d ≥ 1`.
 - For `d = 1`: reduces to `SchwartzMap ℝ ℝ` via `euclideanFin1Equiv`,
@@ -2269,7 +2266,7 @@ noncomputable def schwartzRapidDecayEquivFin (d : ℕ) (hd : 0 < d) :
     SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L[ℝ] RapidDecaySeq :=
   match d, hd with
   | 1, _ => (schwartzDomCongr euclideanFin1Equiv).symm.trans schwartzRapidDecayEquiv1D
-  | d + 2, _ => schwartzRapidDecayEquivNd (d + 2)
+  | d' + 2, _ => schwartzRapidDecayEquivNd (d' + 1)
 
 /-- The Schwartz space on any nontrivial finite-dimensional real normed space is
 topologically linearly isomorphic to the space of rapidly decreasing sequences.
