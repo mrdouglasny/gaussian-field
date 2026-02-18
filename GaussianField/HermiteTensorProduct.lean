@@ -970,15 +970,95 @@ private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) 
       iteratedFDeriv ℝ n (hermiteFunctionNd (d + 1) α) y =
       iteratedFDeriv ℝ n (fun z => ∏ j : Fin (d + 1), fac j z) y := by
     intro y; rw [hprod_eq]
-  -- Step D: For each term indexed by p, bound ‖x‖^k * ∏_j ‖D^{m_j} f_j x‖
-  -- Using the decomposition: ‖x‖^k ≤ (d+1)^k * ∑_{j₀} |x j₀|^k
-  -- And: |x j₀|^k * ∏_j B_j(x_j) = (|x j₀|^k * B_{j₀}(x_{j₀})) * ∏_{j≠j₀} B_j(x_j)
-  --                                ≤ C(j₀) * ∏_{j≠j₀} M_j
-  -- For each p ∈ sym n, define the bound on the product term:
-  -- bound(p) = (d+1)^k * ∑_{j₀} C(j₀, k, count j₀ p) * ∏_{j≠j₀} M(j, count j p)
-  -- Total bound = ∑_{p ∈ sym n} mult(p) * bound(p)
-  -- Since the sum over p is finite, this is a finite constant.
-  sorry
+  -- Step D: Use choose to extract uniform bounding functions M(j,m) and C(j,m)
+  -- from the existential bounds, then construct the total bounding constant.
+  choose M hM using hfac_bound
+  choose C_dec hC_dec using hfac_decay
+  -- For each partition p and active coordinate j₀, bound the product term
+  -- by isolating the j₀ factor using Finset.mul_prod_erase.
+  have h_term : ∀ (x : EuclideanSpace ℝ (Fin (d + 1)))
+      (j₀ : Fin (d + 1)) (p : Sym (Fin (d + 1)) n),
+      |x j₀| ^ k *
+        ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+          ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖ ≤
+        C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
+          ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))).erase j₀,
+            M j ((p : Multiset (Fin (d + 1))).count j) := by
+    intro x j₀ p
+    rw [(Finset.mul_prod_erase (Finset.univ : Finset (Fin (d + 1)))
+      (fun j => ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖)
+      (Finset.mem_univ j₀)).symm, ← mul_assoc]
+    exact mul_le_mul
+      ((hC_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀)).2 x)
+      (Finset.prod_le_prod (fun j _ => norm_nonneg _)
+        (fun j _ => (hM j ((p : Multiset (Fin (d + 1))).count j)).2 x))
+      (Finset.prod_nonneg fun j _ => norm_nonneg _)
+      ((hC_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀)).1)
+  -- For each partition p, bound ‖x‖^k * ∏ ‖D^{count j} fac_j x‖
+  -- by distributing the norm power via h_norm_pow_le and summing over active coordinates.
+  have h_full : ∀ (x : EuclideanSpace ℝ (Fin (d + 1)))
+      (p : Sym (Fin (d + 1)) n),
+      ‖x‖ ^ k *
+        ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+          ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖ ≤
+        (d + 1 : ℝ) ^ k *
+          ∑ j₀ : Fin (d + 1),
+            C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
+              ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))).erase j₀,
+                M j ((p : Multiset (Fin (d + 1))).count j) := by
+    intro x p
+    calc ‖x‖ ^ k *
+          ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+            ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖
+        ≤ ((d + 1 : ℝ) ^ k * ∑ j₀ : Fin (d + 1), |x j₀| ^ k) *
+            ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+              ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖ :=
+          mul_le_mul_of_nonneg_right (h_norm_pow_le x)
+            (Finset.prod_nonneg fun j _ => norm_nonneg _)
+      _ = (d + 1 : ℝ) ^ k *
+            ∑ j₀ : Fin (d + 1), |x j₀| ^ k *
+              ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+                ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖ := by
+          rw [mul_assoc, Finset.sum_mul]
+      _ ≤ (d + 1 : ℝ) ^ k *
+            ∑ j₀ : Fin (d + 1),
+              C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
+                ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))).erase j₀,
+                  M j ((p : Multiset (Fin (d + 1))).count j) := by
+          apply mul_le_mul_of_nonneg_left
+          · exact Finset.sum_le_sum fun j₀ _ => h_term x j₀ p
+          · positivity
+  -- Define total bound and prove it
+  refine ⟨∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
+      (p : Multiset (Fin (d + 1))).multinomial *
+        ((d + 1 : ℝ) ^ k *
+          ∑ j₀ : Fin (d + 1),
+            C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
+              ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))).erase j₀,
+                M j ((p : Multiset (Fin (d + 1))).count j)),
+    fun x => ?_⟩
+  rw [hprod_eq' x]
+  calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (fun z => ∏ j : Fin (d + 1), fac j z) x‖
+      -- Step 1: Apply multinomial Leibniz bound
+      ≤ ‖x‖ ^ k *
+          ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
+            (p : Multiset (Fin (d + 1))).multinomial *
+              ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+                ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖ :=
+        mul_le_mul_of_nonneg_left (hprod_bound x) (pow_nonneg (norm_nonneg _) _)
+    -- Step 2: Distribute ‖x‖^k and apply coordinate-wise bounds
+    _ ≤ ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
+          (p : Multiset (Fin (d + 1))).multinomial *
+            ((d + 1 : ℝ) ^ k *
+              ∑ j₀ : Fin (d + 1),
+                C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
+                  ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))).erase j₀,
+                    M j ((p : Multiset (Fin (d + 1))).count j)) := by
+        rw [Finset.mul_sum]
+        apply Finset.sum_le_sum
+        intro p _
+        rw [mul_left_comm (‖x‖ ^ k)]
+        exact mul_le_mul_of_nonneg_left (h_full x p) (by positivity)
 
 /-- The multidimensional Hermite function as a Schwartz map. -/
 noncomputable def schwartzHermiteBasisNd (d : ℕ) (α : MultiIndex d) :
