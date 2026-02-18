@@ -5,14 +5,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Nuclear Space Instance for Schwartz Space via Sequence Space Isomorphism
 
 Proves `NuclearSpace (SchwartzMap D ℝ)` for any finite-dimensional `D`,
-replacing the 5 axioms in `Axioms.lean` with 1 sorry.
+replacing the 5 axioms in `Axioms.lean` with decomposed analytical sorrys.
 
 ## Strategy
 
 The Schwartz space `S(D, ℝ)` is topologically isomorphic to the space `s(ℕ)`
 of rapidly decreasing sequences (Dynin-Mityagin). The isomorphism is:
 - For D = ℝ: the Hermite expansion (proved in `SchwartzNuclear.Basis1D`)
-- For general D: iterated 1D isomorphisms via Fubini slicing (sorry'd)
+- For general D = ℝ^d: multi-index Hermite expansion using tensorized 1D
+  Hermite functions indexed by `Fin d → ℕ`, flattened via a polynomially-bounded
+  bijection `ℕ^d → ℕ`.
 
 The `NuclearSpace` instance is derived from this isomorphism by transferring
 the basis, coefficients, expansion, growth, and decay properties through
@@ -20,8 +22,14 @@ the continuous linear equivalence.
 
 ## Sorry inventory
 
-**1 sorry** (reduced from 5 axioms):
-1. `schwartzRapidDecayEquivFin` for `d ≥ 2` — multi-dimensional Hermite expansion
+**Sorrys** (reduced from 5 axioms):
+- `multiIndexEquiv` — bijection `(Fin d → ℕ) ≃ ℕ` (combinatorial)
+- `multiIndexEquiv_growth` / `multiIndexEquiv_symm_growth` — polynomial bounds
+- `schwartzHermiteBasisNd` — tensor product Hermite function as Schwartz map
+- `hermiteCoeffNd_decay` — rapid decay of multi-index Hermite coefficients
+- `schwartzHermiteBasisNd_growth` — polynomial growth of basis seminorms
+- `toRapidDecayNdCLM` / `fromRapidDecayNdCLM` — forward/backward CLMs
+- `schwartzRapidDecayEquivNd` — left/right inverses
 
 ## References
 
@@ -50,9 +58,9 @@ For D = ℝ, this is the Hermite expansion:
   f ↦ (∫ f(x)ψₙ(x)dx)ₙ
 where ψₙ are the Hermite functions. This is proved in `SchwartzNuclear.Basis1D`.
 
-For D = ℝ^d with d > 1, the proof factors through:
-  S(ℝ^d) → S(ℝ, S(ℝ^{d-1})) → s(ℕ, s(ℕ)) → s(ℕ×ℕ) → s(ℕ)
-using Fubini slicing and Cantor pairing. -/
+For D = ℝ^d with d > 1, the proof uses multi-index Hermite expansion:
+  f ↦ (∫ f(x) · ∏ᵢ ψ_{αᵢ}(xᵢ) dx)_α
+flattened via a polynomially-bounded bijection `ℕ^d → ℕ`. -/
 
 /-! ## Domain Transfer
 
@@ -573,16 +581,92 @@ noncomputable def schwartzRapidDecayEquiv1D :
         fun m => by split_ifs <;> simp_all]
       simp [mul_ite, mul_one, mul_zero, tsum_ite_eq])
 
-/-! ## Dimension Routing -/
+/-! ## Multi-Dimensional Sequence Space and Flattening -/
+
+/-- A multi-index is a function `Fin d → ℕ`. -/
+abbrev MultiIndex (d : ℕ) := Fin d → ℕ
+
+/-- The magnitude (L1 norm) of a multi-index. -/
+def MultiIndex.abs {d : ℕ} (α : MultiIndex d) : ℕ :=
+  ∑ i, α i
+
+/-- To flatten s(ℕ^d) to s(ℕ), we need a bijection that is polynomially bounded
+in both directions. Such a bijection exists (e.g., ordering by sum, then lexicographically). -/
+noncomputable def multiIndexEquiv (d : ℕ) : MultiIndex d ≃ ℕ := sorry
+
+/-- The multi-index enumeration has polynomial growth. -/
+private lemma multiIndexEquiv_growth (d : ℕ) :
+    ∃ C > 0, ∃ k : ℕ, ∀ α : MultiIndex d,
+      (1 + (multiIndexEquiv d α : ℝ)) ≤ C * (1 + (MultiIndex.abs α : ℝ)) ^ k := sorry
+
+/-- The inverse of the multi-index enumeration has polynomial growth. -/
+private lemma multiIndexEquiv_symm_growth (d : ℕ) :
+    ∃ C > 0, ∃ k : ℕ, ∀ n : ℕ,
+      (1 + (MultiIndex.abs ((multiIndexEquiv d).symm n) : ℝ)) ≤ C * (1 + (n : ℝ)) ^ k := sorry
+
+/-! ## Multi-Dimensional Hermite Analysis -/
+
+/-- The multidimensional Hermite function is the tensor product of 1D Hermite functions. -/
+noncomputable def hermiteFunctionNd (d : ℕ) (α : MultiIndex d) :
+    EuclideanSpace ℝ (Fin d) → ℝ :=
+  fun x => ∏ i : Fin d, hermiteFunction (α i) (x i)
+
+/-- The multidimensional Hermite function as a Schwartz map. -/
+noncomputable def schwartzHermiteBasisNd (d : ℕ) (α : MultiIndex d) :
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ := sorry
+
+/-- The coefficient of a Schwartz function against a multidimensional Hermite function. -/
+noncomputable def hermiteCoeffNd (d : ℕ) (α : MultiIndex d)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) : ℝ :=
+  ∫ x, f x * hermiteFunctionNd d α x
+
+/-- Multidimensional Hermite coefficients decay rapidly.
+This is the multivariate generalization of `hermiteCoeff1D_decay`, proved via
+multivariate integration by parts. -/
+private lemma hermiteCoeffNd_decay (d : ℕ) (k : ℝ) :
+    ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d),
+        |hermiteCoeffNd d α f| * (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
+          C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := sorry
+
+/-- The multidimensional Hermite basis functions have polynomial growth in seminorms. -/
+private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
+    ∃ (C : ℝ) (hC : 0 < C) (s : ℕ), ∀ (α : MultiIndex d),
+      SchwartzMap.seminorm ℝ k l (schwartzHermiteBasisNd d α) ≤
+        C * (1 + (MultiIndex.abs α : ℝ)) ^ s := sorry
+
+/-! ## Multi-Dimensional Isomorphism -/
+
+/-- The forward continuous linear map for the d-dimensional Hermite expansion.
+Maps `S(ℝ^d)` to `s(ℕ)` using the flattened multi-index. -/
+noncomputable def toRapidDecayNdCLM (d : ℕ) :
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ →L[ℝ] RapidDecaySeq :=
+  sorry -- Relies on `hermiteCoeffNd_decay` and `multiIndexEquiv_symm_growth`.
+
+/-- The backward continuous linear map for the d-dimensional Hermite expansion.
+Maps `s(ℕ)` to `S(ℝ^d)`. -/
+noncomputable def fromRapidDecayNdCLM (d : ℕ) :
+    RapidDecaySeq →L[ℝ] SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ :=
+  sorry -- Relies on `schwartzHermiteBasisNd_growth` and `multiIndexEquiv_growth`.
+
+/-- The d-dimensional Hermite topological isomorphism. -/
+noncomputable def schwartzRapidDecayEquivNd (d : ℕ) :
+    SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L[ℝ] RapidDecaySeq :=
+  ContinuousLinearEquiv.equivOfInverse
+    (toRapidDecayNdCLM d)
+    (fromRapidDecayNdCLM d)
+    sorry -- Left inverse (pointwise convergence of multidimensional Hermite series)
+    sorry -- Right inverse (orthonormality of the multidimensional basis)
 
 /-- Schwartz space isomorphism for `EuclideanSpace ℝ (Fin d)` with `d ≥ 1`.
-- For `d = 1`: reduces to `SchwartzMap ℝ ℝ` via `euclideanFin1Equiv`, then uses `schwartzRapidDecayEquiv1D`.
-- For `d ≥ 2`: sorry (multi-dimensional Hermite expansion). -/
+- For `d = 1`: reduces to `SchwartzMap ℝ ℝ` via `euclideanFin1Equiv`,
+  then uses `schwartzRapidDecayEquiv1D`.
+- For `d ≥ 2`: uses the generalized `schwartzRapidDecayEquivNd`. -/
 noncomputable def schwartzRapidDecayEquivFin (d : ℕ) (hd : 0 < d) :
     SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L[ℝ] RapidDecaySeq :=
   match d, hd with
   | 1, _ => (schwartzDomCongr euclideanFin1Equiv).symm.trans schwartzRapidDecayEquiv1D
-  | d + 2, _ => sorry  -- multi-dimensional Hermite expansion
+  | d + 2, _ => schwartzRapidDecayEquivNd (d + 2)
 
 /-- The Schwartz space on any nontrivial finite-dimensional real normed space is
 topologically linearly isomorphic to the space of rapidly decreasing sequences.
@@ -591,7 +675,7 @@ The proof decomposes as:
   `SchwartzMap D ℝ ≃L SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L RapidDecaySeq`
 where `d = finrank ℝ D ≥ 1` (from `Nontrivial D`).
 
-**Sorry**: 1 sorry for `d ≥ 2` (multi-dimensional Hermite expansion).
+**Sorry**: sorrys for `d ≥ 2` are decomposed into multi-index Hermite analysis components.
 The 1D forward and backward maps and all structural components are fully proved. -/
 noncomputable def schwartzRapidDecayEquiv (D : Type*)
     [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D] [Nontrivial D] :
@@ -735,8 +819,8 @@ The instance uses the Schwartz seminorm family `(k, l) ↦ p_{k,l}` and a
 basis/coefficient system derived from the topological isomorphism
 `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`.
 
-This replaces the 5 axioms in the original `Axioms.lean` with 1 sorry
-(multi-dimensional Hermite for d ≥ 2). -/
+This replaces the 5 axioms in the original `Axioms.lean` with decomposed
+sorrys for multi-dimensional Hermite analysis (d ≥ 2). -/
 noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
     NuclearSpace (SchwartzMap D ℝ) where
   ι := ℕ × ℕ
