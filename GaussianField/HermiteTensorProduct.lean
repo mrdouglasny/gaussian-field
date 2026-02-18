@@ -40,6 +40,7 @@ the continuous linear equivalence.
 
 import SchwartzNuclear.Basis1D
 import GaussianField.NuclearTensorProduct
+import Mathlib.Algebra.Order.Chebyshev
 
 noncomputable section
 
@@ -784,9 +785,199 @@ The `iteratedFDeriv` of the product decomposes via the multilinear Leibniz rule 
 products of individual derivatives. Each term has at most one "active" coordinate that absorbs
 the `‖x‖^k` factor through Schwartz decay, while all other coordinates contribute bounded
 derivative values. -/
+-- 1D Schwartz seminorm bound: |t|^k * ‖iteratedFDeriv ℝ m (hermiteFunction n) t‖ ≤ C
+private lemma hermiteFunction_schwartz_seminorm_bound (n k m : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ t : ℝ,
+      |t| ^ k * ‖iteratedFDeriv ℝ m (hermiteFunction n) t‖ ≤ C := by
+  obtain ⟨φ, hφ⟩ := hermiteFunction_schwartz n
+  have hcoe : (fun t => hermiteFunction n t) = ⇑φ := (funext hφ).symm
+  refine ⟨SchwartzMap.seminorm ℝ k m φ, apply_nonneg _ _, fun t => ?_⟩
+  have hle := SchwartzMap.le_seminorm ℝ k m φ t
+  rw [Real.norm_eq_abs] at hle
+  rwa [show iteratedFDeriv ℝ m (⇑φ) t = iteratedFDeriv ℝ m (hermiteFunction n) t from
+    congr_arg (iteratedFDeriv ℝ m · t) hcoe.symm] at hle
+
+-- The projection ‖EuclideanSpace.proj i‖ ≤ 1.
+private lemma euclidean_proj_norm_le_one (d : ℕ) (i : Fin d) :
+    ‖(EuclideanSpace.proj (𝕜 := ℝ) i : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ)‖ ≤ 1 :=
+  ContinuousLinearMap.opNorm_le_bound _ zero_le_one
+    (fun x => by simp only [one_mul]; exact PiLp.norm_apply_le (p := 2) x i)
+
+-- Bound on ‖iteratedFDeriv ℝ m (hermiteFunction n ∘ proj i) x‖ using 1D Schwartz decay.
+-- Key: iteratedFDeriv of (f ∘ L) = (iteratedFDeriv f (L x)).comp L, and ‖L‖ ≤ 1.
+private lemma iteratedFDeriv_hermite_comp_proj_bound (d : ℕ) (n : ℕ) (i : Fin d) (k m : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ x : EuclideanSpace ℝ (Fin d),
+      |x i| ^ k * ‖iteratedFDeriv ℝ m
+        (fun x : EuclideanSpace ℝ (Fin d) => hermiteFunction n (x i)) x‖ ≤ C := by
+  obtain ⟨C, hC, hbound⟩ := hermiteFunction_schwartz_seminorm_bound n k m
+  refine ⟨C, hC, fun x => ?_⟩
+  -- Show the composition formula
+  have hf_smooth : ContDiff ℝ ∞ (hermiteFunction n) :=
+    contDiff_infty.mpr (hermiteFunction_contDiff n)
+  set L : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ := EuclideanSpace.proj (𝕜 := ℝ) i
+  have hL_le : ‖L‖ ≤ 1 := euclidean_proj_norm_le_one d i
+  -- The function equals composition with L
+  have hcomp : (fun x : EuclideanSpace ℝ (Fin d) => hermiteFunction n (x i)) =
+      (hermiteFunction n) ∘ L := rfl
+  -- iteratedFDeriv of (f ∘ L) = (iteratedFDeriv f (L x)).compCLM (fun _ => L)
+  have hiFD : iteratedFDeriv ℝ m ((hermiteFunction n) ∘ L) x =
+      (iteratedFDeriv ℝ m (hermiteFunction n) (L x)).compContinuousLinearMap (fun _ => L) :=
+    L.iteratedFDeriv_comp_right hf_smooth x (i := m) (mod_cast le_top)
+  -- Bound the norm of the composed iterated derivative
+  have h_prod_le : ∏ _j : Fin m, ‖L‖ ≤ 1 := by
+    calc ∏ _j : Fin m, ‖L‖ ≤ ∏ _j : Fin m, (1 : ℝ) :=
+        Finset.prod_le_prod (fun _ _ => norm_nonneg _) (fun _ _ => hL_le)
+      _ = 1 := by simp
+  have h_norm_iFD : ‖iteratedFDeriv ℝ m
+      (fun x : EuclideanSpace ℝ (Fin d) => hermiteFunction n (x i)) x‖ ≤
+      ‖iteratedFDeriv ℝ m (hermiteFunction n) (x i)‖ := by
+    rw [hcomp, hiFD]
+    calc ‖(iteratedFDeriv ℝ m (hermiteFunction n) (L x)).compContinuousLinearMap
+          (fun _ => L)‖
+        ≤ ‖iteratedFDeriv ℝ m (hermiteFunction n) (L x)‖ * ∏ _j : Fin m, ‖L‖ :=
+          ContinuousMultilinearMap.norm_compContinuousLinearMap_le _ _
+      _ ≤ ‖iteratedFDeriv ℝ m (hermiteFunction n) (x i)‖ * 1 :=
+          mul_le_mul_of_nonneg_left h_prod_le (norm_nonneg _)
+      _ = ‖iteratedFDeriv ℝ m (hermiteFunction n) (x i)‖ := mul_one _
+  calc |x i| ^ k * ‖iteratedFDeriv ℝ m
+        (fun x : EuclideanSpace ℝ (Fin d) => hermiteFunction n (x i)) x‖
+      ≤ |x i| ^ k * ‖iteratedFDeriv ℝ m (hermiteFunction n) (x i)‖ :=
+        mul_le_mul_of_nonneg_left h_norm_iFD (pow_nonneg (abs_nonneg _) _)
+    _ ≤ C := hbound (x i)
+
 private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) :
     ∃ C : ℝ, ∀ x : EuclideanSpace ℝ (Fin d),
       ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (hermiteFunctionNd d α) x‖ ≤ C := by
+  -- Strategy: Use the multinomial Leibniz rule (norm_iteratedFDeriv_prod_le) to decompose
+  -- the derivative of the product ∏ f_j into a sum of products of individual derivatives.
+  -- Then bound each term using Schwartz decay of individual 1D factors.
+  --
+  -- Step 1: Set up individual factor bounds from iteratedFDeriv_hermite_comp_proj_bound.
+  -- For each j : Fin d and m : ℕ, we have:
+  --   ‖iteratedFDeriv ℝ m (fun x => hermiteFunction (α j) (x j)) x‖ ≤ M(j,m) (bounded, k=0)
+  --   |x j|^k * ‖iteratedFDeriv ℝ m (fun x => hermiteFunction (α j) (x j)) x‖ ≤ C(j,k,m)
+  --
+  -- Step 2: Apply norm_iteratedFDeriv_prod_le to get
+  --   ‖D^n f x‖ ≤ ∑_{p ∈ sym n} mult(p) * ∏_j ‖D^{count j p} f_j x‖
+  --
+  -- Step 3: For each term, bound ‖x‖^k * ∏_j ‖D^{count j p} f_j x‖ ≤ C(p)
+  --   using: ‖x‖ ≤ ∑ |x_j| (ℓ²≤ℓ¹) and distributing |x_j|^k to factor j.
+  --
+  -- For d = 0, the function is constant 1, so the bound is trivial.
+  -- For d ≥ 1, we use the decomposition.
+  --
+  -- We use a simpler bound: the product of temperate growth functions has temperate growth,
+  -- giving ‖D^n f x‖ ≤ A(1+‖x‖)^p. Combined with the pointwise bound
+  -- |f(x)| ≤ ∏ M_j and the rapid decay |x_j|^k |f_j(x_j)| ≤ C_j for each coordinate,
+  -- we get the result.
+  --
+  -- Actually, we prove this by showing each term in the Leibniz expansion is bounded
+  -- by a product of 1D Schwartz bounds.
+  rcases d with _ | d
+  · -- d = 0: EuclideanSpace ℝ (Fin 0) is a point
+    refine ⟨1, fun x => ?_⟩
+    have hx : x = 0 := Subsingleton.eq_zero x
+    subst hx
+    simp only [norm_zero]
+    rcases k with _ | k
+    · simp only [pow_zero, one_mul]
+      -- Need ‖iteratedFDeriv ℝ n (hermiteFunctionNd 0 α) 0‖ ≤ 1
+      -- hermiteFunctionNd 0 α = fun x => ∏ i : Fin 0, ... = fun _ => 1
+      have hf : hermiteFunctionNd 0 α = fun _ => 1 := by
+        ext x; simp [hermiteFunctionNd, Finset.prod_empty]
+      rw [hf]
+      rcases n with _ | n
+      · simp
+      · simp [iteratedFDeriv_const_of_ne (Nat.succ_ne_zero n)]
+    · simp [zero_pow (Nat.succ_ne_zero k), zero_mul]
+  -- d + 1 ≥ 1
+  -- For each j and m, get the bounds from 1D Schwartz decay
+  -- Use the abstract product bound
+  -- First, get smooth factors
+  set fac : Fin (d + 1) → EuclideanSpace ℝ (Fin (d + 1)) → ℝ :=
+    fun j x => hermiteFunction (α j) (x j)
+  have hfac_smooth : ∀ j, ContDiff ℝ ∞ (fac j) := fun j =>
+    contDiff_infty.mpr (hermiteFunctionNd_factor_contDiff (d + 1) α j)
+  -- The product equals hermiteFunctionNd
+  have hprod_eq : (fun x => ∏ j : Fin (d + 1), fac j x) = hermiteFunctionNd (d + 1) α := by
+    ext x; simp [hermiteFunctionNd, fac]
+  -- Get uniform bounds for each factor
+  -- M(j,m) = bound on ‖D^m f_j x‖ (k=0 case)
+  -- C(j,k,m) = bound on |x j|^k * ‖D^m f_j x‖
+  have hfac_bound : ∀ j : Fin (d + 1), ∀ m : ℕ,
+      ∃ M : ℝ, 0 ≤ M ∧ ∀ x : EuclideanSpace ℝ (Fin (d + 1)),
+        ‖iteratedFDeriv ℝ m (fac j) x‖ ≤ M := by
+    intro j m
+    obtain ⟨C, hC, hbound⟩ := iteratedFDeriv_hermite_comp_proj_bound (d + 1) (α j) j 0 m
+    exact ⟨C, hC, fun x => by simpa using hbound x⟩
+  have hfac_decay : ∀ j : Fin (d + 1), ∀ m : ℕ,
+      ∃ C : ℝ, 0 ≤ C ∧ ∀ x : EuclideanSpace ℝ (Fin (d + 1)),
+        |x j| ^ k * ‖iteratedFDeriv ℝ m (fac j) x‖ ≤ C := by
+    intro j m
+    exact iteratedFDeriv_hermite_comp_proj_bound (d + 1) (α j) j k m
+  -- Step A: Prove ‖x‖ ≤ ∑ |x j| (ℓ² ≤ ℓ¹ norm inequality)
+  have h_l2_le_l1 : ∀ x : EuclideanSpace ℝ (Fin (d + 1)),
+      ‖x‖ ≤ ∑ j : Fin (d + 1), |x j| := by
+    intro x
+    rw [EuclideanSpace.norm_eq]
+    -- ‖x‖² = ∑ |x j|² ≤ (∑ |x j|)² by sum_sq_le_sq_sum_of_nonneg
+    have hsq : ∑ j : Fin (d + 1), ‖x j‖ ^ 2 ≤
+        (∑ j : Fin (d + 1), |x j|) ^ 2 := by
+      convert Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
+        (fun j _ => abs_nonneg (x j)) using 2 <;> simp [Real.norm_eq_abs]
+    calc √(∑ j, ‖x j‖ ^ 2) ≤ √((∑ j, |x j|) ^ 2) :=
+          Real.sqrt_le_sqrt hsq
+      _ = ∑ j, |x j| := by
+          rw [Real.sqrt_sq_eq_abs, abs_of_nonneg
+            (Finset.sum_nonneg (fun j _ => abs_nonneg _))]
+  -- Step B: ‖x‖^k ≤ (d+1)^(k-1) * ∑ |x j|^k (from power mean inequality)
+  -- Combined: ‖x‖^k ≤ (d+1)^k * ∑ |x j|^k
+  have h_norm_pow_le : ∀ x : EuclideanSpace ℝ (Fin (d + 1)),
+      ‖x‖ ^ k ≤ ((d + 1 : ℝ) ^ k) * ∑ j : Fin (d + 1), |x j| ^ k := by
+    intro x
+    rcases k with _ | k
+    · -- k = 0: ‖x‖^0 = 1 ≤ (d+1)^0 * ∑ |x j|^0 = 1 * (d+1)
+      simp only [pow_zero, one_mul, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+        nsmul_eq_mul, mul_one]
+      exact_mod_cast Nat.succ_le_succ (Nat.zero_le d)
+    -- k + 1 ≥ 1
+    -- ‖x‖^(k+1) ≤ (∑ |x j|)^(k+1) ≤ (d+1)^k * ∑ |x j|^(k+1)
+    have h1 : (1 : ℝ) ≤ (d + 1 : ℝ) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le d)
+    calc ‖x‖ ^ (k + 1) ≤ (∑ j : Fin (d + 1), |x j|) ^ (k + 1) :=
+          pow_le_pow_left₀ (norm_nonneg _) (h_l2_le_l1 x) _
+      _ ≤ ((Finset.univ : Finset (Fin (d + 1))).card : ℝ) ^ k *
+            ∑ j ∈ Finset.univ, |x j| ^ (k + 1) :=
+          _root_.pow_sum_le_card_mul_sum_pow (fun j _ => abs_nonneg (x j)) k
+      _ = (d + 1 : ℝ) ^ k * ∑ j : Fin (d + 1), |x j| ^ (k + 1) := by
+          simp [Finset.card_univ, Fintype.card_fin]
+      _ ≤ (d + 1 : ℝ) ^ (k + 1) * ∑ j : Fin (d + 1), |x j| ^ (k + 1) := by
+          apply mul_le_mul_of_nonneg_right
+          · exact pow_le_pow_right₀ h1 (Nat.le_succ k)
+          · exact Finset.sum_nonneg (fun j _ => pow_nonneg (abs_nonneg _) _)
+  -- Step C: Apply the multinomial Leibniz rule and bound each term
+  -- First get the Leibniz bound
+  have hprod_bound : ∀ y : EuclideanSpace ℝ (Fin (d + 1)),
+      ‖iteratedFDeriv ℝ n (fun z => ∏ j : Fin (d + 1), fac j z) y‖ ≤
+      ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
+        (p : Multiset (Fin (d + 1))).multinomial *
+          ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
+            ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) y‖ := by
+    intro y
+    exact norm_iteratedFDeriv_prod_le
+      (fun j _ => hfac_smooth j) (mod_cast le_top)
+  -- Rewrite using hprod_eq
+  have hprod_eq' : ∀ y : EuclideanSpace ℝ (Fin (d + 1)),
+      iteratedFDeriv ℝ n (hermiteFunctionNd (d + 1) α) y =
+      iteratedFDeriv ℝ n (fun z => ∏ j : Fin (d + 1), fac j z) y := by
+    intro y; rw [hprod_eq]
+  -- Step D: For each term indexed by p, bound ‖x‖^k * ∏_j ‖D^{m_j} f_j x‖
+  -- Using the decomposition: ‖x‖^k ≤ (d+1)^k * ∑_{j₀} |x j₀|^k
+  -- And: |x j₀|^k * ∏_j B_j(x_j) = (|x j₀|^k * B_{j₀}(x_{j₀})) * ∏_{j≠j₀} B_j(x_j)
+  --                                ≤ C(j₀) * ∏_{j≠j₀} M_j
+  -- For each p ∈ sym n, define the bound on the product term:
+  -- bound(p) = (d+1)^k * ∑_{j₀} C(j₀, k, count j₀ p) * ∏_{j≠j₀} M(j, count j p)
+  -- Total bound = ∑_{p ∈ sym n} mult(p) * bound(p)
+  -- Since the sum over p is finite, this is a finite constant.
   sorry
 
 /-- The multidimensional Hermite function as a Schwartz map. -/
