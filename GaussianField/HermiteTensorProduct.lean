@@ -1130,6 +1130,19 @@ private lemma hermiteCoeffNd_uniform_coordinate_bound (d : ℕ) (m : ℕ) :
           C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin d)) ℝ) f := by
   exact sorry
 
+/-- **Injectivity of multidimensional Hermite coefficients.**
+
+If all Hermite coefficients of a Schwartz function vanish, the function is zero.
+This follows from the L² completeness of multi-d Hermite functions: the product
+system `{Ψ_α = ∏_i ψ_{α_i}}` is a complete orthonormal basis of `L²(ℝ^d)` (by Fubini
+and 1D completeness). A Schwartz function with all zero Fourier-Hermite coefficients
+is orthogonal to every basis function, hence zero in L², hence zero as a continuous
+function. -/
+private lemma hermiteCoeffNd_injective_nd (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ)
+    (h : ∀ α : MultiIndex d, hermiteCoeffNd d α f = 0) : f = 0 := by
+  exact sorry
+
 /-- Multidimensional Hermite coefficients decay rapidly.
 This is the multivariate generalization of `hermiteCoeff1D_decay`.
 
@@ -2138,24 +2151,69 @@ noncomputable def fromRapidDecayNdCLM (d : ℕ) :
         _ (fromRapidDecayNdLM_isBounded d')
     }
 
+/-- The Hermite coefficients of the reconstruction equal the original sequence values.
+For any rapid decay sequence `a`, `c_α(∑ aₙ Φₙ) = a(enum(α))`.
+This is the analytic core shared by both the right inverse and completeness proofs. -/
+private lemma hermiteCoeffNd_reconstruction (d' : ℕ) (a : RapidDecaySeq)
+    (α : MultiIndex (d' + 1)) :
+    hermiteCoeffNd (d' + 1) α (rapidDecay_schwartzMapNd d' a) =
+      a.val (multiIndexEquiv d' α) := by
+  rw [show (rapidDecay_schwartzMapNd d' a : SchwartzMap _ _) =
+      ∑' m, a.val m • flatBasisNd d' m from
+    (rapidDecay_hermite_hasSumNd d' a).tsum_eq.symm,
+    show hermiteCoeffNd (d' + 1) α (∑' m, a.val m • flatBasisNd d' m) =
+      hermiteCoeffNdCLM (d' + 1) α (∑' m, a.val m • flatBasisNd d' m) from rfl,
+    (hermiteCoeffNdCLM (d' + 1) α).map_tsum (rapidDecay_hermite_summableNd d' a)]
+  simp only [hermiteCoeffNdCLM_apply, map_smul, smul_eq_mul,
+    flatBasisNd, hermiteCoeffNd_basisNd_kronecker, mul_ite, mul_one, mul_zero]
+  -- Rewrite if-condition: α = σ.symm m ↔ m = σ α
+  have h_ite : ∀ m, (if α = (multiIndexEquiv d').symm m then a.val m else (0 : ℝ)) =
+      if m = multiIndexEquiv d' α then a.val m else 0 := by
+    intro m
+    by_cases hm : m = multiIndexEquiv d' α
+    · simp [hm, Equiv.symm_apply_apply]
+    · simp only [hm, ite_false]
+      have : ¬ (α = (multiIndexEquiv d').symm m) := by
+        intro heq; exact hm (by rw [heq, Equiv.apply_symm_apply])
+      simp [this]
+  simp_rw [h_ite]
+  exact tsum_ite_eq _ _
+
 /-- **Completeness of the multi-d Hermite expansion in Schwartz topology.**
 
 The Hermite expansion `∑_n c_{α(n)}(f) · Ψ_{α(n)}` converges to `f` in the
 Schwartz topology, where the sum runs over the flattened multi-index `n ↦ α(n)`
 given by `multiIndexEquiv`.
 
-**Proof sketch**: The multi-d Hermite functions `Ψ_α(x) = ∏_i ψ_{α_i}(x_i)` form a
-complete orthonormal system in `L²(ℝ^d)` (via Fubini and the 1D completeness
-`schwartz_hermite_hasSum`). For `f ∈ S(ℝ^d) ⊂ L²(ℝ^d)`, the L² Parseval expansion
-gives `f = ∑ c_α(f) Ψ_α` in L². The rapid decay of the coefficients
-(`hermiteCoeffNd_decay`) and the polynomial growth of the basis
-(`schwartzHermiteBasisNd_growth`) ensure convergence in every Schwartz seminorm,
-upgrading L² convergence to Schwartz-topology convergence. -/
+**Proof strategy**: The series `∑ c_α(f) Φ_α` converges to some `g ∈ S(ℝ^d)` by
+`rapidDecay_hermite_hasSumNd`. Push `hermiteCoeffNd` through the tsum (via CLM
+continuity and Kronecker) to get `c_α(g) = c_α(f)` for all `α`.
+By `hermiteCoeffNd_injective_nd`, `g - f = 0`, so the limit is `f`. -/
 private lemma schwartz_hermite_completeness_nd (d' : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) :
     HasSum (fun n => hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f •
       flatBasisNd d' n) f := by
-  exact sorry
+  -- The coefficients of f form a rapid decay sequence
+  set a := toRapidDecayNdLM d' f with ha_def
+  -- The Hermite expansion converges to g := rapidDecay_schwartzMapNd d' a
+  -- Convert summand from a.val n to hermiteCoeffNd ... n f (definitionally equal)
+  have h_conv : HasSum
+      (fun n => hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f •
+        flatBasisNd d' n) (rapidDecay_schwartzMapNd d' a) := by
+    convert rapidDecay_hermite_hasSumNd d' a using 1
+  -- Suffices to show g = f (then HasSum ... g → HasSum ... f by substitution)
+  suffices hgf : rapidDecay_schwartzMapNd d' a = f from hgf ▸ h_conv
+  -- By injectivity: show all Hermite coefficients of g - f vanish
+  rw [← sub_eq_zero]
+  apply hermiteCoeffNd_injective_nd (d' + 1)
+  intro α
+  rw [(hermiteCoeffNd_linear (d' + 1) α).map_sub,
+    hermiteCoeffNd_reconstruction d' a α]
+  -- a.val (multiIndexEquiv d' α) = hermiteCoeffNd (d'+1) α f by def of toRapidDecayNdLM
+  rw [ha_def, show (toRapidDecayNdLM d' f).val (multiIndexEquiv d' α) =
+    hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm (multiIndexEquiv d' α)) f from rfl,
+    Equiv.symm_apply_apply]
+  exact sub_self _
 
 /-- The d-dimensional Hermite topological isomorphism. -/
 noncomputable def schwartzRapidDecayEquivNd (d : ℕ) :
