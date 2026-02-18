@@ -136,8 +136,8 @@ theorem nuclear_clm_representation
     (T : E →L[ℝ] H) :
     ∃ (φ : ℕ → (E →L[ℝ] ℝ)) (y : ℕ → H),
       Summable (fun m => ‖y m‖) ∧
-      (∃ (q : NuclearSpace.ι (E := E)) (B : ℝ), 0 < B ∧
-        ∀ (m : ℕ) (f : E), |φ m f| ≤ B * NuclearSpace.p q f) ∧
+      (∃ (s : Finset (NuclearSpace.ι (E := E))) (B : ℝ), 0 < B ∧
+        ∀ (m : ℕ) (f : E), |φ m f| ≤ B * (s.sup NuclearSpace.p) f) ∧
       (∀ (f : E) (w : H),
         @inner ℝ H _ w (T f) = ∑' m, φ m f * @inner ℝ H _ w (y m)) := by
   set ψ := NuclearSpace.basis (E := E) with hψ_def
@@ -169,8 +169,8 @@ theorem nuclear_clm_representation
           congr 1; rw [← Real.rpow_add hpos]; congr 1
           rw [hs_def, show s_exp = p₁ + 2 from rfl]; push_cast; ring
   · -- (ii) Equicontinuity of φ_m
-    obtain ⟨C_s, hCs_pos, q, hdecay_s⟩ := NuclearSpace.coeff_decay (E := E) s_exp
-    exact ⟨q, C_s, hCs_pos, fun m f => by
+    obtain ⟨C_s, hCs_pos, s, hdecay_s⟩ := NuclearSpace.coeff_decay (E := E) s_exp
+    exact ⟨s, C_s, hCs_pos, fun m f => by
       simp only [hφ_def, ContinuousLinearMap.smul_apply, smul_eq_mul]
       rw [abs_mul, abs_of_pos (Real.rpow_pos_of_pos (by positivity : (0:ℝ) < 1 + ↑m) s_real)]
       rw [hs_def, Real.rpow_natCast, mul_comm]

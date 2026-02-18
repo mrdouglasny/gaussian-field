@@ -53,8 +53,8 @@ class NuclearSpace (E : Type*)
     ∀ (i : ι), ∃ C > 0, ∃ (s : ℕ),
     ∀ m, p i (basis m) ≤ C * (1 + (m : ℝ)) ^ s
   coeff_decay :
-    ∀ (k : ℕ), ∃ C > 0, ∃ (q : ι),
-    ∀ f m, |coeff m f| * (1 + (m : ℝ)) ^ k ≤ C * p q f
+    ∀ (k : ℕ), ∃ C > 0, ∃ (s : Finset ι),
+    ∀ f m, |coeff m f| * (1 + (m : ℝ)) ^ k ≤ C * (s.sup p) f
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]

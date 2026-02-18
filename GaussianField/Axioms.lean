@@ -74,10 +74,10 @@ axiom schwartz_hermite_seminorm_growth
     such that for all f ∈ S(D,F) and m ∈ ℕ:
       |c_m(f)| · (1 + m)^k ≤ C · p_q(f) -/
 axiom schwartz_hermite_coefficient_decay
-    (k : ℕ) : ∃ C > 0, ∃ (q : ℕ × ℕ),
+    (k : ℕ) : ∃ C > 0, ∃ (s : Finset (ℕ × ℕ)),
     ∀ (f : SchwartzMap D F) (m : ℕ),
       |schwartzHermiteCoeff D F m f| * (1 + (m : ℝ)) ^ k ≤
-        C * SchwartzMap.seminorm ℝ q.1 q.2 f
+        C * (s.sup (fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l)) f
 
 /-- **Schwartz space is a nuclear Fréchet space.**
 

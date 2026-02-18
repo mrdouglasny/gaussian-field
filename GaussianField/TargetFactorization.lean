@@ -73,9 +73,9 @@ set_option linter.unusedSectionVars false in
     `|φ_m(f)| ≤ C · p_q(f) · (1+m)^{-2}`, the map `j(f) = (φ_m(f))_m` defines a CLM. -/
 theorem nuclear_ell2_embedding_from_decay
     (φ : ℕ → (E →L[ℝ] ℝ))
-    (q : NuclearSpace.ι (E := E)) (C : ℝ) (hC : 0 < C)
+    (s : Finset (NuclearSpace.ι (E := E))) (C : ℝ) (hC : 0 < C)
     (hφ_decay : ∀ (m : ℕ) (f : E),
-      |φ m f| ≤ (C * NuclearSpace.p q f) * (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ)) :
+      |φ m f| ≤ (C * (s.sup NuclearSpace.p) f) * (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ)) :
     ∃ (j : E →L[ℝ] ell2),
       ∀ (f : E) (m : ℕ), (j f : ℕ → ℝ) m = φ m f := by
   -- Step 1: For each f, show (φ m f)_m ∈ ℓ²
@@ -83,7 +83,7 @@ theorem nuclear_ell2_embedding_from_decay
     intro f
     apply memℓp_gen
     simp only [ENNReal.toReal_ofNat]
-    set Cf := C * NuclearSpace.p q f with hCf_def
+    set Cf := C * (s.sup NuclearSpace.p) f with hCf_def
     have hbd : ∀ m : ℕ, |φ m f| ≤ Cf * (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
       intro m; exact hφ_decay m f
     have hsq_bound : ∀ m : ℕ, ‖φ m f‖ ^ (2 : ℝ) ≤
@@ -126,7 +126,7 @@ theorem nuclear_ell2_embedding_from_decay
   -- Construct the linear map
   set j_lin : E →ₗ[ℝ] ell2 :=
     { toFun := j_fun, map_add' := hadd, map_smul' := hsmul }
-  -- Show norm bound: ‖j_fun f‖ ≤ B * NuclearSpace.p q f
+  -- Show norm bound: ‖j_fun f‖ ≤ B * (s.sup NuclearSpace.p) f
   have h4_summ : Summable (fun m : ℕ => (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ)) := by
     have h := (summable_nat_add_iff (f := fun n => (↑n : ℝ) ^ ((-4 : ℤ) : ℝ)) 1).mpr
       (Real.summable_nat_rpow.mpr (by norm_num : ((-4 : ℤ) : ℝ) < -1))
@@ -134,7 +134,7 @@ theorem nuclear_ell2_embedding_from_decay
     convert h using 1; ext m; push_cast; ring_nf
   set ζ4 := ∑' (m : ℕ), (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ) with hζ4_def
   have h_norm_sq : ∀ f : E, ‖j_fun f‖ ^ 2 ≤
-      C ^ 2 * ζ4 * (NuclearSpace.p q f) ^ 2 := by
+      C ^ 2 * ζ4 * ((s.sup NuclearSpace.p) f) ^ 2 := by
     intro f
     rw [← real_inner_self_eq_norm_sq, lp.inner_eq_tsum]
     simp_rw [real_inner_self_eq_norm_sq, Real.norm_eq_abs, sq_abs, hj_fun_def]
@@ -144,51 +144,51 @@ theorem nuclear_ell2_embedding_from_decay
       simp only [RCLike.inner_apply', RCLike.conj_to_real] at h
       exact h.congr (fun m => by ring)
     have h_ptwise : ∀ m : ℕ, (φ m f) ^ 2 ≤
-        (C * NuclearSpace.p q f) ^ 2 *
+        (C * (s.sup NuclearSpace.p) f) ^ 2 *
           (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ) := by
       intro m
       have hpos : (0 : ℝ) < 1 + (↑m : ℝ) := by positivity
-      have hCf_nn : 0 ≤ C * NuclearSpace.p q f *
+      have hCf_nn : 0 ≤ C * (s.sup NuclearSpace.p) f *
           (1 + ↑m) ^ ((-2 : ℤ) : ℝ) := by
         apply mul_nonneg (mul_nonneg (le_of_lt hC) (apply_nonneg _ _))
         exact Real.rpow_nonneg (le_of_lt hpos) _
       rw [← sq_abs (φ m f)]
       calc |φ m f| ^ 2
-          ≤ (C * NuclearSpace.p q f *
+          ≤ (C * (s.sup NuclearSpace.p) f *
               (1 + ↑m) ^ ((-2 : ℤ) : ℝ)) ^ 2 :=
             sq_le_sq' (by linarith [abs_nonneg (φ m f)]) (hφ_decay m f)
-        _ = (C * NuclearSpace.p q f) ^ 2 *
+        _ = (C * (s.sup NuclearSpace.p) f) ^ 2 *
               (1 + ↑m) ^ ((-4 : ℤ) : ℝ) := by
             rw [mul_pow]; congr 1
             rw [← Real.rpow_natCast ((1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ)) 2,
                 ← Real.rpow_mul (le_of_lt hpos)]
             norm_cast
     calc ∑' m, (φ m f) ^ 2
-        ≤ ∑' (m : ℕ), ((C * NuclearSpace.p q f) ^ 2 *
+        ≤ ∑' (m : ℕ), ((C * (s.sup NuclearSpace.p) f) ^ 2 *
             (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ)) :=
           Summable.tsum_le_tsum h_ptwise h_sq_summ (h4_summ.mul_left _)
-      _ = (C * NuclearSpace.p q f) ^ 2 * ζ4 := tsum_mul_left
-      _ = C ^ 2 * ζ4 * (NuclearSpace.p q f) ^ 2 := by ring
+      _ = (C * (s.sup NuclearSpace.p) f) ^ 2 * ζ4 := tsum_mul_left
+      _ = C ^ 2 * ζ4 * ((s.sup NuclearSpace.p) f) ^ 2 := by ring
   have hζ4_nn : 0 ≤ ζ4 := tsum_nonneg (fun m => Real.rpow_nonneg (by positivity) _)
   -- Prove continuity via Seminorm.cont_withSeminorms_normedSpace
   set B : ℝ := C * Real.sqrt ζ4
   have hB_nn : 0 ≤ B := by positivity
-  have h_norm_bound : ∀ f : E, ‖j_fun f‖ ≤ B * NuclearSpace.p q f := by
+  have h_norm_bound : ∀ f : E, ‖j_fun f‖ ≤ B * (s.sup NuclearSpace.p) f := by
     intro f
     have hB_sq : B ^ 2 = C ^ 2 * ζ4 := by
       show (C * Real.sqrt ζ4) ^ 2 = C ^ 2 * ζ4
       rw [mul_pow, Real.sq_sqrt hζ4_nn]
     have h2 := h_norm_sq f
-    have h3 : ‖j_fun f‖ ^ 2 ≤ (B * NuclearSpace.p q f) ^ 2 := by
+    have h3 : ‖j_fun f‖ ^ 2 ≤ (B * (s.sup NuclearSpace.p) f) ^ 2 := by
       rw [mul_pow, hB_sq]; exact h2
     exact le_of_sq_le_sq h3 (mul_nonneg hB_nn (apply_nonneg _ _))
   have j_cont : Continuous j_lin := by
     apply Seminorm.cont_withSeminorms_normedSpace ell2 NuclearSpace.h_with
-    refine ⟨{q}, ⟨⟨B, hB_nn⟩, ?_⟩⟩
+    refine ⟨s, ⟨⟨B, hB_nn⟩, ?_⟩⟩
     rw [Seminorm.le_def]
     intro f
     simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
-               NNReal.smul_def, smul_eq_mul, Finset.sup_singleton]
+               NNReal.smul_def, smul_eq_mul]
     exact h_norm_bound f
   exact ⟨⟨j_lin, j_cont⟩, fun f m => rfl⟩
 
@@ -253,9 +253,9 @@ theorem nuclear_clm_target_factorization
           hsvd_inner, hW_unit, hW_orth, hW_zero⟩ :=
     nuclear_sequence_svd h_inf y hy_sum
   -- Step 6: m-dependent decay → ℓ² embedding
-  obtain ⟨C_d, hCd_pos, q_d, hdecay_strong⟩ := NuclearSpace.coeff_decay (E := E) (s_exp + 2)
+  obtain ⟨C_d, hCd_pos, s_d, hdecay_strong⟩ := NuclearSpace.coeff_decay (E := E) (s_exp + 2)
   have hφ_decay : ∀ (m : ℕ) (f : E),
-      |φ m f| ≤ (C_d * NuclearSpace.p q_d f) *
+      |φ m f| ≤ (C_d * (s_d.sup NuclearSpace.p) f) *
         (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
     intro m f
     simp only [hφ_def, ContinuousLinearMap.smul_apply, smul_eq_mul]
@@ -279,7 +279,7 @@ theorem nuclear_clm_target_factorization
     rw [← mul_assoc]
     gcongr
   -- Construct j : E →L[ℝ] ℓ²
-  obtain ⟨j, hj_spec⟩ := nuclear_ell2_embedding_from_decay φ q_d C_d hCd_pos hφ_decay
+  obtain ⟨j, hj_spec⟩ := nuclear_ell2_embedding_from_decay φ s_d C_d hCd_pos hφ_decay
   -- Construct v : ℕ → ℓ²
   have hv_mem : ∀ n, Memℓp (fun m => σ_ n * W n m) 2 := by
     intro n

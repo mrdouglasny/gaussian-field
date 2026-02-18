@@ -283,9 +283,9 @@ instance rapidDecay_nuclearSpace : NuclearSpace RapidDecaySeq where
   expansion := rapidDecay_expansion
   basis_growth k := ⟨1, one_pos, k, fun m => by
     rw [rapidDecaySeminorm_basisVec]; linarith⟩
-  coeff_decay k := ⟨1, one_pos, k, fun a m => by
-    simp only [coeffCLM, ContinuousLinearMap.coe_mk', coeffLM, LinearMap.coe_mk, AddHom.coe_mk,
-      one_mul]
+  coeff_decay k := ⟨1, one_pos, {k}, fun a m => by
+    simp only [Finset.sup_singleton, coeffCLM, ContinuousLinearMap.coe_mk', coeffLM,
+      LinearMap.coe_mk, AddHom.coe_mk, one_mul]
     show |a.val m| * (1 + ↑m) ^ k ≤ ∑' n, |a.val n| * (1 + ↑n) ^ k
     exact (a.rapid_decay k).le_tsum m
       (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j k))⟩
