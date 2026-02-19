@@ -621,13 +621,13 @@ lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) �
   -- Show the composed function equals g (euclideanSnoc ...)
   show F (t, y') = g (euclideanSnoc (d + 1) ((MeasurableEquiv.toLp 2 _) y') t)
   simp only [F, e, MeasurableEquiv.piFinSuccAbove_symm_apply, MeasurableEquiv.toLp,
-    MeasurableEquiv.coe_mk, Equiv.coe_fn_mk]
+    MeasurableEquiv.coe_mk]
   congr 1
   ext i
   simp only [euclideanSnoc, WithLp.equiv_symm_apply]
   refine Fin.lastCases ?_ ?_ i
-  · simp [Fin.snoc_last, Fin.insertNth_apply_same]
-  · intro j; simp [Fin.snoc_castSucc, Fin.insertNth_apply_succAbove, Fin.succAbove_last]
+  · simp [Fin.snoc_last]
+  · intro j; simp [Fin.snoc_castSucc]
 
 /-! ### Scalarization helpers for seminorm control
 

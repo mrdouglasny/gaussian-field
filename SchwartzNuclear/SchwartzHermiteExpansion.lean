@@ -966,8 +966,8 @@ private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
   -- Helper: eLpNorm(S_N) ≤ eLpNorm(f) for all N
   have h_eLpNorm_le : ∀ N, eLpNorm (S N) 2 volume ≤ eLpNorm f 2 volume := by
     intro N
-    rw [eLpNorm_eq_lintegral_rpow_enorm two_ne_zero ENNReal.ofNat_ne_top,
-        eLpNorm_eq_lintegral_rpow_enorm two_ne_zero ENNReal.ofNat_ne_top]
+    rw [eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top,
+        eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top]
     apply ENNReal.rpow_le_rpow _ (by positivity)
     rw [h_lintegral_sq (S N) (hS_memLp N).integrable_sq,
         h_lintegral_sq f (f.memLp 2 volume).integrable_sq]

@@ -935,7 +935,7 @@ private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) 
     have hsq : ∑ j : Fin (d + 1), ‖x j‖ ^ 2 ≤
         (∑ j : Fin (d + 1), |x j|) ^ 2 := by
       convert Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
-        (fun j _ => abs_nonneg (x j)) using 2 <;> simp [Real.norm_eq_abs]
+        (fun j _ => abs_nonneg (x j)) using 2
     calc √(∑ j, ‖x j‖ ^ 2) ≤ √((∑ j, |x j|) ^ 2) :=
           Real.sqrt_le_sqrt hsq
       _ = ∑ j, |x j| := by
@@ -1477,7 +1477,7 @@ private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
         ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨k', l'⟩).comp T.continuous
       obtain ⟨s, C, hCne, hle⟩ := Seminorm.bound_of_continuous hw_src p hp
       exact ⟨s, ↑C, by exact_mod_cast pos_iff_ne_zero.mpr hCne, fun f => by
-        have := hle f; simp only [Seminorm.smul_apply, Seminorm.comp_apply] at this; exact this⟩
+        have := hle f; simp only [Seminorm.smul_apply] at this; exact this⟩
     -- Package the per-index bounds into a finset bound
     have h_clm : ∃ (C₂ : ℝ) (q₂ : Finset (ℕ × ℕ)), 0 < C₂ ∧
         ∀ f, (Finset.Iic q₁).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) (T f) ≤
@@ -1508,7 +1508,7 @@ private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
     obtain ⟨C₂, q₂, hC₂, h_clm_bound⟩ := h_clm
     refine ⟨C₁ * C₂, q₂, mul_pos hC₁ hC₂, fun f α => ?_⟩
     have h_abs : MultiIndex.abs α = α 0 := by
-      simp [MultiIndex.abs, Fin.sum_univ_one]
+      simp [MultiIndex.abs]
     rw [h_abs]
     set g := T f
     have h_coeff : hermiteCoeffNd 1 α f = hermiteCoeff1D (α 0) g := by
@@ -1611,7 +1611,7 @@ The proof tracks the α-dependence through the Leibniz expansion: each 1D factor
 `ψ_{α_j}` has seminorm `≤ C * (1 + α_j)^s` from `schwartzHermiteBasis1D_growth`,
 and `(1 + α_j) ≤ (1 + |α|)`, so the product bound grows polynomially in `|α|`. -/
 private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
-    ∃ (C : ℝ) (hC : 0 < C) (s : ℕ), ∀ (α : MultiIndex d),
+    ∃ (C : ℝ) (_ : 0 < C) (s : ℕ), ∀ (α : MultiIndex d),
       SchwartzMap.seminorm ℝ k l (schwartzHermiteBasisNd d α) ≤
         C * (1 + (MultiIndex.abs α : ℝ)) ^ s := by
   -- Suffices to show a pointwise bound with polynomial α-dependence,
@@ -1766,7 +1766,7 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
     have hsq : ∑ j : Fin (d + 1), ‖x j‖ ^ 2 ≤
         (∑ j : Fin (d + 1), |x j|) ^ 2 := by
       convert Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
-        (fun j _ => abs_nonneg (x j)) using 2 <;> simp [Real.norm_eq_abs]
+        (fun j _ => abs_nonneg (x j)) using 2
     calc √(∑ j, ‖x j‖ ^ 2) ≤ √((∑ j, |x j|) ^ 2) :=
           Real.sqrt_le_sqrt hsq
       _ = ∑ j, |x j| := by
@@ -1901,7 +1901,7 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
         apply Finset.sum_le_sum; intro p _
         apply mul_le_mul_of_nonneg_left (h_full α x p) (by positivity)
     _ = K * (1 + (MultiIndex.abs α : ℝ)) ^ ((d + 1) * s₁) := by
-        simp only [hK_def, mul_pow, ← Finset.sum_mul]; push_cast; ring
+        simp only [hK_def, mul_pow, ← Finset.sum_mul]; ring
     _ ≤ (K + 1) * (1 + (MultiIndex.abs α : ℝ)) ^ ((d + 1) * s₁) := by
         apply mul_le_mul_of_nonneg_right (le_add_of_nonneg_right zero_le_one)
         positivity
@@ -2472,7 +2472,7 @@ private lemma fromRapidDecayNdLM_eq (d : ℕ) (a : RapidDecaySeq) :
 private lemma fromRapidDecayNdLM_seminorm_le (d : ℕ) (a : RapidDecaySeq) (k l : ℕ) :
     SchwartzMap.seminorm ℝ k l (fromRapidDecayNdLM d a) ≤
       ∑' n, |a.val n| * SchwartzMap.seminorm ℝ k l (flatBasisNd d n) :=
-  SchwartzMap.seminorm_le_bound ℝ k l _ (tsum_nonneg fun n =>
+  SchwartzMap.seminorm_le_bound ℝ k l _ (tsum_nonneg fun _ =>
     mul_nonneg (abs_nonneg _) (apply_nonneg _ _)) (rapidDecay_pointwise_seminorm_leNd d a k l)
 
 /-- Bound using rapid-decay seminorm: `p_{k,l}(Φ(a)) ≤ C · ρ_s(a)`. -/
