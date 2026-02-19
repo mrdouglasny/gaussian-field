@@ -4,3 +4,5 @@ build/
 *.olean
 *.ilean
 *.trace
+tools/
+history/
