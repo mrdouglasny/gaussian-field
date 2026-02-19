@@ -126,21 +126,19 @@ variable (E : Type*) [AddCommGroup E] [Module ℝ E]
 
 ### Example: Schwartz space (current instance)
 
-The library provides `NuclearSpace (SchwartzMap D F)` in `Axioms.lean`:
+The library provides `NuclearSpace (SchwartzMap D ℝ)` in `Axioms.lean` via a single axiom:
 
 ```lean
-instance schwartz_nuclearSpace : NuclearSpace (SchwartzMap D F) where
-  ι := ℕ × ℕ
-  p := fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l
-  h_with := schwartz_withSeminorms ℝ D F
-  basis := schwartzHermiteBasis D F         -- axiom
-  coeff := schwartzHermiteCoeff D F         -- axiom
-  expansion := schwartz_hermite_expansion   -- axiom
-  basis_growth := fun ⟨k, l⟩ => schwartz_hermite_seminorm_growth k l  -- axiom
-  coeff_decay := fun k => schwartz_hermite_coefficient_decay k         -- axiom
+axiom schwartz_nuclearSpace
+    (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
+    [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
+    NuclearSpace (SchwartzMap D ℝ)
+
+instance (D : Type*) [...] : NuclearSpace (SchwartzMap D ℝ) :=
+  schwartz_nuclearSpace D
 ```
 
-The 5 axioms encode standard results about multi-dimensional Hermite functions that are not yet in Mathlib.
+The axiom encodes the classical Dynin-Mityagin theorem (nuclearity of Schwartz space via the Hermite function expansion), which is not yet fully formalized in Mathlib.
 
 ### Which spaces are nuclear?
 
@@ -200,12 +198,9 @@ it only affects the internal proof machinery.
 #### Schwartz space $\mathcal{S}(\mathbb{R}^d)$ (implemented)
 
 ```lean
--- Already provided in Axioms.lean
-instance : NuclearSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) := ...
-
--- Basis: Hermite functions h_m(x)
--- Seminorms: Schwartz seminorms p_{k,l}(f) = sup_x |x^k f^(l)(x)|
--- Laplacian eigenvalues: λ_m = 2m + d (Hermite eigenvalues)
+-- Already provided in Axioms.lean (as an axiom)
+instance : NuclearSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :=
+  schwartz_nuclearSpace _
 ```
 
 #### Circle $S^1$ of circumference $L$ (planned)
@@ -425,7 +420,7 @@ points. See [lattice-continuum limit](docs/lattice-continuum-limit.md) for detai
 ```
 GaussianField/
   NuclearSpace.lean            -- NuclearSpace typeclass + expansion_H lemma
-  Axioms.lean                  -- 5 axioms (Hermite basis) → Schwartz instance
+  Axioms.lean                  -- Schwartz nuclearity axiom → instance
   SpectralTheorem.lean         -- Compact self-adjoint spectral theorem
   NuclearSVD.lean              -- SVD for nuclear operators
   NuclearFactorization.lean    -- Source-indexed nuclear representation
@@ -433,6 +428,13 @@ GaussianField/
   SeriesConvergence.lean       -- Gaussian series convergence (Tonelli)
   Construction.lean            -- Main construction + characteristic functional
   Properties.lean              -- Gaussianity, moments, Lp integrability
+
+SchwartzNuclear/               -- Partial proof of Schwartz nuclearity (WIP)
+  HermiteFunctions.lean        -- Hermite functions ψ_n as Schwartz maps
+  SchwartzHermiteExpansion.lean -- 1D Hermite expansion, eigenvalue decay
+  Basis1D.lean                 -- 1D Hermite basis + completeness
+  SchwartzSlicing.lean         -- Fubini slicing for partial Hermite coefficients
+  HermiteTensorProduct.lean    -- Multi-d Hermite expansion + NuclearSpace instance
 ```
 
 ### Dependency chain
@@ -453,16 +455,22 @@ SpectralTheorem  →  NuclearSVD  →  TargetFactorization
 
 ## Axiom budget
 
-The library assumes **5 axioms**, all concerning the Hermite basis for Schwartz space. These are packaged as proof obligations of the `schwartz_nuclearSpace` instance in `Axioms.lean`. The core construction (everything downstream of `NuclearSpace.lean`) uses **no custom axioms**.
+The library assumes **1 axiom**: that Schwartz space is a nuclear space. This is stated in `Axioms.lean`:
 
-### Hermite basis (5 axioms)
-1. **`schwartzHermiteBasis`** — countable basis for $\mathcal{S}(D, F)$
-2. **`schwartzHermiteCoeff`** — coefficient CLMs
-3. **`schwartz_hermite_expansion`** — expansion identity for CLMs
-4. **`schwartz_hermite_seminorm_growth`** — polynomial growth of basis seminorms
-5. **`schwartz_hermite_coefficient_decay`** — super-polynomial decay of coefficients
+```lean
+axiom schwartz_nuclearSpace
+    (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
+    [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
+    NuclearSpace (SchwartzMap D ℝ)
+```
 
-All 5 are provable from existing mathematics — they are axioms here only because their proofs require Mathlib infrastructure not yet available (e.g., multi-dimensional Hermite functions). Providing a new `NuclearSpace` instance for a different space would require its own set of analogous proofs (or axioms).
+The core construction (everything downstream of `NuclearSpace.lean`) uses **no custom axioms** — it works for any type carrying a `NuclearSpace` instance.
+
+### Why an axiom?
+
+Nuclearity of Schwartz space is a classical result (Dynin-Mityagin, 1960) proved via the Hermite function expansion. The `SchwartzNuclear/` directory contains ~6,500 lines of Lean 4 toward eliminating this axiom, reducing it to 1 analytical axiom (seminorm control of partial Hermite coefficients) and 3 sorrys (Fubini for EuclideanSpace, smoothness/decay of partial coefficients). See the [SchwartzNuclear README](SchwartzNuclear/README.md) for details.
+
+Providing a `NuclearSpace` instance for a different space (e.g., $C^\infty(S^1)$) would require its own analogous proof (or axiom).
 
 ## Further documentation
 
