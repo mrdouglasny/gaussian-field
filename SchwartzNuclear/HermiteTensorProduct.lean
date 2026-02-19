@@ -1242,7 +1242,7 @@ private lemma schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (k' l' : �
   rw [hrw]
   -- Bound ‖c • D^l' g(y)‖ ≤ C₂ * S_f / (1+n)^k via op-norm
   have h_op : ‖c • iteratedFDeriv ℝ l' g y‖ ≤ C₂ * S_f / (1 + (n : ℝ)) ^ k := by
-    apply ContinuousMultilinearMap.opNorm_le_bound _
+    apply ContinuousMultilinearMap.opNorm_le_bound
       (div_nonneg (mul_nonneg hC₂_pos.le hSf_nonneg) hc.le)
     intro v
     rw [div_mul_eq_mul_div, le_div_iff₀ hc]
@@ -1275,12 +1275,12 @@ private lemma schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (k' l' : �
             exact mul_nonneg (mul_nonneg hC_max_pos.le
               (Finset.prod_nonneg fun _ _ => norm_nonneg _)) hSf_nonneg
           · have hc_pos : 0 < c := lt_of_le_of_ne hc_nonneg hcne.symm
-            rw [← le_div_iff₀ hc_pos]
+            rw [← le_div_iff₀' hc_pos]
             apply Seminorm.finset_sup_apply_le
               (div_nonneg (mul_nonneg (mul_nonneg hC_max_pos.le
                 (Finset.prod_nonneg fun _ _ => norm_nonneg _)) hSf_nonneg) hc_pos.le)
             intro idx hidx
-            rw [le_div_iff₀ hc_pos]
+            rw [le_div_iff₀' hc_pos]
             calc c * (fun m => SchwartzMap.seminorm ℝ m.1 m.2) idx slice
                 = c * schwartzSeminormFamily ℝ ℝ ℝ idx slice := rfl
               _ ≤ C_fn idx * (∏ i, ‖v i‖) *
