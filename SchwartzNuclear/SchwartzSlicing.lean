@@ -29,7 +29,7 @@ differentiation under the integral sign) not yet in Mathlib's multi-variable API
 
 import SchwartzNuclear.SchwartzHermiteExpansion
 
-open MeasureTheory Real SchwartzMap
+open MeasureTheory Real SchwartzMap Measure
 
 noncomputable section
 
@@ -152,5 +152,39 @@ lemma schwartz_slice_eq (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
     schwartz_slice d f y t = f (euclideanSnoc (d + 1) y t) := rfl
+
+/-- Fubini theorem for EuclideanSpace slicing.
+Isolates the measure equivalence between ℝ^{d+2} and ℝ^{d+1} × ℝ. -/
+lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) → ℝ)
+    (hg : Integrable g) :
+    ∫ x, g x = ∫ y : EuclideanSpace ℝ (Fin (d + 1)), ∫ t : ℝ, g (euclideanSnoc (d + 1) y t) := by
+  -- Step 1: Transfer from EuclideanSpace to Fin (d+2) → ℝ via volume-preserving equiv
+  have hv := PiLp.volume_preserving_toLp (ι := Fin (d + 2))
+  rw [← hv.integral_comp' (f := MeasurableEquiv.toLp 2 _)]
+  -- Step 2: Split Fin (d+2) → ℝ into ℝ × (Fin (d+1) → ℝ) via piFinSuccAbove at Fin.last
+  set e := (MeasurableEquiv.piFinSuccAbove (fun _ : Fin (d + 2) => ℝ) (Fin.last (d + 1))).symm
+  have hem : MeasurePreserving e :=
+    (volume_preserving_piFinSuccAbove (fun _ : Fin (d + 2) => ℝ) (Fin.last (d + 1))).symm _
+  rw [← hem.integral_comp' (f := e)]
+  -- Step 3: Apply Fubini
+  rw [volume_eq_prod, integral_prod]
+  · -- Step 4: Transfer inner integral back to EuclideanSpace
+    congr 1; ext t
+    have hv' := PiLp.volume_preserving_toLp (ι := Fin (d + 1))
+    rw [← hv'.integral_comp' (f := MeasurableEquiv.toLp 2 _)]
+    congr 1; ext y'
+    -- Show the composed function equals g (euclideanSnoc ...)
+    congr 1
+    simp only [e, MeasurableEquiv.piFinSuccAbove_symm_apply, MeasurableEquiv.toLp,
+      MeasurableEquiv.coe_mk, Equiv.coe_fn_mk]
+    ext i
+    simp only [euclideanSnoc, WithLp.equiv_symm_apply]
+    refine Fin.lastCases ?_ ?_ i
+    · simp [Fin.insertNth_apply_same]
+    · intro j
+      simp [Fin.insertNth_apply_succAbove, Fin.succAbove_last]
+  · -- Integrability for integral_prod
+    exact (hem.integrable_comp e.measurableEmbedding).mpr
+      ((hv.integrable_comp (MeasurableEquiv.toLp 2 _).measurableEmbedding).mpr hg)
 
 end GaussianField

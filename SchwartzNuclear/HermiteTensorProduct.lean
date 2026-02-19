@@ -1126,13 +1126,6 @@ private lemma schwartz_mul_hermiteBasisNd_integrable (d : ℕ)
 
 /-! ### Explicit Fubini Slicing Proof for Axiom A3a -/
 
-/-- Fubini theorem for EuclideanSpace slicing.
-Isolates the measure equivalence between ℝ^{d+2} and ℝ^{d+1} × ℝ. -/
-private lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) → ℝ)
-    (hg : Integrable g) :
-    ∫ x, g x = ∫ y : EuclideanSpace ℝ (Fin (d + 1)), ∫ t : ℝ, g (euclideanSnoc (d + 1) y t) := by
-  exact sorry
-
 /-- Helper: `euclideanSnoc` on castSucc evaluates to the base vector `y`. -/
 private lemma euclideanSnoc_castSucc (d : ℕ) (y : EuclideanSpace ℝ (Fin d)) (t : ℝ) (i : Fin d) :
     euclideanSnoc d y t (Fin.castSucc i) = y i := by
