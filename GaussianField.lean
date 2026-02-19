@@ -40,7 +40,6 @@ import GaussianField.SpectralTheorem
 import GaussianField.NuclearSVD
 import GaussianField.NuclearFactorization
 import GaussianField.TargetFactorization
-import GaussianField.SeriesConvergence
 import GaussianField.Construction
 import GaussianField.Properties
 

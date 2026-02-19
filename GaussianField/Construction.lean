@@ -36,8 +36,8 @@ C(f,g) = ⟨T(f), T(g)⟩_H.
 -/
 
 import GaussianField.TargetFactorization
-import GaussianField.SeriesConvergence
 import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.Probability.Distributions.Gaussian.Basic
 import Mathlib.Probability.ProductMeasure
 import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.Probability.Independence.Integration
@@ -69,6 +69,7 @@ instance instMeasurableSpaceConfiguration :
     MeasurableSpace (Configuration E) :=
   MeasurableSpace.comap (fun ω f => ω f) MeasurableSpace.pi
 
+omit [NuclearSpace E] in
 /-- A function into Configuration is measurable iff all evaluations are measurable. -/
 theorem configuration_measurable_of_eval_measurable
     {X : Type*} [MeasurableSpace X] (g : X → Configuration E)
@@ -79,6 +80,7 @@ theorem configuration_measurable_of_eval_measurable
   rw [MeasurableSpace.comap_comp]
   exact (measurable_pi_lambda _ h).comap_le
 
+omit [NuclearSpace E] in
 /-- Each evaluation map ω ↦ ω(f) is measurable w.r.t. the cylindrical σ-algebra. -/
 theorem configuration_eval_measurable (φ : E) :
     @Measurable (Configuration E) ℝ instMeasurableSpaceConfiguration _ (fun ω => ω φ) := by
@@ -315,6 +317,60 @@ private noncomputable def seriesLimit
       simp only [h0]
       exact continuous_const⟩
 
+set_option maxHeartbeats 1600000 in
+/-- **Gaussian series convergence**: If ∑ ‖vₙ‖ < ∞ and ξₙ ~ iid N(0,1),
+    then ∑ ξₙ • vₙ converges almost surely in K.
+
+    Proof uses Tonelli's theorem:
+    E[∑ ‖ξₙ vₙ‖] = ∑ E[|ξₙ|] ‖vₙ‖ = C · ∑ ‖vₙ‖ < ∞
+    so ∑ ‖ξₙ vₙ‖ < ∞ a.s., hence ∑ ξₙ vₙ converges a.s. -/
+private theorem hilbert_gaussian_series_converges
+    {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteSpace K]
+    (v : ℕ → K) (hv : Summable (fun n => ‖v n‖)) :
+    ∀ᵐ ξ ∂(Measure.infinitePi (fun _ : ℕ => gaussianReal 0 1)),
+      Summable (fun n => ξ n • v n) := by
+  set μ := fun _ : ℕ => gaussianReal (0 : ℝ) 1
+  set P := Measure.infinitePi μ
+  -- The first absolute moment C = E[|ξ|] of standard Gaussian is finite
+  set C := ∫⁻ x : ℝ, ↑‖x‖₊ ∂(μ 0) with hC_def
+  have hC : C ≠ ⊤ := by
+    have h := (IsGaussian.integrable_dual (μ 0)
+      (ContinuousLinearMap.id ℝ ℝ)).hasFiniteIntegral
+    rw [hasFiniteIntegral_def] at h
+    simp only [ContinuousLinearMap.id_apply, enorm_eq_nnnorm] at h
+    exact h.ne
+  -- Convert ∑ ‖vₙ‖ < ∞ to NNReal and ENNReal summability
+  have hv_nn : Summable (fun n => ‖v n‖₊) := by
+    have h1 : (fun n => (‖v n‖₊ : ℝ)) = fun n => ‖v n‖ := funext fun n => coe_nnnorm (v n)
+    exact NNReal.summable_coe.mp (h1 ▸ hv)
+  have hv_ennreal : tsum (fun n => ((‖v n‖₊ : NNReal) : ENNReal)) ≠ ⊤ :=
+    ENNReal.tsum_coe_ne_top_iff_summable.mpr hv_nn
+  -- Measurability of each summand ‖ξ n‖₊ * ‖v n‖₊
+  have h_meas_f : ∀ n, Measurable (fun ξ : ℕ → ℝ => (‖ξ n‖₊ : ENNReal)) :=
+    fun n => (measurable_pi_apply n).nnnorm.coe_nnreal_ennreal
+  have h_meas : ∀ n, Measurable (fun ξ : ℕ → ℝ => (‖ξ n‖₊ : ENNReal) * ‖v n‖₊) :=
+    fun n => (h_meas_f n).mul_const _
+  -- Each marginal integral equals C (by measure-preserving projection)
+  have h_eval : ∀ n, ∫⁻ ξ, (‖ξ n‖₊ : ENNReal) ∂P = C := fun n =>
+    (measurePreserving_eval_infinitePi μ n).lintegral_comp
+      measurable_nnnorm.coe_nnreal_ennreal
+  -- Main estimate: E[∑ |ξₙ| ‖vₙ‖] = C · ∑ ‖vₙ‖ < ∞
+  have h_finite : ∫⁻ ξ, ∑' n, ((‖ξ n‖₊ : ENNReal) * ‖v n‖₊) ∂P ≠ ⊤ := by
+    rw [lintegral_tsum (fun n => (h_meas n).aemeasurable)]
+    simp_rw [lintegral_mul_const _ (h_meas_f _), h_eval, ENNReal.tsum_mul_left]
+    exact ENNReal.mul_ne_top hC hv_ennreal
+  -- A.e. finiteness from finite lintegral
+  have h_ae := ae_lt_top (Measurable.ennreal_tsum h_meas) h_finite
+  -- Convert ∑ ‖ξₙ‖₊ * ‖vₙ‖₊ < ⊤ to Summable (fun n => ξ n • v n)
+  exact h_ae.mono fun ξ hξ => by
+    simp_rw [← ENNReal.coe_mul] at hξ
+    have hξ' : Summable (fun n => ‖ξ n‖₊ * ‖v n‖₊) :=
+      ENNReal.tsum_coe_ne_top_iff_summable.mp hξ.ne
+    have hξ'' : Summable (fun n => ‖ξ n • v n‖) := by
+      refine (NNReal.summable_coe.mpr hξ').congr fun n => ?_
+      rw [NNReal.coe_mul, coe_nnnorm, coe_nnnorm, norm_smul]
+    exact hξ''.of_norm
+
 /-- IsGoodNoise holds a.e. under noiseMeasure. -/
 private theorem isGoodNoise_ae (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :
@@ -387,6 +443,7 @@ private noncomputable def hilbertEmbedding (hfin : FiniteDimensional ℝ H) : H 
   exact ∑ i : Fin (Module.finrank ℝ H),
     (innerSL ℝ ((stdOrthonormalBasis ℝ H) i)).smulRight (ell2_basis i.val)
 
+omit [CompleteSpace H] [SeparableSpace H] in
 /-- The embedding maps x to ∑_i ⟨b_i, x⟩ • e_i. -/
 private lemma hilbertEmbedding_apply (hfin : FiniteDimensional ℝ H) (x : H) :
     hilbertEmbedding hfin x = ∑ i : Fin (Module.finrank ℝ H),
@@ -394,6 +451,7 @@ private lemma hilbertEmbedding_apply (hfin : FiniteDimensional ℝ H) (x : H) :
   simp only [hilbertEmbedding, ContinuousLinearMap.sum_apply,
              ContinuousLinearMap.smulRight_apply, innerSL_apply_apply]
 
+omit [CompleteSpace H] [SeparableSpace H] in
 /-- The embedding preserves inner products.
     Both sides equal Σ_i ⟨b_i, x⟩ * ⟨b_i, y⟩: the RHS by Parseval for the
     finite ONB, the LHS by orthonormality of ell2_basis. -/

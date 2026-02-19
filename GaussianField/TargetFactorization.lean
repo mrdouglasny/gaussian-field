@@ -38,21 +38,15 @@ variable {E : Type*} [AddCommGroup E] [Module ℝ E]
 
 /-! ## ℓ² Construction Helpers -/
 
-/-- The ℓ² space used as intermediate Hilbert space K. -/
-abbrev ell2 := lp (fun _ : ℕ => ℝ) 2
-
-/-- A function f : ℕ → ℝ that is in ℓ² defines an element of ell2. -/
-def ell2OfMemℓp (f : ℕ → ℝ) (hf : Memℓp f 2) : ell2 := ⟨f, hf⟩
-
 omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [NuclearSpace E] in
 /-- The ℓ² inner product equals the tsum of products. -/
-theorem ell2_inner_eq_tsum (x y : ell2) :
-    @inner ℝ ell2 _ x y = ∑' m, @inner ℝ _ _ ((x : ℕ → ℝ) m) ((y : ℕ → ℝ) m) :=
+theorem ell2_inner_eq_tsum (x y : ell2') :
+    @inner ℝ ell2' _ x y = ∑' m, @inner ℝ _ _ ((x : ℕ → ℝ) m) ((y : ℕ → ℝ) m) :=
   lp.inner_eq_tsum x y
 
 omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [NuclearSpace E] in
 /-- A summable scalar sequence multiplied by a fixed ℓ² element is summable. -/
-theorem summable_smul_ell2 (σ_ : ℕ → ℝ) (u : ℕ → ell2)
+theorem summable_smul_ell2 (σ_ : ℕ → ℝ) (u : ℕ → ell2')
     (hσ : Summable σ_) (hσ_nn : ∀ n, 0 ≤ σ_ n)
     (hu : ∀ n, σ_ n ≠ 0 → ‖u n‖ = 1) :
     Summable (fun n => ‖σ_ n • u n‖) := by
@@ -76,7 +70,7 @@ theorem nuclear_ell2_embedding_from_decay
     (s : Finset (NuclearSpace.ι (E := E))) (C : ℝ) (hC : 0 < C)
     (hφ_decay : ∀ (m : ℕ) (f : E),
       |φ m f| ≤ (C * (s.sup NuclearSpace.p) f) * (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ)) :
-    ∃ (j : E →L[ℝ] ell2),
+    ∃ (j : E →L[ℝ] ell2'),
       ∀ (f : E) (m : ℕ), (j f : ℕ → ℝ) m = φ m f := by
   -- Step 1: For each f, show (φ m f)_m ∈ ℓ²
   have hφ_memℓp : ∀ (f : E), Memℓp (fun m => φ m f) 2 := by
@@ -115,7 +109,7 @@ theorem nuclear_ell2_embedding_from_decay
       hsq_bound
       (h4_summ.mul_left _)
   -- Step 2: Construct the CLM j : E →L[ℝ] ℓ²
-  set j_fun : E → ell2 :=
+  set j_fun : E → ell2' :=
     fun f => ⟨fun m => φ m f, hφ_memℓp f⟩ with hj_fun_def
   have hadd : ∀ (f g : E), j_fun (f + g) = j_fun f + j_fun g := by
     intro f g; ext m
@@ -124,7 +118,7 @@ theorem nuclear_ell2_embedding_from_decay
     intro a f; ext m
     simp [hj_fun_def, lp.coeFn_smul, map_smul, smul_eq_mul, Pi.smul_apply]
   -- Construct the linear map
-  set j_lin : E →ₗ[ℝ] ell2 :=
+  set j_lin : E →ₗ[ℝ] ell2' :=
     { toFun := j_fun, map_add' := hadd, map_smul' := hsmul }
   -- Show norm bound: ‖j_fun f‖ ≤ B * (s.sup NuclearSpace.p) f
   have h4_summ : Summable (fun m : ℕ => (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ)) := by
@@ -139,8 +133,8 @@ theorem nuclear_ell2_embedding_from_decay
     rw [← real_inner_self_eq_norm_sq, lp.inner_eq_tsum]
     simp_rw [real_inner_self_eq_norm_sq, Real.norm_eq_abs, sq_abs, hj_fun_def]
     have h_sq_summ : Summable (fun m : ℕ => (φ m f) ^ 2) := by
-      have h := lp.summable_inner (𝕜 := ℝ) (⟨fun m => φ m f, hφ_memℓp f⟩ : ell2)
-        (⟨fun m => φ m f, hφ_memℓp f⟩ : ell2)
+      have h := lp.summable_inner (𝕜 := ℝ) (⟨fun m => φ m f, hφ_memℓp f⟩ : ell2')
+        (⟨fun m => φ m f, hφ_memℓp f⟩ : ell2')
       simp only [RCLike.inner_apply', RCLike.conj_to_real] at h
       exact h.congr (fun m => by ring)
     have h_ptwise : ∀ m : ℕ, (φ m f) ^ 2 ≤
@@ -183,7 +177,7 @@ theorem nuclear_ell2_embedding_from_decay
       rw [mul_pow, hB_sq]; exact h2
     exact le_of_sq_le_sq h3 (mul_nonneg hB_nn (apply_nonneg _ _))
   have j_cont : Continuous j_lin := by
-    apply Seminorm.cont_withSeminorms_normedSpace ell2 NuclearSpace.h_with
+    apply Seminorm.cont_withSeminorms_normedSpace ell2' NuclearSpace.h_with
     refine ⟨s, ⟨⟨B, hB_nn⟩, ?_⟩⟩
     rw [Seminorm.le_def]
     intro f
@@ -291,9 +285,9 @@ theorem nuclear_clm_target_factorization
         simp only [ENNReal.toReal_ofNat]
         exact (hW_unit n hσn).summable.congr (fun m => by simp [Real.norm_eq_abs, sq_abs])
       exact this.const_smul (σ_ n)
-  set v : ℕ → ell2 := fun n => ⟨fun m => σ_ n * W n m, hv_mem n⟩
+  set v : ℕ → ell2' := fun n => ⟨fun m => σ_ n * W n m, hv_mem n⟩
   -- Exhibit the existential
-  refine ⟨e, ell2, inferInstance, inferInstance, inferInstance, j, v,
+  refine ⟨e, ell2', inferInstance, inferInstance, inferInstance, j, v,
           he_on, he_span, ?_, ?_⟩
   · -- ∑ ‖v n‖ < ∞
     suffices h : ∀ n, ‖v n‖ = σ_ n by
@@ -318,7 +312,7 @@ theorem nuclear_clm_target_factorization
     have lhs : @inner ℝ H _ (e n) (T f) = ∑' m, (φ m f) * (σ_ n * W n m) := by
       rw [hexpand f (e n)]
       congr 1; ext m; rw [hsvd_inner]
-    have rhs : @inner ℝ ell2 _ (v n) (j f) = ∑' m, (σ_ n * W n m) * (φ m f) := by
+    have rhs : @inner ℝ ell2' _ (v n) (j f) = ∑' m, (σ_ n * W n m) * (φ m f) := by
       rw [lp.inner_eq_tsum]
       congr 1; ext m
       simp only [v]

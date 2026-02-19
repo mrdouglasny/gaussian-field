@@ -22,4 +22,4 @@ import SchwartzNuclear.HermiteFunctions
 import SchwartzNuclear.SchwartzHermiteExpansion
 import SchwartzNuclear.Basis1D
 import SchwartzNuclear.SchwartzSlicing
-import SchwartzNuclear.HermiteTensorProduct
+import SchwartzNuclear.HermiteNuclear
