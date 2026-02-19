@@ -18,16 +18,21 @@ constructions used in the multi-dimensional Hermite expansion proof.
 
 ## Sorry inventory
 
-- `schwartz_slice.smooth'` — smoothness of `t ↦ f(y, t)` as function of `t`
-- `schwartz_slice.decay'` — Schwartz decay of the slice
-- `schwartz_partial_hermiteCoeff.smooth'` — smoothness of `y ↦ ∫ f(y,t) ψ_n(t) dt`
-- `schwartz_partial_hermiteCoeff.decay'` — Schwartz decay of the partial coefficient
+- `schwartz_partial_hermiteCoeff_smooth` — `ContDiff ℝ ⊤` for `y ↦ ∫ f(y,t) ψ_n(t) dt`
+- `schwartz_partial_hermiteCoeff_decay` — Schwartz decay of the partial coefficient
 
-These are standard analytical facts (restriction of Schwartz functions,
-differentiation under the integral sign) not yet in Mathlib's multi-variable API.
+These require iterated differentiation under the integral sign, not yet
+available in Mathlib (only single-step `hasFDerivAt_integral_of_dominated_of_fderiv_le`).
+
+## Proved lemmas
+
+- `euclideanSnoc_norm_sq` — `‖euclideanSnoc y t‖² = ‖y‖² + t²`
+- `euclideanSnoc_norm_ge_left` — `‖y‖ ≤ ‖euclideanSnoc y t‖`
+- `integral_euclidean_snoc` — Fubini for EuclideanSpace slicing
 -/
 
 import SchwartzNuclear.SchwartzHermiteExpansion
+-- import Mathlib.Analysis.Calculus.ParametricIntegral  -- needed for smooth' proof
 
 open MeasureTheory Real SchwartzMap Measure
 
@@ -113,6 +118,40 @@ private lemma euclideanSnoc_antilipschitz (d : ℕ)
   rw [dist_eq_norm, dist_eq_norm (E := EuclideanSpace ℝ _), EuclideanSpace.norm_eq,
     hsum, Real.sqrt_sq (norm_nonneg _)]
 
+/-- The norm of `euclideanSnoc y t` satisfies `‖y‖² + t² = ‖euclideanSnoc y t‖²`.
+This is because snoc just appends one coordinate. -/
+private lemma euclideanSnoc_norm_sq (d : ℕ)
+    (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
+    ‖euclideanSnoc (d + 1) y t‖ ^ 2 = ‖y‖ ^ 2 + t ^ 2 := by
+  have hlast : (euclideanSnoc (d + 1) y t) (Fin.last (d + 1)) = t := by
+    simp [euclideanSnoc, Fin.snoc_last]
+  have hcast : ∀ j : Fin (d + 1),
+      (euclideanSnoc (d + 1) y t) (Fin.castSucc j) = y j := by
+    intro j; simp [euclideanSnoc, Fin.snoc_castSucc]
+  simp only [EuclideanSpace.norm_eq]
+  rw [Real.sq_sqrt (Finset.sum_nonneg (fun _ _ => sq_nonneg _)),
+    Real.sq_sqrt (Finset.sum_nonneg (fun _ _ => sq_nonneg _))]
+  rw [show ∑ i : Fin (d + 2), ‖(euclideanSnoc (d + 1) y t) i‖ ^ 2 =
+    (∑ j : Fin (d + 1), ‖(euclideanSnoc (d + 1) y t) (Fin.castSucc j)‖ ^ 2) +
+    ‖(euclideanSnoc (d + 1) y t) (Fin.last (d + 1))‖ ^ 2 from
+    Fin.sum_univ_castSucc _]
+  rw [hlast, norm_eq_abs, sq_abs]
+  congr 1
+  apply Finset.sum_congr rfl
+  intro j _
+  rw [hcast]
+
+/-- The first `d+1` coordinates contribute to the norm:
+`‖y‖ ≤ ‖euclideanSnoc (d+1) y t‖`. -/
+private lemma euclideanSnoc_norm_ge_left (d : ℕ)
+    (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
+    ‖y‖ ≤ ‖euclideanSnoc (d + 1) y t‖ := by
+  rw [← Real.sqrt_sq (norm_nonneg y),
+    ← Real.sqrt_sq (norm_nonneg (euclideanSnoc (d + 1) y t))]
+  apply Real.sqrt_le_sqrt
+  rw [euclideanSnoc_norm_sq]
+  linarith [sq_nonneg t]
+
 -- A1: Slicing a Schwartz function along the last coordinate
 /-- Restrict `f ∈ S(ℝ^{d+2})` to the hyperplane `{x | x_rest = y}`,
 giving a Schwartz function of the last coordinate. -/
@@ -128,17 +167,62 @@ noncomputable def schwartz_slice (d : ℕ)
     (compCLMOfAntilipschitz ℝ (euclideanSnoc_hasTemperateGrowth d y)
       (euclideanSnoc_antilipschitz d y) f).decay'
 
+/-! ## A2: Partial Hermite coefficient is Schwartz
+
+The function `g(y) = ∫ f(euclideanSnoc y t) · ψ_n(t) dt` is Schwartz in y.
+
+**Proof strategy** (following the parametric integral approach):
+
+### Smoothness (`smooth'`)
+Prove `ContDiff ℝ m` for all `m` by induction on `m`:
+- Base (`m = 0`): continuity via `continuous_of_dominated`
+- Step: `hasFDerivAt_integral_of_dominated_of_fderiv_le` gives the derivative
+  as `∫ (∂_y f)(euclideanSnoc y t) · ψ_n(t) dt`, which has the same form with `∂_y f`
+  (still Schwartz) replacing `f`, so the IH applies.
+
+### Decay (`decay'`)
+Use the key norm bound `‖y‖ ≤ ‖euclideanSnoc y t‖` (`euclideanSnoc_norm_ge_left`):
+1. Commute `iteratedFDeriv` and the integral (via `smooth'`)
+2. Bound `‖y‖^k * |integrand| ≤ ‖euclideanSnoc y t‖^k * |integrand|`
+3. Apply Schwartz decay of `f` at the point `euclideanSnoc y t`
+4. The resulting `t`-integral is finite since `hermiteFunction n` is integrable.
+-/
+
+/-- Smoothness of the partial Hermite coefficient: the function
+`y ↦ ∫ f(y,t) ψ_n(t) dt` is `C^∞` in `y`.
+
+Proof by induction on the order of differentiability, using
+`hasFDerivAt_integral_of_dominated_of_fderiv_le` at each step, with
+domination from Schwartz decay. -/
+private lemma schwartz_partial_hermiteCoeff_smooth (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+    (n : ℕ) :
+    ContDiff ℝ (⊤ : ℕ∞) (fun y => hermiteCoeff1D n (schwartz_slice d f y)) := by
+  sorry
+
+/-- Schwartz decay of the partial Hermite coefficient: for all `k, m`,
+`sup_y ‖y‖^k · ‖∂^m_y g(y)‖ < ∞` where `g(y) = ∫ f(y,t) ψ_n(t) dt`.
+
+Uses `euclideanSnoc_norm_ge_left` to push `‖y‖^k` inside the integral
+and bound it by `‖(y,t)‖^k`, then applies Schwartz decay of `f`. -/
+private lemma schwartz_partial_hermiteCoeff_decay (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+    (n : ℕ) (k m : ℕ) :
+    ∃ C : ℝ, ∀ y : EuclideanSpace ℝ (Fin (d + 1)),
+      ‖y‖ ^ k * ‖iteratedFDeriv ℝ m
+        (fun y' => hermiteCoeff1D n (schwartz_slice d f y')) y‖ ≤ C := by
+  sorry
+
 -- A2: Partial Hermite coefficient is Schwartz in remaining coordinates
 /-- Integrate out the last coordinate of `f` against the `n`-th Hermite
-function, giving a Schwartz function of the remaining `d + 1` coordinates.
-The `sorry`s are smoothness and decay of `y ↦ ∫ f(y,t) ψ_n(t) dt`. -/
+function, giving a Schwartz function of the remaining `d + 1` coordinates. -/
 noncomputable def schwartz_partial_hermiteCoeff (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
     (n : ℕ) :
     SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ where
   toFun y := hermiteCoeff1D n (schwartz_slice d f y)
-  smooth' := sorry
-  decay' := sorry
+  smooth' := schwartz_partial_hermiteCoeff_smooth d f n
+  decay' := schwartz_partial_hermiteCoeff_decay d f n
 
 -- A3b: Partial coefficient relates to 1D slice (definitionally true)
 lemma schwartz_partial_hermiteCoeff_eq_1D (d : ℕ)
@@ -166,25 +250,28 @@ lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) �
   have hem : MeasurePreserving e :=
     (volume_preserving_piFinSuccAbove (fun _ : Fin (d + 2) => ℝ) (Fin.last (d + 1))).symm _
   rw [← hem.integral_comp' (f := e)]
-  -- Step 3: Apply Fubini
-  rw [volume_eq_prod, integral_prod]
-  · -- Step 4: Transfer inner integral back to EuclideanSpace
-    congr 1; ext t
-    have hv' := PiLp.volume_preserving_toLp (ι := Fin (d + 1))
-    rw [← hv'.integral_comp' (f := MeasurableEquiv.toLp 2 _)]
-    congr 1; ext y'
-    -- Show the composed function equals g (euclideanSnoc ...)
-    congr 1
-    simp only [e, MeasurableEquiv.piFinSuccAbove_symm_apply, MeasurableEquiv.toLp,
-      MeasurableEquiv.coe_mk, Equiv.coe_fn_mk]
-    ext i
-    simp only [euclideanSnoc, WithLp.equiv_symm_apply]
-    refine Fin.lastCases ?_ ?_ i
-    · simp [Fin.insertNth_apply_same]
-    · intro j
-      simp [Fin.insertNth_apply_succAbove, Fin.succAbove_last]
-  · -- Integrability for integral_prod
-    exact (hem.integrable_comp e.measurableEmbedding).mpr
-      ((hv.integrable_comp (MeasurableEquiv.toLp 2 _).measurableEmbedding).mpr hg)
+  -- Step 3: Apply Fubini and swap integral order
+  set F : ℝ × (Fin (d + 1) → ℝ) → ℝ :=
+    fun p => g ((MeasurableEquiv.toLp 2 _) (e p))
+  have hint : Integrable F :=
+    (hem.integrable_comp_emb e.measurableEmbedding).mpr
+      ((hv.integrable_comp_emb (MeasurableEquiv.toLp 2 _).measurableEmbedding).mpr hg)
+  rw [volume_eq_prod] at hint ⊢
+  rw [integral_prod _ hint, integral_integral_swap hint]
+  -- Step 4: Transfer outer integral from Fin (d+1) → ℝ to EuclideanSpace
+  have hv' := PiLp.volume_preserving_toLp (ι := Fin (d + 1))
+  rw [← hv'.integral_comp' (f := MeasurableEquiv.toLp 2 _)]
+  congr 1; funext y'
+  congr 1; funext t
+  -- Show the composed function equals g (euclideanSnoc ...)
+  show F (t, y') = g (euclideanSnoc (d + 1) ((MeasurableEquiv.toLp 2 _) y') t)
+  simp only [F, e, MeasurableEquiv.piFinSuccAbove_symm_apply, MeasurableEquiv.toLp,
+    MeasurableEquiv.coe_mk, Equiv.coe_fn_mk]
+  congr 1
+  ext i
+  simp only [euclideanSnoc, WithLp.equiv_symm_apply]
+  refine Fin.lastCases ?_ ?_ i
+  · simp [Fin.snoc_last, Fin.insertNth_apply_same]
+  · intro j; simp [Fin.snoc_castSucc, Fin.insertNth_apply_succAbove, Fin.succAbove_last]
 
 end GaussianField
