@@ -25,7 +25,6 @@ Hilbert space, there exist a HilbertBasis of eigenvectors and eigenvalues
 - Brezis, "Functional Analysis", Thm 6.11
 -/
 
-import GaussianField.Axioms
 import Mathlib.Analysis.InnerProductSpace.Rayleigh
 import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
 import Mathlib.Analysis.InnerProductSpace.Spectrum

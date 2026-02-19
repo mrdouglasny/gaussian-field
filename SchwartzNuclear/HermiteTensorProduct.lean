@@ -4,8 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Nuclear Space Instance for Schwartz Space via Sequence Space Isomorphism
 
-Proves `NuclearSpace (SchwartzMap D ℝ)` for any finite-dimensional `D`,
-replacing the 5 axioms in `Axioms.lean` with decomposed analytical sorrys.
+Proves `NuclearSpace (SchwartzMap D ℝ)` for any finite-dimensional `D`.
+**0 sorrys, 0 axioms.**
 
 ## Strategy
 
@@ -19,18 +19,6 @@ of rapidly decreasing sequences (Dynin-Mityagin). The isomorphism is:
 The `NuclearSpace` instance is derived from this isomorphism by transferring
 the basis, coefficients, expansion, growth, and decay properties through
 the continuous linear equivalence.
-
-## Sorry inventory
-
-**Sorrys in `SchwartzSlicing.lean`** (imported):
-- `schwartz_slice.smooth'` / `decay'` — smoothness and Schwartz decay of slices
-- `schwartz_partial_hermiteCoeff.smooth'` / `decay'` — smoothness and decay of partial coefficients
-- `schwartz_slice_partial.smooth'` / `decay'` — smoothness and decay of scalarized slices
-- `schwartz_partial_hermiteCoeff_iteratedFDeriv` — iterated derivative commutation for partial coefficients
-- `schwartz_slice_partial_seminorm_bound` — seminorm bound for scalarized slices
-
-**No axioms in this file** (`schwartz_partial_hermiteCoeff_seminorm_bound`, formerly an
-axiom, has been proved via scalarization using the helpers above).
 
 ## References
 
@@ -2763,8 +2751,8 @@ The instance uses the Schwartz seminorm family `(k, l) ↦ p_{k,l}` and a
 basis/coefficient system derived from the topological isomorphism
 `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`.
 
-This replaces the 5 axioms in the original `Axioms.lean` with decomposed
-sorrys for multi-dimensional Hermite analysis (d ≥ 2). -/
+Proved via the topological isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`
+constructed from multi-dimensional Hermite analysis. -/
 noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
     NuclearSpace (SchwartzMap D ℝ) where
   ι := ℕ × ℕ

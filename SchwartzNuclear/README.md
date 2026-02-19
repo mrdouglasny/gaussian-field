@@ -1,11 +1,10 @@
-# Schwartz Space Nuclearity — Proof Attempts
+# Schwartz Space Nuclearity — Proof
 
-This directory contains ~6,300 lines of Lean 4 toward proving that
+This directory contains ~7,700 lines of Lean 4 proving that
 Schwartz space $\mathcal{S}(\mathbb{R}^d, \mathbb{R})$ is a nuclear Fréchet space,
 i.e., constructing a `NuclearSpace (SchwartzMap D ℝ)` instance from first principles.
 
-The main library (`GaussianField/Axioms.lean`) currently states nuclearity as
-a single axiom. This directory is WIP toward eliminating that axiom.
+**Status: Complete (0 sorrys, 0 axioms).**
 
 ## Overall Strategy
 
@@ -25,16 +24,17 @@ equivalence, using:
 
 ## File Structure
 
-| File | Lines | Sorrys | Axioms | Status |
-|------|------:|:------:|:------:|--------|
-| `HermiteFunctions.lean` | 1,853 | 0 | 0 | **Complete** |
-| `SchwartzHermiteExpansion.lean` | 1,446 | 0 | 0 | **Complete** |
-| `Basis1D.lean` | 157 | 0 | 0 | **Complete** |
-| `SchwartzSlicing.lean` | 195 | 5 | 0 | Partial |
-| `HermiteTensorProduct.lean` | 2,760 | 0 | 0 | Partial |
-| **Total** | **6,440** | **5** | **0** | |
+| File | Lines | Description |
+|------|------:|-------------|
+| `HermiteFunctions.lean` | 1,853 | 1D Hermite functions, orthonormality, completeness |
+| `SchwartzHermiteExpansion.lean` | 1,446 | 1D Schwartz-Hermite expansion, coefficient decay |
+| `Basis1D.lean` | 157 | 1D NuclearSpace fields assembly |
+| `ParametricCalculus.lean` | 316 | Differentiation under the integral sign |
+| `SchwartzSlicing.lean` | 1,134 | Multi-d slicing and partial Hermite coefficients |
+| `HermiteTensorProduct.lean` | 2,768 | Multi-d isomorphism and NuclearSpace instance |
+| **Total** | **7,674** | |
 
-## What Is Proved (no axioms, no sorrys)
+## What Is Proved
 
 ### 1D Hermite Function Theory (`HermiteFunctions.lean`)
 
@@ -116,7 +116,33 @@ Packages the above into the three `NuclearSpace` fields:
 Also constructs **`hermiteCoeff1DCLM`** — the Hermite coefficient as a
 continuous linear map, with continuity proved from the decay bound at $k = 0$.
 
-### 1D Sequence Space Isomorphism (`HermiteTensorProduct.lean`, lines 110–600)
+### Parametric Calculus (`ParametricCalculus.lean`)
+
+- **`norm_iteratedFDeriv_iteratedFDeriv`** — iterated Fréchet derivative of the
+  map $y \mapsto D^m f(y, t)$ decomposes as $D^l_y D^m_{(y,t)} f$, bounded by
+  $D^{l+m} f$.
+
+- **`contDiff_schwartz_parametric_integral`** — if $f : Y \to \mathcal{S}(T, F)$
+  is $C^n$ in $y$ and the map $y \mapsto f(y)$ is Schwartz-valued, then
+  $y \mapsto \int f(y)(t)\,g(t)\,dt$ is $C^n$.
+
+### Multi-d Slicing (`SchwartzSlicing.lean`)
+
+- **`schwartz_slice_y`** — for $f \in \mathcal{S}(\mathbb{R}^{d+2})$, the
+  slice $t \mapsto f(y, t)$ is Schwartz in $t$, proved via
+  `SchwartzMap.compCLMOfAntilipschitz` (the embedding $t \mapsto (y,t)$ is
+  isometric and has temperate growth).
+
+- **`schwartz_partial_hermiteCoeff`** — the partial Hermite coefficient
+  $g_n(y) = \int f(y, t)\,\psi_n(t)\,dt$ is Schwartz in $y$, with full
+  smoothness and decay proved via parametric calculus and CLM chain rules.
+
+- **`schwartz_partial_hermiteCoeff_seminorm_bound`** — the weighted seminorm
+  bound $p_{k',l'}(g_n) \cdot (1+n)^k \le C \cdot \sup_{q'} p_{q'}(f)$,
+  proved by scalarization: evaluate $D^{l'}_y[g_n]$ along arbitrary vectors $v$,
+  reducing to a 1D problem solvable by `hermiteCoeff1D_decay`.
+
+### 1D Sequence Space Isomorphism (`HermiteTensorProduct.lean`, lines 110-600)
 
 - **`schwartzRapidDecayEquiv1D`** — the topological isomorphism
   $\mathcal{S}(\mathbb{R}) \cong s(\mathbb{N})$, constructed as a
@@ -124,10 +150,10 @@ continuous linear map, with continuity proved from the decay bound at $k = 0$.
   - Forward: $f \mapsto (c_n(f))_n$ (proved to be a CLM, coefficients are rapid-decay)
   - Backward: $(a_n)_n \mapsto \sum_n a_n\,\psi_n$ (proved to converge in Schwartz topology,
     with CLM seminorm bounds)
-  - Left inverse: forward ∘ backward = id (by Kronecker property)
-  - Right inverse: backward ∘ forward = id (by Hermite completeness/injectivity)
+  - Left inverse: forward $\circ$ backward = id (by Kronecker property)
+  - Right inverse: backward $\circ$ forward = id (by Hermite completeness/injectivity)
 
-### Multi-Dimensional Structure (`HermiteTensorProduct.lean`, lines 600–1100)
+### Multi-Dimensional Structure (`HermiteTensorProduct.lean`, lines 600-1100)
 
 - **Multi-index flattening** — bijection $\mathbb{N}^d \to \mathbb{N}$ via iterated
   Cantor pairing, with proved polynomial growth bounds in both directions
@@ -145,7 +171,25 @@ continuous linear map, with continuity proved from the decay bound at $k = 0$.
 - **`hermiteFunctionNd_orthonormal`** — $\int \Psi_\alpha\,\Psi_\beta = \delta_{\alpha\beta}$
   (from 1D orthonormality + Fubini)
 
-### Multi-D Backward Map and Final Assembly (lines 2026–2643)
+### Multi-d Coefficient Decay — The Slicing Trick
+
+The multi-dimensional coefficient decay (`hermiteCoeffNd_decay`) is proved by
+**induction on dimension**, using the Fubini factorization
+$c_\alpha(f) = c_{\alpha_{\mathrm{rest}}}(g_{\alpha_{\mathrm{last}}})$
+where $g_n = \mathrm{schwartz\_partial\_hermiteCoeff}\;d\;f\;n$.
+
+- **Base case** ($d = 1$): transfers through the CLE `euclideanFin1Equiv` to
+  the proved 1D decay theorem, using `Seminorm.bound_of_continuous` for the
+  seminorm transfer.
+
+- **Inductive step**: case split on the exponent $k$:
+  - $k < 0$: $(1+|\alpha|)^k \le (1+|\alpha_{\mathrm{rest}}|)^k$ directly
+    (since $|\alpha| \ge |\alpha_{\mathrm{rest}}|$ and $k < 0$), then IH +
+    unweighted bound
+  - $k \ge 0$: factor $(1+|\alpha|)^k \le (1+|\alpha_{\mathrm{rest}}|)^k \cdot (1+n)^k$,
+    apply IH for the first factor and weighted seminorm bound for the second
+
+### Multi-d Backward Map and Final Assembly (lines 2026-2643)
 
 The backward map $(a_n)_n \mapsto \sum_n a_n\,\Phi_n$ (where $\Phi_n$ is the
 flattened multi-d basis) is fully proved:
@@ -167,102 +211,20 @@ noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
   coeff_decay := schwartz_coeff_decay_from_equiv (schwartzRapidDecayEquiv D)
 ```
 
-## Remaining Gaps (5 sorrys, 0 axioms)
-
-### Sorrys in `SchwartzSlicing.lean`
-
-**`contDiff_parametric_hermiteCoeff`** — smoothness and iterated derivative
-commutation for $y \mapsto \int f(y, t)\,\psi_n(t)\,dt$.
-Requires iterated differentiation under the integral sign, not yet available
-in Mathlib (only single-step `hasFDerivAt_integral_of_dominated_of_fderiv_le`).
-
-**`schwartz_slice_partial.smooth'` / `decay'`** — smoothness and Schwartz decay
-of the scalarized slice $t \mapsto D^{l'}_y[f(\cdot, t)](y)(v)$.
-Follows from joint smoothness and decay of $f$.
-
-**`schwartz_partial_hermiteCoeff_iteratedFDeriv`** — the iterated derivative of
-$g_n(y) = \int f(y, t)\,\psi_n(t)\,dt$ evaluated at $y$ along vectors $v$ equals
-the 1D Hermite coefficient of the corresponding scalarized slice.
-
-**`schwartz_slice_partial_seminorm_bound`** — 1D Schwartz seminorm of the
-scalarized slice, weighted by $\|y\|^{k'}$, is bounded by
-$C \cdot \prod\|v_i\| \cdot \sup_{q'} p_{q'}(f)$.
-
-### Former Axiom (now proved)
-
-**`schwartz_partial_hermiteCoeff_seminorm_bound`** (`HermiteTensorProduct.lean`)
-— previously an axiom, now proved by "scalarization": evaluate the multilinear
-map $D^{l'}_y[g_n]$ along arbitrary vectors $v$, reducing to a 1D problem
-solvable by `hermiteCoeff1D_decay`.
-
-### Golden Slicing Trick
-
-The multi-dimensional coefficient decay (`hermiteCoeffNd_decay`) is proved by
-**induction on dimension**, using the Fubini factorization
-$c_\alpha(f) = c_{\alpha_{\mathrm{rest}}}(g_{\alpha_{\mathrm{last}}})$
-where $g_n = \mathrm{schwartz\_partial\_hermiteCoeff}\;d\;f\;n$.
-
-- **Base case** ($d = 1$): transfers through the CLE `euclideanFin1Equiv` to
-  the proved 1D decay theorem, using `Seminorm.bound_of_continuous` for the
-  seminorm transfer.
-
-- **Inductive step**: case split on the exponent $k$:
-  - $k < 0$: $(1+|\alpha|)^k \le (1+|\alpha_{\mathrm{rest}}|)^k$ directly
-    (since $|\alpha| \ge |\alpha_{\mathrm{rest}}|$ and $k < 0$), then IH +
-    unweighted axiom
-  - $k \ge 0$: factor $(1+|\alpha|)^k \le (1+|\alpha_{\mathrm{rest}}|)^k \cdot (1+n)^k$,
-    apply IH for the first factor and weighted seminorm bound for the second
-
-This approach replaced the original 3 axioms (B1: L2 bound, B2: coordinate
-harmonic oscillator CLM, B3: eigenvalue identity) with a single seminorm
-control lemma (now proved via scalarization).
-
-## What Was Resolved
-
-### `schwartz_slice` (A1) — fully proved
-
-The slicing construction $t \mapsto f(y, t)$ for fixed $y$ was originally 4 sorrys.
-Both `smooth'` and `decay'` were proved using Mathlib's
-`SchwartzMap.compCLMOfAntilipschitz`: if $g$ has temperate growth and is
-antilipschitz, then $f \circ g \in \mathcal{S}$.
-
-Key helper lemmas:
-- **`euclideanSnoc_hasTemperateGrowth`** — the embedding $t \mapsto (y, t)$ has
-  temperate growth, proved via `HasTemperateGrowth.of_pi` (decomposing into
-  constant + linear components per coordinate)
-- **`euclideanSnoc_antilipschitz`** — the embedding is isometric (hence antilipschitz
-  with constant 1), proved by computing $\mathrm{dist}(g(s), g(t)) = |s - t|$
-
-### `schwartz_partial_hermiteCoeff_decay` — proved
-
-The Schwartz decay of $y \mapsto \int f(y,t)\,\psi_n(t)\,dt$ (assuming
-derivative commutation from `contDiff_parametric_hermiteCoeff`) uses:
-
-- **`schwartz_slice_y_le_seminorm`** — pointwise bound
-  $\|y\|^k \cdot \|\partial^m_y(f \circ \mathrm{snoc}(\cdot, t))(y)\| \le p_{k,m}(f)$,
-  proved via the chain rule for the affine isometric embedding
-  $y \mapsto (y, t)$ using `ContinuousLinearMap.iteratedFDeriv_comp_right`,
-  `iteratedFDeriv_comp_add_left`, and `euclideanSnoc_norm_ge_left`.
-- **`integral_euclidean_snoc`** — Fubini for EuclideanSpace slicing, now fully proved.
-
-### `integral_euclidean_snoc` — proved
-
-The Fubini factorization $\int_{\mathbb{R}^{d+2}} g = \int_{\mathbb{R}^{d+1}} \int_{\mathbb{R}} g(y,t)\,dt\,dy$
-proved using `MeasureTheory.integral_prod`, `PiLp.volume_preserving_toLp`,
-and `MeasurableEquiv.piFinSuccAbove`.
-
 ## Dependency Graph
 
 ```
-HermiteFunctions.lean                    [1D: complete]
-    ↓
-SchwartzHermiteExpansion.lean            [1D expansion: complete]
-    ↓
-Basis1D.lean                             [1D NuclearSpace fields: complete]
-    ↓
-SchwartzSlicing.lean                     [multi-d slicing: 5 sorrys]
-    ↓
-HermiteTensorProduct.lean                [multi-d isomorphism + instance: 0 axioms]
+HermiteFunctions.lean                    [1D Hermite functions]
+    |
+SchwartzHermiteExpansion.lean            [1D expansion + decay]
+    |
+Basis1D.lean                             [1D NuclearSpace fields]
+    |
+ParametricCalculus.lean ─────────┐
+    |                            |
+SchwartzSlicing.lean             |       [multi-d slicing + scalarization]
+    |                            |
+HermiteTensorProduct.lean ───────┘       [multi-d isomorphism + instance]
 ```
 
 ## Key Mathlib Dependencies
