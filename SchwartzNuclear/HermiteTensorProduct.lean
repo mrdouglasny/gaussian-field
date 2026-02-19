@@ -1121,6 +1121,46 @@ def SchwartzCLM.iterate {D F : Type*}
   | 0 => ContinuousLinearMap.id ℝ _
   | n + 1 => T.comp (SchwartzCLM.iterate T n)
 
+private lemma schwartz_mul_hermiteBasisNd_integrable (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d) :
+    Integrable (fun x => f x * hermiteFunctionNd d α x) :=
+  (f.memLp 2 volume).integrable_mul ((schwartzHermiteBasisNd d α).memLp 2 volume)
+
+/-! ### Explicit Fubini Slicing Proof for Axiom A3a -/
+
+/-- Fubini theorem for EuclideanSpace slicing.
+Isolates the measure equivalence between ℝ^{d+2} and ℝ^{d+1} × ℝ. -/
+private lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) → ℝ)
+    (hg : Integrable g) :
+    ∫ x, g x = ∫ y : EuclideanSpace ℝ (Fin (d + 1)), ∫ t : ℝ, g (euclideanSnoc (d + 1) y t) := by
+  exact sorry
+
+/-- Helper: `euclideanSnoc` on castSucc evaluates to the base vector `y`. -/
+private lemma euclideanSnoc_castSucc (d : ℕ) (y : EuclideanSpace ℝ (Fin d)) (t : ℝ) (i : Fin d) :
+    euclideanSnoc d y t (Fin.castSucc i) = y i := by
+  unfold euclideanSnoc
+  simp [Fin.snoc_castSucc]
+
+/-- Helper: `euclideanSnoc` on the last coordinate evaluates to `t`. -/
+private lemma euclideanSnoc_last (d : ℕ) (y : EuclideanSpace ℝ (Fin d)) (t : ℝ) :
+    euclideanSnoc d y t (Fin.last d) = t := by
+  unfold euclideanSnoc
+  simp [Fin.snoc_last]
+
+/-- The multi-dimensional Hermite function splits algebraically under `snoc`. -/
+private lemma hermiteFunctionNd_snoc (d : ℕ) (α : MultiIndex (d + 2))
+    (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
+    hermiteFunctionNd (d + 2) α (euclideanSnoc (d + 1) y t) =
+    hermiteFunctionNd (d + 1) (fun i => α (Fin.castSucc i)) y *
+    hermiteFunction (α (Fin.last (d + 1))) t := by
+  unfold hermiteFunctionNd
+  rw [Fin.prod_univ_castSucc]
+  congr 1
+  · apply Finset.prod_congr rfl
+    intro i _
+    rw [euclideanSnoc_castSucc]
+  · rw [euclideanSnoc_last]
+
 -- A3a: Fubini factorization of multi-dimensional Hermite coefficients
 /-- `c_α(f) = c_{α_rest}(partial_coeff_{α_last} f)` by Fubini. -/
 private lemma hermiteCoeffNd_fubini (d : ℕ)
@@ -1128,7 +1168,27 @@ private lemma hermiteCoeffNd_fubini (d : ℕ)
     (α : MultiIndex (d + 2)) :
     hermiteCoeffNd (d + 2) α f =
       hermiteCoeffNd (d + 1) (fun i => α (Fin.castSucc i))
-        (schwartz_partial_hermiteCoeff d f (α (Fin.last (d + 1)))) := sorry
+        (schwartz_partial_hermiteCoeff d f (α (Fin.last (d + 1)))) := by
+  unfold hermiteCoeffNd
+  rw [integral_euclidean_snoc d _ (schwartz_mul_hermiteBasisNd_integrable (d + 2) f α)]
+  congr 1
+  ext y
+  rw [schwartz_partial_hermiteCoeff_eq_1D]
+  unfold hermiteCoeff1D
+  have h_factor : ∀ t, f (euclideanSnoc (d + 1) y t) * hermiteFunctionNd (d + 2) α (euclideanSnoc (d + 1) y t) =
+      (f (euclideanSnoc (d + 1) y t) * hermiteFunction (α (Fin.last (d + 1))) t) *
+      hermiteFunctionNd (d + 1) (fun i => α (Fin.castSucc i)) y := by
+    intro t
+    rw [hermiteFunctionNd_snoc]
+    ring
+  simp_rw [h_factor]
+  -- Pull constant factor out of the integral: ∫ t, g(t) * C = (∫ t, g(t)) * C
+  have h_pull := @integral_smul_const ℝ ℝ _ volume _ _ ℝ _ _ _
+    (fun t => f (euclideanSnoc (d + 1) y t) * hermiteFunction (α (Fin.last (d + 1))) t)
+    (hermiteFunctionNd (d + 1) (fun i => α (Fin.castSucc i)) y)
+  simp only [smul_eq_mul] at h_pull
+  rw [h_pull]
+  congr 1
 
 -- Axiom B1: L² bound on Hermite coefficients
 axiom hermiteCoeffNd_l2_bound (d : ℕ) :
@@ -1716,12 +1776,6 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
         positivity
 
 /-! ## Multi-Dimensional Isomorphism -/
-
-/-- The product of a Schwartz function and a Hermite basis element is integrable (multi-d). -/
-private lemma schwartz_mul_hermiteBasisNd_integrable (d : ℕ)
-    (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) (α : MultiIndex d) :
-    Integrable (fun x => f x * hermiteFunctionNd d α x) :=
-  (f.memLp 2 volume).integrable_mul ((schwartzHermiteBasisNd d α).memLp 2 volume)
 
 /-- Fubini for EuclideanSpace: factors a product integral into individual integrals.
 Bridges the MeasurableSpace instance diamond between EuclideanSpace (inner product

@@ -61,27 +61,47 @@ lemma euclideanSnoc_init_last (d : ℕ) (x : EuclideanSpace ℝ (Fin (d + 1))) :
 private lemma euclideanSnoc_hasTemperateGrowth (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) :
     Function.HasTemperateGrowth (euclideanSnoc (d + 1) y) := by
-  have h_eq : euclideanSnoc (d+1) y =
-    (EuclideanSpace.equiv (Fin (d+2)) ℝ).symm ∘ (fun t => Fin.snoc (fun i => y i) t) := by
-    ext t; simp [euclideanSnoc, EuclideanSpace.equiv]
+  -- The linear part: embed ℝ as the last coordinate in EuclideanSpace
+  set L : ℝ →L[ℝ] EuclideanSpace ℝ (Fin (d + 2)) :=
+    (EuclideanSpace.equiv (Fin (d+2)) ℝ).symm.toContinuousLinearMap.comp
+      (ContinuousLinearMap.single (R := ℝ) (φ := fun (_ : Fin (d + 2)) => ℝ)
+        (Fin.last (d + 1)))
+  -- The constant part
+  set c := euclideanSnoc (d + 1) y 0
+  have h_snoc_decomp : ∀ t,
+      Fin.snoc (α := fun _ => ℝ) (fun i => y.ofLp i) t =
+      Fin.snoc (α := fun _ => ℝ) (fun i => y.ofLp i) 0 +
+        Pi.single (Fin.last (d + 1)) t := by
+    intro t
+    ext i
+    rw [Pi.add_apply]
+    refine Fin.lastCases ?_ ?_ i
+    · simp [Fin.snoc_last]
+    · intro j; simp [Fin.snoc_castSucc]
+  have h_eq : euclideanSnoc (d+1) y = (fun t => c + L t) := by
+    funext t
+    simp only [c, L, euclideanSnoc, ContinuousLinearMap.comp_apply,
+      ContinuousLinearMap.single_apply, ContinuousLinearEquiv.coe_coe]
+    show (WithLp.equiv 2 _).symm (Fin.snoc (fun i => y.ofLp i) t) =
+      (WithLp.equiv 2 _).symm (Fin.snoc (fun i => y.ofLp i) 0) +
+      (EuclideanSpace.equiv (Fin (d+2)) ℝ).symm (Pi.single (Fin.last (d+1)) t)
+    rw [h_snoc_decomp]
+    simp [EuclideanSpace.equiv]
   rw [h_eq]
-  exact (Function.HasTemperateGrowth.of_pi (fun i => Fin.lastCases
-    (by simp [Fin.snoc_last]; exact Function.HasTemperateGrowth.id')
-    (fun j => by simp [Fin.snoc_castSucc]; exact Function.HasTemperateGrowth.const _) i)).comp_clm
-      (EuclideanSpace.equiv (Fin (d+2)) ℝ).symm
+  exact Function.HasTemperateGrowth.add (Function.HasTemperateGrowth.const _)
+    L.hasTemperateGrowth
 
 /-- `euclideanSnoc d y` is antilipschitz (in fact isometric) in `t`. -/
 private lemma euclideanSnoc_antilipschitz (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) :
     AntilipschitzWith 1 (euclideanSnoc (d + 1) y) := by
-  refine AntilipschitzWith.of_dist_le_mul (fun s t => ?_)
-  simp only [NNReal.coe_one, one_mul, dist_eq_norm]
-  rw [EuclideanSpace.norm_eq]
+  refine AntilipschitzWith.of_le_mul_dist (fun s t => ?_)
+  simp only [NNReal.coe_one, one_mul]
   have hcoord : ∀ i : Fin (d+2),
     ‖(euclideanSnoc (d+1) y s - euclideanSnoc (d+1) y t) i‖ =
     if i = Fin.last (d+1) then ‖s - t‖ else 0 := by
     intro i
-    simp only [euclideanSnoc, WithLp.equiv_symm_pi_lp_apply, Pi.sub_apply]
+    simp only [euclideanSnoc, WithLp.equiv_symm_apply, WithLp.ofLp_sub, Pi.sub_apply]
     refine Fin.lastCases ?_ ?_ i
     · simp [Fin.snoc_last]
     · intro j; simp [Fin.snoc_castSucc]
@@ -89,7 +109,9 @@ private lemma euclideanSnoc_antilipschitz (d : ℕ)
     = ‖s - t‖ ^ 2 := by
     conv_lhs => arg 2; ext i; rw [hcoord]
     simp [Finset.sum_ite_eq', Finset.mem_univ]
-  rw [hsum, Real.sqrt_sq (norm_nonneg _)]
+  show dist s t ≤ dist (euclideanSnoc (d + 1) y s) (euclideanSnoc (d + 1) y t)
+  rw [dist_eq_norm, dist_eq_norm (E := EuclideanSpace ℝ _), EuclideanSpace.norm_eq,
+    hsum, Real.sqrt_sq (norm_nonneg _)]
 
 -- A1: Slicing a Schwartz function along the last coordinate
 /-- Restrict `f ∈ S(ℝ^{d+2})` to the hyperplane `{x | x_rest = y}`,
