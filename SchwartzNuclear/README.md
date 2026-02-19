@@ -167,26 +167,18 @@ noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
   coeff_decay := schwartz_coeff_decay_from_equiv (schwartzRapidDecayEquiv D)
 ```
 
-## Remaining Gaps (3 sorrys + 1 axiom)
+## Remaining Gaps (1 sorry + 1 axiom)
 
-### Sorrys
+### Sorry
 
-All three sorrys concern multi-variable analysis infrastructure not yet in Mathlib.
-
-1. **`schwartz_partial_hermiteCoeff.smooth'`** (`SchwartzSlicing.lean`)
-   — smoothness of $y \mapsto \int f(y, t)\,\psi_n(t)\,dt$.
-   Requires differentiation under the integral sign for Schwartz integrands
-   in multi-variable EuclideanSpace.
-
-2. **`schwartz_partial_hermiteCoeff.decay'`** (`SchwartzSlicing.lean`)
-   — Schwartz decay of $y \mapsto \int f(y, t)\,\psi_n(t)\,dt$.
-   Same underlying issue: showing the integral operator preserves Schwartz decay.
-
-3. **`integral_euclidean_snoc`** (`HermiteTensorProduct.lean`)
-   — Fubini factorization: $\int_{\mathbb{R}^{d+2}} g = \int_{\mathbb{R}^{d+1}} \int_\mathbb{R} g(y, t)\,dt\,dy$
-   for the `euclideanSnoc` coordinate decomposition.
-   Requires connecting Mathlib's `MeasureTheory.integral_prod` with the
-   `WithLp`/`EuclideanSpace` measure equivalence.
+**`contDiff_parametric_hermiteCoeff`** (`SchwartzSlicing.lean`)
+— smoothness and iterated derivative commutation for
+$y \mapsto \int f(y, t)\,\psi_n(t)\,dt$.
+Requires iterated differentiation under the integral sign, not yet available
+in Mathlib (only single-step `hasFDerivAt_integral_of_dominated_of_fderiv_le`).
+The Schwartz decay bound (`schwartz_partial_hermiteCoeff_decay`) is proved
+assuming this commutation, using the chain rule decomposition in
+`schwartz_slice_y_le_seminorm`.
 
 ### Axiom
 
@@ -238,6 +230,24 @@ Key helper lemmas:
 - **`euclideanSnoc_antilipschitz`** — the embedding is isometric (hence antilipschitz
   with constant 1), proved by computing $\mathrm{dist}(g(s), g(t)) = |s - t|$
 
+### `schwartz_partial_hermiteCoeff_decay` — proved
+
+The Schwartz decay of $y \mapsto \int f(y,t)\,\psi_n(t)\,dt$ (assuming
+derivative commutation from `contDiff_parametric_hermiteCoeff`) uses:
+
+- **`schwartz_slice_y_le_seminorm`** — pointwise bound
+  $\|y\|^k \cdot \|\partial^m_y(f \circ \mathrm{snoc}(\cdot, t))(y)\| \le p_{k,m}(f)$,
+  proved via the chain rule for the affine isometric embedding
+  $y \mapsto (y, t)$ using `ContinuousLinearMap.iteratedFDeriv_comp_right`,
+  `iteratedFDeriv_comp_add_left`, and `euclideanSnoc_norm_ge_left`.
+- **`integral_euclidean_snoc`** — Fubini for EuclideanSpace slicing, now fully proved.
+
+### `integral_euclidean_snoc` — proved
+
+The Fubini factorization $\int_{\mathbb{R}^{d+2}} g = \int_{\mathbb{R}^{d+1}} \int_{\mathbb{R}} g(y,t)\,dt\,dy$
+proved using `MeasureTheory.integral_prod`, `PiLp.volume_preserving_toLp`,
+and `MeasurableEquiv.piFinSuccAbove`.
+
 ## Dependency Graph
 
 ```
@@ -247,9 +257,9 @@ SchwartzHermiteExpansion.lean            [1D expansion: complete]
     ↓
 Basis1D.lean                             [1D NuclearSpace fields: complete]
     ↓
-SchwartzSlicing.lean                     [multi-d slicing: 2 sorrys]
+SchwartzSlicing.lean                     [multi-d slicing: 1 sorry]
     ↓
-HermiteTensorProduct.lean                [multi-d isomorphism + instance: 1 sorry, 1 axiom]
+HermiteTensorProduct.lean                [multi-d isomorphism + instance: 1 axiom]
 ```
 
 ## Key Mathlib Dependencies
