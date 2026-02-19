@@ -34,6 +34,7 @@ import Mathlib.Analysis.Normed.Operator.Compact
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.Module
 import Mathlib.Topology.Algebra.InfiniteSum.Module
+import Mathlib.Analysis.InnerProductSpace.l2Space
 
 noncomputable section
 

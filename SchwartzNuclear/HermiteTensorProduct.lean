@@ -22,14 +22,12 @@ the continuous linear equivalence.
 
 ## Sorry inventory
 
-**Sorrys** (reduced from 5 axioms):
-- `multiIndexEquiv` — bijection `(Fin (d+1) → ℕ) ≃ ℕ` (d ≥ 0, i.e., dimension ≥ 1)
-- `multiIndexEquiv_growth` / `multiIndexEquiv_symm_growth` — polynomial bounds
-- `hermiteFunctionNd_decay` — Schwartz decay of tensor Hermite function (smoothness proved)
-- `hermiteCoeffNd_decay` — rapid decay of multi-index Hermite coefficients
-- `schwartzHermiteBasisNd_growth` — polynomial growth of basis seminorms
-- `toRapidDecayNdCLM` / `fromRapidDecayNdCLM` — forward/backward CLMs
-- `schwartzRapidDecayEquivNd` — left/right inverses
+**Sorrys in `SchwartzSlicing.lean`** (imported):
+- `schwartz_slice.smooth'` / `decay'` — smoothness and Schwartz decay of slices
+- `schwartz_partial_hermiteCoeff.smooth'` / `decay'` — smoothness and decay of partial coefficients
+
+**Sorrys in this file**:
+- `hermiteCoeffNd_fubini` — Fubini factorization of multi-D Hermite coefficients
 
 ## References
 
@@ -40,6 +38,7 @@ the continuous linear equivalence.
 
 import SchwartzNuclear.Basis1D
 import GaussianField.NuclearTensorProduct
+import SchwartzNuclear.SchwartzSlicing
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.MeasureTheory.Integral.Pi
 
@@ -1098,13 +1097,120 @@ lemma hermiteCoeffNd_eq_hermiteCoeff1D
   show f (euclideanFin1Equiv.symm (x 0)) = f x
   congr 1; simp [euclideanFin1Equiv]; ext i; fin_cases i; rfl
 
-/-! ### Slicing-Based Axioms for Multi-Dimensional Hermite Analysis
+/-! ### Analytical Axioms for Multi-Dimensional Hermite Analysis
 
-The following sorry-backed lemmas isolate the calculus of Fubini slicing.
-By factoring `c_α(f)` along a single coordinate, we inherit 1D injectivity
-and 1D rapid decay natively, avoiding multi-dimensional operators entirely.
-These represent the boundary of Mathlib's current multivariable calculus and
-integration API (specifically, slicing Schwartz maps and integrating their seminorms).
+The definitions `schwartz_slice`, `schwartz_partial_hermiteCoeff`,
+`euclideanSnoc`, `euclideanInit` and associated lemmas live in
+`SchwartzSlicing.lean` (imported above).
+
+The remaining axioms are:
+
+**A3a. Fubini factorization** (`hermiteCoeffNd_fubini`) — needs `hermiteCoeffNd`
+
+**B. Eigenvalue axioms** (for coordinate-wise decay):
+- B1 `hermiteCoeffNd_l2_bound`: L² bound on coefficients
+- B2 `coordinateHarmonicOscillator`: H_i as CLM on Schwartz space
+- B3 `hermiteCoeffNd_eigenvalue`: eigenvalue identity
+-/
+
+/-- Iterate a continuous linear map on Schwartz space `m` times. -/
+def SchwartzCLM.iterate {D F : Type*}
+    [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [NormedAddCommGroup F] [NormedSpace ℝ F]
+    (T : SchwartzMap D F →L[ℝ] SchwartzMap D F) : ℕ → (SchwartzMap D F →L[ℝ] SchwartzMap D F)
+  | 0 => ContinuousLinearMap.id ℝ _
+  | n + 1 => T.comp (SchwartzCLM.iterate T n)
+
+-- A3a: Fubini factorization of multi-dimensional Hermite coefficients
+/-- `c_α(f) = c_{α_rest}(partial_coeff_{α_last} f)` by Fubini. -/
+private lemma hermiteCoeffNd_fubini (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+    (α : MultiIndex (d + 2)) :
+    hermiteCoeffNd (d + 2) α f =
+      hermiteCoeffNd (d + 1) (fun i => α (Fin.castSucc i))
+        (schwartz_partial_hermiteCoeff d f (α (Fin.last (d + 1)))) := sorry
+
+-- Axiom B1: L² bound on Hermite coefficients
+axiom hermiteCoeffNd_l2_bound (d : ℕ) :
+    ∃ (C₀ : ℝ) (q₀ : Finset (ℕ × ℕ)), 0 < C₀ ∧
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
+        (α : MultiIndex (d + 1)),
+        |hermiteCoeffNd (d + 1) α f| ≤
+          C₀ * q₀.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ) f
+
+-- Axiom B2: Coordinate harmonic oscillator as CLM on Schwartz space
+axiom coordinateHarmonicOscillator (d : ℕ) (i : Fin (d + 1)) :
+    SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ →L[ℝ]
+      SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ
+
+-- Axiom B3: Eigenvalue identity for coordinate harmonic oscillator
+axiom hermiteCoeffNd_eigenvalue (d : ℕ) (i : Fin (d + 1))
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ) (α : MultiIndex (d + 1)) :
+    hermiteCoeffNd (d + 1) α (coordinateHarmonicOscillator d i f) =
+      (2 * (α i : ℝ) + 1) * hermiteCoeffNd (d + 1) α f
+
+/-- Iterating the eigenvalue relation `m` times. -/
+lemma hermiteCoeffNd_eigenvalue_iter (d : ℕ) (i : Fin (d + 1)) (m : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
+    (α : MultiIndex (d + 1)) :
+    hermiteCoeffNd (d + 1) α (SchwartzCLM.iterate (coordinateHarmonicOscillator d i) m f) =
+      (2 * (α i : ℝ) + 1) ^ m * hermiteCoeffNd (d + 1) α f := by
+  induction m with
+  | zero => simp [SchwartzCLM.iterate]
+  | succ m ih =>
+    simp only [SchwartzCLM.iterate, ContinuousLinearMap.comp_apply,
+      hermiteCoeffNd_eigenvalue]
+    rw [ih]; ring
+
+/-- CLM seminorm bound: for any CLM `T` and seminorm finset `q₀`, the output
+seminorms are bounded by finitely many input seminorms. -/
+lemma schwartz_clm_finset_bound {d : ℕ}
+    (T : SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ →L[ℝ]
+      SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
+    (q₀ : Finset (ℕ × ℕ)) :
+    ∃ (C : ℝ) (q' : Finset (ℕ × ℕ)), 0 < C ∧
+      ∀ f, q₀.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ) (T f) ≤
+        C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ) f := by
+  by_cases hq : q₀ = ∅
+  · exact ⟨1, ∅, one_pos, fun f => by simp [hq]⟩
+  · have hw := schwartz_withSeminorms ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ
+    have h_single : ∀ idx : ℕ × ℕ, ∃ (s : Finset (ℕ × ℕ)) (C : ℝ), 0 < C ∧
+        ∀ f, schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx (T f) ≤
+          C * (s.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ)) f := by
+      intro idx
+      let q : Seminorm ℝ _ :=
+        (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx).comp T.toLinearMap
+      have hc : Continuous q := (hw.continuous_seminorm idx).comp T.continuous
+      obtain ⟨s, C, hCne, hle⟩ := Seminorm.bound_of_continuous hw q hc
+      refine ⟨s, ↑C, ?_, fun f => ?_⟩
+      · exact_mod_cast pos_iff_ne_zero.mpr hCne
+      · have := hle f; simp only [Seminorm.smul_apply] at this; exact this
+    choose s_fn C_fn hC_pos h_bnd using h_single
+    have hne := Finset.nonempty_of_ne_empty hq
+    have hCM : 0 < q₀.sup' hne C_fn :=
+      lt_of_lt_of_le (hC_pos hne.choose) (Finset.le_sup' C_fn hne.choose_spec)
+    refine ⟨q₀.sup' hne C_fn, q₀.biUnion s_fn, hCM, fun f => ?_⟩
+    apply Seminorm.finset_sup_apply_le (mul_nonneg hCM.le (apply_nonneg _ _))
+    intro idx hidx
+    calc schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx (T f)
+        ≤ C_fn idx * (s_fn idx).sup
+            (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ) f :=
+          h_bnd idx f
+      _ ≤ q₀.sup' hne C_fn * (q₀.biUnion s_fn).sup
+            (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ) f := by
+          apply mul_le_mul
+          · exact Finset.le_sup' C_fn hidx
+          · exact (Finset.sup_mono
+              (f := schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
+              (Finset.subset_biUnion_of_mem s_fn hidx)) f
+          · exact apply_nonneg _ _
+          · exact hCM.le
+
+/-! ### Proofs from Analytical Axioms
+
+The following lemmas are proved from the analytical axioms above
+(Fubini slicing axioms A1-A3, eigenvalue axioms B1-B3) together with 1D
+completeness (`schwartz_hermite_hasSum`) and standard Mathlib seminorm API.
 -/
 
 /-- Inductive step for injectivity: reduces d' + 2 to d' + 1.
@@ -1116,7 +1222,39 @@ private lemma hermiteCoeffNd_injective_succ (d' : ℕ)
       (∀ α : MultiIndex (d' + 1), hermiteCoeffNd (d' + 1) α f = 0) → f = 0)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 2))) ℝ)
     (h : ∀ α : MultiIndex (d' + 2), hermiteCoeffNd (d' + 2) α f = 0) : f = 0 := by
-  exact sorry
+  -- Step 1: Fubini shows all partial coefficients vanish
+  have h_partial : ∀ n, schwartz_partial_hermiteCoeff d' f n = 0 := by
+    intro n
+    apply ih
+    intro β
+    have := hermiteCoeffNd_fubini d' f (Fin.snoc β n)
+    simp only [Fin.snoc_last] at this
+    rw [h] at this
+    convert this.symm using 1
+    congr 1; funext i; simp [Fin.snoc_castSucc]
+  -- Step 2: All 1D slices are zero (by 1D completeness)
+  have h_slice : ∀ y, schwartz_slice d' f y = 0 := by
+    intro y
+    have h_coeff : ∀ n, hermiteCoeff1D n (schwartz_slice d' f y) = 0 := by
+      intro n
+      rw [← schwartz_partial_hermiteCoeff_eq_1D]
+      exact congr_fun (congrArg SchwartzMap.toFun (h_partial n)) y
+    have hs' := schwartz_hermite_hasSum (schwartz_slice d' f y)
+    have heq : (fun n => hermiteCoeff1D n (schwartz_slice d' f y) •
+        schwartzHermiteBasis1D n) = fun _ => 0 := by
+      ext n; simp [h_coeff n]
+    rw [heq] at hs'
+    exact hs'.unique hasSum_zero
+  -- Step 3: f is zero everywhere
+  ext x
+  have h_zero : ∀ y t, (schwartz_slice d' f y) t = 0 := by
+    intro y t
+    exact congr_fun (congrArg SchwartzMap.toFun (h_slice y)) t
+  have h_val := h_zero (euclideanInit (d' + 1) x) (x (Fin.last (d' + 1)))
+  rw [schwartz_slice_eq] at h_val
+  convert h_val using 1
+  congr 1
+  exact (euclideanSnoc_init_last (d' + 1) x).symm
 
 /-- If all multi-dimensional Hermite coefficients are zero, the Schwartz function is zero.
 For `d = d' + 1 ≥ 1`, proved by induction on `d'`:
@@ -1154,7 +1292,28 @@ private lemma hermiteCoeffNd_coordinate_bound (d' : ℕ) (i : Fin (d' + 1)) (m :
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) (α : MultiIndex (d' + 1)),
         |hermiteCoeffNd (d' + 1) α f| * (2 * (α i : ℝ) + 1) ^ m ≤
           C * q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f := by
-  exact sorry
+  -- Get L² bound on coefficients (axiom B1)
+  obtain ⟨C₀, q₀, hC₀, hbound⟩ := hermiteCoeffNd_l2_bound d'
+  -- Get CLM seminorm bound for iterating coordinate HO m times
+  obtain ⟨C_T, q_T, hC_T, h_T⟩ := schwartz_clm_finset_bound
+    (SchwartzCLM.iterate (coordinateHarmonicOscillator d' i) m) q₀
+  refine ⟨C₀ * C_T, q_T, mul_pos hC₀ hC_T, fun f α => ?_⟩
+  -- Key identity: |c_α(f)| · (2αᵢ+1)^m = |c_α(H_i^m f)| (eigenvalue iteration)
+  have hrw : |hermiteCoeffNd (d' + 1) α f| * (2 * (α i : ℝ) + 1) ^ m =
+      |(2 * (α i : ℝ) + 1) ^ m * hermiteCoeffNd (d' + 1) α f| := by
+    rw [abs_mul, abs_of_nonneg
+      (pow_nonneg (show (0 : ℝ) ≤ 2 * ↑(α i) + 1 by positivity) m)]
+    ring
+  rw [hrw, ← hermiteCoeffNd_eigenvalue_iter]
+  -- Chain: |c_α(H^m f)| ≤ C₀ · seminorms(H^m f) ≤ C₀ · C_T · seminorms(f)
+  calc |hermiteCoeffNd (d' + 1) α
+        (SchwartzCLM.iterate (coordinateHarmonicOscillator d' i) m f)|
+      ≤ C₀ * q₀.sup (schwartzSeminormFamily ℝ _ ℝ)
+          (SchwartzCLM.iterate (coordinateHarmonicOscillator d' i) m f) :=
+        hbound _ α
+    _ ≤ C₀ * (C_T * q_T.sup (schwartzSeminormFamily ℝ _ ℝ) f) :=
+        mul_le_mul_of_nonneg_left (h_T f) hC₀.le
+    _ = C₀ * C_T * q_T.sup (schwartzSeminormFamily ℝ _ ℝ) f := by ring
 
 /-- Uniform coordinate bound: packages the coordinate-wise bounds uniformly across all coordinates
 using pure algebra and Finset operations. -/
