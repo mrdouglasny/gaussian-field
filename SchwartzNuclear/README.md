@@ -30,9 +30,9 @@ equivalence, using:
 | `HermiteFunctions.lean` | 1,853 | 0 | 0 | **Complete** |
 | `SchwartzHermiteExpansion.lean` | 1,446 | 0 | 0 | **Complete** |
 | `Basis1D.lean` | 157 | 0 | 0 | **Complete** |
-| `SchwartzSlicing.lean` | 145 | 2 | 0 | Partial |
-| `HermiteTensorProduct.lean` | 2,674 | 1 | 1 | Partial |
-| **Total** | **6,286** | **3** | **1** | |
+| `SchwartzSlicing.lean` | 195 | 5 | 0 | Partial |
+| `HermiteTensorProduct.lean` | 2,760 | 0 | 0 | Partial |
+| **Total** | **6,440** | **5** | **0** | |
 
 ## What Is Proved (no axioms, no sorrys)
 
@@ -167,30 +167,33 @@ noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
   coeff_decay := schwartz_coeff_decay_from_equiv (schwartzRapidDecayEquiv D)
 ```
 
-## Remaining Gaps (1 sorry + 1 axiom)
+## Remaining Gaps (5 sorrys, 0 axioms)
 
-### Sorry
+### Sorrys in `SchwartzSlicing.lean`
 
-**`contDiff_parametric_hermiteCoeff`** (`SchwartzSlicing.lean`)
-— smoothness and iterated derivative commutation for
-$y \mapsto \int f(y, t)\,\psi_n(t)\,dt$.
+**`contDiff_parametric_hermiteCoeff`** — smoothness and iterated derivative
+commutation for $y \mapsto \int f(y, t)\,\psi_n(t)\,dt$.
 Requires iterated differentiation under the integral sign, not yet available
 in Mathlib (only single-step `hasFDerivAt_integral_of_dominated_of_fderiv_le`).
-The Schwartz decay bound (`schwartz_partial_hermiteCoeff_decay`) is proved
-assuming this commutation, using the chain rule decomposition in
-`schwartz_slice_y_le_seminorm`.
 
-### Axiom
+**`schwartz_slice_partial.smooth'` / `decay'`** — smoothness and Schwartz decay
+of the scalarized slice $t \mapsto D^{l'}_y[f(\cdot, t)](y)(v)$.
+Follows from joint smoothness and decay of $f$.
+
+**`schwartz_partial_hermiteCoeff_iteratedFDeriv`** — the iterated derivative of
+$g_n(y) = \int f(y, t)\,\psi_n(t)\,dt$ evaluated at $y$ along vectors $v$ equals
+the 1D Hermite coefficient of the corresponding scalarized slice.
+
+**`schwartz_slice_partial_seminorm_bound`** — 1D Schwartz seminorm of the
+scalarized slice, weighted by $\|y\|^{k'}$, is bounded by
+$C \cdot \prod\|v_i\| \cdot \sup_{q'} p_{q'}(f)$.
+
+### Former Axiom (now proved)
 
 **`schwartz_partial_hermiteCoeff_seminorm_bound`** (`HermiteTensorProduct.lean`)
-— each Schwartz seminorm of the partial Hermite coefficient
-$g_n(y) = \int f(y, t)\,\psi_n(t)\,dt$ (as a function of the remaining
-$d{+}1$ variables) decays rapidly in $n$: for any seminorm indices $(k', l')$
-and any decay rate $k \in \mathbb{R}$,
-$$p_{k',l'}(g_n) \cdot (1+n)^k \le C \cdot \sup_{q'} p_{q'}(f)$$
-where $C > 0$ and the finite set $q'$ of seminorm indices depend on $k', l', k$
-but not on $f$ or $n$. This packages the 1D harmonic oscillator eigenvalue trick
-applied coordinate-wise to partial coefficients.
+— previously an axiom, now proved by "scalarization": evaluate the multilinear
+map $D^{l'}_y[g_n]$ along arbitrary vectors $v$, reducing to a 1D problem
+solvable by `hermiteCoeff1D_decay`.
 
 ### Golden Slicing Trick
 
@@ -208,11 +211,11 @@ where $g_n = \mathrm{schwartz\_partial\_hermiteCoeff}\;d\;f\;n$.
     (since $|\alpha| \ge |\alpha_{\mathrm{rest}}|$ and $k < 0$), then IH +
     unweighted axiom
   - $k \ge 0$: factor $(1+|\alpha|)^k \le (1+|\alpha_{\mathrm{rest}}|)^k \cdot (1+n)^k$,
-    apply IH for the first factor and weighted axiom for the second
+    apply IH for the first factor and weighted seminorm bound for the second
 
 This approach replaced the original 3 axioms (B1: L2 bound, B2: coordinate
-harmonic oscillator CLM, B3: eigenvalue identity) with the single seminorm
-control axiom above.
+harmonic oscillator CLM, B3: eigenvalue identity) with a single seminorm
+control lemma (now proved via scalarization).
 
 ## What Was Resolved
 
@@ -257,9 +260,9 @@ SchwartzHermiteExpansion.lean            [1D expansion: complete]
     ↓
 Basis1D.lean                             [1D NuclearSpace fields: complete]
     ↓
-SchwartzSlicing.lean                     [multi-d slicing: 1 sorry]
+SchwartzSlicing.lean                     [multi-d slicing: 5 sorrys]
     ↓
-HermiteTensorProduct.lean                [multi-d isomorphism + instance: 1 axiom]
+HermiteTensorProduct.lean                [multi-d isomorphism + instance: 0 axioms]
 ```
 
 ## Key Mathlib Dependencies

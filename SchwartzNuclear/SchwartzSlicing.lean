@@ -20,9 +20,17 @@ constructions used in the multi-dimensional Hermite expansion proof.
 
 - `contDiff_parametric_hermiteCoeff` — `ContDiff ℝ ⊤` and iterated derivative commutation
   for `y ↦ ∫ f(y,t) ψ_n(t) dt`
+  (requires iterated differentiation under the integral sign, not yet in Mathlib)
 
-This requires iterated differentiation under the integral sign, not yet
-available in Mathlib (only single-step `hasFDerivAt_integral_of_dominated_of_fderiv_le`).
+- `schwartz_slice_partial.smooth'` / `decay'` — smoothness and Schwartz decay of the
+  scalarized slice `t ↦ D^{l'}_y[f(·, t)](y)(v)` (follows from joint smoothness/decay of f)
+
+- `schwartz_partial_hermiteCoeff_iteratedFDeriv` — the iterated derivative of
+  `schwartz_partial_hermiteCoeff d f n` evaluated at `y` along `v` equals
+  `hermiteCoeff1D n (schwartz_slice_partial d f l' y v)`
+
+- `schwartz_slice_partial_seminorm_bound` — 1D Schwartz seminorm of the scalarized
+  slice, weighted by `‖y‖^k'`, is bounded by `C * ∏‖vᵢ‖ * sup-seminorms(f)`
 
 ## Proved lemmas
 
@@ -558,5 +566,48 @@ lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) �
   refine Fin.lastCases ?_ ?_ i
   · simp [Fin.snoc_last, Fin.insertNth_apply_same]
   · intro j; simp [Fin.snoc_castSucc, Fin.insertNth_apply_succAbove, Fin.succAbove_last]
+
+/-! ### Scalarization helpers for seminorm control
+
+These helpers reduce the multi-dimensional seminorm control problem to 1D
+by evaluating the multilinear map `D^{l'}_y[g_n]` along arbitrary vectors `v`,
+reducing to a 1D problem solvable by `hermiteCoeff1D_decay`. -/
+
+/-- The 1D Schwartz function obtained by evaluating the `l'`-th iterated Fréchet derivative
+of a slice along vectors `v`. Used for the "scalarization" step: reduce the operator norm
+of `D^{l'} g_n(y)` to pointwise evaluations that can be bounded via 1D Hermite decay. -/
+private noncomputable def schwartz_slice_partial (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (l' : ℕ)
+    (y : EuclideanSpace ℝ (Fin (d + 1)))
+    (v : Fin l' → EuclideanSpace ℝ (Fin (d + 1))) :
+    SchwartzMap ℝ ℝ where
+  toFun t := iteratedFDeriv ℝ l' (fun y' => f (euclideanSnoc (d + 1) y' t)) y v
+  smooth' := sorry -- Follows from joint smoothness of f
+  decay' := sorry  -- Follows from joint Schwartz decay of f
+
+/-- The iterated Fréchet derivative of `schwartz_partial_hermiteCoeff d f n` evaluated
+at `y` along vectors `v` equals the 1D Hermite coefficient of the corresponding
+slice partial function. This is the key "commutation" lemma that connects the
+multi-d seminorm to a 1D quantity. -/
+private lemma schwartz_partial_hermiteCoeff_iteratedFDeriv (d : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n l' : ℕ)
+    (y : EuclideanSpace ℝ (Fin (d + 1)))
+    (v : Fin l' → EuclideanSpace ℝ (Fin (d + 1))) :
+    iteratedFDeriv ℝ l' (schwartz_partial_hermiteCoeff d f n) y v =
+      hermiteCoeff1D n (schwartz_slice_partial d f l' y v) := sorry
+
+/-- Seminorm bound for the slice partial function: the 1D Schwartz seminorm of
+`schwartz_slice_partial d f l' y v`, weighted by `‖y‖^k'`, is bounded by a product
+of `∏ ‖v_i‖` and finitely many higher-dimensional seminorms of `f`. -/
+private lemma schwartz_slice_partial_seminorm_bound (d : ℕ) (k' l' a b : ℕ) :
+    ∃ (C : ℝ) (q' : Finset (ℕ × ℕ)), 0 < C ∧
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+        (y : EuclideanSpace ℝ (Fin (d + 1)))
+        (v : Fin l' → EuclideanSpace ℝ (Fin (d + 1))),
+        ‖y‖ ^ k' * schwartzSeminormFamily ℝ ℝ ℝ (a, b)
+          (schwartz_slice_partial d f l' y v) ≤
+          C * (∏ i, ‖v i‖) *
+            q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f
+    := sorry
 
 end GaussianField

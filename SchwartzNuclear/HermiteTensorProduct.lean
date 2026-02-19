@@ -25,14 +25,12 @@ the continuous linear equivalence.
 **Sorrys in `SchwartzSlicing.lean`** (imported):
 - `schwartz_slice.smooth'` / `decay'` — smoothness and Schwartz decay of slices
 - `schwartz_partial_hermiteCoeff.smooth'` / `decay'` — smoothness and decay of partial coefficients
+- `schwartz_slice_partial.smooth'` / `decay'` — smoothness and decay of scalarized slices
+- `schwartz_partial_hermiteCoeff_iteratedFDeriv` — iterated derivative commutation for partial coefficients
+- `schwartz_slice_partial_seminorm_bound` — seminorm bound for scalarized slices
 
-**Axiom in this file**:
-- `schwartz_partial_hermiteCoeff_seminorm_bound` — each Schwartz seminorm of
-  `schwartz_partial_hermiteCoeff d f n` multiplied by `(1+n)^k` is controlled by
-  finitely many higher-dimensional Schwartz seminorms of `f`
-
-**Sorrys in this file**:
-- `integral_euclidean_snoc` — Fubini for EuclideanSpace slicing
+**No axioms in this file** (`schwartz_partial_hermiteCoeff_seminorm_bound`, formerly an
+axiom, has been proved via scalarization using the helpers above).
 
 ## References
 
@@ -1181,17 +1179,132 @@ private lemma hermiteCoeffNd_fubini (d : ℕ)
   rw [h_pull]
   congr 1
 
--- Axiom A4: Seminorm control of partial Hermite coefficients with 1D decay
+-- Seminorm control of partial Hermite coefficients with 1D decay (was axiom A4).
 -- Each Schwartz seminorm of schwartz_partial_hermiteCoeff d f n (as a function of d+1
 -- variables) decays rapidly in n: multiplied by (1+n)^k for any k, it is controlled
--- by finitely many (d+2)-variable Schwartz seminorms of f. This packages the 1D decay
--- (from the harmonic oscillator eigenvalue trick) applied to partial coefficients.
-axiom schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (k' l' : ℕ) (k : ℝ) :
+-- by finitely many (d+2)-variable Schwartz seminorms of f.
+--
+-- Proved by "scalarization": evaluate the multilinear map D^{l'}_y[g_n] along arbitrary
+-- vectors v, reducing to a 1D problem solvable by `hermiteCoeff1D_decay`.
+private lemma schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (k' l' : ℕ) (k : ℝ) :
     ∃ (C : ℝ) (q' : Finset (ℕ × ℕ)), 0 < C ∧
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n : ℕ),
         SchwartzMap.seminorm ℝ k' l'
           (schwartz_partial_hermiteCoeff d f n) * (1 + (n : ℝ)) ^ k ≤
-          C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f
+          C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f := by
+  -- Step 1: Get 1D Hermite coefficient decay bound
+  obtain ⟨C₁, q₁_raw, hC₁, h1decay⟩ := hermiteCoeff1D_decay k
+  set q₁ := Finset.Iic q₁_raw with hq₁_def
+  have hne : q₁.Nonempty := ⟨⊥, Finset.mem_Iic.mpr bot_le⟩
+  -- Step 2: For each 1D seminorm index, get the slice partial bound
+  have h_single : ∀ idx : ℕ × ℕ, ∃ (C_i : ℝ) (q_i : Finset (ℕ × ℕ)), 0 < C_i ∧
+      ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+        (y : EuclideanSpace ℝ (Fin (d + 1)))
+        (v : Fin l' → EuclideanSpace ℝ (Fin (d + 1))),
+        ‖y‖ ^ k' * schwartzSeminormFamily ℝ ℝ ℝ idx
+          (schwartz_slice_partial d f l' y v) ≤
+          C_i * (∏ i, ‖v i‖) *
+            q_i.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f := by
+    intro ⟨a, b⟩
+    exact schwartz_slice_partial_seminorm_bound d k' l' a b
+  choose C_fn q_fn hC_pos h_bnd using h_single
+  -- Step 3: Take maximum constants over the finite set q₁
+  set C_max := q₁.sup' hne C_fn
+  set q₂ := q₁.biUnion q_fn
+  set C₂ := C₁ * C_max
+  have hC_max_pos : 0 < C_max :=
+    lt_of_lt_of_le (hC_pos hne.choose) (Finset.le_sup' C_fn hne.choose_spec)
+  have hC₂_pos : 0 < C₂ := mul_pos hC₁ hC_max_pos
+  refine ⟨C₂, q₂, hC₂_pos, fun f n => ?_⟩
+  set g := schwartz_partial_hermiteCoeff d f n
+  set S_f := q₂.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f
+  have hSf_nonneg : 0 ≤ S_f := apply_nonneg _ _
+  have hc : 0 < (1 + (n : ℝ)) ^ k := by positivity
+  -- Reduce to: seminorm ≤ C₂ * S_f / (1+n)^k
+  rw [← le_div_iff₀ hc]
+  -- Reduce Schwartz seminorm to pointwise bound
+  apply SchwartzMap.seminorm_le_bound ℝ k' l' _
+    (div_nonneg (mul_nonneg hC₂_pos.le hSf_nonneg) hc.le)
+  intro y
+  -- Need: ‖y‖^k' * ‖iteratedFDeriv ℝ l' g y‖ ≤ C₂ * S_f / (1+n)^k
+  set c := ‖y‖ ^ k'
+  have hc_nonneg : 0 ≤ c := by positivity
+  -- Reduce via operator norm: ‖D^l' g(y)‖ ≤ bound / c (when c > 0)
+  -- We bound c * ‖D^l' g(y)‖ directly using the multilinear op-norm
+  show c * ‖iteratedFDeriv ℝ l' g y‖ ≤ C₂ * S_f / (1 + (n : ℝ)) ^ k
+  rw [le_div_iff₀ hc]
+  -- Need: c * ‖D^l' g(y)‖ * (1+n)^k ≤ C₂ * S_f
+  -- Use op-norm: ‖f‖ ≤ B iff ∀ v, ‖f v‖ ≤ B * ∏ ‖vᵢ‖
+  -- Apply to c • D^l' g(y) to absorb the c factor
+  have hrw : c * ‖iteratedFDeriv ℝ l' g y‖ * (1 + (n : ℝ)) ^ k =
+      ‖c • iteratedFDeriv ℝ l' g y‖ * (1 + (n : ℝ)) ^ k := by
+    rw [norm_smul, Real.norm_of_nonneg hc_nonneg]
+  rw [hrw]
+  -- Bound ‖c • D^l' g(y)‖ ≤ C₂ * S_f / (1+n)^k via op-norm
+  have h_op : ‖c • iteratedFDeriv ℝ l' g y‖ ≤ C₂ * S_f / (1 + (n : ℝ)) ^ k := by
+    apply ContinuousMultilinearMap.opNorm_le_bound _
+      (div_nonneg (mul_nonneg hC₂_pos.le hSf_nonneg) hc.le)
+    intro v
+    rw [div_mul_eq_mul_div, le_div_iff₀ hc]
+    -- Evaluate: (c • D^l' g(y)) v = c * (D^l' g(y) v)
+    have heval : ‖(c • iteratedFDeriv ℝ l' g y) v‖ =
+        c * ‖iteratedFDeriv ℝ l' g y v‖ := by
+      rw [ContinuousMultilinearMap.smul_apply, norm_smul, Real.norm_of_nonneg hc_nonneg]
+    rw [heval]
+    -- Connect to 1D via schwartz_partial_hermiteCoeff_iteratedFDeriv
+    have h_comm := schwartz_partial_hermiteCoeff_iteratedFDeriv d f n l' y v
+    rw [h_comm]
+    set slice := schwartz_slice_partial d f l' y v
+    -- Apply 1D decay bound
+    have h_decay := h1decay slice n
+    -- Chain: c * |hermiteCoeff1D n slice| * (1+n)^k
+    --   ≤ c * (C₁ * sup-seminorm(slice))
+    --   ≤ C₁ * C_max * (∏ ‖vᵢ‖) * S_f
+    calc c * ‖hermiteCoeff1D n slice‖ * (1 + (n : ℝ)) ^ k
+        = c * (|hermiteCoeff1D n slice| * (1 + (n : ℝ)) ^ k) := by
+          rw [Real.norm_eq_abs]; ring
+      _ ≤ c * (C₁ * q₁.sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) slice) :=
+          mul_le_mul_of_nonneg_left h_decay hc_nonneg
+      _ = C₁ * (c * q₁.sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) slice) := by ring
+      _ ≤ C₁ * (C_max * (∏ i, ‖v i‖) * S_f) := by
+          apply mul_le_mul_of_nonneg_left _ hC₁.le
+          -- Bound c * sup-seminorm(slice) ≤ C_max * (∏ ‖vᵢ‖) * S_f
+          -- by bounding each seminorm individually via h_bnd
+          rcases eq_or_ne c 0 with hc0 | hcne
+          · rw [hc0, zero_mul]
+            exact mul_nonneg (mul_nonneg hC_max_pos.le
+              (Finset.prod_nonneg fun _ _ => norm_nonneg _)) hSf_nonneg
+          · have hc_pos : 0 < c := lt_of_le_of_ne hc_nonneg hcne.symm
+            rw [← le_div_iff₀ hc_pos]
+            apply Seminorm.finset_sup_apply_le
+              (div_nonneg (mul_nonneg (mul_nonneg hC_max_pos.le
+                (Finset.prod_nonneg fun _ _ => norm_nonneg _)) hSf_nonneg) hc_pos.le)
+            intro idx hidx
+            rw [le_div_iff₀ hc_pos]
+            calc c * (fun m => SchwartzMap.seminorm ℝ m.1 m.2) idx slice
+                = c * schwartzSeminormFamily ℝ ℝ ℝ idx slice := rfl
+              _ ≤ C_fn idx * (∏ i, ‖v i‖) *
+                  (q_fn idx).sup (schwartzSeminormFamily ℝ _ ℝ) f :=
+                h_bnd idx f y v
+              _ ≤ C_max * (∏ i, ‖v i‖) *
+                  (q_fn idx).sup (schwartzSeminormFamily ℝ _ ℝ) f := by
+                  apply mul_le_mul_of_nonneg_right
+                    (mul_le_mul_of_nonneg_right (Finset.le_sup' C_fn hidx)
+                      (Finset.prod_nonneg fun _ _ => norm_nonneg _))
+                    (apply_nonneg _ _)
+              _ ≤ C_max * (∏ i, ‖v i‖) * S_f := by
+                  apply mul_le_mul_of_nonneg_left
+                  · exact (Finset.sup_mono
+                      (f := schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+                      (Finset.subset_biUnion_of_mem q_fn hidx)) f
+                  · exact mul_nonneg hC_max_pos.le
+                      (Finset.prod_nonneg fun _ _ => norm_nonneg _)
+      _ = C₁ * C_max * S_f * ∏ i, ‖v i‖ := by ring
+      _ = C₂ * S_f * ∏ i, ‖v i‖ := rfl
+  calc ‖c • iteratedFDeriv ℝ l' g y‖ * (1 + (n : ℝ)) ^ k
+      ≤ (C₂ * S_f / (1 + (n : ℝ)) ^ k) * (1 + (n : ℝ)) ^ k :=
+        mul_le_mul_of_nonneg_right h_op hc.le
+    _ = C₂ * S_f := div_mul_cancel₀ _ hc.ne.symm
 
 /-- Packages `schwartz_partial_hermiteCoeff_seminorm_bound` for `schwartzSeminormFamily`-indexed
 seminorms over a finite set `q`, with `(1+n)^k` decay. -/
@@ -1249,10 +1362,10 @@ private lemma schwartz_partial_hermiteCoeff_seminorm_bound'
           mul_le_mul_of_nonneg_right h_sup hc.le
       _ = B := div_mul_cancel₀ B (ne_of_gt hc)
 
-/-! ### Proofs from Analytical Axioms
+/-! ### Proofs from Analytical Lemmas
 
-The following lemmas are proved from the analytical axioms above
-(Fubini slicing axiom A3a and seminorm control axiom A4) together with 1D
+The following lemmas are proved from the analytical lemmas above
+(Fubini slicing and seminorm control) together with 1D
 decay (`hermiteCoeff1D_decay`), 1D completeness (`schwartz_hermite_hasSum`),
 and standard Mathlib seminorm API.
 -/
