@@ -42,7 +42,7 @@ class NuclearSpace (E : Type*)
     [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E]
     [ContinuousSMul ℝ E] where
-  ι : Type*
+  ι : Type
   p : ι → Seminorm ℝ E
   h_with : WithSeminorms p
   basis : ℕ → E
