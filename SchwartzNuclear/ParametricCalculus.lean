@@ -2,9 +2,18 @@
 Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 
-# Textbook Proofs
+# Parametric Calculus
 
-Proofs of the sorry'd lemmas in TextbookAxioms.lean.
+General-purpose lemmas for iterated Fréchet derivatives and parametric integrals,
+not yet available in Mathlib. Used as building blocks in the SchwartzNuclear proofs.
+
+## Main results
+
+- `norm_iteratedFDeriv_iteratedFDeriv` — **Currying isometry**: composing two levels of
+  iterated derivatives preserves norms.
+- `contDiff_schwartz_parametric_integral` — **Leibniz integral rule (C^∞)**: if a Schwartz
+  function is integrated against another Schwartz function along a smooth parametric embedding,
+  the result is C^∞ and derivatives commute with the integral.
 -/
 
 import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
@@ -82,7 +91,17 @@ The `hι_meas` hypothesis provides measurability of the parametric iterated
 derivatives `t ↦ D^m_y[f(ι(·,t))](y)`. In all applications (e.g., `ι = euclideanSnoc`),
 this follows from joint smoothness of `ι` via `Continuous.aestronglyMeasurable`. -/
 
-/-- **Textbook: Leibniz integral rule (C^∞, Schwartz integrand).** -/
+/-- **Leibniz integral rule (C^∞, Schwartz integrand).**
+
+Given a Schwartz function `f` on `E`, a Schwartz function `g` on `ℝ`, and
+a parametric embedding `ι : H → ℝ → E`, if:
+- for each `t`, `y ↦ ι(y,t)` is C^∞,
+- for each `m`, `t ↦ D^m_y[f(ι(·,t))](y)` is ae-strongly-measurable, and
+- for each derivative order `m`, `‖D^m_y[f(ι(·,t))](y)‖` is uniformly bounded,
+
+then `y ↦ ∫_t f(ι(y,t)) · g(t) dt` is C^∞ and `D^m` commutes with `∫`.
+
+**Reference**: Folland, "Real Analysis", Theorem 2.27 (iterated version). -/
 lemma contDiff_schwartz_parametric_integral
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E]
     [BorelSpace E] [FiniteDimensional ℝ E]
