@@ -27,7 +27,7 @@ The tensor product s(ℕ) ⊗̂ s(ℕ) ≅ s(ℕ²) ≅ s(ℕ) via Cantor pairin
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4
 -/
 
-import GaussianField.NuclearSpace
+import Nuclear.NuclearSpace
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Order

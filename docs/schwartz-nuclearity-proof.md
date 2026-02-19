@@ -26,13 +26,14 @@ equivalence, using:
 
 | File | Lines | Description |
 |------|------:|-------------|
-| `HermiteFunctions.lean` | 1,853 | 1D Hermite functions, orthonormality, completeness |
-| `SchwartzHermiteExpansion.lean` | 1,446 | 1D Schwartz-Hermite expansion, coefficient decay |
-| `Basis1D.lean` | 157 | 1D NuclearSpace fields assembly |
-| `ParametricCalculus.lean` | 316 | Differentiation under the integral sign |
-| `SchwartzSlicing.lean` | 1,134 | Multi-d slicing and partial Hermite coefficients |
-| `HermiteTensorProduct.lean` | 2,768 | Multi-d isomorphism and NuclearSpace instance |
-| **Total** | **7,674** | |
+| [`HermiteFunctions.lean`](../SchwartzNuclear/HermiteFunctions.lean) | 1,853 | 1D Hermite functions, orthonormality, completeness |
+| [`SchwartzHermiteExpansion.lean`](../SchwartzNuclear/SchwartzHermiteExpansion.lean) | 1,446 | 1D Schwartz-Hermite expansion, coefficient decay |
+| [`Basis1D.lean`](../SchwartzNuclear/Basis1D.lean) | 157 | 1D NuclearSpace fields assembly |
+| [`ParametricCalculus.lean`](../SchwartzNuclear/ParametricCalculus.lean) | 316 | Differentiation under the integral sign |
+| [`SchwartzSlicing.lean`](../SchwartzNuclear/SchwartzSlicing.lean) | 1,134 | Multi-d slicing and partial Hermite coefficients |
+| [`HermiteTensorProduct.lean`](../SchwartzNuclear/HermiteTensorProduct.lean) | 2,619 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
+| [`HermiteNuclear.lean`](../SchwartzNuclear/HermiteNuclear.lean) | 174 | `NuclearSpace` instance from the isomorphism |
+| **Total** | **7,699** | |
 
 ## What Is Proved
 
@@ -189,7 +190,7 @@ where $g_n = \mathrm{schwartz\_partial\_hermiteCoeff}\;d\;f\;n$.
   - $k \ge 0$: factor $(1+|\alpha|)^k \le (1+|\alpha_{\mathrm{rest}}|)^k \cdot (1+n)^k$,
     apply IH for the first factor and weighted seminorm bound for the second
 
-### Multi-d Backward Map and Final Assembly (lines 2026-2643)
+### Multi-d Backward Map and Final Assembly (`HermiteTensorProduct.lean` lines 2026-2619, `HermiteNuclear.lean`)
 
 The backward map $(a_n)_n \mapsto \sum_n a_n\,\Phi_n$ (where $\Phi_n$ is the
 flattened multi-d basis) is fully proved:
@@ -197,7 +198,7 @@ flattened multi-d basis) is fully proved:
 - CLM property with seminorm bounds
 - Kronecker property for the right inverse
 
-The `NuclearSpace` instance is assembled at the end:
+The [`NuclearSpace` instance](../SchwartzNuclear/HermiteNuclear.lean#L156) is assembled in `HermiteNuclear.lean`:
 ```lean
 noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
     NuclearSpace (SchwartzMap D ℝ) where
@@ -214,17 +215,19 @@ noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
 ## Dependency Graph
 
 ```
-HermiteFunctions.lean                    [1D Hermite functions]
+HermiteFunctions                         [1D Hermite functions]
     |
-SchwartzHermiteExpansion.lean            [1D expansion + decay]
+SchwartzHermiteExpansion                 [1D expansion + decay]
     |
-Basis1D.lean                             [1D NuclearSpace fields]
+Basis1D                                  [1D NuclearSpace fields]
     |
-ParametricCalculus.lean ─────────┐
+ParametricCalculus ──────────────┐
     |                            |
-SchwartzSlicing.lean             |       [multi-d slicing + scalarization]
+SchwartzSlicing                  |       [multi-d slicing + scalarization]
     |                            |
-HermiteTensorProduct.lean ───────┘       [multi-d isomorphism + instance]
+HermiteTensorProduct ────────────┘       [multi-d isomorphism ≃L RapidDecaySeq]
+    |
+HermiteNuclear                           [NuclearSpace instance]
 ```
 
 ## Key Mathlib Dependencies

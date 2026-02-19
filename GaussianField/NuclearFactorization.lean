@@ -24,7 +24,7 @@ seminorm) and y_m ∈ H.
 - Gel'fand, Vilenkin, "Generalized Functions" Vol 4, Ch 3-4
 -/
 
-import GaussianField.NuclearSpace
+import Nuclear.NuclearSpace
 import Mathlib.Analysis.PSeries
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Topology.Algebra.InfiniteSum.Module

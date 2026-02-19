@@ -26,7 +26,7 @@ See `GaussianField/Construction.lean` and `GaussianField/Properties.lean`.
 ## Axiom fallback
 
 To use the axiom version of `schwartz_nuclearSpace` instead of the full proof,
-replace `import SchwartzNuclear` below with `import GaussianField.NuclearSpace`
+replace `import SchwartzNuclear` below with `import Nuclear.NuclearSpace`
 and uncomment the axiom block at the bottom of this file.
 
 ## References
@@ -35,7 +35,7 @@ and uncomment the axiom block at the bottom of this file.
 -/
 
 import SchwartzNuclear
-import GaussianField.NuclearTensorProduct
+import Nuclear.NuclearTensorProduct
 import GaussianField.SpectralTheorem
 import GaussianField.NuclearSVD
 import GaussianField.NuclearFactorization
@@ -46,7 +46,7 @@ import GaussianField.Properties
 /-! ### Axiom fallback (inactive)
 
 Uncomment the block below and replace `import SchwartzNuclear` with
-`import GaussianField.NuclearSpace` to use the axiom version. This is
+`import Nuclear.NuclearSpace` to use the axiom version. This is
 safe: the proven instance in `SchwartzNuclear.HermiteTensorProduct`
 establishes the same result as a theorem.
 

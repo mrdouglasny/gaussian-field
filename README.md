@@ -126,19 +126,22 @@ variable (E : Type*) [AddCommGroup E] [Module ℝ E]
 
 ### Example: Schwartz space (current instance)
 
-The library provides `NuclearSpace (SchwartzMap D ℝ)` in `Axioms.lean` via a single axiom:
+The library provides a fully proved instance in `SchwartzNuclear/HermiteNuclear.lean`:
 
 ```lean
-axiom schwartz_nuclearSpace
-    (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
-    [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ)
-
-instance (D : Type*) [...] : NuclearSpace (SchwartzMap D ℝ) :=
-  schwartz_nuclearSpace D
+noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
+    NuclearSpace (SchwartzMap D ℝ) where
+  ι := ℕ × ℕ
+  p := fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l
+  h_with := schwartz_withSeminorms ℝ D ℝ
+  basis m := (schwartzRapidDecayEquiv D).symm (RapidDecaySeq.basisVec m)
+  coeff m := (RapidDecaySeq.coeffCLM m).comp (schwartzRapidDecayEquiv D).toContinuousLinearMap
+  expansion := schwartz_expansion_from_equiv (schwartzRapidDecayEquiv D)
+  basis_growth := schwartz_basis_growth_from_equiv (schwartzRapidDecayEquiv D)
+  coeff_decay := schwartz_coeff_decay_from_equiv (schwartzRapidDecayEquiv D)
 ```
 
-The axiom encodes the classical Dynin-Mityagin theorem (nuclearity of Schwartz space via the Hermite function expansion), which is not yet fully formalized in Mathlib.
+This is the Dynin-Mityagin theorem: nuclearity of Schwartz space via the Hermite function expansion and the isomorphism $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 
 ### Which spaces are nuclear?
 
@@ -198,7 +201,7 @@ it only affects the internal proof machinery.
 #### Schwartz space $\mathcal{S}(\mathbb{R}^d)$ (implemented)
 
 ```lean
--- Already provided in Axioms.lean (as an axiom)
+-- Fully proved in SchwartzNuclear/HermiteNuclear.lean (0 sorrys, 0 axioms)
 instance : NuclearSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :=
   schwartz_nuclearSpace _
 ```
@@ -417,63 +420,77 @@ points. See [lattice-continuum limit](docs/lattice-continuum-limit.md) for detai
 
 ## Module structure
 
-```
-GaussianField/
-  NuclearSpace.lean            -- NuclearSpace typeclass + expansion_H lemma
-  Axioms.lean                  -- Schwartz nuclearity axiom → instance
-  SpectralTheorem.lean         -- Compact self-adjoint spectral theorem
-  NuclearSVD.lean              -- SVD for nuclear operators
-  NuclearFactorization.lean    -- Source-indexed nuclear representation
-  TargetFactorization.lean     -- Target-indexed factorization with ONB
-  SeriesConvergence.lean       -- Gaussian series convergence (Tonelli)
-  Construction.lean            -- Main construction + characteristic functional
-  Properties.lean              -- Gaussianity, moments, Lp integrability
+The project has three libraries, with imports flowing left to right:
+`Nuclear` ← `SchwartzNuclear` ← `GaussianField`.
 
-SchwartzNuclear/               -- Partial proof of Schwartz nuclearity (WIP)
-  HermiteFunctions.lean        -- Hermite functions ψ_n as Schwartz maps
-  SchwartzHermiteExpansion.lean -- 1D Hermite expansion, eigenvalue decay
-  Basis1D.lean                 -- 1D Hermite basis + completeness
-  SchwartzSlicing.lean         -- Fubini slicing for partial Hermite coefficients
-  HermiteTensorProduct.lean    -- Multi-d Hermite expansion + NuclearSpace instance
-```
+### 1. [Nuclear Space Infrastructure](docs/nuclear-space-infrastructure.md)
 
-### Dependency chain
+The `NuclearSpace` typeclass and the canonical model `RapidDecaySeq` (the Kothe
+sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
+`GaussianField/`.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 76 | `NuclearSpace` typeclass, `expansion_H` lemma |
+| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 355 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct` |
+
+### 2. [Schwartz Space Nuclearity](docs/schwartz-nuclearity-proof.md)
+
+Proves `NuclearSpace (SchwartzMap D ℝ)` for any finite-dimensional $D$ via the
+Hermite function expansion and the Dynin-Mityagin isomorphism
+$\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [HermiteFunctions.lean](SchwartzNuclear/HermiteFunctions.lean) | 1,853 | 1D Hermite functions, orthonormality, completeness |
+| [SchwartzHermiteExpansion.lean](SchwartzNuclear/SchwartzHermiteExpansion.lean) | 1,446 | 1D Schwartz-Hermite expansion, coefficient decay |
+| [Basis1D.lean](SchwartzNuclear/Basis1D.lean) | 157 | 1D NuclearSpace fields assembly |
+| [ParametricCalculus.lean](SchwartzNuclear/ParametricCalculus.lean) | 316 | Differentiation under the integral sign |
+| [SchwartzSlicing.lean](SchwartzNuclear/SchwartzSlicing.lean) | 1,134 | Multi-d slicing and partial Hermite coefficients |
+| [HermiteTensorProduct.lean](SchwartzNuclear/HermiteTensorProduct.lean) | 2,619 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
+| [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `NuclearSpace` instance from the isomorphism |
+
+### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
+
+Given `[NuclearSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
+probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [SpectralTheorem.lean](GaussianField/SpectralTheorem.lean) | 468 | Compact self-adjoint spectral theorem |
+| [NuclearSVD.lean](GaussianField/NuclearSVD.lean) | 640 | SVD for nuclear operators |
+| [NuclearFactorization.lean](GaussianField/NuclearFactorization.lean) | 190 | Source-indexed nuclear representation |
+| [TargetFactorization.lean](GaussianField/TargetFactorization.lean) | 324 | Target-indexed factorization with ONB |
+| [Construction.lean](GaussianField/Construction.lean) | 715 | Main construction + characteristic functional |
+| [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
+
+### Dependency graph
 
 ```
-NuclearSpace  →  Axioms (Schwartz instance)
-     ↓
-NuclearFactorization
-     ↓
-SpectralTheorem  →  NuclearSVD  →  TargetFactorization
-                                        ↓
-                                  SeriesConvergence
-                                        ↓
-                                    Construction
-                                        ↓
-                                    Properties
+Nuclear/
+  NuclearSpace → NuclearTensorProduct
+       ↓                ↓
+SchwartzNuclear/   GaussianField/
+  ...              NuclearFactorization
+  HermiteNuclear        ↓
+       ↓          SpectralTheorem → NuclearSVD → TargetFactorization
+       ↓                                              ↓
+       └──────────────→ GaussianField.lean ←──── Construction
+                                                      ↓
+                                                  Properties
 ```
 
 ## Axiom budget
 
-The library assumes **1 axiom**: that Schwartz space is a nuclear space. This is stated in `Axioms.lean`:
+**0 custom axioms.** The Schwartz nuclearity instance `NuclearSpace (SchwartzMap D ℝ)` is fully proved in `SchwartzNuclear/` (~7,700 lines) via the Hermite function expansion and the Dynin-Mityagin isomorphism. See the [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) for details.
 
-```lean
-axiom schwartz_nuclearSpace
-    (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
-    [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ)
-```
-
-The core construction (everything downstream of `NuclearSpace.lean`) uses **no custom axioms** — it works for any type carrying a `NuclearSpace` instance.
-
-### Why an axiom?
-
-Nuclearity of Schwartz space is a classical result (Dynin-Mityagin, 1960) proved via the Hermite function expansion. The `SchwartzNuclear/` directory contains ~6,500 lines of Lean 4 toward eliminating this axiom, reducing it to 1 analytical axiom (seminorm control of partial Hermite coefficients) and 3 sorrys (Fubini for EuclideanSpace, smoothness/decay of partial coefficients). See the [SchwartzNuclear README](SchwartzNuclear/README.md) for details.
-
-Providing a `NuclearSpace` instance for a different space (e.g., $C^\infty(S^1)$) would require its own analogous proof (or axiom).
+An axiom fallback is available as an inactive comment in `GaussianField.lean` for faster builds during development.
 
 ## Further documentation
 
+- [Nuclear space infrastructure](docs/nuclear-space-infrastructure.md) — the `NuclearSpace` typeclass, `RapidDecaySeq`, and why nuclearity is needed
+- [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) — the 7,700-line proof that Schwartz space is nuclear
+- [Gaussian field construction](docs/gaussian-field-construction.md) — the 2,960-line measure construction
 - [Concrete instances](docs/concrete-instances.md) — `NuclearSpace` instances for $C^\infty(S^1_L)$, finite lattices, periodic lattices, and generic tensor products, with Lean sketches
 - [Operator construction](docs/operator-construction.md) — building covariance operators on product spaces via the heat kernel $e^{-s\Delta}$, Mathlib support, and the factorization theorem
 - [Lattice-continuum limit](docs/lattice-continuum-limit.md) — convergence of lattice Gaussian measures to continuum measures via characteristic functionals

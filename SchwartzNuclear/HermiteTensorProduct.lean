@@ -28,7 +28,7 @@ the continuous linear equivalence.
 -/
 
 import SchwartzNuclear.Basis1D
-import GaussianField.NuclearTensorProduct
+import Nuclear.NuclearTensorProduct
 import SchwartzNuclear.SchwartzSlicing
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.MeasureTheory.Integral.Pi
