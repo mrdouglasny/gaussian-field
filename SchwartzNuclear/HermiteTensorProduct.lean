@@ -27,14 +27,12 @@ the continuous linear equivalence.
 - `schwartz_partial_hermiteCoeff.smooth'` / `decay'` — smoothness and decay of partial coefficients
 
 **Axiom in this file**:
-- `schwartz_partial_hermiteCoeff_seminorm_bound` — seminorm control of partial Hermite
-  coefficients: 1D-type seminorms of partial coefficients are controlled by finitely many
-  higher-dimensional Schwartz seminorms
+- `schwartz_partial_hermiteCoeff_seminorm_bound` — each Schwartz seminorm of
+  `schwartz_partial_hermiteCoeff d f n` multiplied by `(1+n)^k` is controlled by
+  finitely many higher-dimensional Schwartz seminorms of `f`
 
 **Sorrys in this file**:
 - `integral_euclidean_snoc` — Fubini for EuclideanSpace slicing
-- `hermiteCoeffNd_decay` base case — seminorm transfer through `euclideanFin1Equiv`
-- `hermiteCoeffNd_decay` inductive step — monotonicity of polynomial weight
 
 ## References
 
@@ -1190,67 +1188,73 @@ private lemma hermiteCoeffNd_fubini (d : ℕ)
   rw [h_pull]
   congr 1
 
--- Axiom A4: Seminorm control of partial Hermite coefficients
--- The 1D-type seminorms of schwartz_partial_hermiteCoeff d f n (as a Schwartz function
--- of d+1 variables) are controlled by finitely many (d+2)-variable Schwartz seminorms.
-axiom schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (q : ℕ × ℕ) :
+-- Axiom A4: Seminorm control of partial Hermite coefficients with 1D decay
+-- Each Schwartz seminorm of schwartz_partial_hermiteCoeff d f n (as a function of d+1
+-- variables) decays rapidly in n: multiplied by (1+n)^k for any k, it is controlled
+-- by finitely many (d+2)-variable Schwartz seminorms of f. This packages the 1D decay
+-- (from the harmonic oscillator eigenvalue trick) applied to partial coefficients.
+axiom schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (k' l' : ℕ) (k : ℝ) :
     ∃ (C : ℝ) (q' : Finset (ℕ × ℕ)), 0 < C ∧
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n : ℕ),
-        (Finset.Iic q).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2)
-          (schwartz_partial_hermiteCoeff d f n) ≤
+        SchwartzMap.seminorm ℝ k' l'
+          (schwartz_partial_hermiteCoeff d f n) * (1 + (n : ℝ)) ^ k ≤
           C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f
 
 /-- Packages `schwartz_partial_hermiteCoeff_seminorm_bound` for `schwartzSeminormFamily`-indexed
-seminorms over a finite set `q`. -/
+seminorms over a finite set `q`, with `(1+n)^k` decay. -/
 private lemma schwartz_partial_hermiteCoeff_seminorm_bound'
-    (d : ℕ) (q : Finset (ℕ × ℕ)) :
+    (d : ℕ) (q : Finset (ℕ × ℕ)) (k : ℝ) :
     ∃ (C : ℝ) (q' : Finset (ℕ × ℕ)), 0 < C ∧
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n : ℕ),
         q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
-          (schwartz_partial_hermiteCoeff d f n) ≤
+          (schwartz_partial_hermiteCoeff d f n) * (1 + (n : ℝ)) ^ k ≤
           C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f := by
   by_cases hq : q = ∅
-  · exact ⟨1, ∅, one_pos, fun f n => by simp [hq]⟩
-  · -- For each idx ∈ q, apply the axiom to get a bound
+  · exact ⟨1, ∅, one_pos, fun f n => by simp [hq, zero_mul]⟩
+  · -- For each idx ∈ q, apply the axiom to get a per-seminorm bound
     have h_single : ∀ idx : ℕ × ℕ, ∃ (C : ℝ) (q' : Finset (ℕ × ℕ)), 0 < C ∧
         ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n : ℕ),
           schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx
-            (schwartz_partial_hermiteCoeff d f n) ≤
+            (schwartz_partial_hermiteCoeff d f n) * (1 + (n : ℝ)) ^ k ≤
             C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f := by
-      intro ⟨k, l⟩
-      -- schwartzSeminormFamily maps (k,l) to seminorm ℝ k l
-      -- seminorm ℝ k l ≤ (Finset.Iic (k,l)).sup (fun m => seminorm ℝ m.1 m.2)
-      obtain ⟨C, q', hC, hbound⟩ := schwartz_partial_hermiteCoeff_seminorm_bound d (k, l)
-      refine ⟨C, q', hC, fun f n => ?_⟩
-      calc schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ (k, l)
-              (schwartz_partial_hermiteCoeff d f n)
-          = SchwartzMap.seminorm ℝ k l (schwartz_partial_hermiteCoeff d f n) := rfl
-        _ ≤ (Finset.Iic (k, l)).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2)
-              (schwartz_partial_hermiteCoeff d f n) :=
-            Finset.le_sup (f := fun m => SchwartzMap.seminorm ℝ m.1 m.2) (Finset.mem_Iic.mpr le_rfl)
-        _ ≤ C * q'.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f :=
-            hbound f n
+      intro ⟨k', l'⟩
+      exact schwartz_partial_hermiteCoeff_seminorm_bound d k' l' k
     choose C_fn q'_fn hC_pos h_bnd using h_single
     have hne := Finset.nonempty_of_ne_empty hq
     have hCM : 0 < q.sup' hne C_fn :=
       lt_of_lt_of_le (hC_pos hne.choose) (Finset.le_sup' C_fn hne.choose_spec)
     refine ⟨q.sup' hne C_fn, q.biUnion q'_fn, hCM, fun f n => ?_⟩
-    apply Seminorm.finset_sup_apply_le (mul_nonneg hCM.le (apply_nonneg _ _))
-    intro idx hidx
-    calc schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx
-            (schwartz_partial_hermiteCoeff d f n)
-        ≤ C_fn idx * (q'_fn idx).sup
-            (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f :=
-          h_bnd idx f n
-      _ ≤ q.sup' hne C_fn * (q.biUnion q'_fn).sup
-            (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f := by
-          apply mul_le_mul
-          · exact Finset.le_sup' C_fn hidx
-          · exact (Finset.sup_mono
-              (f := schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
-              (Finset.subset_biUnion_of_mem q'_fn hidx)) f
-          · exact apply_nonneg _ _
-          · exact hCM.le
+    -- Strategy: bound sup(p_i)(g_n) via bound on each p_i(g_n), then multiply by (1+n)^k
+    set B := q.sup' hne C_fn * (q.biUnion q'_fn).sup
+      (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f
+    have hc : (0 : ℝ) < (1 + (n : ℝ)) ^ k := by positivity
+    -- Each p_i(g_n) ≤ B / (1+n)^k (by dividing the per-seminorm bound)
+    have h_each : ∀ idx ∈ q,
+        schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx
+          (schwartz_partial_hermiteCoeff d f n) ≤ B / (1 + (n : ℝ)) ^ k := by
+      intro idx hidx
+      rw [le_div_iff₀ hc]
+      calc schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ idx
+              (schwartz_partial_hermiteCoeff d f n) * (1 + (n : ℝ)) ^ k
+          ≤ C_fn idx * (q'_fn idx).sup
+              (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ) f :=
+            h_bnd idx f n
+        _ ≤ B := by
+            apply mul_le_mul
+            · exact Finset.le_sup' C_fn hidx
+            · exact (Finset.sup_mono
+                (f := schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
+                (Finset.subset_biUnion_of_mem q'_fn hidx)) f
+            · exact apply_nonneg _ _
+            · exact hCM.le
+    -- Take the sup, then multiply by (1+n)^k
+    have h_sup := Seminorm.finset_sup_apply_le
+      (div_nonneg (mul_nonneg hCM.le (apply_nonneg _ _)) hc.le) h_each
+    calc q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
+            (schwartz_partial_hermiteCoeff d f n) * (1 + (n : ℝ)) ^ k
+        ≤ B / (1 + (n : ℝ)) ^ k * (1 + (n : ℝ)) ^ k :=
+          mul_le_mul_of_nonneg_right h_sup hc.le
+      _ = B := div_mul_cancel₀ B (ne_of_gt hc)
 
 /-! ### Proofs from Analytical Axioms
 
@@ -1339,10 +1343,9 @@ Proved by induction on `d'`:
 - **Base case** (`d' = 0`, i.e. d = 1): Transfer through `euclideanFin1Equiv` to use
   `hermiteCoeff1D_decay`, converting `Finset.Iic` seminorms to `schwartzSeminormFamily`.
 - **Inductive step** (`d' = d'' + 1`, i.e. d = d''+2 from d''+1):
-  1. Apply `hermiteCoeffNd_fubini`: `c_α(f) = c_{α_rest}(partial_coeff_{α_last} f)`
-  2. Apply IH to bound `|c_{α_rest}(g)| * (1 + |α_rest|)^k`
-  3. Apply `schwartz_partial_hermiteCoeff_seminorm_bound'` to bound seminorms of `g`
-  4. Use `|α_rest| ≤ |α|` to relate the polynomial weights -/
+  For `k ≥ 0`: Factor `(1+|α|)^k ≤ (1+|α_rest|)^k · (1+n)^k`, apply IH for first factor
+  and weighted axiom for second. For `k < 0`: directly use `(1+|α|)^k ≤ (1+|α_rest|)^k`
+  since the base is ≥ 1 and the exponent is negative. -/
 private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
     ∃ (C : ℝ) (q : Finset (ℕ × ℕ)), 0 < C ∧
       ∀ (f : SchwartzMap (EuclideanSpace ℝ (Fin (d' + 1))) ℝ)
@@ -1352,72 +1355,149 @@ private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
   induction d' with
   | zero =>
     -- d = 1: transfer through euclideanFin1Equiv to use hermiteCoeff1D_decay
-    obtain ⟨C, q_1d, hC, hbound⟩ := hermiteCoeff1D_decay k
-    -- Convert Finset.Iic seminorms to schwartzSeminormFamily form
-    refine ⟨C, Finset.Iic q_1d, hC, fun f α => ?_⟩
-    -- α : Fin 1 → ℕ, so MultiIndex.abs α = α 0
+    obtain ⟨C₁, q₁, hC₁, h1d⟩ := hermiteCoeff1D_decay k
+    -- Get CLE seminorm bound: seminorms of g = T f are bounded by seminorms of f
+    set T : SchwartzMap (EuclideanSpace ℝ (Fin 1)) ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+      (schwartzDomCongr euclideanFin1Equiv).symm.toContinuousLinearMap with hT_def
+    -- For each 1D seminorm, compose with T to get a continuous seminorm on the source space
+    have hw_src := schwartz_withSeminorms ℝ (EuclideanSpace ℝ (Fin 1)) ℝ
+    have h_per_idx : ∀ idx : ℕ × ℕ, ∃ (s : Finset (ℕ × ℕ)) (Ci : ℝ), 0 < Ci ∧
+        ∀ f, SchwartzMap.seminorm ℝ idx.1 idx.2 (T f) ≤
+          Ci * s.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f := by
+      intro ⟨k', l'⟩
+      let p : Seminorm ℝ _ :=
+        (SchwartzMap.seminorm ℝ k' l').comp T.toLinearMap
+      have hp : Continuous p :=
+        ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨k', l'⟩).comp T.continuous
+      obtain ⟨s, C, hCne, hle⟩ := Seminorm.bound_of_continuous hw_src p hp
+      exact ⟨s, ↑C, by exact_mod_cast pos_iff_ne_zero.mpr hCne, fun f => by
+        have := hle f; simp only [Seminorm.smul_apply, Seminorm.comp_apply] at this; exact this⟩
+    -- Package the per-index bounds into a finset bound
+    have h_clm : ∃ (C₂ : ℝ) (q₂ : Finset (ℕ × ℕ)), 0 < C₂ ∧
+        ∀ f, (Finset.Iic q₁).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) (T f) ≤
+          C₂ * q₂.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f := by
+      by_cases hq : (Finset.Iic q₁) = ∅
+      · exact ⟨1, ∅, one_pos, fun f => by simp [hq]⟩
+      · choose s_fn C_fn hC_pos h_bnd using h_per_idx
+        have hne := Finset.nonempty_of_ne_empty hq
+        have hCM : 0 < (Finset.Iic q₁).sup' hne (C_fn ·) :=
+          lt_of_lt_of_le (hC_pos hne.choose) (Finset.le_sup' _ hne.choose_spec)
+        refine ⟨(Finset.Iic q₁).sup' hne (C_fn ·),
+               (Finset.Iic q₁).biUnion (s_fn ·), hCM, fun f => ?_⟩
+        apply Seminorm.finset_sup_apply_le (mul_nonneg hCM.le (apply_nonneg _ _))
+        intro idx hidx
+        calc SchwartzMap.seminorm ℝ idx.1 idx.2 (T f)
+            ≤ C_fn idx * (s_fn idx).sup
+                (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f := h_bnd idx f
+          _ ≤ (Finset.Iic q₁).sup' hne (C_fn ·) *
+                ((Finset.Iic q₁).biUnion (s_fn ·)).sup
+                  (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f := by
+              apply mul_le_mul
+              · exact Finset.le_sup' _ hidx
+              · exact (Finset.sup_mono
+                  (f := schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ)
+                  (Finset.subset_biUnion_of_mem (s_fn ·) hidx)) f
+              · exact apply_nonneg _ _
+              · exact hCM.le
+    obtain ⟨C₂, q₂, hC₂, h_clm_bound⟩ := h_clm
+    refine ⟨C₁ * C₂, q₂, mul_pos hC₁ hC₂, fun f α => ?_⟩
     have h_abs : MultiIndex.abs α = α 0 := by
       simp [MultiIndex.abs, Fin.sum_univ_one]
     rw [h_abs]
-    -- Transfer f to 1D via euclideanFin1Equiv
-    set g := (schwartzDomCongr euclideanFin1Equiv).symm f
-    -- hermiteCoeffNd 1 α f = hermiteCoeff1D (α 0) g
+    set g := T f
     have h_coeff : hermiteCoeffNd 1 α f = hermiteCoeff1D (α 0) g := by
       have : α = fun _ => α 0 := by ext i; exact congr_arg α (Fin.eq_zero i)
       rw [this]
       exact hermiteCoeffNd_eq_hermiteCoeff1D f (α 0)
     rw [h_coeff]
-    -- Apply 1D decay
-    have h1d := hbound g (α 0)
-    -- Need: (Finset.Iic q_1d).sup (fun m => seminorm ℝ m.1 m.2) g
-    --     ≤ (Finset.Iic q_1d).sup (schwartzSeminormFamily ℝ _ ℝ) f
-    -- Since g = (schwartzDomCongr euclideanFin1Equiv).symm f, the seminorms transfer
-    -- For now, use sorry for the seminorm transfer (the bound is correct)
     calc |hermiteCoeff1D (α 0) g| * (1 + (α 0 : ℝ)) ^ k
-        ≤ C * (Finset.Iic q_1d).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) g := h1d
-      _ ≤ C * (Finset.Iic q_1d).sup
-            (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f := by
-          apply mul_le_mul_of_nonneg_left _ hC.le
-          -- seminorm of g ≤ seminorm of f via domain congr equivalence
-          sorry
+        ≤ C₁ * (Finset.Iic q₁).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) g := h1d g (α 0)
+      _ ≤ C₁ * (C₂ * q₂.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f) :=
+          mul_le_mul_of_nonneg_left (h_clm_bound f) hC₁.le
+      _ = (C₁ * C₂) * q₂.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin 1)) ℝ) f := by
+          ring
   | succ d'' ih =>
     -- Inductive step: d' = d'' + 1, dimension d = d'' + 2
-    -- Get IH at dimension d'' + 1
-    obtain ⟨C_ih, q_ih, hC_ih, h_ih⟩ := ih k
-    -- Get seminorm bound for partial coefficients
-    obtain ⟨C_ax, q_ax, hC_ax, h_ax⟩ :=
-      schwartz_partial_hermiteCoeff_seminorm_bound' d'' q_ih
-    refine ⟨C_ih * C_ax, q_ax, mul_pos hC_ih hC_ax, fun f α => ?_⟩
-    -- Step 1: Fubini factorization
-    rw [hermiteCoeffNd_fubini d'' f α]
-    -- Set up notation
-    set α_rest : MultiIndex (d'' + 2) := fun i => α (Fin.castSucc i) with hα_rest_def
-    set n := α (Fin.last (d'' + 1)) with hn_def
-    set g := schwartz_partial_hermiteCoeff d'' f n
-    -- Step 2: Apply IH to g with α_rest
-    have h_step2 := h_ih g α_rest
-    -- Step 3: Apply axiom to bound seminorms of g
-    have h_step3 := h_ax f n
-    -- Step 4: |α_rest| ≤ |α|, so (1 + |α_rest|)^k is related to (1 + |α|)^k
-    have h_abs_rest_le : (MultiIndex.abs α_rest : ℕ) ≤ MultiIndex.abs α := by
-      simp only [MultiIndex.abs]
-      apply Finset.sum_le_sum_of_subset_of_nonneg
-      · intro i _
-        exact Finset.mem_univ _
-      · intros; exact Nat.zero_le _
-    -- Chain the bounds
-    calc |hermiteCoeffNd (d'' + 2) α_rest g| *
-            (1 + (MultiIndex.abs α : ℝ)) ^ k
-        ≤ |hermiteCoeffNd (d'' + 2) α_rest g| *
-            (1 + (MultiIndex.abs α_rest : ℝ)) ^ k := by
-          sorry -- needs case split on k ≥ 0 vs k < 0; the weight is monotone in |α| for k ≥ 0
-      _ ≤ C_ih * q_ih.sup (schwartzSeminormFamily ℝ
-            (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) g := h_step2 g α_rest
-      _ ≤ C_ih * (C_ax * q_ax.sup (schwartzSeminormFamily ℝ
-            (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f) :=
-          mul_le_mul_of_nonneg_left (h_step3 f n) hC_ih.le
-      _ = (C_ih * C_ax) * q_ax.sup (schwartzSeminormFamily ℝ
-            (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f := by ring
+    obtain ⟨C_ih, q_ih, hC_ih, h_ih⟩ := ih
+    -- For k < 0: use (1+|α|)^k ≤ (1+|α_rest|)^k directly, then unweighted axiom
+    -- For k ≥ 0: use (1+|α|)^k ≤ (1+|α_rest|)^k * (1+n)^k, then weighted axiom
+    by_cases hk : k < 0
+    · -- k < 0 case: use unweighted bound (axiom at k=0)
+      obtain ⟨C_ax, q_ax, hC_ax, h_ax⟩ :=
+        schwartz_partial_hermiteCoeff_seminorm_bound' d'' q_ih 0
+      refine ⟨C_ih * C_ax, q_ax, mul_pos hC_ih hC_ax, fun f α => ?_⟩
+      rw [hermiteCoeffNd_fubini d'' f α]
+      set α_rest : MultiIndex (d'' + 1) := fun i => α (Fin.castSucc i)
+      set n := α (Fin.last (d'' + 1))
+      set g := schwartz_partial_hermiteCoeff d'' f n
+      -- |α| ≥ |α_rest|, and k < 0, so (1+|α|)^k ≤ (1+|α_rest|)^k
+      have h_abs_rest_le : (MultiIndex.abs α_rest : ℝ) ≤ MultiIndex.abs α := by
+        exact_mod_cast show MultiIndex.abs α_rest ≤ MultiIndex.abs α from by
+          have : MultiIndex.abs α = MultiIndex.abs α_rest + n := by
+            simp only [MultiIndex.abs, α_rest, n]; exact Fin.sum_univ_castSucc α
+          omega
+      have h1α : (1 : ℝ) ≤ 1 + (MultiIndex.abs α_rest : ℝ) :=
+        le_add_of_nonneg_right (Nat.cast_nonneg _)
+      have h_weight : (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
+          (1 + (MultiIndex.abs α_rest : ℝ)) ^ k := by
+        apply rpow_le_rpow_of_nonpos (by linarith) (by linarith) hk.le
+      -- Unweighted axiom at k=0 gives seminorm bound
+      have h_ax0 := h_ax f n
+      simp only [rpow_zero, mul_one] at h_ax0
+      calc |hermiteCoeffNd (d'' + 1) α_rest g| *
+              (1 + (MultiIndex.abs α : ℝ)) ^ k
+          ≤ |hermiteCoeffNd (d'' + 1) α_rest g| *
+              (1 + (MultiIndex.abs α_rest : ℝ)) ^ k :=
+            mul_le_mul_of_nonneg_left h_weight (abs_nonneg _)
+        _ ≤ C_ih * q_ih.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 1))) ℝ) g := h_ih g α_rest
+        _ ≤ C_ih * (C_ax * q_ax.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f) :=
+            mul_le_mul_of_nonneg_left h_ax0 hC_ih.le
+        _ = (C_ih * C_ax) * q_ax.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f := by ring
+    · -- k ≥ 0 case: factor (1+|α|)^k ≤ (1+|α_rest|)^k * (1+n)^k
+      push_neg at hk
+      obtain ⟨C_ax, q_ax, hC_ax, h_ax⟩ :=
+        schwartz_partial_hermiteCoeff_seminorm_bound' d'' q_ih k
+      refine ⟨C_ih * C_ax, q_ax, mul_pos hC_ih hC_ax, fun f α => ?_⟩
+      rw [hermiteCoeffNd_fubini d'' f α]
+      set α_rest : MultiIndex (d'' + 1) := fun i => α (Fin.castSucc i)
+      set n := α (Fin.last (d'' + 1))
+      set g := schwartz_partial_hermiteCoeff d'' f n
+      -- Key: |α| = |α_rest| + n, and (1+a+b)^k ≤ ((1+a)(1+b))^k for k ≥ 0
+      have h_abs_eq : (MultiIndex.abs α : ℕ) =
+          MultiIndex.abs α_rest + n := by
+        simp only [MultiIndex.abs, α_rest, n]
+        exact Fin.sum_univ_castSucc α
+      have h_product_bound : (1 + (MultiIndex.abs α : ℝ)) ^ k ≤
+          (1 + (MultiIndex.abs α_rest : ℝ)) ^ k * (1 + (n : ℝ)) ^ k := by
+        rw [← mul_rpow (by positivity) (by positivity)]
+        apply rpow_le_rpow (by positivity) _ hk
+        calc (1 + (MultiIndex.abs α : ℝ))
+            = 1 + (↑(MultiIndex.abs α_rest) + ↑n) := by push_cast [h_abs_eq]; ring
+          _ ≤ (1 + ↑(MultiIndex.abs α_rest)) * (1 + ↑n) := by
+              have : (1 + ↑(MultiIndex.abs α_rest)) * (1 + (↑n : ℝ)) =
+                  1 + ↑(MultiIndex.abs α_rest) + ↑n + ↑(MultiIndex.abs α_rest) * ↑n := by ring
+              linarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) (MultiIndex.abs α_rest))
+                (Nat.cast_nonneg (α := ℝ) n)]
+      calc |hermiteCoeffNd (d'' + 1) α_rest g| *
+              (1 + (MultiIndex.abs α : ℝ)) ^ k
+          ≤ |hermiteCoeffNd (d'' + 1) α_rest g| *
+              ((1 + (MultiIndex.abs α_rest : ℝ)) ^ k * (1 + (n : ℝ)) ^ k) :=
+            mul_le_mul_of_nonneg_left h_product_bound (abs_nonneg _)
+        _ = (|hermiteCoeffNd (d'' + 1) α_rest g| *
+              (1 + (MultiIndex.abs α_rest : ℝ)) ^ k) * (1 + (n : ℝ)) ^ k := by ring
+        _ ≤ (C_ih * q_ih.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 1))) ℝ) g) * (1 + (n : ℝ)) ^ k :=
+            mul_le_mul_of_nonneg_right (h_ih g α_rest) (by positivity)
+        _ = C_ih * (q_ih.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 1))) ℝ) g * (1 + (n : ℝ)) ^ k) := by ring
+        _ ≤ C_ih * (C_ax * q_ax.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f) :=
+            mul_le_mul_of_nonneg_left (h_ax f n) hC_ih.le
+        _ = (C_ih * C_ax) * q_ax.sup (schwartzSeminormFamily ℝ
+              (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f := by ring
 
 /-- The multidimensional Hermite basis functions have polynomial growth in seminorms.
 
