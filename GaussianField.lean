@@ -36,6 +36,7 @@ and uncomment the axiom block at the bottom of this file.
 
 import SchwartzNuclear
 import Nuclear.NuclearTensorProduct
+import Nuclear.PietschNuclear
 import GaussianField.SpectralTheorem
 import GaussianField.NuclearSVD
 import GaussianField.NuclearFactorization
