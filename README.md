@@ -431,8 +431,32 @@ sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
 
 | File | Lines | Contents |
 |------|------:|----------|
-| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 76 | `NuclearSpace` typeclass, `expansion_H` lemma |
+| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 76 | `NuclearSpace` typeclass (Dynin-Mityagin), `expansion_H` lemma |
+| [PietschNuclear.lean](Nuclear/PietschNuclear.lean) | 358 | `PietschNuclearSpace` typeclass, Hahn-Banach for seminorms, DM → Pietsch implication |
 | [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 355 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct` |
+
+#### Two definitions of nuclearity
+
+The library contains two characterizations of nuclear spaces:
+
+1. **Dynin-Mityagin** (`NuclearSpace` in [NuclearSpace.lean](Nuclear/NuclearSpace.lean)) —
+   A nuclear Fréchet space with a countable Schauder basis admitting polynomial
+   growth of seminorms and super-polynomial decay of coefficients. This is the
+   operational definition used by the Gaussian measure construction.
+
+2. **Pietsch** (`PietschNuclearSpace` in [PietschNuclear.lean](Nuclear/PietschNuclear.lean)) —
+   For every continuous seminorm $p$, there exists a dominating seminorm $q \ge p$
+   such that the canonical map $E_q \to E_p$ is nuclear (expressible as
+   $p(x) \le \sum_n c_n |f_n(x)|$ with $\sum c_n < \infty$ and $|f_n| \le q$).
+   This is the standard textbook definition (Pietsch, Grothendieck).
+
+The Dynin-Mityagin characterization is strictly stronger: it additionally requires
+the existence of a Schauder basis. The implication
+`NuclearSpace.toPietschNuclearSpace` (DM → Pietsch) is proved in
+[PietschNuclear.lean](Nuclear/PietschNuclear.lean). The converse holds for
+nuclear Fréchet spaces that already possess a Schauder basis (the
+Dynin-Mityagin theorem), but is not formalized since our applications
+(Schwartz spaces) obtain the DM structure directly from the Hermite basis.
 
 ### 2. [Schwartz Space Nuclearity](docs/schwartz-nuclearity-proof.md)
 
