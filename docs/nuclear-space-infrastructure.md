@@ -163,34 +163,19 @@ theorem: if $E_1 \cong s(\mathbb{N})$ and $E_2 \cong s(\mathbb{N})$, then
 $E_1 \hat\otimes E_2 \cong s(\mathbb{N}^2) \cong s(\mathbb{N})$ via the Cantor
 pairing $\mathbb{N}^2 \to \mathbb{N}$.
 
-The file provides:
-- `fromPairIndex` / `toPairIndex` — Cantor pairing wrappers
-- `nat_pair_bound` — $\text{pair}(n,m) \le (n+m+1)^2$ (used for growth bounds in `SchwartzNuclear/`)
-- Inherited `DyninMityaginSpace` instance via `rapidDecay_dyninMityaginSpace`
+The key results are:
+- `pure : E₁ → E₂ → NuclearTensorProduct E₁ E₂` — jointly continuous bilinear embedding
+- `lift B : NuclearTensorProduct E₁ E₂ →L[ℝ] G` — universal property (factors bilinear maps)
+- `lift_pure : lift B (pure e₁ e₂) = B e₁ e₂` — the factoring identity
+- `NuclearTensorProduct.assoc` — associativity CLE (in `SchwartzTensorProduct.lean`)
 
-#### Pure tensor embedding
+For Schwartz spaces, the tensor product realizes the kernel theorem:
+- `schwartzPeelOff d : S(ℝ^{d+2}) ≃L S(ℝ^{d+1}) ⊗̂ S(ℝ)` — dimension peeling
+- `schwartzTensorEquiv m n : S(ℝ^{m+1}) ⊗̂ S(ℝ^{n+1}) ≃L S(ℝ^{m+n+2})` — general isomorphism
 
-The **pure tensor map** `pure e₁ e₂` embeds $E_1 \times E_2$ into $E_1 \hat\otimes E_2$
-by sending $(e_1, e_2)$ to the sequence $m \mapsto c_{\pi_1(m)}(e_1) \cdot c_{\pi_2(m)}(e_2)$,
-where $\pi_1, \pi_2$ are the Cantor unpairing projections.
-
-| Definition / Theorem | Description |
-|---|---|
-| `pure e₁ e₂` | The pure tensor: product of coefficients via Cantor pairing |
-| `pure_seminorm_bound k` | For each target seminorm $k$, $\exists\, C, s_1, s_2$ such that $p_k(\text{pure}(e_1,e_2)) \le C \cdot q_{s_1}(e_1) \cdot q_{s_2}(e_2)$ |
-| `pureLin` | `E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] NuclearTensorProduct E₁ E₂` — bilinear structure |
-| `pureCLM_right e₁` | `E₂ →L[ℝ] NuclearTensorProduct E₁ E₂` — CLM for fixed first argument |
-| `pure_continuous` | `Continuous (fun p : E₁ × E₂ => pure p.1 p.2)` — joint continuity |
-
-The seminorm bound is the key estimate: it shows the Cantor-paired product
-of coefficient sequences decays rapidly. The proof bounds $(1+\text{pair}(i,j))^k$
-by $4^k(1+i)^{2k}(1+j)^{2k}$ (using `one_add_pair_le_sq`), then factors
-into individual coefficient decay at exponent $2k+2$, absorbing the extra
-$(1+i)^2(1+j)^2$ factor, leaving a convergent inverse-square series.
-
-Joint continuity follows from `continuous_of_continuousAt_zero₂`: continuity
-at $(0,0)$ (from the bilinear seminorm bound) plus separate continuity in
-each argument (from `pureCLM_right` and the symmetric `pure_continuous_left`).
+For the full construction details (Cantor pairing bounds, `pure` seminorm estimates,
+`lift` convergence, reindexing automorphisms, associativity permutation), see
+[tensor-products.md](tensor-products.md).
 
 ## Key Mathlib Dependencies
 

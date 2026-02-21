@@ -98,7 +98,7 @@ sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
 |------|------:|----------|
 | [DyninMityagin.lean](Nuclear/DyninMityagin.lean) | 76 | `DyninMityaginSpace` typeclass (Dynin-Mityagin), `expansion_H` lemma |
 | [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 487 | `NuclearSpace` typeclass (Pietsch), Hahn-Banach for seminorms, `hasSum_basis` (strong Schauder convergence), DM -> Pietsch |
-| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 1,125 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct`, `pure`, universal property (`lift`, `lift_pure`) |
+| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 1,125 | `RapidDecaySeq`, `NuclearTensorProduct`, `pure`, universal property (`lift`, `lift_pure`) |
 
 #### Two definitions of nuclearity
 
@@ -125,22 +125,33 @@ Dynin-Mityagin theorem), but is not formalized since our applications
 
 #### Tensor products of nuclear spaces
 
-`NuclearTensorProduct E₁ E₂` is the tensor product of two `DyninMityaginSpace`
-spaces, defined concretely as `RapidDecaySeq` (rapidly decaying sequences on
-$\mathbb{N}$) with Cantor pairing encoding the two basis indices. The key results:
+`NuclearTensorProduct E₁ E₂` is the completed nuclear tensor product of two
+`DyninMityaginSpace` spaces. It carries a `DyninMityaginSpace` instance
+(hence is itself nuclear) and satisfies the **universal property**: every
+seminorm-bounded bilinear map factors uniquely through the canonical embedding.
 
-- `pure : E₁ → E₂ → NuclearTensorProduct E₁ E₂` — jointly continuous bilinear map
-- `lift B : NuclearTensorProduct E₁ E₂ →L[ℝ] G` — every seminorm-bounded bilinear
-  map $B : E_1 \times E_2 \to G$ factors uniquely through `pure` via a CLM
-- `lift_pure : lift B (pure e₁ e₂) = B e₁ e₂` — the factoring identity
+**Structural results:**
 
-This gives the **universal property** of the nuclear tensor product: it represents
-continuous bilinear maps into complete normed spaces. The proof of `lift_pure` uses
-the double Schauder expansion (`hasSum_basis`) mapped through $B$ and recombined
-via Cantor pairing.
+| Definition / Theorem | Type | Description |
+|---|---|---|
+| `NuclearTensorProduct.assoc` | `(E₁ ⊗̂ E₂) ⊗̂ E₃ ≃L[ℝ] E₁ ⊗̂ (E₂ ⊗̂ E₃)` | Associativity |
+| `lift B` | `E₁ ⊗̂ E₂ →L[ℝ] G` | Universal property: factors bilinear maps through `pure` |
+| `lift_pure` | `lift B (pure e₁ e₂) = B e₁ e₂` | Factoring identity |
 
-For the roadmap to connect this concrete model to Mathlib's abstract algebraic
-`TensorProduct` via completed projective tensor products, see
+**Schwartz space isomorphisms** (in `SchwartzNuclear/SchwartzTensorProduct.lean`):
+
+| Definition / Theorem | Type | Description |
+|---|---|---|
+| `schwartzPeelOff d` | `S(ℝ^{d+2}) ≃L S(ℝ^{d+1}) ⊗̂ S(ℝ)` | Peel off one dimension |
+| `schwartzTensorEquiv m n` | `S(ℝ^{m+1}) ⊗̂ S(ℝ^{n+1}) ≃L S(ℝ^{m+n+2})` | General tensor-product isomorphism |
+| `schwartzPeelOff_pure` | canonicity | Inverse sends `f ⊗ g` to pointwise product |
+
+These isomorphisms identify the tensor product of Schwartz spaces on lower-dimensional
+Euclidean spaces with Schwartz space on the product space — the Schwartz kernel theorem.
+
+For the concrete construction (Cantor pairing, `pure`, `lift`, reindexing), see
+[docs/tensor-products.md](docs/tensor-products.md). For the roadmap to connect
+to Mathlib's abstract `TensorProduct`, see
 [docs/abstract-tensor-product-plan.md](docs/abstract-tensor-product-plan.md).
 
 ### 2. [Schwartz Space Nuclearity](docs/schwartz-nuclearity-proof.md)
@@ -158,6 +169,7 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [SchwartzSlicing.lean](SchwartzNuclear/SchwartzSlicing.lean) | 1,134 | Multi-d slicing and partial Hermite coefficients |
 | [HermiteTensorProduct.lean](SchwartzNuclear/HermiteTensorProduct.lean) | 2,619 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
 | [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `DyninMityaginSpace` instance from the isomorphism |
+| [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 363 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
 
 ### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
 
@@ -184,6 +196,7 @@ SchwartzNuclear/   GaussianField/
   ...              NuclearFactorization
   HermiteNuclear        ↓
        ↓          SpectralTheorem → NuclearSVD → TargetFactorization
+  SchwartzTensorProduct                               ↓
        ↓                                              ↓
        └──────────────→ GaussianField.lean ←──── Construction
                                                       ↓
@@ -209,6 +222,7 @@ An axiom fallback is available as an inactive comment in `GaussianField.lean` fo
 - [Operator construction](docs/operator-construction.md) — building covariance operators on product spaces via the heat kernel $e^{-s\Delta}$, Mathlib support, and the factorization theorem
 - [Lattice-continuum limit](docs/lattice-continuum-limit.md) — convergence of lattice Gaussian measures to continuum measures via characteristic functionals
 - [Generalization plan](docs/generalization-plan.md) — architecture of the `DyninMityaginSpace` typeclass, design decisions, and roadmap for future instances
+- [Tensor products](docs/tensor-products.md) — concrete construction of `NuclearTensorProduct` via `RapidDecaySeq` and Cantor pairing, `pure`/`lift` API, reindexing, and Schwartz tensor product isomorphisms
 - [Abstract tensor product plan](docs/abstract-tensor-product-plan.md) — roadmap for building completed projective tensor products on Mathlib's `TensorProduct`, proving isomorphism with `RapidDecaySeq`, and the nuclear coincidence theorem
 
 ## Future work
