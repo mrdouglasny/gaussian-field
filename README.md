@@ -181,7 +181,7 @@ on the circle via the real Fourier basis and the isomorphism
 |------|------:|----------|
 | [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | ~400 | Type, seminorms, Fourier basis, coefficients |
 | [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | ~200 | Decay, CLE, `DyninMityaginSpace` instance |
-| [SmoothCircle/Test.lean](SmoothCircle/Test.lean) | ~55 | End-to-end test: Gaussian measure on C∞(S¹) and cylinder S¹×ℝ |
+| [Test.lean](Test.lean) | ~110 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus |
 
 This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
 on cylinders S¹×ℝ and higher tori Tᵈ. The test file verifies the full pipeline
@@ -265,6 +265,7 @@ An axiom fallback is available as an inactive comment in `GaussianField.lean` fo
 ```bash
 lake update
 lake build
+lake build Test  # end-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus
 ```
 
 Requires Lean 4 v4.28.0-rc1 and Mathlib (fetched automatically by Lake).
