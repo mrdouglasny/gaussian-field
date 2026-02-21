@@ -1036,7 +1036,87 @@ theorem lift_pure
         (s₂.sup DyninMityaginSpace.p) e₂)
     (e₁ : E₁) (e₂ : E₂) :
     lift B hC hB (pure e₁ e₂) = B e₁ e₂ := by
-  sorry
+  -- Unfold lift to the tsum definition
+  show ∑' m, (pure e₁ e₂).val m •
+    B (DyninMityaginSpace.basis (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (Nat.unpair m).2) = B e₁ e₂
+  simp only [pure_val]
+  -- Abbreviations for readability (used only in types, not in HasSum.map)
+  let ψ₁ := DyninMityaginSpace.basis (E := E₁)
+  let ψ₂ := DyninMityaginSpace.basis (E := E₂)
+  let c₁ := DyninMityaginSpace.coeff (E := E₁)
+  let c₂ := DyninMityaginSpace.coeff (E := E₂)
+  -- Step 1: Continuity of B(ψ₁ n) : E₂ →ₗ G for each n
+  have hBn_cont : ∀ n, Continuous (B (ψ₁ n)) := by
+    intro n
+    apply Seminorm.continuous_from_bounded
+      (DyninMityaginSpace.h_with (E := E₂)) (norm_withSeminorms ℝ G)
+    intro _
+    refine ⟨s₂, ⟨C * (s₁.sup DyninMityaginSpace.p) (ψ₁ n),
+      mul_nonneg (le_of_lt hC) (apply_nonneg _ _)⟩, fun x => ?_⟩
+    show ‖(B (ψ₁ n)) x‖ ≤
+      C * (s₁.sup DyninMityaginSpace.p) (ψ₁ n) * (s₂.sup DyninMityaginSpace.p) x
+    exact hB (ψ₁ n) x
+  -- Step 2: Continuity of B.flip e₂ : E₁ →ₗ G
+  have hBflip_cont : Continuous (B.flip e₂) := by
+    apply Seminorm.continuous_from_bounded
+      (DyninMityaginSpace.h_with (E := E₁)) (norm_withSeminorms ℝ G)
+    intro _
+    refine ⟨s₁, ⟨C * (s₂.sup DyninMityaginSpace.p) e₂,
+      mul_nonneg (le_of_lt hC) (apply_nonneg _ _)⟩, fun x => ?_⟩
+    show ‖(B.flip e₂) x‖ ≤
+      C * (s₂.sup DyninMityaginSpace.p) e₂ * (s₁.sup DyninMityaginSpace.p) x
+    rw [LinearMap.flip_apply]
+    calc ‖(B x) e₂‖
+        ≤ C * (s₁.sup DyninMityaginSpace.p) x *
+          (s₂.sup DyninMityaginSpace.p) e₂ := hB x e₂
+      _ = C * (s₂.sup DyninMityaginSpace.p) e₂ *
+          (s₁.sup DyninMityaginSpace.p) x := by ring
+  -- Step 3: Inner HasSum: ∑ₖ c₂(k)(e₂) • B(ψ₁(n))(ψ₂(k)) → B(ψ₁(n))(e₂)
+  have h_inner : ∀ n, HasSum (fun k => c₂ k e₂ • B (ψ₁ n) (ψ₂ k))
+      (B (ψ₁ n) e₂) := by
+    intro n
+    have h := (DyninMityaginSpace.hasSum_basis e₂).map (B (ψ₁ n)) (hBn_cont n)
+    exact h.congr_fun (fun k => (map_smul (B (ψ₁ n)) (c₂ k e₂) (ψ₂ k)).symm)
+  -- Step 4: Outer HasSum: ∑ₙ c₁(n)(e₁) • B(ψ₁(n))(e₂) → B(e₁)(e₂)
+  have h_outer : HasSum (fun n => c₁ n e₁ • B (ψ₁ n) e₂) (B e₁ e₂) := by
+    have h := (DyninMityaginSpace.hasSum_basis e₁).map (B.flip e₂) hBflip_cont
+    exact h.congr_fun (fun n => by
+      simp only [Function.comp, LinearMap.flip_apply]
+      exact (map_smul (B.flip e₂) (c₁ n e₁) (ψ₁ n)).symm)
+  -- Step 5: Summability of the ℕ-indexed sum (from lift_summable via pure_val)
+  have h_summ_nat : Summable (fun m =>
+      (c₁ (Nat.unpair m).1 e₁ * c₂ (Nat.unpair m).2 e₂) •
+      B (ψ₁ (Nat.unpair m).1) (ψ₂ (Nat.unpair m).2)) := by
+    have := lift_summable B hC hB (pure e₁ e₂)
+    simp only [pure_val] at this; exact this
+  -- Step 6: Summability of ℕ × ℕ-indexed version (via Cantor pairing equivalence)
+  have h_summ_prod : Summable (fun (p : ℕ × ℕ) =>
+      (c₁ p.1 e₁ * c₂ p.2 e₂) • B (ψ₁ p.1) (ψ₂ p.2)) :=
+    (Nat.pairEquiv.symm.summable_iff).mp h_summ_nat
+  -- Step 7: Fiber summability (each inner sum converges)
+  have h_fiber : ∀ n, Summable (fun k =>
+      (c₁ n e₁ * c₂ k e₂) • B (ψ₁ n) (ψ₂ k)) := by
+    intro n
+    have := (h_inner n).const_smul (c₁ n e₁)
+    simp only [smul_smul] at this
+    exact this.summable
+  -- Step 8: Double Schauder expansion via calc chain
+  symm
+  calc B e₁ e₂
+      = ∑' n, c₁ n e₁ • B (ψ₁ n) e₂ := h_outer.tsum_eq.symm
+    _ = ∑' n, c₁ n e₁ • ∑' k, c₂ k e₂ • B (ψ₁ n) (ψ₂ k) := by
+        congr 1; ext n; congr 1; exact (h_inner n).tsum_eq.symm
+    _ = ∑' n, ∑' k, c₁ n e₁ • (c₂ k e₂ • B (ψ₁ n) (ψ₂ k)) := by
+        congr 1; ext n; exact ((h_inner n).summable.tsum_const_smul _).symm
+    _ = ∑' n, ∑' k, (c₁ n e₁ * c₂ k e₂) • B (ψ₁ n) (ψ₂ k) := by
+        simp_rw [mul_smul]
+    _ = ∑' (p : ℕ × ℕ), (c₁ p.1 e₁ * c₂ p.2 e₂) •
+          B (ψ₁ p.1) (ψ₂ p.2) :=
+        (h_summ_prod.tsum_prod' h_fiber).symm
+    _ = ∑' m, (c₁ (Nat.unpair m).1 e₁ * c₂ (Nat.unpair m).2 e₂) •
+          B (ψ₁ (Nat.unpair m).1) (ψ₂ (Nat.unpair m).2) :=
+        (Equiv.tsum_eq Nat.pairEquiv.symm _).symm
 
 end Lift
 
