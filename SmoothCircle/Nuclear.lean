@@ -36,25 +36,51 @@ namespace SmoothCircle
 /-! ## Integration by parts: Fourier coefficient decay -/
 
 /-- Integration by parts gives rapid decay of Fourier coefficients:
-for f ∈ C∞(S¹) and n ≥ 1, `|c_n(f)| ≤ C_k · p_k(f) / n^k` for all k.
+`|c_n(f)| * (1+n)^k ≤ C · max(p_0(f), p_k(f))` for all k.
 
-This is the key analytical estimate. The proof proceeds by integrating by
-parts k times; boundary terms vanish by periodicity. -/
+For n = 0: bounded by `C · p_0(f)` (integral bound).
+For n ≥ 1: integrating by parts k times gives
+`|c_n(f)| ≤ C · p_k(f) / n^k`, hence `|c_n(f)| · (1+n)^k ≤ C' · p_k(f)`.
+Combined: bounded by `C · max(p_0, p_k)`. -/
 theorem fourierCoeffReal_decay (k : ℕ) :
     ∃ C > 0, ∀ (f : SmoothCircle L) (n : ℕ),
       ‖fourierCoeffReal n f‖ * (1 + (n : ℝ)) ^ k ≤
-        C * sobolevSeminorm k f := by
+        C * (({0, k} : Finset ℕ).sup sobolevSeminorm) f := by
   sorry
 
 /-! ## Forward map: SmoothCircle → RapidDecaySeq -/
 
+/-- Helper: summability of shifted inverse square series `∑ 1/(1+n)^2`. -/
+private theorem summable_shifted_inv_sq :
+    Summable (fun n : ℕ => 1 / ((n : ℝ) + 1) ^ 2) := by
+  have h := (Real.summable_nat_pow_inv (p := 2)).mpr (by norm_num)
+  refine (h.comp_injective (fun a b h => Nat.succ_injective h)).congr (fun n => ?_)
+  simp only [Function.comp, Nat.cast_succ]
+  ring
+
 /-- The Fourier coefficients of a smooth periodic function form a rapidly
-decreasing sequence. This follows from `fourierCoeffReal_decay` at order k+2:
-`|c_n| * (1+n)^{k+2} ≤ C * p_{k+2}(f)` gives `|c_n| * (1+n)^k ≤ C * p_{k+2}(f) / (1+n)^2`,
-and the sum converges by comparison with the p-series `∑ 1/(1+n)^2`. -/
+decreasing sequence. Uses `fourierCoeffReal_decay` at order k+2 and
+comparison with the convergent p-series `∑ 1/(1+n)^2`. -/
 theorem fourierCoeff_rapid_decay (f : SmoothCircle L) (k : ℕ) :
     Summable (fun m => |fourierCoeffReal (L := L) m f| * (1 + (m : ℝ)) ^ k) := by
-  sorry
+  obtain ⟨C, hC, hbound⟩ := fourierCoeffReal_decay (L := L) (k + 2)
+  set B := C * (({0, k + 2} : Finset ℕ).sup sobolevSeminorm) f
+  have h_sum : Summable (fun m : ℕ => B * (1 / ((m : ℝ) + 1) ^ 2)) :=
+    summable_shifted_inv_sq.mul_left B
+  refine Summable.of_nonneg_of_le
+    (fun m => mul_nonneg (abs_nonneg _) (pow_nonneg (by positivity) _))
+    (fun m => ?_)
+    h_sum
+  -- Goal: |c_m f| * (1+m)^k ≤ B * (1 / (↑m + 1) ^ 2)
+  have h1m : (0 : ℝ) < 1 + ↑m := by positivity
+  have hm := hbound f m
+  rw [Real.norm_eq_abs] at hm
+  rw [mul_one_div]
+  rw [show (↑m : ℝ) + 1 = 1 + ↑m from by ring]
+  rw [le_div_iff₀ (pow_pos h1m 2)]
+  calc |fourierCoeffReal m f| * (1 + ↑m) ^ k * (1 + ↑m) ^ 2
+      = |fourierCoeffReal m f| * (1 + ↑m) ^ (k + 2) := by rw [pow_add, mul_assoc]
+    _ ≤ B := hm
 
 /-- The forward map: Fourier coefficients as a `RapidDecaySeq`. -/
 def toRapidDecay (f : SmoothCircle L) : RapidDecaySeq where
@@ -77,8 +103,31 @@ def toRapidDecayLM : SmoothCircle L →ₗ[ℝ] RapidDecaySeq where
 theorem toRapidDecay_continuous : Continuous (toRapidDecayLM (L := L)) := by
   apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms
     RapidDecaySeq.rapidDecay_withSeminorms
-  -- For each rapid decay seminorm k, bound by sobolev seminorm k
-  sorry
+  intro k
+  obtain ⟨C, hC, hbound⟩ := fourierCoeffReal_decay (L := L) (k + 2)
+  set Z := ∑' n : ℕ, 1 / ((n : ℝ) + 1) ^ 2
+  refine ⟨{0, k + 2}, ⟨C * Z, by positivity⟩, fun f => ?_⟩
+  simp only [Seminorm.comp_apply, NNReal.smul_def, Seminorm.smul_apply, NNReal.coe_mk]
+  show ∑' m, |fourierCoeffReal m f| * (1 + (m : ℝ)) ^ k ≤
+    C * Z * (({0, k + 2} : Finset ℕ).sup sobolevSeminorm) f
+  set S := (({0, k + 2} : Finset ℕ).sup sobolevSeminorm) f
+  have h_le : ∀ m : ℕ, |fourierCoeffReal m f| * (1 + (m : ℝ)) ^ k ≤
+      C * S * (1 / ((↑m : ℝ) + 1) ^ 2) := by
+    intro m
+    have h1m : (0 : ℝ) < 1 + ↑m := by positivity
+    have hm := hbound f m
+    rw [Real.norm_eq_abs] at hm
+    calc |fourierCoeffReal m f| * (1 + ↑m) ^ k
+        = |fourierCoeffReal m f| * (1 + ↑m) ^ (k + 2) / (1 + ↑m) ^ 2 := by
+          rw [pow_add]; field_simp
+      _ ≤ C * S / (1 + ↑m) ^ 2 := div_le_div_of_nonneg_right hm (sq_nonneg _)
+      _ = C * S * (1 / ((↑m : ℝ) + 1) ^ 2) := by ring
+  calc ∑' m, |fourierCoeffReal m f| * (1 + ↑m) ^ k
+      ≤ ∑' (m : ℕ), C * S * (1 / ((↑m : ℝ) + 1) ^ 2) :=
+        (fourierCoeff_rapid_decay f k).tsum_le_tsum h_le
+          ((summable_shifted_inv_sq.mul_left (C * S)).congr (fun n => by ring))
+    _ = C * S * Z := by rw [tsum_mul_left]
+    _ = C * Z * S := by ring
 
 /-- The forward map as a CLM. -/
 def toRapidDecayCLM : SmoothCircle L →L[ℝ] RapidDecaySeq where
@@ -86,33 +135,6 @@ def toRapidDecayCLM : SmoothCircle L →L[ℝ] RapidDecaySeq where
   cont := toRapidDecay_continuous
 
 /-! ## Backward map: RapidDecaySeq → SmoothCircle -/
-
-/-- Summability of the Fourier series: for rapidly decaying coefficients,
-the series `∑ₙ aₙ · ψ_n(x)` converges absolutely and uniformly. -/
-private theorem fourierBasisFun_abs_le (n : ℕ) (x : ℝ) :
-    |fourierBasisFun (L := L) n x| ≤ max (1 / Real.sqrt L) (Real.sqrt (2 / L)) := by
-  cases n with
-  | zero =>
-    simp only [fourierBasisFun]
-    rw [abs_of_nonneg (by positivity)]
-    exact le_max_left _ _
-  | succ m =>
-    simp only [fourierBasisFun]
-    split
-    · -- cos case
-      rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-      calc Real.sqrt (2 / L) * |Real.cos _|
-          ≤ Real.sqrt (2 / L) * 1 :=
-            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.sqrt_nonneg _)
-        _ = Real.sqrt (2 / L) := mul_one _
-        _ ≤ max _ _ := le_max_right _ _
-    · -- sin case
-      rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-      calc Real.sqrt (2 / L) * |Real.sin _|
-          ≤ Real.sqrt (2 / L) * 1 :=
-            mul_le_mul_of_nonneg_left (Real.abs_sin_le_one _) (Real.sqrt_nonneg _)
-        _ = Real.sqrt (2 / L) := mul_one _
-        _ ≤ max _ _ := le_max_right _ _
 
 theorem summable_fourierBasis_smul (a : RapidDecaySeq) :
     ∀ x, Summable (fun n => a.val n * fourierBasisFun (L := L) n x) := by

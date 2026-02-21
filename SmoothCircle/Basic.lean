@@ -337,19 +337,42 @@ def fourierBasis (n : ℕ) : SmoothCircle L :=
 @[simp] theorem fourierBasis_apply (n : ℕ) (x : ℝ) :
     (fourierBasis (L := L) n : ℝ → ℝ) x = fourierBasisFun (L := L) n x := rfl
 
+/-- Each Fourier basis function is pointwise bounded. -/
+theorem fourierBasisFun_abs_le (n : ℕ) (x : ℝ) :
+    |fourierBasisFun (L := L) n x| ≤ max (1 / Real.sqrt L) (Real.sqrt (2 / L)) := by
+  cases n with
+  | zero =>
+    simp only [fourierBasisFun]
+    rw [abs_of_nonneg (by positivity)]
+    exact le_max_left _ _
+  | succ m =>
+    simp only [fourierBasisFun]
+    split
+    · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+      calc Real.sqrt (2 / L) * |Real.cos _|
+          ≤ Real.sqrt (2 / L) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.sqrt_nonneg _)
+        _ = Real.sqrt (2 / L) := mul_one _
+        _ ≤ max _ _ := le_max_right _ _
+    · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+      calc Real.sqrt (2 / L) * |Real.sin _|
+          ≤ Real.sqrt (2 / L) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_sin_le_one _) (Real.sqrt_nonneg _)
+        _ = Real.sqrt (2 / L) := mul_one _
+        _ ≤ max _ _ := le_max_right _ _
+
 /-! ### Fourier coefficients -/
 
 open MeasureTheory in
-/-- The n-th real Fourier coefficient of f, defined as the inner product
-`(1/L) ∫₀ᴸ f(x) · ψ_n(x) dx`. -/
+/-- The n-th real Fourier coefficient of f, defined as the L² inner product
+`∫₀ᴸ f(x) · ψ_n(x) dx` where `{ψ_n}` is the L²-orthonormal basis. -/
 def fourierCoeffReal (n : ℕ) (f : SmoothCircle L) : ℝ :=
-  (1 / L) * ∫ x in Set.Icc 0 L, f x * fourierBasisFun (L := L) n x
+  ∫ x in Set.Icc 0 L, f x * fourierBasisFun (L := L) n x
 
 /-- The Fourier coefficient is linear. -/
 theorem fourierCoeffReal_add (n : ℕ) (f g : SmoothCircle L) :
     fourierCoeffReal n (f + g) = fourierCoeffReal n f + fourierCoeffReal n g := by
   unfold fourierCoeffReal
-  rw [← mul_add]; congr 1
   have h1 : ∀ x, (f + g) x * fourierBasisFun (L := L) n x =
     f x * fourierBasisFun (L := L) n x + g x * fourierBasisFun (L := L) n x :=
     fun x => by simp [add_apply, add_mul]
@@ -366,7 +389,6 @@ theorem fourierCoeffReal_smul (n : ℕ) (r : ℝ) (f : SmoothCircle L) :
     r * (f x * fourierBasisFun (L := L) n x) :=
     fun x => by simp [smul_apply, mul_assoc]
   simp_rw [h1, MeasureTheory.integral_const_mul]
-  ring
 
 /-- The Fourier coefficient as a linear map. -/
 def fourierCoeffLM (n : ℕ) : SmoothCircle L →ₗ[ℝ] ℝ where
@@ -374,21 +396,51 @@ def fourierCoeffLM (n : ℕ) : SmoothCircle L →ₗ[ℝ] ℝ where
   map_add' := fourierCoeffReal_add n
   map_smul' r f := by simp [fourierCoeffReal_smul, smul_eq_mul]
 
+/-! ### Integral bound for Fourier coefficients -/
+
+open MeasureTheory in
+/-- Pointwise bound: `|c_n(f)| ≤ C · p_0(f)` where C = L · max(1/√L, √(2/L)).
+Uses `norm_setIntegral_le_of_norm_le_const` and `fourierBasisFun_abs_le`. -/
+theorem fourierCoeffReal_bound (n : ℕ) (f : SmoothCircle L) :
+    ‖fourierCoeffReal (L := L) n f‖ ≤
+      (max (1 / Real.sqrt L) (Real.sqrt (2 / L)) * L) * sobolevSeminorm 0 f := by
+  unfold fourierCoeffReal
+  rw [Real.norm_eq_abs]
+  set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
+  have hM_nonneg : 0 ≤ M := le_max_of_le_right (Real.sqrt_nonneg _)
+  have h_bound : ∀ x ∈ Set.Icc (0 : ℝ) L,
+      ‖f x * fourierBasisFun (L := L) n x‖ ≤ sobolevSeminorm 0 f * M := by
+    intro x hx
+    rw [norm_mul]
+    apply mul_le_mul _ _ (norm_nonneg _) (sobolevSeminorm_nonneg 0 f)
+    · have := norm_iteratedDeriv_le_sobolevSeminorm f 0 hx
+      rwa [iteratedDeriv_zero] at this
+    · rw [Real.norm_eq_abs]; exact fourierBasisFun_abs_le n x
+  calc |∫ x in Set.Icc 0 L, f x * fourierBasisFun n x|
+      ≤ (sobolevSeminorm 0 f * M) * volume.real (Set.Icc (0 : ℝ) L) :=
+        norm_setIntegral_le_of_norm_le_const measure_Icc_lt_top h_bound
+    _ = M * L * sobolevSeminorm 0 f := by
+        rw [Real.volume_real_Icc_of_le (le_of_lt hL.out)]; ring
+
 /-- The Fourier coefficient as a continuous linear map.
 
-Continuity follows from `|c_n(f)| ≤ (1/L) · L · sup|ψ_n| · sup|f| ≤ C · p_0(f)`. -/
+Continuity follows from `|c_n(f)| ≤ C · p_0(f)`. -/
 def fourierCoeffCLM (n : ℕ) : SmoothCircle L →L[ℝ] ℝ where
   toLinearMap := fourierCoeffLM n
   cont := by
     apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
     intro _
-    -- |c_n(f)| = |(1/L) ∫₀ᴸ f·ψ_n dx| ≤ sup|ψ_n| · p_0(f)
-    sorry
+    set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
+    refine ⟨{0}, ⟨M * L, mul_nonneg (le_max_of_le_right (Real.sqrt_nonneg _))
+      (le_of_lt hL.out)⟩, fun f => ?_⟩
+    simp only [Seminorm.comp_apply, Finset.sup_singleton, NNReal.smul_def, Seminorm.smul_apply,
+      coe_normSeminorm, NNReal.coe_mk]
+    exact fourierCoeffReal_bound n f
 
 /-! ### Orthogonality -/
 
 /-- Orthogonality of the real Fourier basis:
-`(1/L) ∫₀ᴸ ψ_i(x) ψ_j(x) dx = δ_{ij}`. -/
+`∫₀ᴸ ψ_i(x) ψ_j(x) dx = δ_{ij}`. -/
 theorem fourierCoeffReal_fourierBasis (i j : ℕ) :
     fourierCoeffReal (L := L) i (fourierBasis j) = if i = j then 1 else 0 := by
   sorry
