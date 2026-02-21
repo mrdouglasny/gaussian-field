@@ -58,6 +58,7 @@ The user provides:
 | `pairing_integrable` | `Integrable` | $\omega(f)$ is integrable |
 | `pairing_memLp` | `MemLp` | $\omega(f) \in L^p$ for all finite $p$ (Fernique-type) |
 | `pairing_product_integrable` | `Integrable` | $\omega(f)\omega(g)$ is integrable |
+| `measure_isGaussian` | `IsGaussian (measure T)` | Mathlib's `IsGaussian` typeclass instance |
 
 ### Design notes
 
@@ -373,6 +374,9 @@ open GaussianField in
 #check pairing_integrable T                  -- ω(f) is integrable
 #check pairing_memLp T                       -- ω(f) ∈ Lᵖ for all finite p
 #check pairing_product_integrable T          -- ω(f)·ω(g) is integrable
+
+-- Mathlib IsGaussian instance
+#check measure_isGaussian T                  -- IsGaussian (measure T)
 ```
 
 ### Full example: lattice GFF on a 2-torus
@@ -487,6 +491,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [TargetFactorization.lean](GaussianField/TargetFactorization.lean) | 324 | Target-indexed factorization with ONB |
 | [Construction.lean](GaussianField/Construction.lean) | 715 | Main construction + characteristic functional |
 | [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
+| [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
 
 ### Dependency graph
 
@@ -502,6 +507,8 @@ SchwartzNuclear/   GaussianField/
        └──────────────→ GaussianField.lean ←──── Construction
                                                       ↓
                                                   Properties
+                                                      ↓
+                                                  IsGaussian
 ```
 
 ## Axiom budget
