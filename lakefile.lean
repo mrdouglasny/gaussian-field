@@ -13,5 +13,7 @@ lean_lib «Nuclear» where
 
 lean_lib «SchwartzNuclear» where
 
+lean_lib «SmoothCircle» where
+
 @[default_target]
 lean_lib «GaussianField» where

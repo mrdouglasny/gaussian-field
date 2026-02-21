@@ -171,6 +171,31 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `DyninMityaginSpace` instance from the isomorphism |
 | [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 363 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
 
+### 2b. [Circle Nuclearity](docs/concrete-instances.md#1-the-circle-s1_l-of-circumference-l)
+
+Proves `DyninMityaginSpace (SmoothCircle L)` for smooth L-periodic functions
+on the circle via the real Fourier basis and the isomorphism
+`SmoothCircle L ≃L[ℝ] RapidDecaySeq`.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | ~400 | Type, seminorms, Fourier basis, coefficients |
+| [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | ~200 | Decay, CLE, `DyninMityaginSpace` instance |
+| [SmoothCircle/Test.lean](SmoothCircle/Test.lean) | ~55 | End-to-end test: Gaussian measure on C∞(S¹) and cylinder S¹×ℝ |
+
+This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
+on cylinders S¹×ℝ and higher tori Tᵈ. The test file verifies the full pipeline
+for both `SmoothCircle L` and the cylinder `NuclearTensorProduct (SmoothCircle L) (SchwartzMap ℝ ℝ)`.
+See [concrete instances](docs/concrete-instances.md) for the mathematical details.
+
+**Design note:** `SmoothCircle L` represents smooth L-periodic functions as
+`{f : ℝ → ℝ | Periodic f L ∧ ContDiff ℝ ⊤ f}`, avoiding manifold machinery.
+Mathlib's `AddCircle L` (= $\mathbb{R}/L\mathbb{Z}$) has rich Fourier analysis
+but currently lacks `ChartedSpace`/`SmoothManifoldWithCorners` instances, so
+`ContMDiffMap (AddCircle L) F` cannot yet be defined. Once Mathlib gains manifold
+structure on `AddCircle`, the type could be refactored to `ContMDiffMap (AddCircle L) F`
+and generalized to vector-valued codomain $F$.
+
 ### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
 
 Given `[DyninMityaginSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
@@ -192,17 +217,17 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 Nuclear/
   DyninMityagin → NuclearTensorProduct
        ↓                ↓
-SchwartzNuclear/   GaussianField/
-  ...              NuclearFactorization
-  HermiteNuclear        ↓
-       ↓          SpectralTheorem → NuclearSVD → TargetFactorization
-  SchwartzTensorProduct                               ↓
-       ↓                                              ↓
-       └──────────────→ GaussianField.lean ←──── Construction
-                                                      ↓
-                                                  Properties
-                                                      ↓
-                                                  IsGaussian
+SchwartzNuclear/   SmoothCircle/         GaussianField/
+  ...              Basic → Nuclear       NuclearFactorization
+  HermiteNuclear        ↓                     ↓
+       ↓           Test (uses GF)   SpectralTheorem → NuclearSVD → TargetFactorization
+  SchwartzTensorProduct                                                ↓
+       ↓                                                               ↓
+       └──────────────→ GaussianField.lean ←─────────────────── Construction
+                                                                       ↓
+                                                                   Properties
+                                                                       ↓
+                                                                   IsGaussian
 ```
 
 ## Axiom budget
@@ -227,7 +252,8 @@ An axiom fallback is available as an inactive comment in `GaussianField.lean` fo
 
 ## Future work
 
-- **New instances**: $C^\infty(S^1)$, $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
+- **New instances**: $C^\infty(S^1)$ is implemented (with analytical sorrys); remaining targets: $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
+- **Vector-valued generalization**: Generalize `SmoothCircle L` and `SchwartzMap D ℝ` to vector-valued codomains $F$, with nuclearity via $C^\infty(M, \mathbb{R}^n) \cong C^\infty(M, \mathbb{R})^n \cong s(\mathbb{N})$; long-term, refactor to `ContMDiffMap (AddCircle L) F` once Mathlib gains manifold structure on `AddCircle`
 - **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
 - **Lattice-continuum limits**: Formalize convergence via characteristic functionals (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
 - **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
