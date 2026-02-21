@@ -537,6 +537,10 @@ lake build
 
 Requires Lean 4 v4.28.0-rc1 and Mathlib (fetched automatically by Lake).
 
+## Author
+
+Michael R. Douglas
+
 ## License
 
 Apache 2.0
