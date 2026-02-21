@@ -34,6 +34,7 @@ DM structure directly from the Hermite basis.
 
 import Nuclear.DyninMityagin
 import Mathlib.Analysis.Convex.Cone.Extension
+import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.PSeries
 
 noncomputable section
@@ -124,7 +125,7 @@ growth in each seminorm has a uniform polynomial bound.
 Given `p' : ι → Seminorm ℝ E` and a finite set `s`, if each `p' i` for `i ∈ s`
 satisfies `p' i (x m) ≤ Cᵢ · (1+m)^{tᵢ}`, then `(s.sup p') (x m) ≤ D · (1+m)^S`
 where `S = max tᵢ` and `D = ∑ Cᵢ`. -/
-private lemma finset_sup_poly_bound {E : Type*} [AddCommGroup E] [Module ℝ E]
+lemma finset_sup_poly_bound {E : Type*} [AddCommGroup E] [Module ℝ E]
     {ι : Type*} [DecidableEq ι]
     (p' : ι → Seminorm ℝ E) (s : Finset ι) (x : ℕ → E)
     (hx : ∀ i ∈ s, ∃ C > 0, ∃ t : ℕ, ∀ m, p' i (x m) ≤ C * (1 + (m : ℝ)) ^ t) :
@@ -221,6 +222,134 @@ lemma seminorm_le_nuclear_expansion
     le_trans (le_abs_self _)
       (le_trans (le_of_eq (abs_mul _ _))
         (mul_le_mul_of_nonneg_left (hφq _) (abs_nonneg _)))) hsumm
+
+/-! ### Strong Convergence of Schauder Expansion -/
+
+/-- Summability of the Schauder expansion terms in a single seminorm.
+
+For any seminorm index `i` and vector `f`, the series `∑ₘ |cₘ(f)| · pᵢ(ψₘ)` converges.
+The proof combines coefficient decay (exponent `S+2`) with basis growth (exponent `S`)
+to produce a summable majorant `1/(1+m)²`. -/
+lemma DyninMityaginSpace.summable_coeff_seminorm_basis
+    {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    [hN : DyninMityaginSpace E] (i : hN.ι) (f : E) :
+    Summable (fun m => |hN.coeff m f| * hN.p i (hN.basis m)) := by
+  obtain ⟨C_g, hC_g, S, hgrowth⟩ := hN.basis_growth i
+  obtain ⟨C_d, hC_d, s_d, hdecay⟩ := hN.coeff_decay (S + 2)
+  apply Summable.of_nonneg_of_le (fun m => mul_nonneg (abs_nonneg _) (apply_nonneg _ _))
+  · intro m
+    calc |hN.coeff m f| * hN.p i (hN.basis m)
+        ≤ |hN.coeff m f| * (C_g * (1 + (m : ℝ)) ^ S) :=
+          mul_le_mul_of_nonneg_left (hgrowth m) (abs_nonneg _)
+      _ = (|hN.coeff m f| * (1 + (m : ℝ)) ^ (S + 2)) *
+          (C_g / (1 + (m : ℝ)) ^ 2) := by rw [pow_add]; field_simp
+      _ ≤ (C_d * (s_d.sup hN.p) f) * (C_g / (1 + (m : ℝ)) ^ 2) :=
+          mul_le_mul_of_nonneg_right (hdecay f m)
+            (div_nonneg (le_of_lt hC_g) (by positivity))
+      _ = C_d * (s_d.sup hN.p) f * C_g * (1 / ((m : ℝ) + 1) ^ 2) := by
+          field_simp; ring
+  · have hsumm_shift : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
+      have := (summable_nat_add_iff 1).mpr
+        (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+      exact this.congr (fun m => by push_cast; ring_nf)
+    exact (hsumm_shift.const_smul (C_d * (s_d.sup hN.p) f * C_g)).congr
+      (fun m => by simp [smul_eq_mul])
+
+/-- **Bound on the Schauder expansion remainder via Hahn-Banach.**
+
+If for every finite set `t` disjoint from `s`, the partial sum
+`∑_{m∈t} |c_m(f)| · p_i(ψ_m) ≤ ε`, then the seminorm of the remainder satisfies
+`p_i(f - ∑_{m∈s} c_m(f) • ψ_m) ≤ ε`.
+
+The proof uses Hahn-Banach to find a CLF `φ` attaining `p_i` at the error,
+then the expansion axiom to express `φ(error)` as a tail of the Schauder series. -/
+private lemma schauder_remainder_le
+    {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    [hN : DyninMityaginSpace E]
+    (f : E) (i : hN.ι) (s : Finset ℕ)
+    (h_vanish : ∀ t : Finset ℕ, Disjoint t s →
+        ∑ m ∈ t, |hN.coeff m f| * hN.p i (hN.basis m) ≤ ε) :
+    hN.p i (f - ∑ m ∈ s, hN.coeff m f • hN.basis m) ≤ ε := by
+  set err := f - ∑ m ∈ s, hN.coeff m f • hN.basis m
+  -- Step 1: Hahn-Banach gives φ with φ(err) = p_i(err) and |φ| ≤ p_i
+  obtain ⟨φ, hφerr, hφbound⟩ :=
+    exists_CLF_le_seminorm (hN.p i) (hN.h_with.continuous_seminorm i) err
+  -- Step 2: The series g m = c_m(f) · φ(ψ_m) is summable (bounded by h)
+  set g := fun m => hN.coeff m f * φ (hN.basis m) with hg_def
+  set h := fun m => |hN.coeff m f| * hN.p i (hN.basis m) with hh_def
+  have hh_sum : Summable h := DyninMityaginSpace.summable_coeff_seminorm_basis i f
+  have hg_le_h : ∀ m, ‖g m‖ ≤ h m := fun m => by
+    rw [Real.norm_eq_abs, hg_def, abs_mul, hh_def]
+    exact mul_le_mul_of_nonneg_left (hφbound _) (abs_nonneg _)
+  have hg_summ : Summable g := hh_sum.of_norm_bounded_eventually
+    (Filter.Eventually.of_forall hg_le_h)
+  -- Step 3: φ(err) = ∑' (m : sᶜ) g m (by expansion axiom + tsum splitting)
+  have hφerr_eq : φ err = ∑' (m : ↥(↑s : Set ℕ)ᶜ), g ↑m := by
+    have h_lin : φ err = φ f - ∑ m ∈ s, g m := by
+      simp [err, map_sub, map_sum, map_smul, smul_eq_mul, g]
+    have h_exp := hN.expansion φ f
+    rw [h_lin, h_exp, hg_def]
+    have h_split := hg_summ.sum_add_tsum_compl (s := s)
+    linarith
+  -- Step 4: Chain the bounds
+  have hg_norm_summ_compl : Summable (fun (m : ↥(↑s : Set ℕ)ᶜ) => ‖g ↑m‖) :=
+    (Summable.of_nonneg_of_le (fun m => norm_nonneg _) hg_le_h hh_sum).subtype _
+  have hh_summ_compl : Summable (fun (m : ↥(↑s : Set ℕ)ᶜ) => h ↑m) :=
+    hh_sum.subtype _
+  calc hN.p i err = φ err := hφerr.symm
+    _ = |φ err| := by
+        rw [abs_of_nonneg]; rw [hφerr]; exact apply_nonneg _ _
+    _ = ‖φ err‖ := (Real.norm_eq_abs _).symm
+    _ = ‖∑' (m : ↥(↑s : Set ℕ)ᶜ), g ↑m‖ := by rw [hφerr_eq]
+    _ ≤ ∑' (m : ↥(↑s : Set ℕ)ᶜ), ‖g ↑m‖ := norm_tsum_le_tsum_norm hg_norm_summ_compl
+    _ ≤ ∑' (m : ↥(↑s : Set ℕ)ᶜ), h ↑m :=
+        hg_norm_summ_compl.tsum_le_tsum (fun ⟨m, _⟩ => hg_le_h m) hh_summ_compl
+    _ ≤ ε := by
+        apply hh_summ_compl.tsum_le_of_sum_le
+        intro t
+        set t' := t.map ⟨Subtype.val, Subtype.val_injective⟩ with ht'_def
+        have h_disj : Disjoint t' s := by
+          rw [Finset.disjoint_left]
+          intro n hn hn_s
+          rw [Finset.mem_map] at hn
+          obtain ⟨⟨m, hm⟩, _, rfl⟩ := hn
+          exact hm hn_s
+        have h_le := h_vanish t' h_disj
+        rwa [ht'_def, Finset.sum_map] at h_le
+
+/-- **Strong convergence of the Schauder expansion.**
+
+For any `f : E` in a `DyninMityaginSpace`, the series `∑ₘ cₘ(f) • ψₘ` converges to `f`
+in the locally convex topology. The proof uses Hahn-Banach for each seminorm
+to bound the remainder by the tail of the summable series
+`∑ₘ |cₘ(f)| · pᵢ(ψₘ)`. -/
+theorem DyninMityaginSpace.hasSum_basis
+    {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    [hN : DyninMityaginSpace E] (f : E) :
+    HasSum (fun m => hN.coeff m f • hN.basis m) f := by
+  rw [HasSum]
+  show Filter.Tendsto _ Filter.atTop _
+  rw [hN.h_with.tendsto_nhds _ f]
+  intro i ε hε
+  have hh_sum := DyninMityaginSpace.summable_coeff_seminorm_basis i f
+  obtain ⟨s₀, hs₀⟩ := summable_iff_vanishing_norm.mp hh_sum (ε / 2) (half_pos hε)
+  rw [Filter.eventually_atTop]
+  refine ⟨s₀, fun s hss => ?_⟩
+  rw [show (∑ m ∈ s, hN.coeff m f • hN.basis m) - f =
+    -(f - ∑ m ∈ s, hN.coeff m f • hN.basis m) from by abel, map_neg_eq_map]
+  calc hN.p i (f - ∑ m ∈ s, hN.coeff m f • hN.basis m)
+      ≤ ε / 2 := by
+        apply schauder_remainder_le f i s
+        intro t ht
+        have h_disj : Disjoint t s₀ := Disjoint.mono_right hss ht
+        have := hs₀ t h_disj
+        rw [Real.norm_of_nonneg (Finset.sum_nonneg fun m _ =>
+          mul_nonneg (abs_nonneg _) (apply_nonneg _ _))] at this
+        exact le_of_lt this
+    _ < ε := half_lt_self hε
 
 /-! ### Bridge: Dynin-Mityagin → Pietsch -/
 

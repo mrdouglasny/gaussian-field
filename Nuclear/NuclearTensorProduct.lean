@@ -28,6 +28,7 @@ The tensor product s(ℕ) ⊗̂ s(ℕ) ≅ s(ℕ²) ≅ s(ℕ) via Cantor pairin
 -/
 
 import Nuclear.DyninMityagin
+import Nuclear.NuclearSpace
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
 import Mathlib.Analysis.PSeries
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
@@ -825,6 +826,219 @@ theorem pure_continuous :
   · -- Continuity of f · y at 0 for each y
     intro e₂
     exact (pure_continuous_left e₂).continuousAt
+
+/-! ### Universal Property: Lift -/
+
+section Lift
+
+variable {G : Type*} [NormedAddCommGroup G] [NormedSpace ℝ G] [CompleteSpace G]
+
+/-- Summability of the lifted series. Given a bilinear map `B : E₁ →ₗ E₂ →ₗ G` that is
+bounded by seminorms, the series `∑ₘ aₘ • B(ψ₁ᵢ, ψ₂ⱼ)` converges for any
+`a : NuclearTensorProduct E₁ E₂`, where `(i,j) = unpair(m)`. -/
+private lemma lift_summable
+    (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
+    {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
+    {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
+    (hC : 0 < C)
+    (hB : ∀ e₁ e₂, ‖B e₁ e₂‖ ≤ C * (s₁.sup DyninMityaginSpace.p) e₁ *
+        (s₂.sup DyninMityaginSpace.p) e₂)
+    (a : NuclearTensorProduct E₁ E₂) :
+    Summable (fun m => a.val m •
+      B (DyninMityaginSpace.basis (Nat.unpair m).1)
+        (DyninMityaginSpace.basis (Nat.unpair m).2)) := by
+  classical
+  have hgrowth₁ : ∀ i ∈ s₁, ∃ C' > 0, ∃ t : ℕ, ∀ m,
+      DyninMityaginSpace.p i (DyninMityaginSpace.basis m : E₁) ≤ C' * (1 + (m : ℝ)) ^ t :=
+    fun i _ => DyninMityaginSpace.basis_growth i
+  have hgrowth₂ : ∀ i ∈ s₂, ∃ C' > 0, ∃ t : ℕ, ∀ m,
+      DyninMityaginSpace.p i (DyninMityaginSpace.basis m : E₂) ≤ C' * (1 + (m : ℝ)) ^ t :=
+    fun i _ => DyninMityaginSpace.basis_growth i
+  obtain ⟨D₁, hD₁, S₁, hbound₁⟩ := finset_sup_poly_bound
+    DyninMityaginSpace.p s₁ DyninMityaginSpace.basis hgrowth₁
+  obtain ⟨D₂, hD₂, S₂, hbound₂⟩ := finset_sup_poly_bound
+    DyninMityaginSpace.p s₂ DyninMityaginSpace.basis hgrowth₂
+  set K := C * D₁ * D₂ with hK_def
+  apply Summable.of_norm_bounded
+    (g := fun m => K * (|a.val m| * (1 + (m : ℝ)) ^ (S₁ + S₂)))
+  · exact ((a.rapid_decay (S₁ + S₂)).mul_left K)
+  · intro m
+    set i := (Nat.unpair m).1
+    set j := (Nat.unpair m).2
+    rw [norm_smul, Real.norm_eq_abs]
+    have hi_le : (1 + (i : ℝ)) ≤ (1 + (m : ℝ)) := by
+      linarith [(Nat.cast_le (α := ℝ)).mpr (Nat.unpair_left_le m)]
+    have hj_le : (1 + (j : ℝ)) ≤ (1 + (m : ℝ)) := by
+      linarith [(Nat.cast_le (α := ℝ)).mpr (Nat.unpair_right_le m)]
+    have h1i : (0 : ℝ) ≤ 1 + (i : ℝ) := by positivity
+    have h1j : (0 : ℝ) ≤ 1 + (j : ℝ) := by positivity
+    calc |a.val m| * ‖B (DyninMityaginSpace.basis i) (DyninMityaginSpace.basis j)‖
+        ≤ |a.val m| * (C * (s₁.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis i) *
+            (s₂.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis j)) :=
+          mul_le_mul_of_nonneg_left (hB _ _) (abs_nonneg _)
+      _ ≤ |a.val m| * (C * (D₁ * (1 + (i : ℝ)) ^ S₁) * (D₂ * (1 + (j : ℝ)) ^ S₂)) := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          apply mul_le_mul (mul_le_mul_of_nonneg_left (hbound₁ i) (le_of_lt hC))
+            (hbound₂ j) (apply_nonneg _ _) (by positivity)
+      _ ≤ |a.val m| * (C * (D₁ * (1 + (m : ℝ)) ^ S₁) * (D₂ * (1 + (m : ℝ)) ^ S₂)) := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          apply mul_le_mul
+            (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left
+              (pow_le_pow_left₀ h1i hi_le S₁) (le_of_lt hD₁)) (le_of_lt hC))
+            (mul_le_mul_of_nonneg_left (pow_le_pow_left₀ h1j hj_le S₂) (le_of_lt hD₂))
+            (by positivity) (by positivity)
+      _ = K * (|a.val m| * (1 + (m : ℝ)) ^ (S₁ + S₂)) := by
+          rw [hK_def, pow_add]; ring
+
+/-- Auxiliary: the norm bound for `lift` as a term-by-term inequality.
+Extracts the common calculation used in both `lift` continuity and `lift_summable`. -/
+private lemma lift_norm_bound
+    (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
+    {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
+    {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
+    (hC : 0 < C)
+    (hB : ∀ e₁ e₂, ‖B e₁ e₂‖ ≤ C * (s₁.sup DyninMityaginSpace.p) e₁ *
+        (s₂.sup DyninMityaginSpace.p) e₂) :
+    ∃ K > 0, ∃ N : ℕ, ∀ (a : NuclearTensorProduct E₁ E₂),
+      ‖∑' m, a.val m • B (DyninMityaginSpace.basis (Nat.unpair m).1)
+        (DyninMityaginSpace.basis (Nat.unpair m).2)‖ ≤
+      K * RapidDecaySeq.rapidDecaySeminorm N a := by
+  classical
+  have hgrowth₁ : ∀ i ∈ s₁, ∃ C' > 0, ∃ t : ℕ, ∀ m,
+      DyninMityaginSpace.p i (DyninMityaginSpace.basis m : E₁) ≤ C' * (1 + (m : ℝ)) ^ t :=
+    fun i _ => DyninMityaginSpace.basis_growth i
+  have hgrowth₂ : ∀ i ∈ s₂, ∃ C' > 0, ∃ t : ℕ, ∀ m,
+      DyninMityaginSpace.p i (DyninMityaginSpace.basis m : E₂) ≤ C' * (1 + (m : ℝ)) ^ t :=
+    fun i _ => DyninMityaginSpace.basis_growth i
+  obtain ⟨D₁, hD₁, S₁, hbnd₁⟩ := finset_sup_poly_bound
+    DyninMityaginSpace.p s₁ DyninMityaginSpace.basis hgrowth₁
+  obtain ⟨D₂, hD₂, S₂, hbnd₂⟩ := finset_sup_poly_bound
+    DyninMityaginSpace.p s₂ DyninMityaginSpace.basis hgrowth₂
+  set K := C * D₁ * D₂
+  set N := S₁ + S₂
+  refine ⟨K, by positivity, N, fun a => ?_⟩
+  have hsumm := lift_summable B hC hB a
+  -- Pointwise norm bound
+  have hpw : ∀ m, ‖a.val m • B (DyninMityaginSpace.basis (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (Nat.unpair m).2)‖ ≤
+      K * (|a.val m| * (1 + (m : ℝ)) ^ N) := by
+    intro m
+    set i := (Nat.unpair m).1
+    set j := (Nat.unpair m).2
+    rw [norm_smul, Real.norm_eq_abs]
+    have hi_le : (1 + (i : ℝ)) ≤ (1 + (m : ℝ)) :=
+      add_le_add_right (Nat.cast_le.mpr (Nat.unpair_left_le m)) 1
+    have hj_le : (1 + (j : ℝ)) ≤ (1 + (m : ℝ)) :=
+      add_le_add_right (Nat.cast_le.mpr (Nat.unpair_right_le m)) 1
+    have h1i : (0 : ℝ) ≤ 1 + (i : ℝ) := by positivity
+    have h1j : (0 : ℝ) ≤ 1 + (j : ℝ) := by positivity
+    calc |a.val m| * ‖B (DyninMityaginSpace.basis i)
+            (DyninMityaginSpace.basis j)‖
+        ≤ |a.val m| * (C * (D₁ * (1 + (m : ℝ)) ^ S₁) *
+            (D₂ * (1 + (m : ℝ)) ^ S₂)) := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          calc ‖B (DyninMityaginSpace.basis i) (DyninMityaginSpace.basis j)‖
+              ≤ C * (s₁.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis i) *
+                (s₂.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis j) := hB _ _
+            _ ≤ C * (D₁ * (1 + (i : ℝ)) ^ S₁) * (D₂ * (1 + (j : ℝ)) ^ S₂) := by
+              apply mul_le_mul (mul_le_mul_of_nonneg_left (hbnd₁ i) (le_of_lt hC))
+                (hbnd₂ j) (apply_nonneg _ _) (by positivity)
+            _ ≤ C * (D₁ * (1 + (m : ℝ)) ^ S₁) * (D₂ * (1 + (m : ℝ)) ^ S₂) := by
+              apply mul_le_mul
+                (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left
+                  (pow_le_pow_left₀ h1i hi_le S₁) (le_of_lt hD₁)) (le_of_lt hC))
+                (mul_le_mul_of_nonneg_left
+                  (pow_le_pow_left₀ h1j hj_le S₂) (le_of_lt hD₂))
+                (by positivity) (by positivity)
+      _ = K * (|a.val m| * (1 + (m : ℝ)) ^ N) := by
+          show |a.val m| * (C * (D₁ * (1 + ↑m) ^ S₁) * (D₂ * (1 + ↑m) ^ S₂)) =
+            C * D₁ * D₂ * (|a.val m| * (1 + ↑m) ^ (S₁ + S₂))
+          rw [pow_add]; ring
+  have hg_summ : Summable (fun m => K * (|a.val m| * (1 + (m : ℝ)) ^ N)) :=
+    (a.rapid_decay N).mul_left K
+  have hnorm_summ : Summable (fun m => ‖a.val m • B (DyninMityaginSpace.basis (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (Nat.unpair m).2)‖) :=
+    Summable.of_nonneg_of_le (fun _ => norm_nonneg _) hpw hg_summ
+  calc ‖∑' m, a.val m • B (DyninMityaginSpace.basis (Nat.unpair m).1)
+          (DyninMityaginSpace.basis (Nat.unpair m).2)‖
+      ≤ ∑' m, ‖a.val m • B (DyninMityaginSpace.basis (Nat.unpair m).1)
+          (DyninMityaginSpace.basis (Nat.unpair m).2)‖ :=
+        norm_tsum_le_tsum_norm hnorm_summ
+    _ ≤ ∑' m, K * (|a.val m| * (1 + (m : ℝ)) ^ N) :=
+        hnorm_summ.tsum_le_tsum hpw hg_summ
+    _ = K * ∑' m, |a.val m| * (1 + (m : ℝ)) ^ N := tsum_mul_left
+    _ = K * RapidDecaySeq.rapidDecaySeminorm N a := by rfl
+
+/-- The underlying linear map for `lift`. -/
+private def liftLM
+    (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
+    {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
+    {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
+    (hC : 0 < C)
+    (hB : ∀ e₁ e₂, ‖B e₁ e₂‖ ≤ C * (s₁.sup DyninMityaginSpace.p) e₁ *
+        (s₂.sup DyninMityaginSpace.p) e₂) :
+    NuclearTensorProduct E₁ E₂ →ₗ[ℝ] G where
+  toFun := fun a => ∑' m, a.val m •
+    B (DyninMityaginSpace.basis (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (Nat.unpair m).2)
+  map_add' := fun a b => by
+    have ha := lift_summable B hC hB a
+    have hb := lift_summable B hC hB b
+    simp only [add_val]
+    simp_rw [add_smul]
+    exact ha.tsum_add hb
+  map_smul' := fun r a => by
+    have ha := lift_summable B hC hB a
+    simp only [smul_val, RingHom.id_apply]
+    simp_rw [mul_smul]
+    exact ha.tsum_const_smul r
+
+/-- **Universal property of the nuclear tensor product.**
+
+Every continuous bilinear map `B : E₁ × E₂ → G` (into a complete normed space)
+factors through `pure` via a CLM `lift B : NuclearTensorProduct E₁ E₂ →L[ℝ] G`.
+
+The definition is `lift B a = ∑' m, aₘ • B(ψ₁ᵢ, ψ₂ⱼ)` where `(i,j) = unpair(m)`.
+Linearity follows from tsum linearity; continuity from a seminorm bound. -/
+def lift
+    (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
+    {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
+    {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
+    (hC : 0 < C)
+    (hB : ∀ e₁ e₂, ‖B e₁ e₂‖ ≤ C * (s₁.sup DyninMityaginSpace.p) e₁ *
+        (s₂.sup DyninMityaginSpace.p) e₂) :
+    NuclearTensorProduct E₁ E₂ →L[ℝ] G where
+  toLinearMap := liftLM B hC hB
+  cont := by
+    obtain ⟨K, hK, N, hbound⟩ := lift_norm_bound B hC hB
+    apply Seminorm.continuous_from_bounded
+      (RapidDecaySeq.rapidDecay_withSeminorms :
+        WithSeminorms (RapidDecaySeq.rapidDecaySeminorm :
+          ℕ → Seminorm ℝ (NuclearTensorProduct E₁ E₂)))
+      (norm_withSeminorms ℝ G)
+    intro _
+    refine ⟨{N}, ⟨K, le_of_lt hK⟩, fun a => ?_⟩
+    simp only [Seminorm.comp_apply, Finset.sup_singleton,
+      coe_normSeminorm, liftLM]
+    exact hbound a
+
+/-- The lift factors through pure: `lift B (pure e₁ e₂) = B e₁ e₂`.
+
+The proof uses the double Schauder expansion: `hasSum_basis` gives convergent
+expansions `e₁ = ∑ c₁_n • ψ₁_n` and `e₂ = ∑ c₂_j • ψ₂_j`, then applies `B`
+(continuous from the bound) and rearranges via Cantor pairing. -/
+theorem lift_pure
+    (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
+    {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
+    {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
+    (hC : 0 < C)
+    (hB : ∀ e₁ e₂, ‖B e₁ e₂‖ ≤ C * (s₁.sup DyninMityaginSpace.p) e₁ *
+        (s₂.sup DyninMityaginSpace.p) e₂)
+    (e₁ : E₁) (e₂ : E₂) :
+    lift B hC hB (pure e₁ e₂) = B e₁ e₂ := by
+  sorry
+
+end Lift
 
 end NuclearTensorProduct
 
