@@ -97,8 +97,8 @@ sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
 | File | Lines | Contents |
 |------|------:|----------|
 | [DyninMityagin.lean](Nuclear/DyninMityagin.lean) | 76 | `DyninMityaginSpace` typeclass (Dynin-Mityagin), `expansion_H` lemma |
-| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 358 | `NuclearSpace` typeclass (Pietsch), Hahn-Banach for seminorms, DM -> Pietsch implication |
-| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 831 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct`, `pure` (bilinear, jointly continuous) |
+| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 487 | `NuclearSpace` typeclass (Pietsch), Hahn-Banach for seminorms, `hasSum_basis` (strong Schauder convergence), DM -> Pietsch |
+| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 1,125 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct`, `pure`, universal property (`lift`, `lift_pure`) |
 
 #### Two definitions of nuclearity
 
@@ -122,6 +122,26 @@ the existence of a Schauder basis. The implication
 nuclear Fréchet spaces that already possess a Schauder basis (the
 Dynin-Mityagin theorem), but is not formalized since our applications
 (Schwartz spaces) obtain the DM structure directly from the Hermite basis.
+
+#### Tensor products of nuclear spaces
+
+`NuclearTensorProduct E₁ E₂` is the tensor product of two `DyninMityaginSpace`
+spaces, defined concretely as `RapidDecaySeq` (rapidly decaying sequences on
+$\mathbb{N}$) with Cantor pairing encoding the two basis indices. The key results:
+
+- `pure : E₁ → E₂ → NuclearTensorProduct E₁ E₂` — jointly continuous bilinear map
+- `lift B : NuclearTensorProduct E₁ E₂ →L[ℝ] G` — every seminorm-bounded bilinear
+  map $B : E_1 \times E_2 \to G$ factors uniquely through `pure` via a CLM
+- `lift_pure : lift B (pure e₁ e₂) = B e₁ e₂` — the factoring identity
+
+This gives the **universal property** of the nuclear tensor product: it represents
+continuous bilinear maps into complete normed spaces. The proof of `lift_pure` uses
+the double Schauder expansion (`hasSum_basis`) mapped through $B$ and recombined
+via Cantor pairing.
+
+For the roadmap to connect this concrete model to Mathlib's abstract algebraic
+`TensorProduct` via completed projective tensor products, see
+[docs/abstract-tensor-product-plan.md](docs/abstract-tensor-product-plan.md).
 
 ### 2. [Schwartz Space Nuclearity](docs/schwartz-nuclearity-proof.md)
 
@@ -189,12 +209,14 @@ An axiom fallback is available as an inactive comment in `GaussianField.lean` fo
 - [Operator construction](docs/operator-construction.md) — building covariance operators on product spaces via the heat kernel $e^{-s\Delta}$, Mathlib support, and the factorization theorem
 - [Lattice-continuum limit](docs/lattice-continuum-limit.md) — convergence of lattice Gaussian measures to continuum measures via characteristic functionals
 - [Generalization plan](docs/generalization-plan.md) — architecture of the `DyninMityaginSpace` typeclass, design decisions, and roadmap for future instances
+- [Abstract tensor product plan](docs/abstract-tensor-product-plan.md) — roadmap for building completed projective tensor products on Mathlib's `TensorProduct`, proving isomorphism with `RapidDecaySeq`, and the nuclear coincidence theorem
 
 ## Future work
 
 - **New instances**: $C^\infty(S^1)$, $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
 - **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
 - **Lattice-continuum limits**: Formalize convergence via characteristic functionals (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
+- **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
 - **Support theorems / Besov regularity**: The `pairing_memLp` result (Fernique-type $L^p$ bounds) is the first step toward showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate $s, p, q$
 - **$\sigma$-algebra coincidence**: For separable nuclear Fréchet spaces, the cylindrical and Borel $\sigma$-algebras on the dual coincide
 
