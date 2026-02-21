@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Nuclear Schauder Basis for S(ℝ, ℝ) — 1D Case
 
 Assembles the proved Hermite function results into the three properties
-needed for a `NuclearSpace` instance:
+needed for a `DyninMityaginSpace` instance:
 1. **Expansion**: φ f = ∑' n, cₙ(f) · φ(ψₙ) for all CLFs φ
 2. **Basis growth**: ‖ψₙ‖_{k,l} ≤ C · (1+n)^s
 3. **Coefficient decay**: |cₙ(f)| · (1+n)^k ≤ C · ‖f‖_{q₁,q₂}
@@ -136,7 +136,7 @@ theorem hermiteCoeff1D_decay_single :
 Repackage `hermiteFunction_seminorm_bound` with ℕ exponent. -/
 
 /-- Basis growth: Schwartz seminorms of Hermite functions grow polynomially.
-    Compatible with NuclearSpace.basis_growth. -/
+    Compatible with DyninMityaginSpace.basis_growth. -/
 theorem schwartzHermiteBasis1D_growth (k l : ℕ) :
     ∃ (C : ℝ), 0 < C ∧ ∃ (s : ℕ),
       ∀ m, SchwartzMap.seminorm ℝ k l (schwartzHermiteBasis1D m) ≤

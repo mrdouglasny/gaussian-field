@@ -40,7 +40,7 @@ This triple is the functional-analytic core of:
 ### Input
 
 The user provides:
-- A nuclear Fréchet space `E` with `[NuclearSpace E]` instance
+- A nuclear Fréchet space `E` with `[DyninMityaginSpace E]` instance
 - A separable real Hilbert space `H` (with standard Mathlib instances)
 - A CLM `T : E →L[ℝ] H`
 
@@ -69,12 +69,12 @@ This allows testing with toy cases like $H = \mathbb{R}^n$.
 
 `Configuration E` is defined as `WeakDual ℝ E` — the space of continuous linear functionals on $E$ with the weak-* topology. Elements $\omega \in E'$ are "configurations" or "generalized functions" that pair with test functions: $\omega(f) \in \mathbb{R}$.
 
-## The `NuclearSpace` typeclass
+## The `DyninMityaginSpace` typeclass
 
-The core abstraction is the `NuclearSpace` typeclass, which encodes the Dynin-Mityagin structure: a nuclear Fréchet space with a countable Schauder basis admitting polynomial growth and super-polynomial decay estimates.
+The core abstraction is the `DyninMityaginSpace` typeclass, which encodes the Dynin-Mityagin structure: a nuclear Fréchet space with a countable Schauder basis admitting polynomial growth and super-polynomial decay estimates.
 
 ```lean
-class NuclearSpace (E : Type*)
+class DyninMityaginSpace (E : Type*)
     [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E]
     [ContinuousSMul ℝ E] where
@@ -96,13 +96,13 @@ class NuclearSpace (E : Type*)
 ### Key design decisions
 
 - **Locally convex mixins** (`AddCommGroup`, `Module ℝ`, `TopologicalSpace`, `IsTopologicalAddGroup`, `ContinuousSMul ℝ`) rather than `NormedAddCommGroup`. Fréchet spaces are not normable.
-- **Bundled seminorms.** The `ι` and `p` are fields, not class parameters, so `[NuclearSpace E]` works in theorem signatures without specifying the seminorm family.
-- **Scalar expansion.** The expansion axiom tests against `φ : E →L[ℝ] ℝ`, not arbitrary Hilbert spaces. This avoids universe polymorphism issues. The Hilbert-space form is recovered as the 3-line lemma `NuclearSpace.expansion_H`.
+- **Bundled seminorms.** The `ι` and `p` are fields, not class parameters, so `[DyninMityaginSpace E]` works in theorem signatures without specifying the seminorm family.
+- **Scalar expansion.** The expansion axiom tests against `φ : E →L[ℝ] ℝ`, not arbitrary Hilbert spaces. This avoids universe polymorphism issues. The Hilbert-space form is recovered as the 3-line lemma `DyninMityaginSpace.expansion_H`.
 - **ℕ exponents.** Polynomial bounds use `k : ℕ` and `pow`, avoiding `Real.rpow` pain.
 
-## Providing a `NuclearSpace` instance for a new space
+## Providing a `DyninMityaginSpace` instance for a new space
 
-To use this library with a function space other than Schwartz space, provide a `NuclearSpace` instance. Here is what you need:
+To use this library with a function space other than Schwartz space, provide a `DyninMityaginSpace` instance. Here is what you need:
 
 ### Prerequisites (Mathlib instances)
 
@@ -130,8 +130,8 @@ variable (E : Type*) [AddCommGroup E] [Module ℝ E]
 The library provides a fully proved instance in `SchwartzNuclear/HermiteNuclear.lean`:
 
 ```lean
-noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ) where
+noncomputable instance schwartz_dyninMityaginSpace [Nontrivial D] :
+    DyninMityaginSpace (SchwartzMap D ℝ) where
   ι := ℕ × ℕ
   p := fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l
   h_with := schwartz_withSeminorms ℝ D ℝ
@@ -178,7 +178,7 @@ $\mathcal{D}' = \bigcup_k H^{-k}$ (distributions), which contains every $H^{-k}$
 
 **Half-line via Laguerre basis.** Laguerre functions on $\mathbb{R}_+$ play the role of Hermite functions on $\mathbb{R}$. Growth and decay estimates map 1:1 to the Hermite case.
 
-**Tensor products via Köthe sequences.** Given `NuclearSpace E` and `NuclearSpace F`, the tensor product basis is $\{\psi_i \otimes \varphi_j\}$ indexed by $\mathbb{N} \times \mathbb{N}$ (Cantor pairing to $\mathbb{N}$). Product weights give polynomial growth; product decays give super-polynomial decay.
+**Tensor products via Kothe sequences.** Given `DyninMityaginSpace E` and `DyninMityaginSpace F`, the tensor product basis is $\{\psi_i \otimes \varphi_j\}$ indexed by $\mathbb{N} \times \mathbb{N}$ (Cantor pairing to $\mathbb{N}$). Product weights give polynomial growth; product decays give super-polynomial decay.
 
 ## End-to-end workflow: from spaces to measures
 
@@ -187,14 +187,14 @@ The library has three layers. Layer 1 (test function spaces) and Layer 2
 all its properties) is produced automatically by the library.
 
 ```
-Layer 1: Test function space E          [user provides NuclearSpace instance]
+Layer 1: Test function space E          [user provides DyninMityaginSpace instance]
 Layer 2: Covariance operator T : E → H  [user constructs, typically via heat kernel]
 Layer 3: measure T, charFun, moments    [library produces automatically]
 ```
 
 ### Layer 1: Define the test function space
 
-Each space needs a `NuclearSpace` instance. The instance specifies the
+Each space needs a `DyninMityaginSpace` instance. The instance specifies the
 topology (via seminorms) and the Schauder basis used internally by the
 construction. **The choice of basis does not affect the resulting measure** —
 it only affects the internal proof machinery.
@@ -203,8 +203,8 @@ it only affects the internal proof machinery.
 
 ```lean
 -- Fully proved in SchwartzNuclear/HermiteNuclear.lean (0 sorrys, 0 axioms)
-instance : NuclearSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :=
-  schwartz_nuclearSpace _
+instance : DyninMityaginSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :=
+  schwartz_dyninMityaginSpace _
 ```
 
 #### Circle $S^1$ of circumference $L$ (planned)
@@ -213,7 +213,7 @@ instance : NuclearSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :=
 -- Smooth functions on the circle ℝ/Lℤ
 abbrev SmoothCircle (L : ℝ) [Fact (0 < L)] := ...
 
-instance : NuclearSpace (SmoothCircle L) where
+instance : DyninMityaginSpace (SmoothCircle L) where
   ι := ℕ                            -- single Sobolev index k
   p := sobolevSeminorm L             -- ‖f‖_k² = Σ_n (1+|n|)^{2k} |f̂_n|²
   basis := fourierBasis L             -- e^{2πinx/L} reindexed to ℕ
@@ -231,24 +231,24 @@ instance : NuclearSpace (SmoothCircle L) where
 -- As a vector space this is just ℝ^N; periodicity enters through the Laplacian
 abbrev PeriodicLattice (N : ℕ) := Fin N → ℝ
 
-instance : NuclearSpace (PeriodicLattice N) where
+instance : DyninMityaginSpace (PeriodicLattice N) where
   ι := Unit                          -- single norm (finite-dim)
   basis := fun k => Pi.single k 1    -- standard basis
   ...                                -- trivial: finite-dim spaces are nuclear
 
 -- Laplacian eigenvalues: λ_k = (2N/L)² sin²(πk/N) for spacing a = L/N
 -- Lattice spacing a (or equivalently L and N) is NOT part of the
--- NuclearSpace instance — it parameterizes the Laplacian operator
+-- DyninMityaginSpace instance — it parameterizes the Laplacian operator
 ```
 
 #### Tensor products (planned)
 
 ```lean
--- Generic: given NuclearSpace E₁ and NuclearSpace E₂, build E₁ ⊗̂ E₂
+-- Generic: given DyninMityaginSpace E₁ and DyninMityaginSpace E₂, build E₁ ⊗̂ E₂
 -- Defined as a Köthe sequence space — no abstract tensor product theory needed
-structure NuclearTensorProduct (E₁ E₂ : Type*) [NuclearSpace E₁] [NuclearSpace E₂] := ...
+structure NuclearTensorProduct (E₁ E₂ : Type*) [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] := ...
 
-instance : NuclearSpace (NuclearTensorProduct E₁ E₂) where
+instance : DyninMityaginSpace (NuclearTensorProduct E₁ E₂) where
   ι := ι₁ × ι₂                      -- product seminorm index
   basis := fun m =>                   -- product basis via Cantor pairing
     let (i,j) := Nat.unpair m
@@ -350,7 +350,7 @@ gives $T = A^{-1/2}$ directly via `CFC.rpow`, without needing the heat kernel.
 
 ### Layer 3: The library produces the measure
 
-Once you have `[NuclearSpace E]` and `T : E →L[ℝ] H`, everything else is automatic:
+Once you have `[DyninMityaginSpace E]` and `T : E →L[ℝ] H`, everything else is automatic:
 
 ```lean
 open GaussianField in
@@ -392,7 +392,7 @@ variable (mass s : ℝ) (hs : 0 < s)
 
 -- Layer 1: test function space = ℝ^{N₁ × N₂}  (trivially nuclear)
 abbrev E := Fin N₁ × Fin N₂ → ℝ
-instance : NuclearSpace E := ...
+instance : DyninMityaginSpace E := ...
 
 -- Layer 2: T = e^{-s(-Δ₁⊗I - I⊗Δ₂ + m²)/2}
 def Δ₁ := discretePeriodicLaplacian L₁ N₁
@@ -425,30 +425,30 @@ points. See [lattice-continuum limit](docs/lattice-continuum-limit.md) for detai
 ## Module structure
 
 The project has three libraries, with imports flowing left to right:
-`Nuclear` ← `SchwartzNuclear` ← `GaussianField`.
+`Nuclear` <- `SchwartzNuclear` <- `GaussianField`.
 
 ### 1. [Nuclear Space Infrastructure](docs/nuclear-space-infrastructure.md)
 
-The `NuclearSpace` typeclass and the canonical model `RapidDecaySeq` (the Kothe
+The `DyninMityaginSpace` typeclass and the canonical model `RapidDecaySeq` (the Kothe
 sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
 `GaussianField/`.
 
 | File | Lines | Contents |
 |------|------:|----------|
-| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 76 | `NuclearSpace` typeclass (Dynin-Mityagin), `expansion_H` lemma |
-| [PietschNuclear.lean](Nuclear/PietschNuclear.lean) | 358 | `PietschNuclearSpace` typeclass, Hahn-Banach for seminorms, DM → Pietsch implication |
+| [DyninMityagin.lean](Nuclear/DyninMityagin.lean) | 76 | `DyninMityaginSpace` typeclass (Dynin-Mityagin), `expansion_H` lemma |
+| [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 358 | `NuclearSpace` typeclass (Pietsch), Hahn-Banach for seminorms, DM -> Pietsch implication |
 | [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 355 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct` |
 
 #### Two definitions of nuclearity
 
 The library contains two characterizations of nuclear spaces:
 
-1. **Dynin-Mityagin** (`NuclearSpace` in [NuclearSpace.lean](Nuclear/NuclearSpace.lean)) —
+1. **Dynin-Mityagin** (`DyninMityaginSpace` in [DyninMityagin.lean](Nuclear/DyninMityagin.lean)) —
    A nuclear Fréchet space with a countable Schauder basis admitting polynomial
    growth of seminorms and super-polynomial decay of coefficients. This is the
    operational definition used by the Gaussian measure construction.
 
-2. **Pietsch** (`PietschNuclearSpace` in [PietschNuclear.lean](Nuclear/PietschNuclear.lean)) —
+2. **Pietsch** (`NuclearSpace` in [NuclearSpace.lean](Nuclear/NuclearSpace.lean)) —
    For every continuous seminorm $p$, there exists a dominating seminorm $q \ge p$
    such that the canonical map $E_q \to E_p$ is nuclear (expressible as
    $p(x) \le \sum_n c_n |f_n(x)|$ with $\sum c_n < \infty$ and $|f_n| \le q$).
@@ -456,15 +456,15 @@ The library contains two characterizations of nuclear spaces:
 
 The Dynin-Mityagin characterization is strictly stronger: it additionally requires
 the existence of a Schauder basis. The implication
-`NuclearSpace.toPietschNuclearSpace` (DM → Pietsch) is proved in
-[PietschNuclear.lean](Nuclear/PietschNuclear.lean). The converse holds for
+`DyninMityaginSpace.toNuclearSpace` (DM -> Pietsch) is proved in
+[NuclearSpace.lean](Nuclear/NuclearSpace.lean). The converse holds for
 nuclear Fréchet spaces that already possess a Schauder basis (the
 Dynin-Mityagin theorem), but is not formalized since our applications
 (Schwartz spaces) obtain the DM structure directly from the Hermite basis.
 
 ### 2. [Schwartz Space Nuclearity](docs/schwartz-nuclearity-proof.md)
 
-Proves `NuclearSpace (SchwartzMap D ℝ)` for any finite-dimensional $D$ via the
+Proves `DyninMityaginSpace (SchwartzMap D ℝ)` for any finite-dimensional $D$ via the
 Hermite function expansion and the Dynin-Mityagin isomorphism
 $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 
@@ -472,15 +472,15 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 |------|------:|----------|
 | [HermiteFunctions.lean](SchwartzNuclear/HermiteFunctions.lean) | 1,853 | 1D Hermite functions, orthonormality, completeness |
 | [SchwartzHermiteExpansion.lean](SchwartzNuclear/SchwartzHermiteExpansion.lean) | 1,446 | 1D Schwartz-Hermite expansion, coefficient decay |
-| [Basis1D.lean](SchwartzNuclear/Basis1D.lean) | 157 | 1D NuclearSpace fields assembly |
+| [Basis1D.lean](SchwartzNuclear/Basis1D.lean) | 157 | 1D DyninMityaginSpace fields assembly |
 | [ParametricCalculus.lean](SchwartzNuclear/ParametricCalculus.lean) | 316 | Differentiation under the integral sign |
 | [SchwartzSlicing.lean](SchwartzNuclear/SchwartzSlicing.lean) | 1,134 | Multi-d slicing and partial Hermite coefficients |
 | [HermiteTensorProduct.lean](SchwartzNuclear/HermiteTensorProduct.lean) | 2,619 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
-| [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `NuclearSpace` instance from the isomorphism |
+| [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `DyninMityaginSpace` instance from the isomorphism |
 
 ### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
 
-Given `[NuclearSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
+Given `[DyninMityaginSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
 probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 
 | File | Lines | Contents |
@@ -497,7 +497,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 
 ```
 Nuclear/
-  NuclearSpace → NuclearTensorProduct
+  DyninMityagin → NuclearTensorProduct
        ↓                ↓
 SchwartzNuclear/   GaussianField/
   ...              NuclearFactorization
@@ -513,19 +513,19 @@ SchwartzNuclear/   GaussianField/
 
 ## Axiom budget
 
-**0 custom axioms.** The Schwartz nuclearity instance `NuclearSpace (SchwartzMap D ℝ)` is fully proved in `SchwartzNuclear/` (~7,700 lines) via the Hermite function expansion and the Dynin-Mityagin isomorphism. See the [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) for details.
+**0 custom axioms.** The Schwartz nuclearity instance `DyninMityaginSpace (SchwartzMap D ℝ)` is fully proved in `SchwartzNuclear/` (~7,700 lines) via the Hermite function expansion and the Dynin-Mityagin isomorphism. See the [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) for details.
 
 An axiom fallback is available as an inactive comment in `GaussianField.lean` for faster builds during development.
 
 ## Further documentation
 
-- [Nuclear space infrastructure](docs/nuclear-space-infrastructure.md) — the `NuclearSpace` typeclass, `RapidDecaySeq`, and why nuclearity is needed
+- [Nuclear space infrastructure](docs/nuclear-space-infrastructure.md) — the `DyninMityaginSpace` typeclass, `RapidDecaySeq`, and why nuclearity is needed
 - [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) — the 7,700-line proof that Schwartz space is nuclear
 - [Gaussian field construction](docs/gaussian-field-construction.md) — the 2,960-line measure construction
-- [Concrete instances](docs/concrete-instances.md) — `NuclearSpace` instances for $C^\infty(S^1_L)$, finite lattices, periodic lattices, and generic tensor products, with Lean sketches
+- [Concrete instances](docs/concrete-instances.md) — `DyninMityaginSpace` instances for $C^\infty(S^1_L)$, finite lattices, periodic lattices, and generic tensor products, with Lean sketches
 - [Operator construction](docs/operator-construction.md) — building covariance operators on product spaces via the heat kernel $e^{-s\Delta}$, Mathlib support, and the factorization theorem
 - [Lattice-continuum limit](docs/lattice-continuum-limit.md) — convergence of lattice Gaussian measures to continuum measures via characteristic functionals
-- [Generalization plan](docs/generalization-plan.md) — architecture of the `NuclearSpace` typeclass, design decisions, and roadmap for future instances
+- [Generalization plan](docs/generalization-plan.md) — architecture of the `DyninMityaginSpace` typeclass, design decisions, and roadmap for future instances
 
 ## Future work
 

@@ -2,8 +2,8 @@
 
 ## Goal
 
-Given `NuclearSpace` instances for $E_1$ and $E_2$ (e.g., $C^\infty(S^1)$
-and $\mathcal{S}(\mathbb{R})$), construct a `NuclearSpace` instance for
+Given `DyninMityaginSpace` instances for $E_1$ and $E_2$ (e.g., $C^\infty(S^1)$
+and $\mathcal{S}(\mathbb{R})$), construct a `DyninMityaginSpace` instance for
 the product space $E_1 \hat{\otimes} E_2 \cong C^\infty(S^1 \times \mathbb{R})$.
 
 This lets us build Gaussian measures on distributions on product manifolds
@@ -93,14 +93,14 @@ in full generality, define the product space directly at the sequence level.
 /-- The nuclear tensor product, defined as a Köthe sequence space
     on ℕ × ℕ with product weights. -/
 def NuclearTensorProduct (E₁ E₂ : Type*)
-    [AddCommGroup E₁] [Module ℝ E₁] ... [NuclearSpace E₁]
-    [AddCommGroup E₂] [Module ℝ E₂] ... [NuclearSpace E₂] :=
+    [AddCommGroup E₁] [Module ℝ E₁] ... [DyninMityaginSpace E₁]
+    [AddCommGroup E₂] [Module ℝ E₂] ... [DyninMityaginSpace E₂] :=
   -- Concretely: sequences a : ℕ × ℕ → ℝ such that
   -- ∀ (α, β), ∑_{i,j} |a_{i,j}|² · p_α(ψ_i)² · q_β(φ_j)² < ∞
   sorry
 
-instance : NuclearSpace (NuclearTensorProduct E₁ E₂) where
-  ι := NuclearSpace.ι (E := E₁) × NuclearSpace.ι (E := E₂)
+instance : DyninMityaginSpace (NuclearTensorProduct E₁ E₂) where
+  ι := DyninMityaginSpace.ι (E := E₁) × DyninMityaginSpace.ι (E := E₂)
   p := fun (α, β) => ...  -- product seminorm
   basis := fun m =>
     let (i, j) := Nat.pair_inv m  -- Cantor unpairing
@@ -119,11 +119,11 @@ framework. No need for Grothendieck's abstract tensor product theory.
 ### Option B: Direct instance for specific product spaces
 
 For a specific case like $C^\infty(S^1 \times \mathbb{R})$, provide the
-`NuclearSpace` instance directly using the product basis, without going
+`DyninMityaginSpace` instance directly using the product basis, without going
 through abstract tensor products:
 
 ```lean
-instance : NuclearSpace (SmoothCylinder) where
+instance : DyninMityaginSpace (SmoothCylinder) where
   ι := ℕ × (ℕ × ℕ)   -- Sobolev index × Schwartz index
   basis := fun m =>
     let (n, k) := Nat.pair_inv m
@@ -146,7 +146,7 @@ Once tensor products work, spaces compose freely:
 | Cylinder $T^d \times \mathbb{R}^k$ | Tensor of torus and Euclidean factors |
 
 Each gets a Gaussian measure for any CLM $T$ into a Hilbert space —
-automatically, from the `NuclearSpace` instance.
+automatically, from the `DyninMityaginSpace` instance.
 
 ## Relation to the lattice limit
 

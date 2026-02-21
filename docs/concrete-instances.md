@@ -1,8 +1,8 @@
-# Concrete `NuclearSpace` Instances
+# Concrete `DyninMityaginSpace` Instances
 
 ## Overview
 
-This document specifies concrete `NuclearSpace` instances for spaces
+This document specifies concrete `DyninMityaginSpace` instances for spaces
 arising in QFT and stochastic analysis, and the generic tensor product
 construction that composes them. Each instance is parameterized by
 geometric data (circumference, lattice spacing, etc.).
@@ -87,8 +87,8 @@ axiom fourier_coefficient_decay (L : ℝ) [Fact (0 < L)]
       |fourierCoeff L m f| * (1 + (m : ℝ)) ^ k ≤
         C * sobolevSeminorm L q f
 
-instance smoothCircle_nuclearSpace :
-    NuclearSpace (SmoothCircle L) where
+instance smoothCircle_dyninMityaginSpace :
+    DyninMityaginSpace (SmoothCircle L) where
   ι := ℕ
   p := sobolevSeminorm L
   h_with := smoothCircle_withSeminorms L
@@ -146,14 +146,14 @@ we can take $C$ large enough to dominate the finite maximum.
 
 ```lean
 /-- Finite lattice with N sites and spacing a. The spacing a is a
-    parameter of the operators, not the NuclearSpace instance —
+    parameter of the operators, not the DyninMityaginSpace instance —
     the underlying vector space is just Fin N → ℝ regardless of a. -/
 abbrev FiniteLattice (N : ℕ) := Fin N → ℝ
 
 variable (N : ℕ) [NeZero N]
 
-instance finiteLattice_nuclearSpace :
-    NuclearSpace (FiniteLattice N) where
+instance finiteLattice_dyninMityaginSpace :
+    DyninMityaginSpace (FiniteLattice N) where
   ι := Unit
   p := fun _ => sorry  -- sup norm or ℓ² norm; any single norm suffices
   h_with := sorry       -- finite-dimensional topology = norm topology
@@ -194,7 +194,7 @@ def latticeGFF_T (a : ℝ) (N : ℕ) (mass : ℝ) :
 
 ### Design note
 
-The `NuclearSpace` instance for `Fin N → ℝ` does not depend on $a$ —
+The `DyninMityaginSpace` instance for `Fin N → ℝ` does not depend on $a$ —
 all finite-dimensional spaces of the same dimension are isomorphic as
 nuclear spaces. The spacing $a$ determines the CLM $T$ and therefore the
 specific Gaussian measure (its covariance structure), not the topology
@@ -208,7 +208,7 @@ of the test function space.
 
 A theorem of Grothendieck: an infinite-dimensional Banach space is never
 nuclear. Since $\ell^2(\mathbb{Z}^d)$ is an infinite-dimensional Hilbert
-space, it cannot carry a `NuclearSpace` instance. The same applies to any
+space, it cannot carry a `DyninMityaginSpace` instance. The same applies to any
 fixed Sobolev space $\ell^2_s(\mathbb{Z}^d)$.
 
 Nuclearity requires the topology to be strictly weaker than any single norm.
@@ -257,8 +257,8 @@ structure RapidDecaySeq (d : ℕ) where
 -- Reindex ℤ^d to ℕ via some computable bijection
 def enumZd (d : ℕ) : ℕ ≃ (Fin d → ℤ) := sorry
 
-instance rapidDecaySeq_nuclearSpace :
-    NuclearSpace (RapidDecaySeq d) where
+instance rapidDecaySeq_dyninMityaginSpace :
+    DyninMityaginSpace (RapidDecaySeq d) where
   ι := ℕ                               -- weight parameter k
   p := fun k => sorry                   -- p_k(f) = (Σ |f(n)|² (1+|n|)^{2k})^{1/2}
   h_with := sorry                       -- topology = seminorm topology
@@ -316,7 +316,7 @@ Two natural choices:
 - $\psi_n(j) = \frac{1}{\sqrt{N}} e^{2\pi i n j / N}$, $n = 0, \ldots, N-1$
 - $c_n(f) = \frac{1}{\sqrt{N}} \sum_j f(j) e^{-2\pi i n j / N}$ (DFT)
 
-Either works for the `NuclearSpace` instance (finite-dimensional, so the
+Either works for the `DyninMityaginSpace` instance (finite-dimensional, so the
 choice is immaterial for nuclearity). The DFT basis diagonalizes the
 discrete Laplacian, which is useful for explicit covariance computations.
 
@@ -328,10 +328,10 @@ discrete Laplacian, which is useful for explicit covariance computations.
     enters through the operators. -/
 abbrev PeriodicLattice (N : ℕ) := Fin N → ℝ
 
--- NuclearSpace instance is identical to FiniteLattice
-instance periodicLattice_nuclearSpace :
-    NuclearSpace (PeriodicLattice N) :=
-  finiteLattice_nuclearSpace N
+-- DyninMityaginSpace instance is identical to FiniteLattice
+instance periodicLattice_dyninMityaginSpace :
+    DyninMityaginSpace (PeriodicLattice N) :=
+  finiteLattice_dyninMityaginSpace N
 
 /-- Discrete periodic Laplacian on N sites with spacing L/N.
     (Δf)(k) = N²/L² · (f(k+1 mod N) - 2f(k) + f(k-1 mod N)) -/
@@ -440,31 +440,31 @@ private def unpair : ℕ → ℕ × ℕ := Nat.unpair
 structure NuclearTensorProduct
     (E₁ : Type*) [AddCommGroup E₁] [Module ℝ E₁]
       [TopologicalSpace E₁] [IsTopologicalAddGroup E₁]
-      [ContinuousSMul ℝ E₁] [NuclearSpace E₁]
+      [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     (E₂ : Type*) [AddCommGroup E₂] [Module ℝ E₂]
       [TopologicalSpace E₂] [IsTopologicalAddGroup E₂]
-      [ContinuousSMul ℝ E₂] [NuclearSpace E₂] where
+      [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂] where
   /-- The sequence of coefficients in the product basis. -/
   coeff_seq : ℕ × ℕ → ℝ
   /-- Rapid decay in the product seminorms. -/
-  rapid_decay : ∀ (α : NuclearSpace.ι (E := E₁))
-      (β : NuclearSpace.ι (E := E₂)) (k : ℕ),
+  rapid_decay : ∀ (α : DyninMityaginSpace.ι (E := E₁))
+      (β : DyninMityaginSpace.ι (E := E₂)) (k : ℕ),
     Summable fun ⟨i, j⟩ =>
-      |coeff_seq (i, j)| * NuclearSpace.p α (NuclearSpace.basis i) *
-        NuclearSpace.p β (NuclearSpace.basis j) *
+      |coeff_seq (i, j)| * DyninMityaginSpace.p α (DyninMityaginSpace.basis i) *
+        DyninMityaginSpace.p β (DyninMityaginSpace.basis j) *
         (1 + (i : ℝ))^k * (1 + (j : ℝ))^k
 
 -- Instances: AddCommGroup, Module ℝ, TopologicalSpace, etc.
 -- (Inherited from the Köthe sequence space structure.)
-instance [NuclearSpace E₁] [NuclearSpace E₂] :
+instance [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] :
     AddCommGroup (NuclearTensorProduct E₁ E₂) := sorry
-instance [NuclearSpace E₁] [NuclearSpace E₂] :
+instance [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] :
     Module ℝ (NuclearTensorProduct E₁ E₂) := sorry
-instance [NuclearSpace E₁] [NuclearSpace E₂] :
+instance [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] :
     TopologicalSpace (NuclearTensorProduct E₁ E₂) := sorry
-instance [NuclearSpace E₁] [NuclearSpace E₂] :
+instance [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] :
     IsTopologicalAddGroup (NuclearTensorProduct E₁ E₂) := sorry
-instance [NuclearSpace E₁] [NuclearSpace E₂] :
+instance [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] :
     ContinuousSMul ℝ (NuclearTensorProduct E₁ E₂) := sorry
 
 /-- The tensor product of two nuclear Fréchet spaces is nuclear.
@@ -472,10 +472,10 @@ instance [NuclearSpace E₁] [NuclearSpace E₂] :
     Basis: ψ_i ⊗ φ_j via Cantor pairing.
     Seminorms: products of factor seminorms.
     Growth/decay: products of factor bounds. -/
-instance nuclearTensorProduct_nuclearSpace
-    [NuclearSpace E₁] [NuclearSpace E₂] :
-    NuclearSpace (NuclearTensorProduct E₁ E₂) where
-  ι := NuclearSpace.ι (E := E₁) × NuclearSpace.ι (E := E₂)
+instance nuclearTensorProduct_dyninMityaginSpace
+    [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] :
+    DyninMityaginSpace (NuclearTensorProduct E₁ E₂) where
+  ι := DyninMityaginSpace.ι (E := E₁) × DyninMityaginSpace.ι (E := E₂)
   p := fun ⟨α, β⟩ => sorry  -- product seminorm: r_{α,β}(f) = ...
   h_with := sorry             -- product topology = product seminorm topology
   basis := fun m =>
@@ -499,10 +499,10 @@ instance nuclearTensorProduct_nuclearSpace
     sorry
 
 /-- Pure tensor: the canonical bilinear map E₁ × E₂ → E₁ ⊗̂ E₂. -/
-def NuclearTensorProduct.pure [NuclearSpace E₁] [NuclearSpace E₂]
+def NuclearTensorProduct.pure [DyninMityaginSpace E₁] [DyninMityaginSpace E₂]
     (f₁ : E₁) (f₂ : E₂) : NuclearTensorProduct E₁ E₂ where
   coeff_seq := fun ⟨i, j⟩ =>
-    NuclearSpace.coeff i f₁ * NuclearSpace.coeff j f₂
+    DyninMityaginSpace.coeff i f₁ * DyninMityaginSpace.coeff j f₂
   rapid_decay := sorry
 
 end GaussianField
@@ -540,7 +540,7 @@ Tensor products of finite lattices are again finite lattices:
 -- But can also just use:
 abbrev Lattice2D (N₁ N₂ : ℕ) := Fin N₁ × Fin N₂ → ℝ
 
-instance : NuclearSpace (Lattice2D N₁ N₂) := sorry  -- finite-dim
+instance : DyninMityaginSpace (Lattice2D N₁ N₂) := sorry  -- finite-dim
 
 -- Lattice GFF on 2D periodic lattice
 def lattice2D_GFF (L₁ L₂ : ℝ) (N₁ N₂ : ℕ) (mass : ℝ) :

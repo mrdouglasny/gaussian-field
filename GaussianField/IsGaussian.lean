@@ -44,9 +44,9 @@ open scoped NNReal
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-  [NuclearSpace E]
+  [DyninMityaginSpace E]
 
-omit [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [NuclearSpace E] in
+omit [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E] in
 /--
 Every continuous linear functional on `WeakDual ℝ E` is evaluation at some `f ∈ E`.
 This is the standard fact that the continuous dual of the weak-* topology

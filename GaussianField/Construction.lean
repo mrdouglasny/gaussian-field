@@ -55,7 +55,7 @@ open Classical
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-  [NuclearSpace E]
+  [DyninMityaginSpace E]
 
 /-- Configuration space: continuous linear functionals on E. -/
 abbrev Configuration (E : Type*)
@@ -69,7 +69,7 @@ instance instMeasurableSpaceConfiguration :
     MeasurableSpace (Configuration E) :=
   MeasurableSpace.comap (fun ω f => ω f) MeasurableSpace.pi
 
-omit [NuclearSpace E] in
+omit [DyninMityaginSpace E] in
 /-- A function into Configuration is measurable iff all evaluations are measurable. -/
 theorem configuration_measurable_of_eval_measurable
     {X : Type*} [MeasurableSpace X] (g : X → Configuration E)
@@ -80,7 +80,7 @@ theorem configuration_measurable_of_eval_measurable
   rw [MeasurableSpace.comap_comp]
   exact (measurable_pi_lambda _ h).comap_le
 
-omit [NuclearSpace E] in
+omit [DyninMityaginSpace E] in
 /-- Each evaluation map ω ↦ ω(f) is measurable w.r.t. the cylindrical σ-algebra. -/
 theorem configuration_eval_measurable (φ : E) :
     @Measurable (Configuration E) ℝ instMeasurableSpaceConfiguration _ (fun ω => ω φ) := by

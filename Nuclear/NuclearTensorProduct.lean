@@ -7,7 +7,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Defines `RapidDecaySeq`, the Köthe sequence space s(ℕ) of rapidly decreasing
 sequences, and proves it is a nuclear Fréchet space. Then defines
 `NuclearTensorProduct E₁ E₂` as `RapidDecaySeq` (via Cantor pairing),
-providing a `NuclearSpace` instance for tensor products of nuclear spaces.
+providing a `DyninMityaginSpace` instance for tensor products of nuclear spaces.
 
 ## Main definitions
 
@@ -27,7 +27,7 @@ The tensor product s(ℕ) ⊗̂ s(ℕ) ≅ s(ℕ²) ≅ s(ℕ) via Cantor pairin
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4
 -/
 
-import Nuclear.NuclearSpace
+import Nuclear.DyninMityagin
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Order
@@ -203,7 +203,7 @@ def coeffCLM (m : ℕ) : RapidDecaySeq →L[ℝ] ℝ where
           (a.rapid_decay 0).le_tsum m
             (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j 0))
 
-/-! ### NuclearSpace instance -/
+/-! ### DyninMityaginSpace instance -/
 
 /-- The partial sums `∑_{m∈s} a.val(m) • basisVec(m)` converge to `a`.
 
@@ -274,7 +274,7 @@ theorem rapidDecay_expansion (φ : RapidDecaySeq →L[ℝ] ℝ) (a : RapidDecayS
     convert h using 1; ext m; simp [map_smul, smul_eq_mul]
   exact h'.tsum_eq.symm
 
-instance rapidDecay_nuclearSpace : NuclearSpace RapidDecaySeq where
+instance rapidDecay_dyninMityaginSpace : DyninMityaginSpace RapidDecaySeq where
   ι := ℕ
   p := rapidDecaySeminorm
   h_with := rapidDecay_withSeminorms
@@ -333,8 +333,8 @@ instance : ContinuousSMul ℝ (NuclearTensorProduct E₁ E₂) :=
   inferInstanceAs (ContinuousSMul ℝ RapidDecaySeq)
 
 /-- The nuclear tensor product is a nuclear space. -/
-instance nuclearSpace : NuclearSpace (NuclearTensorProduct E₁ E₂) :=
-  RapidDecaySeq.rapidDecay_nuclearSpace
+instance dyninMityaginSpace : DyninMityaginSpace (NuclearTensorProduct E₁ E₂) :=
+  RapidDecaySeq.rapidDecay_dyninMityaginSpace
 
 /-- Map from product basis indices to the Cantor-paired linear index. -/
 def fromPairIndex (n m : ℕ) : ℕ := Nat.pair n m

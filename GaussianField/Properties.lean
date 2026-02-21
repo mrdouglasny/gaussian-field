@@ -36,7 +36,7 @@ open Classical
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-  [NuclearSpace E]
+  [DyninMityaginSpace E]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
   [CompleteSpace H] [SeparableSpace H]
 variable (T : E →L[ℝ] H)

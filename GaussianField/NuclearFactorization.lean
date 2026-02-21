@@ -24,7 +24,7 @@ seminorm) and y_m ∈ H.
 - Gel'fand, Vilenkin, "Generalized Functions" Vol 4, Ch 3-4
 -/
 
-import Nuclear.NuclearSpace
+import Nuclear.DyninMityagin
 import Mathlib.Analysis.PSeries
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Topology.Algebra.InfiniteSum.Module
@@ -39,7 +39,7 @@ namespace GaussianField
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-  [NuclearSpace E]
+  [DyninMityaginSpace E]
 
 /-! ## P-series summability helper -/
 
@@ -53,7 +53,7 @@ lemma summable_one_add_rpow_neg_two :
 
 /-! ## Finset sup of polynomial bounds -/
 
-omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [NuclearSpace E] in
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E] in
 /-- The sup of finitely many polynomially-bounded seminorms is polynomially bounded. -/
 private lemma finset_sup_seminorm_poly_bound
     {ι' : Type*} (p' : ι' → Seminorm ℝ E)
@@ -101,22 +101,22 @@ theorem clm_image_growth
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
     (T : E →L[ℝ] H) :
     ∃ (C : ℝ) (p₁ : ℕ), 0 < C ∧
-      ∀ m : ℕ, ‖T (NuclearSpace.basis m)‖ ≤ C * (1 + (m : ℝ)) ^ p₁ := by
+      ∀ m : ℕ, ‖T (DyninMityaginSpace.basis m)‖ ≤ C * (1 + (m : ℝ)) ^ p₁ := by
   have hcont : Continuous ((normSeminorm ℝ H).comp T.toLinearMap) := by
     convert T.continuous.norm using 1
   obtain ⟨s, C₀, hC₀_ne, hle⟩ :=
-    Seminorm.bound_of_continuous NuclearSpace.h_with _ hcont
+    Seminorm.bound_of_continuous DyninMityaginSpace.h_with _ hcont
   have hfinset_bound : ∃ (C₁ : ℝ) (p₁ : ℕ), 0 < C₁ ∧
-      ∀ m : ℕ, (s.sup NuclearSpace.p) (NuclearSpace.basis m) ≤
+      ∀ m : ℕ, (s.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis m) ≤
         C₁ * (1 + (m : ℝ)) ^ p₁ :=
-    finset_sup_seminorm_poly_bound NuclearSpace.p s NuclearSpace.basis
-      NuclearSpace.basis_growth
+    finset_sup_seminorm_poly_bound DyninMityaginSpace.p s DyninMityaginSpace.basis
+      DyninMityaginSpace.basis_growth
   obtain ⟨C₁, p₁, hC₁_pos, hfinset⟩ := hfinset_bound
   have hC₀_pos : (0 : ℝ) < C₀ := by positivity
   exact ⟨C₀ * C₁, p₁, mul_pos hC₀_pos hC₁_pos, fun m =>
-    calc ‖T (NuclearSpace.basis m)‖
-        ≤ C₀ * (s.sup NuclearSpace.p) (NuclearSpace.basis m) := by
-          have := hle (NuclearSpace.basis m)
+    calc ‖T (DyninMityaginSpace.basis m)‖
+        ≤ C₀ * (s.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis m) := by
+          have := hle (DyninMityaginSpace.basis m)
           simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
                      NNReal.smul_def, smul_eq_mul] at this
           exact this
@@ -136,12 +136,12 @@ theorem nuclear_clm_representation
     (T : E →L[ℝ] H) :
     ∃ (φ : ℕ → (E →L[ℝ] ℝ)) (y : ℕ → H),
       Summable (fun m => ‖y m‖) ∧
-      (∃ (s : Finset (NuclearSpace.ι (E := E))) (B : ℝ), 0 < B ∧
-        ∀ (m : ℕ) (f : E), |φ m f| ≤ B * (s.sup NuclearSpace.p) f) ∧
+      (∃ (s : Finset (DyninMityaginSpace.ι (E := E))) (B : ℝ), 0 < B ∧
+        ∀ (m : ℕ) (f : E), |φ m f| ≤ B * (s.sup DyninMityaginSpace.p) f) ∧
       (∀ (f : E) (w : H),
         @inner ℝ H _ w (T f) = ∑' m, φ m f * @inner ℝ H _ w (y m)) := by
-  set ψ := NuclearSpace.basis (E := E) with hψ_def
-  set c := NuclearSpace.coeff (E := E) with hc_def
+  set ψ := DyninMityaginSpace.basis (E := E) with hψ_def
+  set c := DyninMityaginSpace.coeff (E := E) with hc_def
   -- Step 1: Get polynomial growth bound for ‖T(ψ_m)‖
   obtain ⟨C_g, p₁, hCg_pos, hgrowth⟩ := clm_image_growth T
   -- Step 2: Choose exponent s = p₁ + 2 for convergence
@@ -169,7 +169,7 @@ theorem nuclear_clm_representation
           congr 1; rw [← Real.rpow_add hpos]; congr 1
           rw [hs_def, show s_exp = p₁ + 2 from rfl]; push_cast; ring
   · -- (ii) Equicontinuity of φ_m
-    obtain ⟨C_s, hCs_pos, s, hdecay_s⟩ := NuclearSpace.coeff_decay (E := E) s_exp
+    obtain ⟨C_s, hCs_pos, s, hdecay_s⟩ := DyninMityaginSpace.coeff_decay (E := E) s_exp
     exact ⟨s, C_s, hCs_pos, fun m f => by
       simp only [hφ_def, ContinuousLinearMap.smul_apply, smul_eq_mul]
       rw [abs_mul, abs_of_pos (Real.rpow_pos_of_pos (by positivity : (0:ℝ) < 1 + ↑m) s_real)]
@@ -177,7 +177,7 @@ theorem nuclear_clm_representation
       exact hdecay_s f m⟩
   · -- (iii) ⟨w, T(f)⟩ = ∑ φ_m(f) · ⟨w, y_m⟩
     intro f w
-    rw [NuclearSpace.expansion_H T w f]
+    rw [DyninMityaginSpace.expansion_H T w f]
     congr 1
     ext m
     simp only [hφ_def, hy_def, ContinuousLinearMap.smul_apply, smul_eq_mul,

@@ -2,12 +2,12 @@
 Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 
-# SchwartzNuclear: Proof that Schwartz space is a nuclear Fréchet space
+# SchwartzNuclear: Proof that Schwartz space satisfies the Dynin-Mityagin characterization
 
 This is the root import file for the `SchwartzNuclear` library.
 Importing this file provides all exported results, including:
 
-* `schwartz_nuclearSpace`: the `NuclearSpace (SchwartzMap D ℝ)` instance
+* `schwartz_dyninMityaginSpace`: the `DyninMityaginSpace (SchwartzMap D ℝ)` instance
   for any finite-dimensional real normed space `D`.
 
 The proof proceeds via the Hermite function basis for `𝓢(ℝ)` and the

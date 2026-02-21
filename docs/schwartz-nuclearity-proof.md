@@ -2,7 +2,7 @@
 
 This directory contains ~7,700 lines of Lean 4 proving that
 Schwartz space $\mathcal{S}(\mathbb{R}^d, \mathbb{R})$ is a nuclear Fréchet space,
-i.e., constructing a `NuclearSpace (SchwartzMap D ℝ)` instance from first principles.
+i.e., constructing a `DyninMityaginSpace (SchwartzMap D ℝ)` instance from first principles.
 
 **Status: Complete (0 sorrys, 0 axioms).**
 
@@ -16,7 +16,7 @@ where $s(\mathbb{N})$ is the space of rapidly decreasing sequences, and the
 isomorphism is the Hermite expansion $f \mapsto (c_n(f))_n$ with
 $c_n(f) = \int f(x)\,\psi_n(x)\,dx$ and $\psi_n$ the Hermite functions.
 
-The `NuclearSpace` instance is then transferred through this continuous linear
+The `DyninMityaginSpace` instance is then transferred through this continuous linear
 equivalence, using:
 - **Expansion**: $\varphi(f) = \sum_n c_n(f)\,\varphi(\psi_n)$ for all CLFs $\varphi$
 - **Basis growth**: $p_{k,l}(\psi_n) \le C\,(1+n)^s$ (polynomial in $n$)
@@ -28,11 +28,11 @@ equivalence, using:
 |------|------:|-------------|
 | [`HermiteFunctions.lean`](../SchwartzNuclear/HermiteFunctions.lean) | 1,853 | 1D Hermite functions, orthonormality, completeness |
 | [`SchwartzHermiteExpansion.lean`](../SchwartzNuclear/SchwartzHermiteExpansion.lean) | 1,446 | 1D Schwartz-Hermite expansion, coefficient decay |
-| [`Basis1D.lean`](../SchwartzNuclear/Basis1D.lean) | 157 | 1D NuclearSpace fields assembly |
+| [`Basis1D.lean`](../SchwartzNuclear/Basis1D.lean) | 157 | 1D DyninMityaginSpace fields assembly |
 | [`ParametricCalculus.lean`](../SchwartzNuclear/ParametricCalculus.lean) | 316 | Differentiation under the integral sign |
 | [`SchwartzSlicing.lean`](../SchwartzNuclear/SchwartzSlicing.lean) | 1,134 | Multi-d slicing and partial Hermite coefficients |
 | [`HermiteTensorProduct.lean`](../SchwartzNuclear/HermiteTensorProduct.lean) | 2,619 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
-| [`HermiteNuclear.lean`](../SchwartzNuclear/HermiteNuclear.lean) | 174 | `NuclearSpace` instance from the isomorphism |
+| [`HermiteNuclear.lean`](../SchwartzNuclear/HermiteNuclear.lean) | 174 | `DyninMityaginSpace` instance from the isomorphism |
 | **Total** | **7,699** | |
 
 ## What Is Proved
@@ -109,7 +109,7 @@ All 1D infrastructure is fully proved from Mathlib primitives:
 
 ### 1D Nuclear Schauder Basis Assembly (`Basis1D.lean`)
 
-Packages the above into the three `NuclearSpace` fields:
+Packages the above into the three `DyninMityaginSpace` fields:
 - **`schwartz_hermite_expansion_CLF`** — expansion for scalar CLFs
 - **`schwartzHermiteBasis1D_growth`** — polynomial growth bound
 - **`hermiteCoeff1D_decay_single`** — decay with $\mathbb{N}$ exponent
@@ -198,10 +198,10 @@ flattened multi-d basis) is fully proved:
 - CLM property with seminorm bounds
 - Kronecker property for the right inverse
 
-The [`NuclearSpace` instance](../SchwartzNuclear/HermiteNuclear.lean#L156) is assembled in `HermiteNuclear.lean`:
+The [`DyninMityaginSpace` instance](../SchwartzNuclear/HermiteNuclear.lean#L156) is assembled in `HermiteNuclear.lean`:
 ```lean
-noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ) where
+noncomputable instance schwartz_dyninMityaginSpace [Nontrivial D] :
+    DyninMityaginSpace (SchwartzMap D ℝ) where
   ι := ℕ × ℕ
   p := fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l
   h_with := schwartz_withSeminorms ℝ D ℝ
@@ -219,7 +219,7 @@ HermiteFunctions                         [1D Hermite functions]
     |
 SchwartzHermiteExpansion                 [1D expansion + decay]
     |
-Basis1D                                  [1D NuclearSpace fields]
+Basis1D                                  [1D DyninMityaginSpace fields]
     |
 ParametricCalculus ──────────────┐
     |                            |
@@ -227,7 +227,7 @@ SchwartzSlicing                  |       [multi-d slicing + scalarization]
     |                            |
 HermiteTensorProduct ────────────┘       [multi-d isomorphism ≃L RapidDecaySeq]
     |
-HermiteNuclear                           [NuclearSpace instance]
+HermiteNuclear                           [DyninMityaginSpace instance]
 ```
 
 ## Key Mathlib Dependencies

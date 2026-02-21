@@ -9,11 +9,11 @@ manifolds, lattices, half-spaces, and tensor products of these.
 ## Current State
 
 **Phase 1 is complete.** The construction is fully generalized to arbitrary
-`NuclearSpace E`. The only Schwartz-specific content is the instance in
-`Axioms.lean`, which provides `NuclearSpace (SchwartzMap D F)` via 5 axioms.
+`DyninMityaginSpace E`. The only Schwartz-specific content is the instance in
+`Axioms.lean`, which provides `DyninMityaginSpace (SchwartzMap D F)` via 5 axioms.
 
-All files from `NuclearSpace.lean` through `Properties.lean` are parametric
-over `E` with `[NuclearSpace E]`. New instances for other function spaces
+All files from `DyninMityaginSpace.lean` through `Properties.lean` are parametric
+over `E` with `[DyninMityaginSpace E]`. New instances for other function spaces
 can be added by providing the typeclass fields (see README).
 
 ## Mathematical Foundation
@@ -27,7 +27,7 @@ what Lean 4 handles best.
 
 ## Architecture
 
-### The NuclearSpace typeclass
+### The DyninMityaginSpace typeclass
 
 Frechet spaces are not normable, so we use Mathlib's locally convex TVS
 mixins rather than `NormedAddCommGroup` / `NormedSpace`. The seminorm
@@ -38,7 +38,7 @@ rather than quantifying over Hilbert spaces, since any `⟪w, T(-)⟫` is
 such a functional. Exponents use `ℕ` to avoid `rpow` pain.
 
 ```lean
-class NuclearSpace (E : Type*) [AddCommGroup E] [Module ℝ E]
+class DyninMityaginSpace (E : Type*) [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [TopologicalAddGroup E] [ContinuousSMul ℝ E] where
   ι : Type*
   p : ι → Seminorm ℝ E
@@ -65,7 +65,7 @@ exactly what Mathlib uses for locally convex spaces and what `SchwartzMap`
 satisfies.
 
 **Bundled seminorms.** If `ι` and `p` were class parameters rather than
-fields, writing `[NuclearSpace E]` in theorem signatures would fail —
+fields, writing `[DyninMityaginSpace E]` in theorem signatures would fail —
 Lean cannot guess the seminorm family from `E` alone. Bundling them
 ensures typeclass inference works automatically.
 
@@ -81,13 +81,13 @@ The H-expansion is recovered as a 3-line lemma in NuclearFactorization.lean,
 not an axiom in the class:
 
 ```lean
-lemma expansion_H [NuclearSpace E] {H : Type*}
+lemma expansion_H [DyninMityaginSpace E] {H : Type*}
     [NormedAddCommGroup H] [InnerProductSpace ℝ H]
     (T : E →L[ℝ] H) (w : H) (f : E) :
-    ⟪w, T f⟫_ℝ = ∑' m, (NuclearSpace.coeff m f) * ⟪w, T (NuclearSpace.basis m)⟫_ℝ := by
+    ⟪w, T f⟫_ℝ = ∑' m, (DyninMityaginSpace.coeff m f) * ⟪w, T (DyninMityaginSpace.basis m)⟫_ℝ := by
   -- f ↦ ⟪w, T f⟫ is a scalar CLF
   let φ : E →L[ℝ] ℝ := (innerSL ℝ w).comp T
-  exact NuclearSpace.expansion φ f
+  exact DyninMityaginSpace.expansion φ f
 ```
 
 This cleanly separates concerns: the typeclass knows only about E's
@@ -121,7 +121,7 @@ The fix is a **weighted family** of ell2 embeddings parameterized by a
 decay rate k:
 
 ```lean
-def nuclearEll2Embedding [NuclearSpace E] (k : ℕ) : E →L[ℝ] ell2 :=
+def nuclearEll2Embedding [DyninMityaginSpace E] (k : ℕ) : E →L[ℝ] ell2 :=
   -- maps f ↦ ((1 + m)^k * coeff m f)_{m : ℕ}
 ```
 
@@ -141,13 +141,13 @@ decay of coefficients absorbs any finite weight.
 
 ## File-by-file refactor plan
 
-### New file: NuclearSpace.lean
+### New file: DyninMityaginSpace.lean
 
-Define the `NuclearSpace` typeclass and the weighted ell2 embedding family.
+Define the `DyninMityaginSpace` typeclass and the weighted ell2 embedding family.
 Place it before Axioms.lean in the import chain.
 
 Contents:
-- `NuclearSpace` class definition
+- `DyninMityaginSpace` class definition
 - `nuclearEll2Embedding (k : ℕ) : E →L[ℝ] ell2`
 - Proof that the embedding is continuous (from `coeff_decay` + `WithSeminorms`)
 - Helper lemmas: weight arithmetic, summability criteria
@@ -157,8 +157,8 @@ Contents:
 Replace the 5 free-standing axioms with a single axiom-backed instance:
 
 ```lean
-noncomputable instance schwartz_nuclearSpace :
-    NuclearSpace (SchwartzMap D F) where
+noncomputable instance schwartz_dyninMityaginSpace :
+    DyninMityaginSpace (SchwartzMap D F) where
   ι := ℕ × ℕ
   p := fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l
   h_with := schwartz_withSeminorms ℝ D F
@@ -177,7 +177,7 @@ typeclass fields (ℕ exponents, simplified expansion, bundled seminorms).
 ### NuclearFactorization.lean
 
 Replace all occurrences of `SchwartzMap D F` with a type variable
-`E` carrying `[NuclearSpace E]`. The proof structure is identical:
+`E` carrying `[DyninMityaginSpace E]`. The proof structure is identical:
 
 1. `expansion` gives `φ(f) = ∑ c_m(f) * φ(ψ_m)` for any CLF φ
 2. For `T : E →L[ℝ] H` and `w : H`, apply expansion to `φ := ⟪w, T(-)⟫`
@@ -188,7 +188,7 @@ Replace all occurrences of `SchwartzMap D F` with a type variable
 The renamed theorem:
 
 ```lean
-theorem nuclear_representation [NuclearSpace E]
+theorem nuclear_representation [DyninMityaginSpace E]
     (T : E →L[ℝ] H) :
     ∃ (φ : ℕ → (E →L[ℝ] ℝ)) (y : ℕ → H),
       Summable (fun m => ‖y m‖) ∧
@@ -196,7 +196,7 @@ theorem nuclear_representation [NuclearSpace E]
 ```
 
 Note: `Seminorm.bound_of_continuous` requires access to `WithSeminorms p`.
-This is available via `NuclearSpace.h_with`.
+This is available via `DyninMityaginSpace.h_with`.
 
 ### TargetFactorization.lean
 
@@ -206,7 +206,7 @@ The key change: given `T : E →L[ℝ] H` with growth exponent s from
 `nuclearEll2Embedding k` as the factorization target.
 
 ```lean
-theorem target_factorization [NuclearSpace E]
+theorem target_factorization [DyninMityaginSpace E]
     (T : E →L[ℝ] H) :
     ∃ (e : ℕ → H) (K : Type*) [inst : InnerProductSpace ℝ K]
       (j : E →L[ℝ] K) (v : ℕ → K),
@@ -227,12 +227,12 @@ abbrev Configuration (E : Type*) [AddCommGroup E] [Module ℝ E]
   WeakDual ℝ E
 
 -- H and T define the specific probability measure
-def measure [NuclearSpace E] {H : Type*}
+def measure [DyninMityaginSpace E] {H : Type*}
     [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
     (T : E →L[ℝ] H) : Measure (Configuration E) := ...
 
 -- Covariance is the inner product on the Cameron-Martin space
-def covariance [NuclearSpace E] {H : Type*}
+def covariance [DyninMityaginSpace E] {H : Type*}
     [NormedAddCommGroup H] [InnerProductSpace ℝ H]
     (T : E →L[ℝ] H) (f g : E) : ℝ := ⟪T f, T g⟫_ℝ
 ```
@@ -245,7 +245,7 @@ Replace `SchwartzMap D F` with `E` and `Configuration D F` with
 ### Dependency chain after refactor
 
 ```
-NuclearSpace  →  Axioms (Schwartz instance)
+DyninMityaginSpace  →  Axioms (Schwartz instance)
      ↓
 SpectralTheorem  →  NuclearSVD  →  NuclearFactorization
                                         ↓
@@ -263,7 +263,7 @@ SpectralTheorem  →  NuclearSVD  →  NuclearFactorization
 ### Phase 1: Schwartz space (refactor only)
 
 ```lean
-instance : NuclearSpace (SchwartzMap D F)
+instance : DyninMityaginSpace (SchwartzMap D F)
 ```
 
 Uses existing axioms. No new mathematics. Validates that the abstraction
@@ -272,7 +272,7 @@ works by recovering the current construction as a special case.
 ### Phase 2: C^∞(S^1) via Fourier basis
 
 ```lean
-instance : NuclearSpace (PeriodicSchwartzMap ℝ)
+instance : DyninMityaginSpace (PeriodicSchwartzMap ℝ)
 ```
 
 Bypass Frechet manifold machinery entirely by working with periodic
@@ -294,7 +294,7 @@ to the current Schwartz axioms.
 
 ```lean
 instance [CompactSpace M] [SmoothManifold M] [RiemannianMetric M] :
-    NuclearSpace (SmoothMap M F)
+    DyninMityaginSpace (SmoothMap M F)
 ```
 
 - **Basis:** eigenfunctions of the Laplace-Beltrami operator
@@ -308,7 +308,7 @@ replacing explicit Fourier analysis.
 ### Phase 4: Lattice function spaces
 
 ```lean
-instance [Fintype Λ] : NuclearSpace (Λ → ℝ)
+instance [Fintype Λ] : DyninMityaginSpace (Λ → ℝ)
 ```
 
 Finite-dimensional spaces are trivially nuclear. The basis is the
@@ -318,7 +318,7 @@ finitely many terms are nonzero.
 For infinite lattices ℤ^d, work with rapidly decaying sequences:
 
 ```lean
-instance : NuclearSpace (schwartzSeq (Fin d → ℤ))
+instance : DyninMityaginSpace (schwartzSeq (Fin d → ℤ))
 ```
 
 where `schwartzSeq` denotes rapidly decaying sequences. Basis is the
@@ -327,7 +327,7 @@ standard basis; decay comes from the rapidly-decaying weights.
 ### Phase 5: Half-spaces via Laguerre basis
 
 ```lean
-instance : NuclearSpace (SchwartzHalfLine)
+instance : DyninMityaginSpace (SchwartzHalfLine)
 ```
 
 Use Laguerre functions as the basis on ℝ₊. These are to the half-line
@@ -340,14 +340,14 @@ Frechet seminorms — much more difficult than direct Laguerre estimates.
 
 ### Phase 6: Tensor products via Kothe sequences
 
-Given NuclearSpace instances for E and F, construct one for E ⊗ F.
+Given DyninMityaginSpace instances for E and F, construct one for E ⊗ F.
 
-**Key insight:** because `NuclearSpace` is defined via Schauder bases
+**Key insight:** because `DyninMityaginSpace` is defined via Schauder bases
 (the Dynin-Mityagin / Kothe sequence space approach), we bypass the
 abstract completed projective tensor product `⊗̂` entirely. Define:
 
 ```lean
-def NuclearTensorProduct (E F : Type*) [NuclearSpace E] [NuclearSpace F] :=
+def NuclearTensorProduct (E F : Type*) [DyninMityaginSpace E] [DyninMityaginSpace F] :=
   -- Kothe sequence space on ℕ × ℕ with product weights
   -- Frechet topology pulled back from the sequences
 ```
@@ -390,7 +390,7 @@ like S(ℝ^n) ⊗ C^∞(S^1) compose automatically.
 
 | Phase | Deliverable | New math? | Blocked by |
 |---|---|---|---|
-| 1 | NuclearSpace typeclass + Schwartz instance + refactor | No | Nothing |
+| 1 | DyninMityaginSpace typeclass + Schwartz instance + refactor | No | Nothing |
 | 2 | C^∞(S^1) via periodic functions + Fourier | Axioms for Fourier | Phase 1 |
 | 3 | C^∞(M) via Laplacian eigenbasis | Axioms for Weyl | Phase 1 |
 | 4 | Lattice spaces | Trivial | Phase 1 |
@@ -402,10 +402,10 @@ other and can proceed in parallel after Phase 1.
 
 ## Phase 1 checklist (COMPLETE)
 
-- [x] Define `NuclearSpace` class in `NuclearSpace.lean`
+- [x] Define `DyninMityaginSpace` class in `DyninMityaginSpace.lean`
 - [x] Define weighted ℓ² embedding (inlined in `TargetFactorization.lean`)
 - [x] Adjust 5 axiom signatures in `Axioms.lean` to match class fields
-- [x] Package axioms as `schwartz_nuclearSpace` instance
+- [x] Package axioms as `schwartz_dyninMityaginSpace` instance
 - [x] Generalize `NuclearFactorization.lean`: SchwartzMap → E
 - [x] Generalize `TargetFactorization.lean`: use weighted embedding
 - [x] Verify `WeakDual` works for locally convex E (it does)

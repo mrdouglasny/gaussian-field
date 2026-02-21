@@ -313,7 +313,7 @@ def A_product :=
 def T_product := heatCovarianceOp (A_product L₁ L₂ N₁ N₂ mass) s
 
 -- The Gaussian measure on the product lattice
--- (needs NuclearSpace instance for Fin N₁ × Fin N₂ → ℝ)
+-- (needs DyninMityaginSpace instance for Fin N₁ × Fin N₂ → ℝ)
 #check GaussianField.measure (T_product L₁ L₂ N₁ N₂ mass s)
 ```
 

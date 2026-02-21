@@ -1,6 +1,8 @@
 # Nuclear Space Infrastructure
 
-This directory contains ~430 lines of Lean 4 defining the `NuclearSpace` typeclass
+This directory contains ~430 lines of Lean 4 defining the `DyninMityaginSpace` typeclass
+(the Dynin-Mityagin characterization of nuclearity via Schauder bases),
+the standard Pietsch `NuclearSpace` typeclass,
 and the canonical model `RapidDecaySeq` (the Kothe sequence space $s(\mathbb{N})$),
 which serves as the shared foundation for both the Schwartz nuclearity proof
 (`SchwartzNuclear/`) and the Gaussian field construction (`GaussianField/`).
@@ -35,7 +37,7 @@ Gaussian measure exists in general.
 The dependency flow is:
 
 ```
-Nuclear/              (typeclass + sequence space model)
+Nuclear/              (typeclasses + sequence space model)
     ^
     |
 SchwartzNuclear/      (proves Schwartz space is nuclear)
@@ -48,24 +50,25 @@ GaussianField/        (constructs Gaussian measures on nuclear spaces)
 
 | File | Lines | Description |
 |------|------:|-------------|
-| [`NuclearSpace.lean`](../Nuclear/NuclearSpace.lean) | 76 | `NuclearSpace` typeclass, Hilbert-space expansion theorem |
+| [`DyninMityagin.lean`](../Nuclear/DyninMityagin.lean) | 76 | `DyninMityaginSpace` typeclass (DM characterization), Hilbert-space expansion theorem |
+| [`NuclearSpace.lean`](../Nuclear/NuclearSpace.lean) | — | `NuclearSpace` typeclass (standard Pietsch definition) |
 | [`NuclearTensorProduct.lean`](../Nuclear/NuclearTensorProduct.lean) | 355 | `RapidDecaySeq`, seminorms, `NuclearTensorProduct` |
-| **Total** | **431** | |
+| **Total** | **431+** | |
 
 ## What Is Proved
 
-### NuclearSpace Typeclass ([`NuclearSpace.lean`](../Nuclear/NuclearSpace.lean))
+### DyninMityaginSpace Typeclass ([`DyninMityagin.lean`](../Nuclear/DyninMityagin.lean))
 
-[`NuclearSpace E`](../Nuclear/NuclearSpace.lean#L41) bundles the seminorm family,
+[`DyninMityaginSpace E`](../Nuclear/DyninMityagin.lean#L41) bundles the seminorm family,
 basis, and coefficients inside the class so that typeclass synthesis infers
 everything from `E` alone. The expansion axiom is stated for scalar functionals
 $\varphi : E \to \mathbb{R}$; the Hilbert-space form is recovered as:
 
-[`NuclearSpace.expansion_H`](../Nuclear/NuclearSpace.lean#L67): for any CLM
+[`DyninMityaginSpace.expansion_H`](../Nuclear/DyninMityagin.lean#L67): for any CLM
 $T : E \to H$ and $w \in H$,
 $$\langle w, T(f)\rangle = \sum_m c_m(f)\,\langle w, T(\psi_m)\rangle$$
 
-This follows immediately by applying `expansion` to the scalar CLF
+This follows immediately by applying `DyninMityaginSpace.expansion` to the scalar CLF
 $f \mapsto \langle w, T(f)\rangle$.
 
 ### Rapid Decay Sequences ([`NuclearTensorProduct.lean`](../Nuclear/NuclearTensorProduct.lean))
@@ -93,8 +96,8 @@ The file builds up:
    basis vector) and [`coeffCLM m`](../Nuclear/NuclearTensorProduct.lean#L190)
    (coordinate projection, continuous since $|a_m| \le$ `rapidDecaySeminorm 0 a`).
 
-5. **NuclearSpace instance** (lines 207-291) — the main result:
-   [`rapidDecay_nuclearSpace`](../Nuclear/NuclearTensorProduct.lean#L277).
+5. **DyninMityaginSpace instance** (lines 207-291) — the main result:
+   [`rapidDecay_dyninMityaginSpace`](../Nuclear/NuclearTensorProduct.lean#L277).
 
    The key proof is [`hasSum_basisVec`](../Nuclear/NuclearTensorProduct.lean#L223):
    the partial sums $\sum_{m \in s} a_m\,e_m$ converge to $a$ in the seminorm
@@ -102,7 +105,7 @@ The file builds up:
    $\sum_{m \notin s} |a_m|\,(1+m)^k$ is the tail of the convergent series
    `a.rapid_decay k`, hence eventually less than $\varepsilon$.
 
-   The three `NuclearSpace` fields then follow:
+   The three `DyninMityaginSpace` fields then follow:
    - **Expansion**: apply CLM $\varphi$ to the convergent series
    - **Basis growth**: `rapidDecaySeminorm k (basisVec m) = (1+m)^k`, so $C = 1$, $s = k$
    - **Coefficient decay**: $|a_m|\,(1+m)^k \le \sum_n |a_n|\,(1+n)^k =$ `rapidDecaySeminorm k a`
@@ -118,10 +121,10 @@ pairing $\mathbb{N}^2 \to \mathbb{N}$.
 The file provides:
 - [`fromPairIndex`](../Nuclear/NuclearTensorProduct.lean#L340) / [`toPairIndex`](../Nuclear/NuclearTensorProduct.lean#L343) — Cantor pairing wrappers
 - [`nat_pair_bound`](../Nuclear/NuclearTensorProduct.lean#L298) — $\text{pair}(n,m) \le (n+m+1)^2$ (used for growth bounds in `SchwartzNuclear/`)
-- Inherited `NuclearSpace` instance via `rapidDecay_nuclearSpace`
+- Inherited `DyninMityaginSpace` instance via `rapidDecay_dyninMityaginSpace`
 
 ## Key Mathlib Dependencies
 
 - `Mathlib.Analysis.LocallyConvex.WithSeminorms` — seminorm families, locally convex topologies
 - `Mathlib.Topology.Algebra.InfiniteSum.Basic` — `tsum`, `HasSum`, `Summable`
-- `Mathlib.Analysis.InnerProductSpace.Basic` — inner product for `expansion_H`
+- `Mathlib.Analysis.InnerProductSpace.Basic` — inner product for `DyninMityaginSpace.expansion_H`

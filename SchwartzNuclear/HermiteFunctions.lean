@@ -12,7 +12,7 @@ Sobolev-Hermite levels Hilbert-Schmidt (and their compositions trace-class).
 This file provides:
 - Definitions of Hermite functions (1D and multi-dimensional)
 - Key properties as axioms (L² orthonormality, Schwartz membership, seminorm bounds)
-- These properties are sufficient to prove `schwartz_nuclear` (in NuclearSpace.lean)
+- These properties are sufficient to prove `schwartz_nuclear` (in DyninMityagin.lean)
 
 The polynomial infrastructure is available in
   ../auto1/lean/SpecialFunctions/Hermite/Basic.lean

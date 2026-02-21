@@ -2,15 +2,15 @@
 Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 
-# NuclearSpace Instance for Schwartz Space
+# DyninMityaginSpace Instance for Schwartz Space
 
-Derives the `NuclearSpace (SchwartzMap D ℝ)` instance from the topological
+Derives the `DyninMityaginSpace (SchwartzMap D ℝ)` instance from the topological
 isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` constructed in
 `SchwartzNuclear.HermiteTensorProduct`.
 
 ## Main result
 
-- `schwartz_nuclearSpace`: the `NuclearSpace` instance for Schwartz space
+- `schwartz_dyninMityaginSpace`: the `DyninMityaginSpace` instance for Schwartz space
   on any nontrivial finite-dimensional real normed space.
 -/
 
@@ -22,10 +22,10 @@ open GaussianField
 
 namespace GaussianField
 
-/-! ## Deriving NuclearSpace from the Isomorphism
+/-! ## Deriving DyninMityaginSpace from the Isomorphism
 
 Given `equiv : SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`, we construct
-the `NuclearSpace` instance by:
+the `DyninMityaginSpace` instance by:
 - **basis** m := equiv.symm (basisVec m)
 - **coeff** m := coeffCLM m ∘ equiv
 - **expansion**: from `rapidDecay_expansion` transferred through equiv
@@ -149,7 +149,7 @@ private theorem schwartz_coeff_decay_from_equiv
     exact this
   linarith
 
-/-! ## The NuclearSpace Instance -/
+/-! ## The DyninMityaginSpace Instance -/
 
 /-- **Schwartz space is a nuclear Fréchet space.**
 
@@ -159,8 +159,8 @@ basis/coefficient system derived from the topological isomorphism
 
 Proved via the topological isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`
 constructed from multi-dimensional Hermite analysis. -/
-noncomputable instance schwartz_nuclearSpace [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ) where
+noncomputable instance schwartz_dyninMityaginSpace [Nontrivial D] :
+    DyninMityaginSpace (SchwartzMap D ℝ) where
   ι := ℕ × ℕ
   p := fun ⟨k, l⟩ => SchwartzMap.seminorm ℝ k l
   h_with := schwartz_withSeminorms ℝ D ℝ

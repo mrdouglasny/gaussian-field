@@ -11,7 +11,7 @@ is the standard construction in constructive QFT and lattice field theory.
 ### Continuum side
 
 - $E$ = smooth functions on the target manifold (e.g., $C^\infty(T^2)$),
-  a nuclear Fréchet space with `[NuclearSpace E]`
+  a nuclear Fréchet space with `[DyninMityaginSpace E]`
 - $T : E \to H$ = continuum covariance operator
   (e.g., $(-\Delta + m^2)^{-1/2}$)
 - `measure T` on `Configuration E` = the target Gaussian measure $\mu$
@@ -63,7 +63,7 @@ quadratic form.
 abbrev Lattice (n : ℕ) := Fin (2^n) × Fin (2^n)
 
 -- Lattice function space (trivially nuclear)
-instance : NuclearSpace (Lattice n → ℝ) := ...  -- finite-dim
+instance : DyninMityaginSpace (Lattice n → ℝ) := ...  -- finite-dim
 
 -- Restriction: sample smooth function at lattice points
 variable (r : ∀ n, E →L[ℝ] (Lattice n → ℝ))
@@ -115,7 +115,7 @@ The library handles:
 
 ## What's needed beyond the current library
 
-1. **Finite-dimensional `NuclearSpace` instance.** For $\Lambda_n \to \mathbb{R}$
+1. **Finite-dimensional `DyninMityaginSpace` instance.** For $\Lambda_n \to \mathbb{R}$
    this is trivial: standard basis, identity coefficients, all sums finite.
 
 2. **Dual maps and pushforward.** Given $r_n : E \to E_n$, the dual map

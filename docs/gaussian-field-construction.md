@@ -28,12 +28,12 @@ The construction proceeds by:
 
 ## Shared Infrastructure (`Nuclear/`)
 
-These files define the `NuclearSpace` typeclass and Köthe sequence spaces, shared by both
+These files define the `DyninMityaginSpace` typeclass and Köthe sequence spaces, shared by both
 `SchwartzNuclear/` and `GaussianField/`:
 
 | File | Lines | Description |
 |------|------:|-------------|
-| [`NuclearSpace.lean`](../Nuclear/NuclearSpace.lean) | 76 | [`NuclearSpace`](../Nuclear/NuclearSpace.lean#L41) typeclass |
+| [`DyninMityagin.lean`](../Nuclear/DyninMityagin.lean) | 76 | [`DyninMityaginSpace`](../Nuclear/DyninMityagin.lean#L41) typeclass |
 | [`NuclearTensorProduct.lean`](../Nuclear/NuclearTensorProduct.lean) | 355 | [`RapidDecaySeq`](../Nuclear/NuclearTensorProduct.lean#L43), [`rapidDecaySeminorm`](../Nuclear/NuclearTensorProduct.lean#L118), tensor product instance |
 
 ## File Structure
@@ -51,7 +51,7 @@ These files define the `NuclearSpace` typeclass and Köthe sequence spaces, shar
 ## Dependency Graph
 
 ```
-NuclearSpace (Nuclear/)
+DyninMityaginSpace (Nuclear/)
 ├── NuclearTensorProduct (Nuclear/, Kothe sequence space, used by SchwartzNuclear/)
 ├── NuclearFactorization (source-indexed decomposition)
 │   └── TargetFactorization (target-indexed, uses NuclearSVD)
@@ -63,9 +63,9 @@ NuclearSpace (Nuclear/)
 
 ## What Is Proved
 
-### Nuclear Space Typeclass ([`NuclearSpace.lean`](../Nuclear/NuclearSpace.lean))
+### Nuclear Space Typeclass ([`DyninMityagin.lean`](../Nuclear/DyninMityagin.lean))
 
-[`NuclearSpace E`](../Nuclear/NuclearSpace.lean#L41) requires a Schauder-like basis `{ψ_m}` with:
+[`DyninMityaginSpace E`](../Nuclear/DyninMityagin.lean#L41) requires a Schauder-like basis `{ψ_m}` with:
 - **Expansion**: every CLF $\varphi$ satisfies $\varphi(f) = \sum_m c_m(f)\,\varphi(\psi_m)$
 - **Basis growth**: $p_i(\psi_m) \le C(1+m)^s$ for each seminorm $p_i$
 - **Coefficient decay**: $|c_m(f)|(1+m)^k \le C\,p_S(f)$ for each $k$

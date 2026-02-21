@@ -6,9 +6,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 This is the root import file for the project. It exports two main results:
 
-## Result 1: Schwartz space is a nuclear Fréchet space
+## Result 1: Schwartz space satisfies the Dynin-Mityagin characterization
 
-`schwartz_nuclearSpace : NuclearSpace (SchwartzMap D ℝ)`
+`schwartz_dyninMityaginSpace : DyninMityaginSpace (SchwartzMap D ℝ)`
 
 Proved via the Hermite function basis for 𝓢(ℝ) and the sequence space
 isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`. See `SchwartzNuclear/`.
@@ -25,8 +25,8 @@ See `GaussianField/Construction.lean` and `GaussianField/Properties.lean`.
 
 ## Axiom fallback
 
-To use the axiom version of `schwartz_nuclearSpace` instead of the full proof,
-replace `import SchwartzNuclear` below with `import Nuclear.NuclearSpace`
+To use the axiom version of `schwartz_dyninMityaginSpace` instead of the full proof,
+replace `import SchwartzNuclear` below with `import Nuclear.DyninMityagin`
 and uncomment the axiom block at the bottom of this file.
 
 ## References
@@ -36,7 +36,7 @@ and uncomment the axiom block at the bottom of this file.
 
 import SchwartzNuclear
 import Nuclear.NuclearTensorProduct
-import Nuclear.PietschNuclear
+import Nuclear.NuclearSpace
 import GaussianField.SpectralTheorem
 import GaussianField.NuclearSVD
 import GaussianField.NuclearFactorization
@@ -47,21 +47,21 @@ import GaussianField.Properties
 /-! ### Axiom fallback (inactive)
 
 Uncomment the block below and replace `import SchwartzNuclear` with
-`import Nuclear.NuclearSpace` to use the axiom version. This is
+`import Nuclear.DyninMityagin` to use the axiom version. This is
 safe: the proven instance in `SchwartzNuclear.HermiteTensorProduct`
 establishes the same result as a theorem.
 
 ```
 open GaussianField
 
-axiom schwartz_nuclearSpace_axiom
+axiom schwartz_dyninMityaginSpace_axiom
     (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
     [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ)
+    DyninMityaginSpace (SchwartzMap D ℝ)
 
 noncomputable instance (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
-    NuclearSpace (SchwartzMap D ℝ) :=
-  schwartz_nuclearSpace_axiom D
+    DyninMityaginSpace (SchwartzMap D ℝ) :=
+  schwartz_dyninMityaginSpace_axiom D
 ```
 -/

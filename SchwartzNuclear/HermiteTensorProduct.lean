@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Nuclear Space Instance for Schwartz Space via Sequence Space Isomorphism
 
-Proves `NuclearSpace (SchwartzMap D ℝ)` for any finite-dimensional `D`.
+Proves `DyninMityaginSpace (SchwartzMap D ℝ)` for any finite-dimensional `D`.
 **0 sorrys, 0 axioms.**
 
 ## Strategy
@@ -16,7 +16,7 @@ of rapidly decreasing sequences (Dynin-Mityagin). The isomorphism is:
   Hermite functions indexed by `Fin d → ℕ`, flattened via a polynomially-bounded
   bijection `ℕ^d → ℕ`.
 
-The `NuclearSpace` instance is derived from this isomorphism by transferring
+The `DyninMityaginSpace` instance is derived from this isomorphism by transferring
 the basis, coefficients, expansion, growth, and decay properties through
 the continuous linear equivalence.
 
