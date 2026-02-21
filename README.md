@@ -178,7 +178,7 @@ $\mathcal{D}' = \bigcup_k H^{-k}$ (distributions), which contains every $H^{-k}$
 
 **Half-line via Laguerre basis.** Laguerre functions on $\mathbb{R}_+$ play the role of Hermite functions on $\mathbb{R}$. Growth and decay estimates map 1:1 to the Hermite case.
 
-**Tensor products via Kothe sequences.** Given `DyninMityaginSpace E` and `DyninMityaginSpace F`, the tensor product basis is $\{\psi_i \otimes \varphi_j\}$ indexed by $\mathbb{N} \times \mathbb{N}$ (Cantor pairing to $\mathbb{N}$). Product weights give polynomial growth; product decays give super-polynomial decay.
+**Tensor products via Kothe sequences (implemented).** Given `DyninMityaginSpace E` and `DyninMityaginSpace F`, the tensor product `NuclearTensorProduct E F` is realized as `RapidDecaySeq` with basis indices encoded via Cantor pairing $\mathbb{N}^2 \to \mathbb{N}$. The pure tensor embedding `pure e₁ e₂` is proved bilinear (`pureLin`) and jointly continuous (`pure_continuous`), with the seminorm bound factoring through the Cantor pairing arithmetic.
 
 ## End-to-end workflow: from spaces to measures
 
@@ -241,19 +241,22 @@ instance : DyninMityaginSpace (PeriodicLattice N) where
 -- DyninMityaginSpace instance — it parameterizes the Laplacian operator
 ```
 
-#### Tensor products (planned)
+#### Tensor products (implemented)
 
 ```lean
 -- Generic: given DyninMityaginSpace E₁ and DyninMityaginSpace E₂, build E₁ ⊗̂ E₂
 -- Defined as a Köthe sequence space — no abstract tensor product theory needed
-structure NuclearTensorProduct (E₁ E₂ : Type*) [DyninMityaginSpace E₁] [DyninMityaginSpace E₂] := ...
+def NuclearTensorProduct (E₁ E₂ : Type*) := RapidDecaySeq
 
-instance : DyninMityaginSpace (NuclearTensorProduct E₁ E₂) where
-  ι := ι₁ × ι₂                      -- product seminorm index
-  basis := fun m =>                   -- product basis via Cantor pairing
-    let (i,j) := Nat.unpair m
-    basis₁ i ⊗ basis₂ j
-  ...
+-- Inherited DyninMityaginSpace instance (RapidDecaySeq is nuclear)
+instance : DyninMityaginSpace (NuclearTensorProduct E₁ E₂) := ...
+
+-- Pure tensor embedding: bilinear and jointly continuous
+-- pure e₁ e₂ = m ↦ coeff(unpair(m).1, e₁) * coeff(unpair(m).2, e₂)
+def pure (e₁ : E₁) (e₂ : E₂) : NuclearTensorProduct E₁ E₂ := ...
+def pureLin : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] NuclearTensorProduct E₁ E₂ := ...
+def pureCLM_right (e₁ : E₁) : E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ := ...
+theorem pure_continuous : Continuous (fun p : E₁ × E₂ => pure p.1 p.2) := ...
 
 -- Specific product spaces are abbreviations:
 abbrev Torus2 (L₁ L₂) := NuclearTensorProduct (SmoothCircle L₁) (SmoothCircle L₂)
@@ -437,7 +440,7 @@ sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
 |------|------:|----------|
 | [DyninMityagin.lean](Nuclear/DyninMityagin.lean) | 76 | `DyninMityaginSpace` typeclass (Dynin-Mityagin), `expansion_H` lemma |
 | [NuclearSpace.lean](Nuclear/NuclearSpace.lean) | 358 | `NuclearSpace` typeclass (Pietsch), Hahn-Banach for seminorms, DM -> Pietsch implication |
-| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 355 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct` |
+| [NuclearTensorProduct.lean](Nuclear/NuclearTensorProduct.lean) | 831 | `RapidDecaySeq`, `rapidDecaySeminorm`, Cantor pairing, `NuclearTensorProduct`, `pure` (bilinear, jointly continuous) |
 
 #### Two definitions of nuclearity
 
@@ -529,7 +532,7 @@ An axiom fallback is available as an inactive comment in `GaussianField.lean` fo
 
 ## Future work
 
-- **New instances**: $C^\infty(S^1)$, $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces, tensor products (see [concrete instances](docs/concrete-instances.md))
+- **New instances**: $C^\infty(S^1)$, $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
 - **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
 - **Lattice-continuum limits**: Formalize convergence via characteristic functionals (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
 - **Support theorems / Besov regularity**: The `pairing_memLp` result (Fernique-type $L^p$ bounds) is the first step toward showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate $s, p, q$

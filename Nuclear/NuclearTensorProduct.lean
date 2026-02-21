@@ -29,8 +29,10 @@ The tensor product s(ℕ) ⊗̂ s(ℕ) ≅ s(ℕ²) ≅ s(ℕ) via Cantor pairin
 
 import Nuclear.DyninMityagin
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
+import Mathlib.Analysis.PSeries
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Order
+import Mathlib.Topology.Algebra.InfiniteSum.Ring
 
 noncomputable section
 
@@ -290,7 +292,103 @@ instance rapidDecay_dyninMityaginSpace : DyninMityaginSpace RapidDecaySeq where
     exact (a.rapid_decay k).le_tsum m
       (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j k))⟩
 
+/-! ### Helper lemmas for seminorm transfer -/
+
+/-- Monotonicity of rapid-decay seminorms: for j ≤ j', seminorm j ≤ seminorm j'. -/
+theorem rapidDecaySeminorm_mono {j j' : ℕ} (hjj : j ≤ j') :
+    rapidDecaySeminorm j ≤ rapidDecaySeminorm j' := by
+  intro a
+  show ∑' m, |a.val m| * (1 + (m : ℝ)) ^ j ≤ ∑' m, |a.val m| * (1 + (m : ℝ)) ^ j'
+  apply (a.rapid_decay j).tsum_le_tsum _ (a.rapid_decay j')
+  intro m
+  apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+  exact pow_le_pow_right₀ (le_add_of_nonneg_right (Nat.cast_nonneg m)) hjj
+
+/-- The sup of rapid-decay seminorms over a finset is bounded by the seminorm
+at the max index. -/
+theorem finset_sup_rapidDecaySeminorm_le (s : Finset ℕ) :
+    s.sup rapidDecaySeminorm ≤ rapidDecaySeminorm (s.sup id) := by
+  apply Finset.sup_le
+  intro j hj
+  exact rapidDecaySeminorm_mono (Finset.le_sup (f := id) hj)
+
+/-- The sup of rapid-decay seminorms evaluated at a basis vector gives
+polynomial growth. -/
+theorem finset_sup_rapidDecaySeminorm_basisVec_le (s : Finset ℕ) (m : ℕ) :
+    (s.sup rapidDecaySeminorm) (basisVec m) ≤ (1 + (m : ℝ)) ^ (s.sup id) := by
+  calc (s.sup rapidDecaySeminorm) (basisVec m)
+      ≤ rapidDecaySeminorm (s.sup id) (basisVec m) :=
+        finset_sup_rapidDecaySeminorm_le s (basisVec m)
+    _ = (1 + (m : ℝ)) ^ (s.sup id) :=
+        rapidDecaySeminorm_basisVec _ m
+
 end RapidDecaySeq
+
+/-! ### Transfer constructor for DyninMityaginSpace -/
+
+/-- Transfer a `DyninMityaginSpace` structure from `RapidDecaySeq` to any space
+that is continuously linearly equivalent to it. Given seminorms `p` with
+`WithSeminorms p` and a CLE `equiv : E ≃L[ℝ] RapidDecaySeq`, constructs the
+DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
+`coeff m := coeffCLM m ∘ equiv`. -/
+noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
+    {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
+    (equiv : E ≃L[ℝ] RapidDecaySeq) : DyninMityaginSpace E where
+  ι := ι
+  p := p
+  h_with := hp
+  basis m := equiv.symm (RapidDecaySeq.basisVec m)
+  coeff m := (RapidDecaySeq.coeffCLM m).comp equiv.toContinuousLinearMap
+  expansion φ f := by
+    show φ f = ∑' m, (equiv f).val m * φ (equiv.symm (RapidDecaySeq.basisVec m))
+    have h := RapidDecaySeq.rapidDecay_expansion
+      (φ.comp equiv.symm.toContinuousLinearMap) (equiv f)
+    simp only [ContinuousLinearMap.comp_apply] at h
+    rwa [show (↑equiv.symm : RapidDecaySeq →L[ℝ] E) (equiv f) = f from
+      equiv.symm_apply_apply f] at h
+  basis_growth i := by
+    set q : Seminorm ℝ RapidDecaySeq := (p i).comp equiv.symm.toLinearMap
+    have hq_cont : Continuous q :=
+      (hp.continuous_seminorm i).comp equiv.symm.continuous
+    obtain ⟨s_fin, C_nn, hC_nn, hle⟩ :=
+      Seminorm.bound_of_continuous RapidDecaySeq.rapidDecay_withSeminorms q hq_cont
+    set N := s_fin.sup id
+    have hC_pos : (0 : ℝ) < C_nn := NNReal.coe_pos.mpr (bot_lt_iff_ne_bot.mpr hC_nn)
+    refine ⟨(C_nn : ℝ), hC_pos, N, fun m => ?_⟩
+    calc p i (equiv.symm (RapidDecaySeq.basisVec m))
+        = q (RapidDecaySeq.basisVec m) := rfl
+      _ ≤ C_nn • (s_fin.sup RapidDecaySeq.rapidDecaySeminorm) (RapidDecaySeq.basisVec m) :=
+          hle (RapidDecaySeq.basisVec m)
+      _ ≤ (C_nn : ℝ) * (1 + (m : ℝ)) ^ N := by
+          simp only [NNReal.smul_def, smul_eq_mul]
+          exact mul_le_mul_of_nonneg_left
+            (RapidDecaySeq.finset_sup_rapidDecaySeminorm_basisVec_le s_fin m)
+            (NNReal.coe_nonneg C_nn)
+  coeff_decay k := by
+    set q : Seminorm ℝ E := (RapidDecaySeq.rapidDecaySeminorm k).comp equiv.toLinearMap
+    have hq_cont : Continuous q :=
+      (RapidDecaySeq.rapidDecay_withSeminorms.continuous_seminorm k).comp equiv.continuous
+    obtain ⟨s_fin, C_nn, hC_nn, hle⟩ :=
+      Seminorm.bound_of_continuous hp q hq_cont
+    have hC_pos : (0 : ℝ) < C_nn := NNReal.coe_pos.mpr (bot_lt_iff_ne_bot.mpr hC_nn)
+    refine ⟨(C_nn : ℝ), hC_pos, s_fin, fun f m => ?_⟩
+    have h_le_tsum : |(RapidDecaySeq.coeffCLM m (equiv f))| * (1 + (m : ℝ)) ^ k ≤
+        RapidDecaySeq.rapidDecaySeminorm k (equiv f) := by
+      show |(equiv f).val m| * (1 + (m : ℝ)) ^ k ≤
+        ∑' n, |(equiv f).val n| * (1 + (n : ℝ)) ^ k
+      exact ((equiv f).rapid_decay k).le_tsum m
+        (fun j _ => mul_nonneg (abs_nonneg _) (RapidDecaySeq.weight_nonneg j k))
+    have h_bound : RapidDecaySeq.rapidDecaySeminorm k (equiv f) ≤
+        (C_nn : ℝ) * (s_fin.sup p) f := by
+      have := hle f
+      simp only [Seminorm.smul_apply,
+        NNReal.smul_def, smul_eq_mul] at this
+      exact this
+    show |(RapidDecaySeq.coeffCLM m (equiv f))| * (1 + (m : ℝ)) ^ k ≤
+      (C_nn : ℝ) * (s_fin.sup p) f
+    exact le_trans h_le_tsum h_bound
 
 /-! ## Cantor Pairing Bound -/
 
@@ -317,11 +415,21 @@ namespace NuclearTensorProduct
 
 variable {E₁ E₂ : Type*}
 
+@[ext]
+theorem ext {a b : NuclearTensorProduct E₁ E₂} (h : ∀ m, a.val m = b.val m) : a = b :=
+  RapidDecaySeq.ext h
+
 instance : AddCommGroup (NuclearTensorProduct E₁ E₂) :=
   inferInstanceAs (AddCommGroup RapidDecaySeq)
 
 instance : Module ℝ (NuclearTensorProduct E₁ E₂) :=
   inferInstanceAs (Module ℝ RapidDecaySeq)
+
+@[simp] theorem add_val (a b : NuclearTensorProduct E₁ E₂) (m : ℕ) :
+    (a + b).val m = a.val m + b.val m := rfl
+
+@[simp] theorem smul_val (r : ℝ) (a : NuclearTensorProduct E₁ E₂) (m : ℕ) :
+    (r • a).val m = r * a.val m := rfl
 
 instance : TopologicalSpace (NuclearTensorProduct E₁ E₂) :=
   inferInstanceAs (TopologicalSpace RapidDecaySeq)
@@ -349,6 +457,374 @@ theorem toPairIndex_fromPairIndex (n m : ℕ) :
 theorem fromPairIndex_toPairIndex (p : ℕ) :
     fromPairIndex (toPairIndex p).1 (toPairIndex p).2 = p :=
   Nat.pair_unpair p
+
+/-! ### Pure tensor embedding -/
+
+/-- The Cantor pairing as an equivalence `ℕ ≃ ℕ × ℕ`. -/
+private def natUnpairEquiv : ℕ ≃ ℕ × ℕ where
+  toFun := Nat.unpair
+  invFun p := Nat.pair p.1 p.2
+  left_inv := Nat.pair_unpair
+  right_inv p := Nat.unpair_pair p.1 p.2
+
+/-- `∑_n 1/(1+n)^2` converges, as a shifted version of `∑ 1/n^2`. -/
+private theorem summable_inv_one_add_sq :
+    Summable (fun n : ℕ => ((1 + (n : ℝ)) ^ 2)⁻¹) := by
+  -- Reindex: (fun n => ((1 + n)^2)⁻¹) = (fun n => (n^2)⁻¹) ∘ (· + 1)
+  have h_eq : (fun n : ℕ => ((1 + (n : ℝ)) ^ 2)⁻¹) =
+      (fun n : ℕ => (((n : ℝ)) ^ 2)⁻¹) ∘ (· + 1) := by
+    ext n; simp [Function.comp, add_comm]
+  rw [h_eq]
+  apply Summable.comp_injective
+  · exact Real.summable_nat_pow_inv.mpr (by norm_num : 1 < 2)
+  · exact fun a b hab => by omega
+
+/-- The inverse-square series over Cantor-paired indices converges:
+`∑_m 1/((1+fst(m))² · (1+snd(m))²)` is finite. -/
+private theorem summable_unpair_inv_sq :
+    Summable (fun m : ℕ =>
+      ((1 + ((Nat.unpair m).1 : ℝ)) ^ 2 * (1 + ((Nat.unpair m).2 : ℝ)) ^ 2)⁻¹) := by
+  -- Rewrite as product of inverse squares, transfer to ℕ×ℕ via pairing equiv,
+  -- then factor as product of two convergent series
+  have h_eq : (fun m => ((1 + ((Nat.unpair m).1 : ℝ)) ^ 2 *
+      (1 + ((Nat.unpair m).2 : ℝ)) ^ 2)⁻¹) =
+    (fun p : ℕ × ℕ => ((1 + (p.1 : ℝ)) ^ 2)⁻¹ * ((1 + (p.2 : ℝ)) ^ 2)⁻¹) ∘
+      natUnpairEquiv := by ext m; simp [natUnpairEquiv, mul_inv_rev, mul_comm]
+  rw [h_eq, natUnpairEquiv.summable_iff]
+  set g : ℕ × ℕ → ℝ := fun p => ((1 + (p.1 : ℝ)) ^ 2)⁻¹ * ((1 + (p.2 : ℝ)) ^ 2)⁻¹
+  show Summable g
+  have hg_nn : 0 ≤ g := fun p => by dsimp [g]; positivity
+  have h1 : ∀ x, Summable fun y => g (x, y) := fun x => by
+    dsimp [g]
+    exact summable_inv_one_add_sq.mul_left _
+  have h2 : Summable fun x => ∑' y, g (x, y) := by
+    have : (fun x : ℕ => ∑' y, g (x, y)) = fun x : ℕ =>
+        ((1 + (x : ℝ)) ^ 2)⁻¹ * ∑' (y : ℕ), ((1 + (y : ℝ)) ^ 2)⁻¹ := by
+      ext x; dsimp [g]; rw [tsum_mul_left]
+    rw [this]
+    exact summable_inv_one_add_sq.mul_right _
+  exact (summable_prod_of_nonneg hg_nn).mpr ⟨h1, h2⟩
+
+/-- Arithmetic bound: `(1 + Nat.pair i j) ≤ (2 * (1 + i) * (1 + j)) ^ 2`.
+
+Used to transfer rapid decay of individual coefficient sequences to rapid
+decay of the tensor product sequence indexed via Cantor pairing. -/
+private theorem one_add_pair_le_sq (i j : ℕ) :
+    (1 + (Nat.pair i j : ℝ)) ≤ (2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2 := by
+  have hi : (0 : ℝ) ≤ i := Nat.cast_nonneg i
+  have hj : (0 : ℝ) ≤ j := Nat.cast_nonneg j
+  have h_pair : (Nat.pair i j : ℝ) ≤ ((i : ℝ) + j + 1) ^ 2 := by
+    exact_mod_cast nat_pair_bound i j
+  calc (1 : ℝ) + Nat.pair i j
+      ≤ 1 + (i + j + 1) ^ 2 := by linarith
+    _ ≤ (i + j + 2) ^ 2 := by nlinarith
+    _ ≤ (2 * (1 + i) * (1 + j)) ^ 2 := by
+        exact pow_le_pow_left₀ (by positivity) (by nlinarith) _
+
+/-- The pure tensor map: given `e₁ : E₁` and `e₂ : E₂` with DM structure,
+produces the sequence `m ↦ coeff(unpair(m).1, e₁) * coeff(unpair(m).2, e₂)`.
+
+This is the bilinear embedding `E₁ × E₂ → E₁ ⊗̂ E₂` realized at the level
+of Köthe sequence spaces. -/
+noncomputable def pure
+    [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁]
+    [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂]
+    [DyninMityaginSpace E₁] [DyninMityaginSpace E₂]
+    (e₁ : E₁) (e₂ : E₂) : NuclearTensorProduct E₁ E₂ :=
+  (⟨fun m =>
+    let p := Nat.unpair m
+    DyninMityaginSpace.coeff p.1 e₁ * DyninMityaginSpace.coeff p.2 e₂,
+  fun k => by
+    -- Strategy: bound each term by B/(1+i)²(1+j)² where (i,j) = unpair m,
+    -- then show the bounding series converges.
+    -- Get uniform bounds from coeff_decay at exponent 2k+2
+    obtain ⟨C₁, hC₁_pos, s₁, hs₁⟩ := DyninMityaginSpace.coeff_decay (E := E₁) (2 * k + 2)
+    obtain ⟨C₂, hC₂_pos, s₂, hs₂⟩ := DyninMityaginSpace.coeff_decay (E := E₂) (2 * k + 2)
+    set B₁ := C₁ * (s₁.sup DyninMityaginSpace.p) e₁
+    set B₂ := C₂ * (s₂.sup DyninMityaginSpace.p) e₂
+    have hc₁ : ∀ n, |DyninMityaginSpace.coeff n e₁| * (1 + (n : ℝ)) ^ (2 * k + 2) ≤ B₁ :=
+      fun n => hs₁ e₁ n
+    have hc₂ : ∀ n, |DyninMityaginSpace.coeff n e₂| * (1 + (n : ℝ)) ^ (2 * k + 2) ≤ B₂ :=
+      fun n => hs₂ e₂ n
+    apply Summable.of_nonneg_of_le
+    · intro m; exact mul_nonneg (abs_nonneg _) (RapidDecaySeq.weight_nonneg m k)
+    · intro m
+      set i := (Nat.unpair m).1
+      set j := (Nat.unpair m).2
+      show |DyninMityaginSpace.coeff i e₁ * DyninMityaginSpace.coeff j e₂| *
+        (1 + (m : ℝ)) ^ k ≤
+        B₁ * B₂ * (4 : ℝ) ^ k / ((1 + (i : ℝ)) ^ 2 * (1 + (j : ℝ)) ^ 2)
+      rw [abs_mul]
+      have hm_eq : m = Nat.pair i j := (Nat.pair_unpair m).symm
+      have hi_pos : (0 : ℝ) < 1 + (i : ℝ) := by positivity
+      have hj_pos : (0 : ℝ) < 1 + (j : ℝ) := by positivity
+      -- Key: (1+m)^k ≤ 4^k * (1+i)^{2k} * (1+j)^{2k}
+      have h_weight : (1 + (m : ℝ)) ^ k ≤
+          (4 : ℝ) ^ k * (1 + (i : ℝ)) ^ (2 * k) * (1 + (j : ℝ)) ^ (2 * k) := by
+        have h1 : (1 + (m : ℝ)) ^ k ≤
+            ((2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2) ^ k := by
+          rw [hm_eq]
+          exact pow_le_pow_left₀ (by positivity) (by exact_mod_cast one_add_pair_le_sq i j) _
+        have h2 : ((2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2) ^ k =
+            (4 : ℝ) ^ k * (1 + (i : ℝ)) ^ (2 * k) * (1 + (j : ℝ)) ^ (2 * k) := by
+          have h4 : (4 : ℝ) ^ k = (2 : ℝ) ^ (2 * k) := by
+            rw [show (4 : ℝ) = 2 ^ 2 from by norm_num, ← pow_mul]
+          rw [h4, ← pow_mul, mul_pow, mul_pow]
+        linarith
+      -- From coeff decay: |a_i| * (1+i)^{2k} ≤ B₁ / (1+i)^2
+      have h_a : |DyninMityaginSpace.coeff i e₁| * (1 + (i : ℝ)) ^ (2 * k) ≤
+          B₁ / (1 + (i : ℝ)) ^ 2 := by
+        rw [le_div_iff₀ (pow_pos hi_pos 2)]
+        calc |DyninMityaginSpace.coeff i e₁| * (1 + ↑i) ^ (2 * k) * (1 + ↑i) ^ 2
+            = |DyninMityaginSpace.coeff i e₁| * ((1 + ↑i) ^ (2 * k) * (1 + ↑i) ^ 2) :=
+              by ring
+          _ = |DyninMityaginSpace.coeff i e₁| * (1 + ↑i) ^ (2 * k + 2) := by
+              rw [← pow_add]
+          _ ≤ B₁ := hc₁ i
+      have h_b : |DyninMityaginSpace.coeff j e₂| * (1 + (j : ℝ)) ^ (2 * k) ≤
+          B₂ / (1 + (j : ℝ)) ^ 2 := by
+        rw [le_div_iff₀ (pow_pos hj_pos 2)]
+        calc |DyninMityaginSpace.coeff j e₂| * (1 + ↑j) ^ (2 * k) * (1 + ↑j) ^ 2
+            = |DyninMityaginSpace.coeff j e₂| * ((1 + ↑j) ^ (2 * k) * (1 + ↑j) ^ 2) :=
+              by ring
+          _ = |DyninMityaginSpace.coeff j e₂| * (1 + ↑j) ^ (2 * k + 2) := by
+              rw [← pow_add]
+          _ ≤ B₂ := hc₂ j
+      -- Combine the bounds
+      calc |DyninMityaginSpace.coeff i e₁| * |DyninMityaginSpace.coeff j e₂| *
+            (1 + (m : ℝ)) ^ k
+          ≤ |DyninMityaginSpace.coeff i e₁| * |DyninMityaginSpace.coeff j e₂| *
+            ((4 : ℝ) ^ k * (1 + ↑i) ^ (2 * k) * (1 + ↑j) ^ (2 * k)) :=
+              mul_le_mul_of_nonneg_left h_weight (by positivity)
+        _ = (|DyninMityaginSpace.coeff i e₁| * (1 + ↑i) ^ (2 * k)) *
+            (|DyninMityaginSpace.coeff j e₂| * (1 + ↑j) ^ (2 * k)) * (4 : ℝ) ^ k := by
+              ring
+        _ ≤ (B₁ / (1 + ↑i) ^ 2) * (B₂ / (1 + ↑j) ^ 2) * (4 : ℝ) ^ k := by
+              apply mul_le_mul_of_nonneg_right _ (by positivity)
+              exact mul_le_mul h_a h_b
+                (mul_nonneg (abs_nonneg _) (by positivity)) (by positivity)
+        _ = B₁ * B₂ * (4 : ℝ) ^ k / ((1 + ↑i) ^ 2 * (1 + ↑j) ^ 2) := by
+              field_simp
+    · -- Summability: ∑_m B₁*B₂*4^k / ((1+i)²*(1+j)²) converges
+      have hconst : (0 : ℝ) ≤ B₁ * B₂ * (4 : ℝ) ^ k := by positivity
+      simp_rw [div_eq_mul_inv]
+      exact (summable_unpair_inv_sq.mul_left (B₁ * B₂ * (4 : ℝ) ^ k))⟩ : RapidDecaySeq)
+
+variable [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁]
+    [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂]
+    [DyninMityaginSpace E₁] [DyninMityaginSpace E₂]
+
+@[simp] theorem pure_val (e₁ : E₁) (e₂ : E₂) (m : ℕ) :
+    (pure e₁ e₂).val m =
+      DyninMityaginSpace.coeff (Nat.unpair m).1 e₁ *
+      DyninMityaginSpace.coeff (Nat.unpair m).2 e₂ := rfl
+
+/-- Seminorm bound for the pure tensor: for each target seminorm index `k`,
+there exist constants `C`, source seminorm index sets `s₁, s₂` such that
+`rapidDecaySeminorm k (pure e₁ e₂) ≤ C * (s₁.sup p) e₁ * (s₂.sup p) e₂`. -/
+theorem pure_seminorm_bound (k : ℕ) :
+    ∃ (C : NNReal) (s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _))
+      (s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)),
+    ∀ (e₁ : E₁) (e₂ : E₂), RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂) ≤
+      C * (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ := by
+  obtain ⟨C₁, hC₁_pos, s₁, hs₁⟩ := DyninMityaginSpace.coeff_decay (E := E₁) (2 * k + 2)
+  obtain ⟨C₂, hC₂_pos, s₂, hs₂⟩ := DyninMityaginSpace.coeff_decay (E := E₂) (2 * k + 2)
+  -- The constant is C₁ * C₂ * 4^k * (tsum of inverse squares)
+  set T := ∑' (m : ℕ), ((1 + ((Nat.unpair m).1 : ℝ)) ^ 2 *
+      (1 + ((Nat.unpair m).2 : ℝ)) ^ 2)⁻¹
+  have hT_pos : 0 < T :=
+    summable_unpair_inv_sq.tsum_pos (fun m => by positivity) 0 (by positivity)
+  have hC_nn : (0 : ℝ) ≤ C₁ * C₂ * (4 : ℝ) ^ k * T := by positivity
+  refine ⟨⟨C₁ * C₂ * (4 : ℝ) ^ k * T, hC_nn⟩, s₁, s₂, fun e₁ e₂ => ?_⟩
+  -- The seminorm is a tsum; bound each term
+  show ∑' m, |(pure e₁ e₂).val m| * (1 + (m : ℝ)) ^ k ≤
+    C₁ * C₂ * (4 : ℝ) ^ k * T *
+    (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂
+  set B₁ := C₁ * (s₁.sup DyninMityaginSpace.p) e₁
+  set B₂ := C₂ * (s₂.sup DyninMityaginSpace.p) e₂
+  -- Each term is bounded by B₁*B₂*4^k / ((1+i)²*(1+j)²)
+  have h_term_bound : ∀ m,
+      |(pure e₁ e₂).val m| * (1 + (m : ℝ)) ^ k ≤
+      B₁ * B₂ * (4 : ℝ) ^ k *
+        ((1 + ((Nat.unpair m).1 : ℝ)) ^ 2 * (1 + ((Nat.unpair m).2 : ℝ)) ^ 2)⁻¹ := by
+    intro m
+    set i := (Nat.unpair m).1
+    set j := (Nat.unpair m).2
+    simp only [pure_val, abs_mul]
+    have hm_eq : m = Nat.pair i j := (Nat.pair_unpair m).symm
+    have hi_pos : (0 : ℝ) < 1 + (i : ℝ) := by positivity
+    have hj_pos : (0 : ℝ) < 1 + (j : ℝ) := by positivity
+    have h_weight : (1 + (m : ℝ)) ^ k ≤
+        (4 : ℝ) ^ k * (1 + (i : ℝ)) ^ (2 * k) * (1 + (j : ℝ)) ^ (2 * k) := by
+      have h1 : (1 + (m : ℝ)) ^ k ≤
+          ((2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2) ^ k := by
+        rw [hm_eq]
+        exact pow_le_pow_left₀ (by positivity) (by exact_mod_cast one_add_pair_le_sq i j) _
+      have h2 : ((2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2) ^ k =
+          (4 : ℝ) ^ k * (1 + (i : ℝ)) ^ (2 * k) * (1 + (j : ℝ)) ^ (2 * k) := by
+        have h4 : (4 : ℝ) ^ k = (2 : ℝ) ^ (2 * k) := by
+          rw [show (4 : ℝ) = 2 ^ 2 from by norm_num, ← pow_mul]
+        rw [h4, ← pow_mul, mul_pow, mul_pow]
+      linarith
+    have h_a : |DyninMityaginSpace.coeff i e₁| * (1 + (i : ℝ)) ^ (2 * k) ≤
+        B₁ / (1 + (i : ℝ)) ^ 2 := by
+      rw [le_div_iff₀ (pow_pos hi_pos 2)]
+      calc |DyninMityaginSpace.coeff i e₁| * (1 + ↑i) ^ (2 * k) * (1 + ↑i) ^ 2
+          = |DyninMityaginSpace.coeff i e₁| * ((1 + ↑i) ^ (2 * k) * (1 + ↑i) ^ 2) := by ring
+        _ = |DyninMityaginSpace.coeff i e₁| * (1 + ↑i) ^ (2 * k + 2) := by rw [← pow_add]
+        _ ≤ B₁ := hs₁ e₁ i
+    have h_b : |DyninMityaginSpace.coeff j e₂| * (1 + (j : ℝ)) ^ (2 * k) ≤
+        B₂ / (1 + (j : ℝ)) ^ 2 := by
+      rw [le_div_iff₀ (pow_pos hj_pos 2)]
+      calc |DyninMityaginSpace.coeff j e₂| * (1 + ↑j) ^ (2 * k) * (1 + ↑j) ^ 2
+          = |DyninMityaginSpace.coeff j e₂| * ((1 + ↑j) ^ (2 * k) * (1 + ↑j) ^ 2) := by ring
+        _ = |DyninMityaginSpace.coeff j e₂| * (1 + ↑j) ^ (2 * k + 2) := by rw [← pow_add]
+        _ ≤ B₂ := hs₂ e₂ j
+    calc |DyninMityaginSpace.coeff i e₁| * |DyninMityaginSpace.coeff j e₂| *
+          (1 + (m : ℝ)) ^ k
+        ≤ |DyninMityaginSpace.coeff i e₁| * |DyninMityaginSpace.coeff j e₂| *
+          ((4 : ℝ) ^ k * (1 + ↑i) ^ (2 * k) * (1 + ↑j) ^ (2 * k)) :=
+            mul_le_mul_of_nonneg_left h_weight (by positivity)
+      _ = (|DyninMityaginSpace.coeff i e₁| * (1 + ↑i) ^ (2 * k)) *
+          (|DyninMityaginSpace.coeff j e₂| * (1 + ↑j) ^ (2 * k)) * (4 : ℝ) ^ k := by ring
+      _ ≤ (B₁ / (1 + ↑i) ^ 2) * (B₂ / (1 + ↑j) ^ 2) * (4 : ℝ) ^ k := by
+            apply mul_le_mul_of_nonneg_right _ (by positivity)
+            exact mul_le_mul h_a h_b
+              (mul_nonneg (abs_nonneg _) (by positivity)) (by positivity)
+      _ = B₁ * B₂ * (4 : ℝ) ^ k / ((1 + ↑i) ^ 2 * (1 + ↑j) ^ 2) := by field_simp
+      _ = B₁ * B₂ * (4 : ℝ) ^ k *
+          ((1 + (i : ℝ)) ^ 2 * (1 + (j : ℝ)) ^ 2)⁻¹ := by rw [div_eq_mul_inv]
+  -- Sum the bound
+  calc ∑' m, |(pure e₁ e₂).val m| * (1 + (m : ℝ)) ^ k
+      ≤ ∑' m, B₁ * B₂ * (4 : ℝ) ^ k *
+          ((1 + ((Nat.unpair m).1 : ℝ)) ^ 2 * (1 + ((Nat.unpair m).2 : ℝ)) ^ 2)⁻¹ := by
+        exact ((pure e₁ e₂).rapid_decay k).tsum_le_tsum h_term_bound
+          ((summable_unpair_inv_sq).mul_left _)
+    _ = B₁ * B₂ * (4 : ℝ) ^ k * T := tsum_mul_left
+    _ = C₁ * C₂ * (4 : ℝ) ^ k * T *
+        (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ := by
+      simp only [B₁, B₂]; ring
+
+/-- The pure tensor map as a bilinear map. -/
+def pureLin : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] NuclearTensorProduct E₁ E₂ where
+  toFun e₁ :=
+    { toFun := fun e₂ => pure e₁ e₂
+      map_add' := fun e₂ e₂' => by
+        ext m; simp only [pure_val, add_val, map_add, mul_add]
+      map_smul' := fun r e₂ => by
+        simp only [RingHom.id_apply]
+        ext m; simp only [pure_val, smul_val, map_smul, smul_eq_mul]; ring }
+  map_add' e₁ e₁' := by
+    apply LinearMap.ext; intro e₂; ext m
+    simp only [pure_val, add_val, LinearMap.coe_mk, AddHom.coe_mk,
+      LinearMap.add_apply, map_add, add_mul]
+  map_smul' r e₁ := by
+    apply LinearMap.ext; intro e₂; ext m
+    simp only [pure_val, smul_val, LinearMap.coe_mk, AddHom.coe_mk,
+      LinearMap.smul_apply, map_smul, smul_eq_mul, RingHom.id_apply, mul_assoc]
+
+/-- For fixed `e₁`, the map `e₂ ↦ pure e₁ e₂` is a continuous linear map.
+Continuity follows from the seminorm bound via `continuous_from_bounded`. -/
+def pureCLM_right (e₁ : E₁) : E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ where
+  toLinearMap := pureLin e₁
+  cont := by
+    apply Seminorm.continuous_from_bounded
+      (DyninMityaginSpace.h_with (E := E₂))
+      RapidDecaySeq.rapidDecay_withSeminorms
+    intro k
+    obtain ⟨C, s₁, s₂, hbound⟩ := pure_seminorm_bound (E₁ := E₁) (E₂ := E₂) k
+    refine ⟨s₂, ⟨C * (s₁.sup DyninMityaginSpace.p) e₁,
+      mul_nonneg (NNReal.coe_nonneg C) (apply_nonneg _ _)⟩, fun e₂ => ?_⟩
+    simp only [Seminorm.comp_apply]
+    exact hbound e₁ e₂
+
+/-- For fixed `e₂`, the map `e₁ ↦ pure e₁ e₂` is continuous. -/
+theorem pure_continuous_left (e₂ : E₂) :
+    Continuous (fun e₁ : E₁ => pure e₁ e₂) := by
+  have : (fun e₁ : E₁ => pure e₁ e₂) = (pureLin (E₁ := E₁) (E₂ := E₂)).flip e₂ := by
+    ext e₁ m; simp [pureLin, pure_val]
+  rw [this]
+  apply Seminorm.continuous_from_bounded
+    (DyninMityaginSpace.h_with (E := E₁))
+    RapidDecaySeq.rapidDecay_withSeminorms
+  intro k
+  obtain ⟨C, s₁, s₂, hbound⟩ := pure_seminorm_bound (E₁ := E₁) (E₂ := E₂) k
+  refine ⟨s₁, ⟨C * (s₂.sup DyninMityaginSpace.p) e₂,
+    mul_nonneg (NNReal.coe_nonneg C) (apply_nonneg _ _)⟩, fun e₁ => ?_⟩
+  simp only [Seminorm.comp_apply]
+  calc RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂)
+      ≤ ↑C * (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ :=
+        hbound e₁ e₂
+    _ = ↑C * (s₂.sup DyninMityaginSpace.p) e₂ * (s₁.sup DyninMityaginSpace.p) e₁ := by ring
+
+/-- A finset sup of seminorms with `WithSeminorms` has its ball in nhds 0. -/
+private theorem finsetSup_seminorm_ball_mem_nhds
+    {F : Type*} [AddCommGroup F] [Module ℝ F] [TopologicalSpace F]
+    [IsTopologicalAddGroup F] [ContinuousSMul ℝ F]
+    {ι' : Type} {q : ι' → Seminorm ℝ F} (hq : WithSeminorms q)
+    (t : Finset ι') {ε : ℝ} (hε : 0 < ε) :
+    {x : F | (t.sup q) x < ε} ∈ nhds (0 : F) := by
+  have hmem : ⋂ i ∈ t, {x : F | q i x < ε} ∈ nhds (0 : F) := by
+    rw [t.iInter_mem_sets]
+    intro i _
+    exact (hq.continuous_seminorm i).isOpen_preimage _ isOpen_Iio |>.mem_nhds
+      (show (0 : F) ∈ {x | q i x < ε} by simp [map_zero, hε])
+  apply Filter.mem_of_superset hmem
+  intro x hx
+  simp only [Set.mem_iInter, Set.mem_setOf_eq] at hx ⊢
+  rcases Seminorm.zero_or_exists_apply_eq_finset_sup q t x with h | ⟨i, hi, heq⟩
+  · linarith
+  · linarith [hx i hi]
+
+/-- The pure tensor map is jointly continuous on `E₁ × E₂`. -/
+theorem pure_continuous :
+    Continuous (fun p : E₁ × E₂ => pure p.1 p.2) := by
+  -- Package as AddMonoidHom for continuous_of_continuousAt_zero₂
+  set f : E₁ →+ E₂ →+ NuclearTensorProduct E₁ E₂ :=
+    { toFun := fun e₁ => (pureLin e₁).toAddMonoidHom
+      map_zero' := by
+        ext e₂ m; simp [pureLin, pure_val]
+      map_add' := fun e₁ e₁' => by
+        ext e₂ m; simp [pureLin, pure_val, add_mul] }
+  show Continuous (fun p : E₁ × E₂ => f p.1 p.2)
+  apply continuous_of_continuousAt_zero₂ f
+  · -- Continuity at (0, 0): use the seminorm bound
+    have hf00 : f 0 0 = 0 := by ext m; simp
+    rw [ContinuousAt, hf00]
+    apply (RapidDecaySeq.rapidDecay_withSeminorms.tendsto_nhds _ 0).mpr
+    intro k ε hε
+    obtain ⟨C, s₁, s₂, hbound⟩ := pure_seminorm_bound (E₁ := E₁) (E₂ := E₂) k
+    -- Pick nhds: {e₁ | s₁.sup p₁ e₁ < 1} and {e₂ | s₂.sup p₂ e₂ < ε/(C+1)}
+    have h_mem₁ : {e₁ : E₁ | (s₁.sup DyninMityaginSpace.p) e₁ < 1} ∈ nhds (0 : E₁) :=
+      finsetSup_seminorm_ball_mem_nhds DyninMityaginSpace.h_with s₁ one_pos
+    have h_mem₂ : {e₂ : E₂ | (s₂.sup DyninMityaginSpace.p) e₂ < ε / (↑C + 1)} ∈
+        nhds (0 : E₂) :=
+      finsetSup_seminorm_ball_mem_nhds DyninMityaginSpace.h_with s₂
+        (div_pos hε (by positivity))
+    rw [nhds_prod_eq]
+    apply Filter.mem_of_superset (Filter.prod_mem_prod h_mem₁ h_mem₂)
+    intro ⟨e₁, e₂⟩ ⟨he₁, he₂⟩
+    simp only [Set.mem_setOf_eq, sub_zero] at he₁ he₂ ⊢
+    calc RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂)
+        ≤ ↑C * (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ :=
+          hbound e₁ e₂
+      _ ≤ ↑C * 1 * (ε / (↑C + 1)) := by
+          apply mul_le_mul (mul_le_mul_of_nonneg_left he₁.le (NNReal.coe_nonneg C))
+            he₂.le (apply_nonneg _ _) (mul_nonneg (NNReal.coe_nonneg C) (by linarith))
+      _ = ↑C * ε / (↑C + 1) := by ring
+      _ < ε := by
+          rw [div_lt_iff₀ (by positivity : (0 : ℝ) < ↑C + 1)]
+          linarith [NNReal.coe_nonneg C]
+  · -- Continuity of f x at 0 for each x
+    intro e₁
+    exact (pureCLM_right e₁).continuous.continuousAt
+  · -- Continuity of f · y at 0 for each y
+    intro e₂
+    exact (pure_continuous_left e₂).continuousAt
 
 end NuclearTensorProduct
 
