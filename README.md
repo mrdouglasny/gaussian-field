@@ -69,13 +69,6 @@ This allows testing with toy cases like $H = \mathbb{R}^n$.
 
 `Configuration E` is defined as `WeakDual ℝ E` — the space of continuous linear functionals on $E$ with the weak-* topology. Elements $\omega \in E'$ are "configurations" or "generalized functions" that pair with test functions: $\omega(f) \in \mathbb{R}$.
 
-## The `DyninMityaginSpace` typeclass
-
-See [docs/dynin-mityagin-typeclass.md](docs/dynin-mityagin-typeclass.md) for the
-full typeclass definition, design decisions, how to provide an instance for a new
-space, which spaces are nuclear, and target instances (circles, lattices, tensor
-products, etc.).
-
 ## End-to-end workflow: from spaces to measures
 
 See [docs/workflow.md](docs/workflow.md) for the full three-layer workflow
@@ -108,6 +101,9 @@ The library contains two characterizations of nuclear spaces:
    A nuclear Fréchet space with a countable Schauder basis admitting polynomial
    growth of seminorms and super-polynomial decay of coefficients. This is the
    operational definition used by the Gaussian measure construction.
+   See [docs/dynin-mityagin-typeclass.md](docs/dynin-mityagin-typeclass.md) for the
+   full typeclass definition, design decisions, how to provide an instance for a new
+   space, which spaces are nuclear, and target instances.
 
 2. **Pietsch** (`NuclearSpace` in [NuclearSpace.lean](Nuclear/NuclearSpace.lean)) —
    For every continuous seminorm $p$, there exists a dominating seminorm $q \ge p$
