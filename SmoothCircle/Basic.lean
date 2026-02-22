@@ -4,15 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Smooth Periodic Functions on the Circle
 
-Defines `SmoothCircle L`, the space of L-periodic smooth functions `ℝ → ℝ`,
+Defines `SmoothMap_Circle L ℝ`, the space of L-periodic smooth functions `ℝ → ℝ`,
 equipped with Sobolev sup-seminorms and a real Fourier basis.
 
 ## Main definitions
 
-- `SmoothCircle L` — L-periodic smooth functions
-- `SmoothCircle.sobolevSeminorm k` — the k-th Sobolev sup-norm: `sup_{x ∈ [0,L]} |f^(k)(x)|`
-- `SmoothCircle.fourierBasis n` — orthonormal real Fourier basis indexed by ℕ
-- `SmoothCircle.fourierCoeffReal n` — real Fourier coefficient functionals
+- `SmoothMap_Circle L ℝ` — L-periodic smooth functions
+- `SmoothMap_Circle.sobolevSeminorm k` — the k-th Sobolev sup-norm: `sup_{x ∈ [0,L]} |f^(k)(x)|`
+- `SmoothMap_Circle.fourierBasis n` — orthonormal real Fourier basis indexed by ℕ
+- `SmoothMap_Circle.fourierCoeffReal n` — real Fourier coefficient functionals
 
 ## Mathematical background
 
@@ -35,88 +35,89 @@ noncomputable section
 
 namespace GaussianField
 
-/-! ## SmoothCircle type definition -/
+/-! ## SmoothMap_Circle type definition -/
 
 /-- An L-periodic smooth function `ℝ → ℝ`. Elements represent smooth functions
 on the circle `ℝ/Lℤ`, stored as periodic functions on `ℝ` for calculus convenience. -/
-structure SmoothCircle (L : ℝ) [Fact (0 < L)] where
+structure SmoothMap_Circle (L : ℝ) (F : Type*) [Fact (0 < L)] where
   toFun : ℝ → ℝ
   periodic' : Function.Periodic toFun L
   smooth' : ContDiff ℝ (⊤ : ℕ∞) toFun
 
 variable {L : ℝ} [hL : Fact (0 < L)]
 
-namespace SmoothCircle
+namespace SmoothMap_Circle
 
 /-! ### Function-like structure -/
 
-instance instFunLike : FunLike (SmoothCircle L) ℝ ℝ where
+instance instFunLike : FunLike (SmoothMap_Circle L ℝ) ℝ ℝ where
   coe f := f.toFun
   coe_injective' f g h := by cases f; cases g; congr
 
 @[ext]
-theorem ext {f g : SmoothCircle L} (h : ∀ x, f x = g x) : f = g :=
+theorem ext {f g : SmoothMap_Circle L ℝ} (h : ∀ x, f x = g x) : f = g :=
   DFunLike.ext f g h
 
 @[simp] theorem coe_mk (f : ℝ → ℝ) (hp : Function.Periodic f L)
-    (hs : ContDiff ℝ (⊤ : ℕ∞) f) : (SmoothCircle.mk f hp hs : ℝ → ℝ) = f := rfl
+    (hs : ContDiff ℝ (⊤ : ℕ∞) f) :
+    ((⟨f, hp, hs⟩ : SmoothMap_Circle L ℝ) : ℝ → ℝ) = f := rfl
 
-theorem periodic (f : SmoothCircle L) : Function.Periodic f L := f.periodic'
+theorem periodic (f : SmoothMap_Circle L ℝ) : Function.Periodic f L := f.periodic'
 
-theorem smooth (f : SmoothCircle L) : ContDiff ℝ (⊤ : ℕ∞) f := f.smooth'
+theorem smooth (f : SmoothMap_Circle L ℝ) : ContDiff ℝ (⊤ : ℕ∞) f := f.smooth'
 
-theorem continuous (f : SmoothCircle L) : Continuous f := f.smooth.continuous
+theorem continuous (f : SmoothMap_Circle L ℝ) : Continuous f := f.smooth.continuous
 
-theorem contDiffAt_of_smooth (f : SmoothCircle L) (k : ℕ) (x : ℝ) :
+theorem contDiffAt_of_smooth (f : SmoothMap_Circle L ℝ) (k : ℕ) (x : ℝ) :
     ContDiffAt ℝ (↑k) f x :=
   (f.smooth.of_le (by exact_mod_cast le_top)).contDiffAt
 
 /-! ### Algebraic structure -/
 
-instance instZero : Zero (SmoothCircle L) :=
+instance instZero : Zero (SmoothMap_Circle L ℝ) :=
   ⟨⟨0, fun _ => rfl, contDiff_const⟩⟩
 
-@[simp] theorem coe_zero : (↑(0 : SmoothCircle L) : ℝ → ℝ) = 0 := rfl
-@[simp] theorem zero_apply (x : ℝ) : (0 : SmoothCircle L) x = 0 := rfl
+@[simp] theorem coe_zero : (↑(0 : SmoothMap_Circle L ℝ) : ℝ → ℝ) = 0 := rfl
+@[simp] theorem zero_apply (x : ℝ) : (0 : SmoothMap_Circle L ℝ) x = 0 := rfl
 
-private theorem periodic_add (f g : SmoothCircle L) :
+private theorem periodic_add (f g : SmoothMap_Circle L ℝ) :
     Function.Periodic (f + g : ℝ → ℝ) L :=
   fun x => show f (x + L) + g (x + L) = f x + g x by
     rw [f.periodic x, g.periodic x]
 
-instance instAdd : Add (SmoothCircle L) :=
+instance instAdd : Add (SmoothMap_Circle L ℝ) :=
   ⟨fun f g => ⟨f + g, periodic_add f g, f.smooth.add g.smooth⟩⟩
 
-@[simp] theorem add_apply (f g : SmoothCircle L) (x : ℝ) : (f + g) x = f x + g x := rfl
+@[simp] theorem add_apply (f g : SmoothMap_Circle L ℝ) (x : ℝ) : (f + g) x = f x + g x := rfl
 
-private theorem periodic_neg (f : SmoothCircle L) :
+private theorem periodic_neg (f : SmoothMap_Circle L ℝ) :
     Function.Periodic (fun x => -f x) L :=
   fun x => show -f (x + L) = -f x by rw [f.periodic x]
 
-instance instNeg : Neg (SmoothCircle L) :=
+instance instNeg : Neg (SmoothMap_Circle L ℝ) :=
   ⟨fun f => ⟨fun x => -f x, periodic_neg f, f.smooth.neg⟩⟩
 
-@[simp] theorem neg_apply (f : SmoothCircle L) (x : ℝ) : (-f) x = -f x := rfl
+@[simp] theorem neg_apply (f : SmoothMap_Circle L ℝ) (x : ℝ) : (-f) x = -f x := rfl
 
-private theorem periodic_sub (f g : SmoothCircle L) :
+private theorem periodic_sub (f g : SmoothMap_Circle L ℝ) :
     Function.Periodic (fun x => f x - g x) L :=
   fun x => show f (x + L) - g (x + L) = f x - g x by
     rw [f.periodic x, g.periodic x]
 
-instance instSub : Sub (SmoothCircle L) :=
+instance instSub : Sub (SmoothMap_Circle L ℝ) :=
   ⟨fun f g => ⟨fun x => f x - g x, periodic_sub f g, f.smooth.sub g.smooth⟩⟩
 
-private theorem periodic_smul (r : ℝ) (f : SmoothCircle L) :
+private theorem periodic_smul (r : ℝ) (f : SmoothMap_Circle L ℝ) :
     Function.Periodic (fun x => r * f x) L :=
   fun x => show r * f (x + L) = r * f x by rw [f.periodic x]
 
-instance instSMul : SMul ℝ (SmoothCircle L) :=
+instance instSMul : SMul ℝ (SmoothMap_Circle L ℝ) :=
   ⟨fun r f => ⟨fun x => r * f x, periodic_smul r f, f.smooth.const_smul r⟩⟩
 
-@[simp] theorem smul_apply (r : ℝ) (f : SmoothCircle L) (x : ℝ) :
+@[simp] theorem smul_apply (r : ℝ) (f : SmoothMap_Circle L ℝ) (x : ℝ) :
     (r • f) x = r * f x := rfl
 
-instance instAddCommGroup : AddCommGroup (SmoothCircle L) where
+instance instAddCommGroup : AddCommGroup (SmoothMap_Circle L ℝ) where
   add_assoc f g h := ext fun x => add_assoc _ _ _
   zero_add f := ext fun x => zero_add _
   add_zero f := ext fun x => add_zero _
@@ -125,7 +126,7 @@ instance instAddCommGroup : AddCommGroup (SmoothCircle L) where
   nsmul := nsmulRec
   zsmul := zsmulRec
 
-instance instModule : Module ℝ (SmoothCircle L) where
+instance instModule : Module ℝ (SmoothMap_Circle L ℝ) where
   one_smul _ := ext fun _ => one_mul _
   mul_smul _ _ _ := ext fun _ => mul_assoc _ _ _
   smul_zero _ := ext fun _ => mul_zero _
@@ -136,14 +137,14 @@ instance instModule : Module ℝ (SmoothCircle L) where
 /-! ### Iterated derivatives of smooth periodic functions -/
 
 /-- The k-th derivative of a smooth periodic function is continuous. -/
-theorem continuous_iteratedDeriv (f : SmoothCircle L) (k : ℕ) :
+theorem continuous_iteratedDeriv (f : SmoothMap_Circle L ℝ) (k : ℕ) :
     Continuous (iteratedDeriv k f) :=
   f.smooth.continuous_iteratedDeriv k (by exact_mod_cast le_top)
 
 /-- The k-th derivative of a smooth periodic function is periodic.
 Proof: by induction on k, using that the derivative of a periodic
 differentiable function is periodic. -/
-theorem periodic_iteratedDeriv (f : SmoothCircle L) (k : ℕ) :
+theorem periodic_iteratedDeriv (f : SmoothMap_Circle L ℝ) (k : ℕ) :
     Function.Periodic (iteratedDeriv k f) L := by
   induction k with
   | zero => simpa [iteratedDeriv_zero] using f.periodic
@@ -169,7 +170,7 @@ theorem periodic_iteratedDeriv (f : SmoothCircle L) (k : ℕ) :
     rw [key, h1]
 
 /-- The norm of the k-th derivative is bounded on [0, L] (compact + continuous). -/
-theorem bddAbove_norm_iteratedDeriv_image (f : SmoothCircle L) (k : ℕ) :
+theorem bddAbove_norm_iteratedDeriv_image (f : SmoothMap_Circle L ℝ) (k : ℕ) :
     BddAbove ((fun x => ‖iteratedDeriv k f x‖) '' Set.Icc 0 L) :=
   (isCompact_Icc.image (f.continuous_iteratedDeriv k).norm).bddAbove
 
@@ -180,7 +181,7 @@ theorem Icc_nonempty : (Set.Icc (0 : ℝ) L).Nonempty :=
 /-! ### Sobolev sup-seminorms -/
 
 /-- The Sobolev sup-seminorm: `p_k(f) = sup_{x ∈ [0,L]} ‖f^(k)(x)‖`. -/
-def sobolevSeminorm (k : ℕ) : Seminorm ℝ (SmoothCircle L) where
+def sobolevSeminorm (k : ℕ) : Seminorm ℝ (SmoothMap_Circle L ℝ) where
   toFun f := sSup ((fun x => ‖iteratedDeriv k f x‖) '' Set.Icc 0 L)
   map_zero' := by
     apply le_antisymm
@@ -188,7 +189,7 @@ def sobolevSeminorm (k : ℕ) : Seminorm ℝ (SmoothCircle L) where
       rintro _ ⟨x, _, rfl⟩
       simp
     · exact le_csSup_of_le
-        ((0 : SmoothCircle L).bddAbove_norm_iteratedDeriv_image k)
+        ((0 : SmoothMap_Circle L ℝ).bddAbove_norm_iteratedDeriv_image k)
         ⟨0, Set.left_mem_Icc.mpr (le_of_lt hL.out), rfl⟩
         (by simp)
   add_le' f g := by
@@ -207,17 +208,17 @@ def sobolevSeminorm (k : ℕ) : Seminorm ℝ (SmoothCircle L) where
           sSup ((fun x => ‖iteratedDeriv k g x‖) '' Set.Icc 0 L) :=
           add_le_add hf_le hg_le
   neg' f := by
-    -- (-f : SmoothCircle L) coerces to -(↑f : ℝ → ℝ) definitionally.
+    -- (-f : SmoothMap_Circle L ℝ) coerces to -(↑f : ℝ → ℝ) definitionally.
     -- iteratedDeriv_neg then gives iteratedDeriv k (-↑f) x = -(iteratedDeriv k ↑f x),
     -- and norm_neg gives ‖-(iteratedDeriv k ↑f x)‖ = ‖iteratedDeriv k ↑f x‖.
-    have hcoe : ((-f : SmoothCircle L) : ℝ → ℝ) = -(↑f : ℝ → ℝ) := rfl
+    have hcoe : ((-f : SmoothMap_Circle L ℝ) : ℝ → ℝ) = -(↑f : ℝ → ℝ) := rfl
     simp_rw [hcoe, iteratedDeriv_neg, norm_neg]
   smul' r f := by
-    -- (r • f : SmoothCircle L) coerces to r • (↑f : ℝ → ℝ) (pointwise scalar multiplication).
+    -- (r • f : SmoothMap_Circle L ℝ) coerces to r • (↑f : ℝ → ℝ) (pointwise scalar multiplication).
     -- iteratedDeriv_const_smul_field gives iteratedDeriv k (r • ↑f) x = r • iteratedDeriv k ↑f x,
     -- and norm_smul gives ‖r • iteratedDeriv k ↑f x‖ = ‖r‖ * ‖iteratedDeriv k ↑f x‖.
     -- Finally, sSup of {‖r‖ * y | y ∈ S} = ‖r‖ * sSup S by Real.sSup_smul_of_nonneg.
-    have hcoe : ((r • f : SmoothCircle L) : ℝ → ℝ) = r • (↑f : ℝ → ℝ) := by
+    have hcoe : ((r • f : SmoothMap_Circle L ℝ) : ℝ → ℝ) = r • (↑f : ℝ → ℝ) := by
       ext x; simp [smul_apply]
     simp_rw [hcoe, iteratedDeriv_const_smul_field, norm_smul]
     open Pointwise in
@@ -227,20 +228,20 @@ def sobolevSeminorm (k : ℕ) : Seminorm ℝ (SmoothCircle L) where
     · ext x; simp [Set.mem_image, Set.mem_smul_set, smul_eq_mul]
 
 /-- The Sobolev seminorm is nonneg. -/
-theorem sobolevSeminorm_nonneg (k : ℕ) (f : SmoothCircle L) :
+theorem sobolevSeminorm_nonneg (k : ℕ) (f : SmoothMap_Circle L ℝ) :
     0 ≤ sobolevSeminorm k f :=
   le_csSup_of_le (f.bddAbove_norm_iteratedDeriv_image k)
     ⟨0, Set.left_mem_Icc.mpr (le_of_lt hL.out), rfl⟩
     (norm_nonneg _)
 
 /-- Pointwise bound: `‖f^(k)(x)‖ ≤ p_k(f)` for `x ∈ [0, L]`. -/
-theorem norm_iteratedDeriv_le_sobolevSeminorm (f : SmoothCircle L) (k : ℕ)
+theorem norm_iteratedDeriv_le_sobolevSeminorm (f : SmoothMap_Circle L ℝ) (k : ℕ)
     {x : ℝ} (hx : x ∈ Set.Icc 0 L) :
     ‖iteratedDeriv k f x‖ ≤ sobolevSeminorm k f :=
   le_csSup (f.bddAbove_norm_iteratedDeriv_image k) ⟨x, hx, rfl⟩
 
 /-- Pointwise bound for any x (by periodicity). -/
-theorem norm_iteratedDeriv_le_sobolevSeminorm' (f : SmoothCircle L) (k : ℕ) (x : ℝ) :
+theorem norm_iteratedDeriv_le_sobolevSeminorm' (f : SmoothMap_Circle L ℝ) (k : ℕ) (x : ℝ) :
     ‖iteratedDeriv k f x‖ ≤ sobolevSeminorm k f := by
   set g := iteratedDeriv k (⇑f)
   set y := toIcoMod hL.out 0 x
@@ -257,18 +258,18 @@ theorem norm_iteratedDeriv_le_sobolevSeminorm' (f : SmoothCircle L) (k : ℕ) (x
 
 /-! ### Topology from seminorms -/
 
-instance instTopologicalSpace : TopologicalSpace (SmoothCircle L) :=
+instance instTopologicalSpace : TopologicalSpace (SmoothMap_Circle L ℝ) :=
   (SeminormFamily.moduleFilterBasis
     (𝕜 := ℝ) (sobolevSeminorm (L := L))).topology
 
 theorem smoothCircle_withSeminorms :
-    WithSeminorms (sobolevSeminorm : ℕ → Seminorm ℝ (SmoothCircle L)) :=
+    WithSeminorms (sobolevSeminorm : ℕ → Seminorm ℝ (SmoothMap_Circle L ℝ)) :=
   ⟨rfl⟩
 
-instance instIsTopologicalAddGroup : IsTopologicalAddGroup (SmoothCircle L) :=
+instance instIsTopologicalAddGroup : IsTopologicalAddGroup (SmoothMap_Circle L ℝ) :=
   smoothCircle_withSeminorms.topologicalAddGroup
 
-instance instContinuousSMul : ContinuousSMul ℝ (SmoothCircle L) :=
+instance instContinuousSMul : ContinuousSMul ℝ (SmoothMap_Circle L ℝ) :=
   smoothCircle_withSeminorms.continuousSMul
 
 /-! ### Real Fourier basis -/
@@ -331,8 +332,8 @@ theorem fourierBasisFun_periodic (n : ℕ) :
         Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑k * x / L)
       rw [h_arg, Real.sin_add_nat_mul_two_pi]
 
-/-- The real Fourier basis as elements of `SmoothCircle L`. -/
-def fourierBasis (n : ℕ) : SmoothCircle L :=
+/-- The real Fourier basis as elements of `SmoothMap_Circle L ℝ`. -/
+def fourierBasis (n : ℕ) : SmoothMap_Circle L ℝ :=
   ⟨fourierBasisFun n, fourierBasisFun_periodic n, fourierBasisFun_smooth n⟩
 
 @[simp] theorem fourierBasis_apply (n : ℕ) (x : ℝ) :
@@ -368,11 +369,11 @@ theorem fourierBasisFun_abs_le (n : ℕ) (x : ℝ) :
 open MeasureTheory in
 /-- The n-th real Fourier coefficient of f, defined as the L² inner product
 `∫₀ᴸ f(x) · ψ_n(x) dx` where `{ψ_n}` is the L²-orthonormal basis. -/
-def fourierCoeffReal (n : ℕ) (f : SmoothCircle L) : ℝ :=
+def fourierCoeffReal (n : ℕ) (f : SmoothMap_Circle L ℝ) : ℝ :=
   ∫ x in Set.Icc 0 L, f x * fourierBasisFun (L := L) n x
 
 /-- The Fourier coefficient is linear. -/
-theorem fourierCoeffReal_add (n : ℕ) (f g : SmoothCircle L) :
+theorem fourierCoeffReal_add (n : ℕ) (f g : SmoothMap_Circle L ℝ) :
     fourierCoeffReal n (f + g) = fourierCoeffReal n f + fourierCoeffReal n g := by
   unfold fourierCoeffReal
   have h1 : ∀ x, (f + g) x * fourierBasisFun (L := L) n x =
@@ -384,7 +385,7 @@ theorem fourierCoeffReal_add (n : ℕ) (f g : SmoothCircle L) :
     (g.continuous.mul (fourierBasisFun_smooth n).continuous |>.continuousOn.integrableOn_Icc)
 
 /-- The Fourier coefficient is homogeneous. -/
-theorem fourierCoeffReal_smul (n : ℕ) (r : ℝ) (f : SmoothCircle L) :
+theorem fourierCoeffReal_smul (n : ℕ) (r : ℝ) (f : SmoothMap_Circle L ℝ) :
     fourierCoeffReal n (r • f) = r * fourierCoeffReal n f := by
   unfold fourierCoeffReal
   have h1 : ∀ x, (r • f) x * fourierBasisFun (L := L) n x =
@@ -393,7 +394,7 @@ theorem fourierCoeffReal_smul (n : ℕ) (r : ℝ) (f : SmoothCircle L) :
   simp_rw [h1, MeasureTheory.integral_const_mul]
 
 /-- The Fourier coefficient as a linear map. -/
-def fourierCoeffLM (n : ℕ) : SmoothCircle L →ₗ[ℝ] ℝ where
+def fourierCoeffLM (n : ℕ) : SmoothMap_Circle L ℝ →ₗ[ℝ] ℝ where
   toFun := fourierCoeffReal n
   map_add' := fourierCoeffReal_add n
   map_smul' r f := by simp [fourierCoeffReal_smul, smul_eq_mul]
@@ -403,7 +404,7 @@ def fourierCoeffLM (n : ℕ) : SmoothCircle L →ₗ[ℝ] ℝ where
 open MeasureTheory in
 /-- Pointwise bound: `|c_n(f)| ≤ C · p_0(f)` where C = L · max(1/√L, √(2/L)).
 Uses `norm_setIntegral_le_of_norm_le_const` and `fourierBasisFun_abs_le`. -/
-theorem fourierCoeffReal_bound (n : ℕ) (f : SmoothCircle L) :
+theorem fourierCoeffReal_bound (n : ℕ) (f : SmoothMap_Circle L ℝ) :
     ‖fourierCoeffReal (L := L) n f‖ ≤
       (max (1 / Real.sqrt L) (Real.sqrt (2 / L)) * L) * sobolevSeminorm 0 f := by
   unfold fourierCoeffReal
@@ -427,7 +428,7 @@ theorem fourierCoeffReal_bound (n : ℕ) (f : SmoothCircle L) :
 /-- The Fourier coefficient as a continuous linear map.
 
 Continuity follows from `|c_n(f)| ≤ C · p_0(f)`. -/
-def fourierCoeffCLM (n : ℕ) : SmoothCircle L →L[ℝ] ℝ where
+def fourierCoeffCLM (n : ℕ) : SmoothMap_Circle L ℝ →L[ℝ] ℝ where
   toLinearMap := fourierCoeffLM n
   cont := by
     apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
@@ -839,6 +840,6 @@ theorem sobolevSeminorm_fourierBasis_le (k : ℕ) :
         _ ≤ max 1 (M * ω ^ k) * (1 + ↑(m + 1)) ^ k :=
             mul_le_mul_of_nonneg_right (le_max_right _ _) (pow_nonneg (by positivity) _)
 
-end SmoothCircle
+end SmoothMap_Circle
 
 end GaussianField

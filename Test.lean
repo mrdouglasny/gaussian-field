@@ -1,5 +1,5 @@
 /-
-  SmoothCircle/Test.lean
+  SmoothMap_Circle/Test.lean
 
   End-to-end tests: verify the Gaussian measure pipeline elaborates for
   all concrete nuclear space instances and their tensor products.
@@ -48,7 +48,7 @@ end SchwartzMultiD
 
 section Circle
 variable {L : ℝ} [Fact (0 < L)]
-variable (T : SmoothCircle L →L[ℝ] H)
+variable (T : SmoothMap_Circle L ℝ →L[ℝ] H)
 
 #check GaussianField.measure T
 #check GaussianField.measure_isProbability T
@@ -66,7 +66,7 @@ section Cylinder
 variable {L : ℝ} [Fact (0 < L)]
 
 abbrev Cylinder (L : ℝ) [Fact (0 < L)] :=
-  NuclearTensorProduct (SmoothCircle L) (SchwartzMap ℝ ℝ)
+  NuclearTensorProduct (SmoothMap_Circle L ℝ) (SchwartzMap ℝ ℝ)
 
 variable (T : Cylinder L →L[ℝ] H)
 
@@ -82,7 +82,7 @@ section Torus
 variable {L₁ L₂ : ℝ} [Fact (0 < L₁)] [Fact (0 < L₂)]
 
 abbrev Torus (L₁ L₂ : ℝ) [Fact (0 < L₁)] [Fact (0 < L₂)] :=
-  NuclearTensorProduct (SmoothCircle L₁) (SmoothCircle L₂)
+  NuclearTensorProduct (SmoothMap_Circle L₁ ℝ) (SmoothMap_Circle L₂ ℝ)
 
 variable (T : Torus L₁ L₂ →L[ℝ] H)
 
@@ -110,7 +110,7 @@ end SchwartzTensor
 
 section FiniteDim
 variable {L : ℝ} [Fact (0 < L)]
-variable (T : SmoothCircle L →L[ℝ] ℝ)
+variable (T : SmoothMap_Circle L ℝ →L[ℝ] ℝ)
 
 #check GaussianField.measure T
 #check GaussianField.measure_isProbability T

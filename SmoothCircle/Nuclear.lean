@@ -4,12 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # DyninMityaginSpace Instance for C∞(S¹)
 
-Proves that `SmoothCircle L` is a `DyninMityaginSpace` by constructing a
+Proves that `SmoothMap_Circle L ℝ` is a `DyninMityaginSpace` by constructing a
 continuous linear equivalence with `RapidDecaySeq` via the real Fourier transform.
 
 ## Main results
 
-- `smoothCircleRapidDecayEquiv` — CLE: `SmoothCircle L ≃L[ℝ] RapidDecaySeq`
+- `smoothCircleRapidDecayEquiv` — CLE: `SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq`
 - `smoothCircle_dyninMityaginSpace` — the `DyninMityaginSpace` instance
 
 ## Mathematical outline
@@ -17,7 +17,7 @@ continuous linear equivalence with `RapidDecaySeq` via the real Fourier transfor
 1. **Coefficient decay** (integration by parts): `|c_n(f)| ≤ C · p_k(f) / n^k`
 2. **Fourier series convergence**: `f = ∑ₙ c_n(f) · ψ_n` in the seminorm topology
 3. **Forward map**: `f ↦ (c_n(f))_n` maps into `RapidDecaySeq`
-4. **Backward map**: `(a_n) ↦ ∑ₙ a_n · ψ_n` maps into `SmoothCircle L`
+4. **Backward map**: `(a_n) ↦ ∑ₙ a_n · ψ_n` maps into `SmoothMap_Circle L ℝ`
 5. **CLE**: forward ∘ backward = id (by orthogonality), backward ∘ forward = id (by uniqueness)
 -/
 
@@ -31,11 +31,11 @@ noncomputable section
 
 namespace GaussianField
 
-open SmoothCircle
+open SmoothMap_Circle
 
 variable {L : ℝ} [hL : Fact (0 < L)]
 
-namespace SmoothCircle
+namespace SmoothMap_Circle
 
 /-! ## Integration by parts: Fourier coefficient decay -/
 
@@ -46,18 +46,18 @@ For n = 0: bounded by `C · p_0(f)` (integral bound).
 For n ≥ 1: integrating by parts k times gives
 `|c_n(f)| ≤ C · p_k(f) / n^k`, hence `|c_n(f)| · (1+n)^k ≤ C' · p_k(f)`.
 Combined: bounded by `C · max(p_0, p_k)`. -/
--- The derivative of a SmoothCircle element is again a SmoothCircle element.
-private def derivSC (f : SmoothCircle L) : SmoothCircle L where
+-- The derivative of a SmoothMap_Circle element is again a SmoothMap_Circle element.
+private def derivSC (f : SmoothMap_Circle L ℝ) : SmoothMap_Circle L ℝ where
   toFun := deriv f
   periodic' := by
     have h := f.periodic_iteratedDeriv 1
     simp only [iteratedDeriv_succ, iteratedDeriv_zero] at h; exact h
   smooth' := (contDiff_infty_iff_deriv.mp f.smooth).2
 
-private theorem derivSC_apply (f : SmoothCircle L) (x : ℝ) :
+private theorem derivSC_apply (f : SmoothMap_Circle L ℝ) (x : ℝ) :
     (derivSC f) x = deriv f x := rfl
 
-private theorem sobolevSeminorm_derivSC (f : SmoothCircle L) (k : ℕ) :
+private theorem sobolevSeminorm_derivSC (f : SmoothMap_Circle L ℝ) (k : ℕ) :
     sobolevSeminorm k (derivSC f) ≤ sobolevSeminorm (k + 1) f := by
   apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
   rintro _ ⟨x, hx, rfl⟩
@@ -73,7 +73,7 @@ private theorem sobolevSeminorm_derivSC (f : SmoothCircle L) (k : ℕ) :
 -- with boundary terms vanishing (sin(0) = sin(2πm) = 0 for cos case;
 -- periodicity of f for sin case).
 private theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
-    ∀ f : SmoothCircle L,
+    ∀ f : SmoothMap_Circle L ℝ,
       |∫ x in (0:ℝ)..L, f x * Real.cos (2 * Real.pi * m * x / L)| ≤
         (L / (2 * Real.pi * m)) ^ k * (L * sobolevSeminorm k f) ∧
       |∫ x in (0:ℝ)..L, f x * Real.sin (2 * Real.pi * m * x / L)| ≤
@@ -244,7 +244,7 @@ private theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
 
 -- IBP bound for Fourier coefficients of periodic functions.
 private theorem fourierCoeff_ibp_bound (k : ℕ) :
-    ∃ C > 0, ∀ (f : SmoothCircle L) (n : ℕ), n ≥ 1 →
+    ∃ C > 0, ∀ (f : SmoothMap_Circle L ℝ) (n : ℕ), n ≥ 1 →
       |fourierCoeffReal (L := L) n f| * ((n : ℝ) + 1) ^ k ≤ C * sobolevSeminorm k f := by
   set A := Real.sqrt (2 / L)
   have hA_pos : 0 < A := Real.sqrt_pos.mpr (div_pos two_pos hL.out)
@@ -314,7 +314,7 @@ private theorem fourierCoeff_ibp_bound (k : ℕ) :
         nlinarith
 
 theorem fourierCoeffReal_decay (k : ℕ) :
-    ∃ C > 0, ∀ (f : SmoothCircle L) (n : ℕ),
+    ∃ C > 0, ∀ (f : SmoothMap_Circle L ℝ) (n : ℕ),
       ‖fourierCoeffReal n f‖ * (1 + (n : ℝ)) ^ k ≤
         C * (({0, k} : Finset ℕ).sup sobolevSeminorm) f := by
   -- Get bounds for both cases
@@ -351,7 +351,7 @@ theorem fourierCoeffReal_decay (k : ℕ) :
       mul_le_mul_of_nonneg_left h2 (le_of_lt hC₁_pos)
     linarith [mul_nonneg (mul_nonneg (le_of_lt hM_pos) (le_of_lt hL.out)) hS_nn, hS_nn]
 
-/-! ## Forward map: SmoothCircle → RapidDecaySeq -/
+/-! ## Forward map: SmoothMap_Circle → RapidDecaySeq -/
 
 /-- Helper: summability of shifted inverse square series `∑ 1/(1+n)^2`. -/
 private theorem summable_shifted_inv_sq :
@@ -364,7 +364,7 @@ private theorem summable_shifted_inv_sq :
 /-- The Fourier coefficients of a smooth periodic function form a rapidly
 decreasing sequence. Uses `fourierCoeffReal_decay` at order k+2 and
 comparison with the convergent p-series `∑ 1/(1+n)^2`. -/
-theorem fourierCoeff_rapid_decay (f : SmoothCircle L) (k : ℕ) :
+theorem fourierCoeff_rapid_decay (f : SmoothMap_Circle L ℝ) (k : ℕ) :
     Summable (fun m => |fourierCoeffReal (L := L) m f| * (1 + (m : ℝ)) ^ k) := by
   obtain ⟨C, hC, hbound⟩ := fourierCoeffReal_decay (L := L) (k + 2)
   set B := C * (({0, k + 2} : Finset ℕ).sup sobolevSeminorm) f
@@ -386,12 +386,12 @@ theorem fourierCoeff_rapid_decay (f : SmoothCircle L) (k : ℕ) :
     _ ≤ B := hm
 
 /-- The forward map: Fourier coefficients as a `RapidDecaySeq`. -/
-def toRapidDecay (f : SmoothCircle L) : RapidDecaySeq where
+def toRapidDecay (f : SmoothMap_Circle L ℝ) : RapidDecaySeq where
   val m := fourierCoeffReal m f
   rapid_decay k := fourierCoeff_rapid_decay f k
 
 /-- The forward map is linear. -/
-def toRapidDecayLM : SmoothCircle L →ₗ[ℝ] RapidDecaySeq where
+def toRapidDecayLM : SmoothMap_Circle L ℝ →ₗ[ℝ] RapidDecaySeq where
   toFun := toRapidDecay
   map_add' f g := by
     apply RapidDecaySeq.ext; intro m
@@ -433,12 +433,13 @@ theorem toRapidDecay_continuous : Continuous (toRapidDecayLM (L := L)) := by
     _ = C * Z * S := by ring
 
 /-- The forward map as a CLM. -/
-def toRapidDecayCLM : SmoothCircle L →L[ℝ] RapidDecaySeq where
+def toRapidDecayCLM : SmoothMap_Circle L ℝ →L[ℝ] RapidDecaySeq where
   toLinearMap := toRapidDecayLM
   cont := toRapidDecay_continuous
 
-/-! ## Backward map: RapidDecaySeq → SmoothCircle -/
+/-! ## Backward map: RapidDecaySeq → SmoothMap_Circle -/
 
+omit [Fact (0 < L)] in
 theorem summable_fourierBasis_smul (a : RapidDecaySeq) :
     ∀ x, Summable (fun n => a.val n * fourierBasisFun (L := L) n x) := by
   intro x
@@ -487,23 +488,23 @@ theorem periodic_fourierSeries (a : RapidDecaySeq) :
   rw [fourierBasisFun_periodic (L := L) n x]
 
 /-- The backward map: reconstruct a smooth periodic function from coefficients. -/
-def fromRapidDecay (a : RapidDecaySeq) : SmoothCircle L :=
+def fromRapidDecay (a : RapidDecaySeq) : SmoothMap_Circle L ℝ :=
   ⟨fun x => ∑' n, a.val n * fourierBasisFun (L := L) n x,
    periodic_fourierSeries a,
    contDiff_fourierSeries a⟩
 
 /-- The backward map is linear. -/
-def fromRapidDecayLM : RapidDecaySeq →ₗ[ℝ] SmoothCircle L where
+def fromRapidDecayLM : RapidDecaySeq →ₗ[ℝ] SmoothMap_Circle L ℝ where
   toFun := fromRapidDecay
   map_add' a b := by
-    apply SmoothCircle.ext; intro x
+    apply SmoothMap_Circle.ext; intro x
     show ∑' n, (a.val n + b.val n) * fourierBasisFun (L := L) n x =
       (∑' n, a.val n * fourierBasisFun (L := L) n x) +
       (∑' n, b.val n * fourierBasisFun (L := L) n x)
     simp_rw [add_mul]
     exact (summable_fourierBasis_smul a x).tsum_add (summable_fourierBasis_smul b x)
   map_smul' r a := by
-    apply SmoothCircle.ext; intro x
+    apply SmoothMap_Circle.ext; intro x
     show ∑' n, (r * a.val n) * fourierBasisFun (L := L) n x =
       r * (∑' n, a.val n * fourierBasisFun (L := L) n x)
     simp_rw [mul_assoc]
@@ -565,7 +566,7 @@ theorem fromRapidDecay_continuous : Continuous (fromRapidDecayLM (L := L)) := by
     _ = C * RapidDecaySeq.rapidDecaySeminorm k a := rfl
 
 /-- The backward map as a CLM. -/
-def fromRapidDecayCLM : RapidDecaySeq →L[ℝ] SmoothCircle L where
+def fromRapidDecayCLM : RapidDecaySeq →L[ℝ] SmoothMap_Circle L ℝ where
   toLinearMap := fromRapidDecayLM
   cont := fromRapidDecay_continuous
 
@@ -582,7 +583,7 @@ theorem toRapidDecay_fromRapidDecay (a : RapidDecaySeq) :
       ∑' n, a.val n * fourierCoeffReal (L := L) m (fourierBasis n) := by
     open MeasureTheory in
     -- Unfold definitions
-    simp only [fourierCoeffReal, fromRapidDecay, SmoothCircle.coe_mk, fourierBasis_apply]
+    simp only [fourierCoeffReal, fromRapidDecay, SmoothMap_Circle.coe_mk, fourierBasis_apply]
     set μ := volume.restrict (Set.Icc (0 : ℝ) L)
     set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
     -- Each a_n * (ψ_n · ψ_m) is integrable
@@ -642,7 +643,7 @@ theorem toRapidDecay_fromRapidDecay (a : RapidDecaySeq) :
 /-- If all Fourier coefficients of a smooth periodic function are zero,
 the function is zero. Follows from mapping to Mathlib's complex AddCircle L
 and using the uniqueness of continuous functions with vanishing Fourier coefficients. -/
-private theorem eq_zero_of_fourierCoeff_zero (g : SmoothCircle L)
+private theorem eq_zero_of_fourierCoeff_zero (g : SmoothMap_Circle L ℝ)
     (h : ∀ n, fourierCoeffReal (L := L) n g = 0) : g = 0 := by
   -- Convert Set integrals to interval integrals
   have h_Icc_to_interval : ∀ f : ℝ → ℝ, ∫ x in Set.Icc (0:ℝ) L, f x = ∫ x in (0:ℝ)..L, f x := by
@@ -766,7 +767,7 @@ private theorem eq_zero_of_fourierCoeff_zero (g : SmoothCircle L)
 
 /-- **Fourier series expansion**: every smooth periodic function equals the
 sum of its Fourier series `∑ₙ c_n(f) · ψ_n` in the seminorm topology. -/
-theorem hasSum_fourierBasis (f : SmoothCircle L) :
+theorem hasSum_fourierBasis (f : SmoothMap_Circle L ℝ) :
     f = fromRapidDecay (toRapidDecay f) := by
   -- Suffices: g := f - fromRapidDecay(toRapidDecay f) = 0
   suffices h : f - fromRapidDecay (toRapidDecay f) = 0 from eq_of_sub_eq_zero h
@@ -787,13 +788,13 @@ theorem hasSum_fourierBasis (f : SmoothCircle L) :
 
 /-- Forward then backward is the identity: if we take Fourier coefficients
 and reconstruct, we get back the original function. -/
-theorem fromRapidDecay_toRapidDecay (f : SmoothCircle L) :
+theorem fromRapidDecay_toRapidDecay (f : SmoothMap_Circle L ℝ) :
     fromRapidDecay (toRapidDecay f) = f :=
   (hasSum_fourierBasis f).symm
 
-/-- The continuous linear equivalence between `SmoothCircle L` and `RapidDecaySeq`
+/-- The continuous linear equivalence between `SmoothMap_Circle L ℝ` and `RapidDecaySeq`
 via the real Fourier transform. -/
-def smoothCircleRapidDecayEquiv : SmoothCircle L ≃L[ℝ] RapidDecaySeq where
+def smoothCircleRapidDecayEquiv : SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq where
   toLinearMap := toRapidDecayLM
   invFun := fromRapidDecay
   left_inv f := fromRapidDecay_toRapidDecay f
@@ -803,21 +804,21 @@ def smoothCircleRapidDecayEquiv : SmoothCircle L ≃L[ℝ] RapidDecaySeq where
 
 /-! ## DyninMityaginSpace instance -/
 
-end SmoothCircle
+end SmoothMap_Circle
 
 /-- **C∞(S¹) is a nuclear Fréchet space.**
 
 The instance uses the Sobolev sup-seminorm family `k ↦ p_k` and a
 basis/coefficient system derived from the topological isomorphism
-`SmoothCircle L ≃L[ℝ] RapidDecaySeq` constructed from the real Fourier basis.
+`SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq` constructed from the real Fourier basis.
 
 This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
 on cylinders S¹×ℝ and higher tori Tᵈ. -/
 noncomputable instance smoothCircle_dyninMityaginSpace :
-    DyninMityaginSpace (SmoothCircle L) :=
+    DyninMityaginSpace (SmoothMap_Circle L ℝ) :=
   DyninMityaginSpace.ofRapidDecayEquiv
-    SmoothCircle.sobolevSeminorm
-    SmoothCircle.smoothCircle_withSeminorms
-    SmoothCircle.smoothCircleRapidDecayEquiv
+    SmoothMap_Circle.sobolevSeminorm
+    SmoothMap_Circle.smoothCircle_withSeminorms
+    SmoothMap_Circle.smoothCircleRapidDecayEquiv
 
 end GaussianField
