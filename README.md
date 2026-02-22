@@ -177,7 +177,7 @@ functions on the circle via the real Fourier basis and the isomorphism
 |------|------:|----------|
 | [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | 845 | Type, seminorms, Fourier basis, orthogonality, coefficients |
 | [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | 824 | IBP decay, CLE, Fourier completeness, `DyninMityaginSpace` instance |
-| [Test.lean](Test.lean) | 119 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus |
+| [Test.lean](Test.lean) | 358 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus, QFT covariance |
 
 This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
 on cylinders S¹×ℝ and higher tori Tᵈ. The test file verifies the full pipeline
@@ -193,6 +193,32 @@ has rich Fourier analysis but currently lacks `ChartedSpace`/`SmoothManifoldWith
 instances, so `ContMDiffMap (AddCircle L) F` cannot yet be defined. Once Mathlib
 gains manifold structure on `AddCircle`, the type could be refactored to
 `ContMDiffMap (AddCircle L) F` with a genuine codomain parameter.
+
+### 2c. Heat Kernel Toolkit
+
+Spectral multiplier CLMs and QFT eigenvalue/singular value definitions for
+constructing covariance operators on product spaces.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [HeatKernel/Axioms.lean](HeatKernel/Axioms.lean) | 187 | `spectralCLM`, `qftEigenvalue`, `qftSingularValue`, boundedness |
+| [HeatKernel/PositionKernel.lean](HeatKernel/PositionKernel.lean) | 215 | Position-space heat kernel axioms |
+
+`spectralCLM σ hσ : E →L[ℝ] ℓ²` maps `f ↦ (σ_m · coeff_m(f))_m` for any bounded
+multiplier sequence `σ`. This is the key tool for constructing covariance operators:
+the GFF covariance on S¹_L × ℝ uses `spectralCLM` with `σ_m = λ_m^{-1/2}` where
+`λ_m = (2πn/L)² + (2k+1) + m²`.
+
+### 2d. Point Evaluation and API
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [Nuclear/PointEval.lean](Nuclear/PointEval.lean) | 66 | `HasPointEval` typeclass + instances |
+| [GaussianFieldAPI.lean](GaussianFieldAPI.lean) | 80 | Re-export file for downstream QFT projects |
+
+`HasPointEval E M` abstracts pointwise evaluation across test function spaces.
+`GaussianFieldAPI.lean` collects the public API (Configuration, measure, charFun,
+moments, spectralCLM) for downstream consumers.
 
 ### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
 
@@ -213,7 +239,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 
 ```
 Nuclear/
-  DyninMityagin → NuclearTensorProduct
+  DyninMityagin → NuclearTensorProduct → PointEval
        ↓                ↓
 SchwartzNuclear/   SmoothCircle/             GaussianField/
   ...              Basic → Nuclear       NuclearFactorization
@@ -222,17 +248,31 @@ SchwartzNuclear/   SmoothCircle/             GaussianField/
   SchwartzTensorProduct                                                ↓
        ↓                                                               ↓
        └──────────────→ GaussianField.lean ←─────────────────── Construction
-                                                                       ↓
-                                                                   Properties
-                                                                       ↓
-                                                                   IsGaussian
+                              ↓                                        ↓
+                       HeatKernel/                                 Properties
+                     Axioms, PositionKernel                            ↓
+                              ↓                                    IsGaussian
+                       GaussianFieldAPI.lean (re-exports for downstream)
 ```
 
-## Axiom budget
+## Downstream projects
 
-**0 custom axioms.** Both `DyninMityaginSpace (SchwartzMap D ℝ)` (fully proved in `SchwartzNuclear/`, ~7,700 lines, via the Hermite function expansion) and `DyninMityaginSpace (SmoothMap_Circle L ℝ)` (fully proved in `SmoothCircle/`, ~1,670 lines, via the real Fourier basis) are sorry-free. See the [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) for details on the Schwartz space instance.
+This library provides the concrete functional analysis infrastructure for:
 
-An axiom fallback is available as an inactive comment in `GaussianField.lean` for faster builds during development.
+- **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
+
+- **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
+
+## Proof status
+
+The core results are fully proved with no custom axioms:
+
+- `DyninMityaginSpace (SchwartzMap D ℝ)` — sorry-free (~7,700 lines via Hermite expansion)
+- `DyninMityaginSpace (SmoothMap_Circle L ℝ)` — sorry-free (~1,670 lines via Fourier basis)
+- `DyninMityaginSpace.toNuclearSpace` — sorry-free (Dynin-Mityagin implies Pietsch)
+- `GaussianField.measure`, `charFun`, moments — sorry-free
+
+The `HeatKernel/` module uses axioms for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
 
 ## Further documentation
 
@@ -266,7 +306,7 @@ lake build
 lake build Test  # end-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus
 ```
 
-Requires Lean 4 v4.28.0-rc1 and Mathlib (fetched automatically by Lake).
+Requires Lean 4 v4.28.0 and Mathlib (fetched automatically by Lake).
 
 ## Author
 
