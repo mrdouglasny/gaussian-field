@@ -12,7 +12,7 @@ key definitions and restates proved theorems in a clean axiomatic form.
 
 1. **HasPointEval** — pointwise evaluation typeclass
 2. **Configuration** — weak dual as configuration space
-3. **Gaussian measure API** — measure, characteristic functional, moments
+3. **Gaussian measure API** — measure, characteristic functional, moments, Wick's theorem
 4. **Spectral CLM** — multiplier construction for covariance operators
 
 ## What stays out
@@ -59,6 +59,16 @@ For any DyninMityaginSpace `E`, Hilbert space `H`, and CLM `T : E →L[ℝ] H`:
   `∫ ω, ω f * ω g ∂(measure T) = ⟨T f, T g⟩_H`
 
 - `GaussianField.measure_isProbability T` — probability measure instance
+
+### Higher moments (Wick's theorem)
+
+- `GaussianField.odd_moment_vanish T k f` — odd moments vanish
+- `GaussianField.wick_recursive T n f₀ g` — recursive Wick formula:
+  `E[ω(f₀) · ∏ⱼ ω(gⱼ)] = ∑ⱼ C(f₀, gⱼ) · E[∏_{i≠j} ω(gᵢ)]`
+- `GaussianField.wick_bound T n f` — moment bound:
+  `|E[∏ᵢ ω(fᵢ)]| ≤ (n-1)‼ · ∏ᵢ ‖T(fᵢ)‖`
+- `GaussianField.wick_bound_factorial T n f` — factorial form for OS1':
+  `|E[∏ᵢ ω(fᵢ)]| ≤ n!^{1/2} · ∏ᵢ ‖T(fᵢ)‖`
 -/
 
 /-! ## Section 4: Spectral CLM
