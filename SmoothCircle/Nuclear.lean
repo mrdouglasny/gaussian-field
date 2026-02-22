@@ -22,6 +22,7 @@ continuous linear equivalence with `RapidDecaySeq` via the real Fourier transfor
 -/
 
 import SmoothCircle.Basic
+import Mathlib.Analysis.Calculus.SmoothSeries
 
 noncomputable section
 
@@ -150,10 +151,29 @@ theorem summable_fourierBasis_smul (a : RapidDecaySeq) :
         ≤ |a.val n| * C := mul_le_mul_of_nonneg_left (fourierBasisFun_abs_le n x) (abs_nonneg _)
       _ = C * |a.val n| := mul_comm _ _
 
+/-- Bound on iteratedFDeriv of a single Fourier term `a_n * ψ_n(x)`. -/
+private theorem norm_iteratedFDeriv_fourierTerm (a : RapidDecaySeq) (k n : ℕ) (x : ℝ)
+    (hk : (k : ℕ∞) ≤ ⊤) :
+    ‖iteratedFDeriv ℝ k (fun y => a.val n * fourierBasisFun (L := L) n y) x‖ ≤
+      |a.val n| * sobolevSeminorm (L := L) k (fourierBasis n) := by
+  have hcoe : (fun y => a.val n * fourierBasisFun (L := L) n y) =
+      (fun y => a.val n * (fourierBasis (L := L) n : ℝ → ℝ) y) := by ext; simp
+  rw [hcoe, norm_iteratedFDeriv_eq_norm_iteratedDeriv, iteratedDeriv_const_mul_field,
+      norm_mul, Real.norm_eq_abs]
+  exact mul_le_mul_of_nonneg_left (norm_iteratedDeriv_le_sobolevSeminorm' _ k x) (abs_nonneg _)
+
 /-- The Fourier series of rapidly decaying coefficients defines a smooth function. -/
 theorem contDiff_fourierSeries (a : RapidDecaySeq) :
-    ContDiff ℝ ⊤ (fun x => ∑' n, a.val n * fourierBasisFun (L := L) n x) := by
-  sorry
+    ContDiff ℝ (⊤ : ℕ∞) (fun x => ∑' n, a.val n * fourierBasisFun (L := L) n x) := by
+  apply contDiff_tsum (v := fun k n => |a.val n| * sobolevSeminorm (L := L) k (fourierBasis n))
+  · intro n; exact contDiff_const.mul (fourierBasisFun_smooth n)
+  · intro k _
+    obtain ⟨C, hC, hbound⟩ := sobolevSeminorm_fourierBasis_le (L := L) k
+    exact Summable.of_nonneg_of_le
+      (fun n => mul_nonneg (abs_nonneg _) (sobolevSeminorm_nonneg k _))
+      (fun n => mul_le_mul_of_nonneg_left (hbound n) (abs_nonneg _))
+      ((a.rapid_decay k).mul_right C |>.congr (fun n => by ring))
+  · exact fun k n x hk => norm_iteratedFDeriv_fourierTerm a k n x hk
 
 /-- The Fourier series of rapidly decaying coefficients defines a periodic function. -/
 theorem periodic_fourierSeries (a : RapidDecaySeq) :
@@ -187,12 +207,60 @@ def fromRapidDecayLM : RapidDecaySeq →ₗ[ℝ] SmoothCircle L where
     simp_rw [mul_assoc]
     exact tsum_mul_left
 
+/-- Summability of Fourier term bounds `|a_n| * p_j(ψ_n)` for any rapid decay seq. -/
+private theorem summable_fourierTerm_bound (a : RapidDecaySeq) (j : ℕ) :
+    Summable (fun n => |a.val n| * sobolevSeminorm (L := L) j (fourierBasis n)) := by
+  obtain ⟨C, _, hbound⟩ := sobolevSeminorm_fourierBasis_le (L := L) j
+  exact .of_nonneg_of_le
+    (fun n => mul_nonneg (abs_nonneg _) (sobolevSeminorm_nonneg j _))
+    (fun n => mul_le_mul_of_nonneg_left (hbound n) (abs_nonneg _))
+    ((a.rapid_decay j).mul_right C |>.congr (fun n => by ring))
+
 /-- The backward map is continuous. -/
 theorem fromRapidDecay_continuous : Continuous (fromRapidDecayLM (L := L)) := by
   apply Seminorm.continuous_from_bounded RapidDecaySeq.rapidDecay_withSeminorms
     smoothCircle_withSeminorms
-  -- For each Sobolev seminorm p_k, bound by rapid decay seminorm k+2
-  sorry
+  intro k
+  obtain ⟨C, hC, hbound⟩ := sobolevSeminorm_fourierBasis_le (L := L) k
+  refine ⟨{k}, ⟨C, le_of_lt hC⟩, fun a => ?_⟩
+  simp only [Finset.sup_singleton, Seminorm.comp_apply, NNReal.smul_def,
+    Seminorm.smul_apply, NNReal.coe_mk]
+  -- Goal: sobolevSeminorm k (fromRapidDecayLM a) ≤ C * rapidDecaySeminorm k a
+  -- Bound the sSup pointwise
+  apply csSup_le (Set.Nonempty.image _ (Set.nonempty_Icc.mpr (le_of_lt hL.out)))
+  rintro _ ⟨x, _, rfl⟩
+  -- ‖iteratedDeriv k (fromRapidDecay a) x‖ ≤ C * rapidDecaySeminorm k a
+  -- Step 1: rewrite coercion and convert iteratedDeriv to iteratedFDeriv
+  show ‖iteratedDeriv k (↑(fromRapidDecayLM (L := L) a) : ℝ → ℝ) x‖ ≤
+    C * RapidDecaySeq.rapidDecaySeminorm k a
+  rw [show (↑(fromRapidDecayLM (L := L) a) : ℝ → ℝ) =
+    fun y => ∑' n, a.val n * fourierBasisFun (L := L) n y from rfl]
+  rw [← norm_iteratedFDeriv_eq_norm_iteratedDeriv (𝕜 := ℝ)]
+  -- Step 2: commute iteratedFDeriv with tsum
+  rw [iteratedFDeriv_tsum_apply
+    (fun n => contDiff_const.mul (fourierBasisFun_smooth (L := L) n))
+    (fun j _ => summable_fourierTerm_bound a j)
+    (fun j n y hj => norm_iteratedFDeriv_fourierTerm a j n y hj) le_top]
+  -- Step 3: triangle inequality + pointwise bounds
+  have h_norm : Summable (fun n =>
+      ‖iteratedFDeriv ℝ k (fun y => a.val n * fourierBasisFun (L := L) n y) x‖) :=
+    .of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun n => norm_iteratedFDeriv_fourierTerm a k n x le_top) (summable_fourierTerm_bound a k)
+  calc ‖∑' n, iteratedFDeriv ℝ k (fun y => a.val n * fourierBasisFun n y) x‖
+      ≤ ∑' n, ‖iteratedFDeriv ℝ k (fun y => a.val n * fourierBasisFun n y) x‖ :=
+        norm_tsum_le_tsum_norm h_norm
+    _ ≤ ∑' n, |a.val n| * sobolevSeminorm k (fourierBasis n) :=
+        h_norm.tsum_le_tsum (fun n => norm_iteratedFDeriv_fourierTerm a k n x le_top)
+          (summable_fourierTerm_bound a k)
+    _ ≤ ∑' n, |a.val n| * (C * (1 + ↑n) ^ k) :=
+        (summable_fourierTerm_bound a k).tsum_le_tsum
+          (fun n => mul_le_mul_of_nonneg_left (hbound n) (abs_nonneg _))
+          ((a.rapid_decay k).mul_right C |>.congr (fun n => by ring))
+    _ = C * ∑' n, |a.val n| * (1 + ↑n) ^ k := by
+        rw [show (fun n => |a.val n| * (C * (1 + ↑n) ^ k)) =
+          fun n => C * (|a.val n| * (1 + ↑n) ^ k) from funext (fun n => by ring)]
+        exact tsum_mul_left
+    _ = C * RapidDecaySeq.rapidDecaySeminorm k a := rfl
 
 /-- The backward map as a CLM. -/
 def fromRapidDecayCLM : RapidDecaySeq →L[ℝ] SmoothCircle L where

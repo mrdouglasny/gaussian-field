@@ -41,7 +41,7 @@ on the circle `ℝ/Lℤ`, stored as periodic functions on `ℝ` for calculus con
 structure SmoothCircle (L : ℝ) [Fact (0 < L)] where
   toFun : ℝ → ℝ
   periodic' : Function.Periodic toFun L
-  smooth' : ContDiff ℝ ⊤ toFun
+  smooth' : ContDiff ℝ (⊤ : ℕ∞) toFun
 
 variable {L : ℝ} [hL : Fact (0 < L)]
 
@@ -58,17 +58,17 @@ theorem ext {f g : SmoothCircle L} (h : ∀ x, f x = g x) : f = g :=
   DFunLike.ext f g h
 
 @[simp] theorem coe_mk (f : ℝ → ℝ) (hp : Function.Periodic f L)
-    (hs : ContDiff ℝ ⊤ f) : (SmoothCircle.mk f hp hs : ℝ → ℝ) = f := rfl
+    (hs : ContDiff ℝ (⊤ : ℕ∞) f) : (SmoothCircle.mk f hp hs : ℝ → ℝ) = f := rfl
 
 theorem periodic (f : SmoothCircle L) : Function.Periodic f L := f.periodic'
 
-theorem smooth (f : SmoothCircle L) : ContDiff ℝ ⊤ f := f.smooth'
+theorem smooth (f : SmoothCircle L) : ContDiff ℝ (⊤ : ℕ∞) f := f.smooth'
 
 theorem continuous (f : SmoothCircle L) : Continuous f := f.smooth.continuous
 
 theorem contDiffAt_of_smooth (f : SmoothCircle L) (k : ℕ) (x : ℝ) :
     ContDiffAt ℝ (↑k) f x :=
-  (f.smooth.of_le le_top).contDiffAt
+  (f.smooth.of_le (by exact_mod_cast le_top)).contDiffAt
 
 /-! ### Algebraic structure -/
 
@@ -137,7 +137,7 @@ instance instModule : Module ℝ (SmoothCircle L) where
 /-- The k-th derivative of a smooth periodic function is continuous. -/
 theorem continuous_iteratedDeriv (f : SmoothCircle L) (k : ℕ) :
     Continuous (iteratedDeriv k f) :=
-  f.smooth.continuous_iteratedDeriv k le_top
+  f.smooth.continuous_iteratedDeriv k (by exact_mod_cast le_top)
 
 /-- The k-th derivative of a smooth periodic function is periodic.
 Proof: by induction on k, using that the derivative of a periodic
@@ -155,7 +155,7 @@ theorem periodic_iteratedDeriv (f : SmoothCircle L) (k : ℕ) :
     set g := iteratedDeriv n (⇑f) with hg_def
     -- g is periodic by IH, and smooth (hence differentiable)
     have hg_diff : ∀ y, DifferentiableAt ℝ g y :=
-      fun y => (f.smooth.differentiable_iteratedDeriv n (WithTop.coe_lt_top _)).differentiableAt
+      fun y => (f.smooth.differentiable_iteratedDeriv n (by exact_mod_cast WithTop.coe_lt_top n)).differentiableAt
     -- deriv g (x + L) = deriv (g ∘ (· + L)) x = deriv g x (by periodicity g ∘ (· + L) = g)
     have h1 : (fun y => g (y + L)) = g := funext (fun y => ih y)
     have key : deriv g (x + L) = deriv (fun y => g (y + L)) x := by
@@ -294,7 +294,7 @@ def fourierBasisFun : ℕ → ℝ → ℝ
       fun x => Real.sqrt (2 / L) * Real.sin (2 * Real.pi * k * x / L)
 
 /-- Each Fourier basis function is smooth. -/
-theorem fourierBasisFun_smooth (n : ℕ) : ContDiff ℝ ⊤ (fourierBasisFun (L := L) n) := by
+theorem fourierBasisFun_smooth (n : ℕ) : ContDiff ℝ (⊤ : ℕ∞) (fourierBasisFun (L := L) n) := by
   cases n with
   | zero => exact contDiff_const
   | succ m =>
@@ -447,12 +447,92 @@ theorem fourierCoeffReal_fourierBasis (i j : ℕ) :
 
 /-! ### Sobolev seminorm of Fourier basis: polynomial growth -/
 
+/-- Pointwise derivative bound for `A * cos(c * x)`. -/
+private theorem norm_iteratedDeriv_cos_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA : 0 ≤ A) :
+    ‖iteratedDeriv k (fun x => A * Real.cos (c * x)) x‖ ≤ A * |c| ^ k := by
+  rw [iteratedDeriv_const_mul_field,
+      congr_fun (@iteratedDeriv_comp_const_mul ℝ _ k Real.cos
+        (Real.contDiff_cos.of_le (by exact_mod_cast le_top)) c) x,
+      norm_mul, norm_mul, Real.norm_eq_abs, abs_of_nonneg hA,
+      Real.norm_eq_abs, abs_pow, Real.norm_eq_abs]
+  exact mul_le_mul_of_nonneg_left
+    ((mul_le_mul_of_nonneg_left (Real.abs_iteratedDeriv_cos_le_one k _)
+      (pow_nonneg (abs_nonneg _) _)).trans (mul_one _).le) hA
+
+/-- Pointwise derivative bound for `A * sin(c * x)`. -/
+private theorem norm_iteratedDeriv_sin_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA : 0 ≤ A) :
+    ‖iteratedDeriv k (fun x => A * Real.sin (c * x)) x‖ ≤ A * |c| ^ k := by
+  rw [iteratedDeriv_const_mul_field,
+      congr_fun (@iteratedDeriv_comp_const_mul ℝ _ k Real.sin
+        (Real.contDiff_sin.of_le (by exact_mod_cast le_top)) c) x,
+      norm_mul, norm_mul, Real.norm_eq_abs, abs_of_nonneg hA,
+      Real.norm_eq_abs, abs_pow, Real.norm_eq_abs]
+  exact mul_le_mul_of_nonneg_left
+    ((mul_le_mul_of_nonneg_left (Real.abs_iteratedDeriv_sin_le_one k _)
+      (pow_nonneg (abs_nonneg _) _)).trans (mul_one _).le) hA
+
 /-- The k-th Sobolev seminorm of the n-th Fourier basis element grows polynomially:
 `p_k(ψ_n) ≤ C · (1 + n)^k`. -/
 theorem sobolevSeminorm_fourierBasis_le (k : ℕ) :
     ∃ C > 0, ∀ n : ℕ, sobolevSeminorm (L := L) k (fourierBasis n) ≤
       C * (1 + (n : ℝ)) ^ k := by
-  sorry
+  set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
+  set ω := 2 * Real.pi / L
+  refine ⟨max 1 (M * ω ^ k), by positivity, fun n => ?_⟩
+  -- Bound the sup of ‖iteratedDeriv k (fourierBasisFun n) x‖ over [0, L]
+  apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
+  rintro _ ⟨x, _, rfl⟩
+  cases n with
+  | zero =>
+    -- ψ_0 = 1/√L (constant): iteratedDeriv k = if k=0 then 1/√L else 0
+    simp only [fourierBasis, coe_mk, fourierBasisFun, Nat.cast_zero, add_zero]
+    rw [iteratedDeriv_const]
+    split
+    · -- k = 0: ‖1/√L‖ ≤ max 1 M * 1
+      subst_vars; simp only [pow_zero, mul_one]
+      calc ‖(1 : ℝ) / Real.sqrt L‖ = 1 / Real.sqrt L := by
+            rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+        _ ≤ M := le_max_left _ _
+        _ ≤ max 1 M := le_max_right _ _
+    · -- k ≥ 1: ‖0‖ = 0 ≤ anything
+      simp
+  | succ m =>
+    simp only [fourierBasis, coe_mk]
+    have hω_nonneg : 0 ≤ ω := div_nonneg (mul_nonneg (by norm_num) Real.pi_pos.le) hL.out.le
+    set c := ω * ↑(m / 2 + 1) with hc_def
+    have hM : 0 ≤ Real.sqrt (2 / L) := Real.sqrt_nonneg _
+    have hc_nonneg : 0 ≤ c := mul_nonneg hω_nonneg (Nat.cast_nonneg _)
+    have hc_bound : |c| ≤ ω * (1 + ↑(m + 1)) := by
+      rw [abs_of_nonneg hc_nonneg]
+      apply mul_le_mul_of_nonneg_left _ hω_nonneg
+      have : m / 2 ≤ m := Nat.div_le_self m 2
+      exact_mod_cast (by omega : m / 2 + 1 ≤ 1 + (m + 1))
+    -- fourierBasisFun (m+1) is √(2/L) * cos(c*x) or √(2/L) * sin(c*x)
+    by_cases hm : m % 2 = 0
+    · -- cos case
+      have hfun : fourierBasisFun (L := L) (m + 1) = fun x => Real.sqrt (2 / L) * Real.cos (c * x) := by
+        ext y; simp only [fourierBasisFun, hm, ite_true]; congr 1; simp only [hc_def, ω]; ring
+      rw [hfun]
+      calc ‖iteratedDeriv k (fun x => Real.sqrt (2 / L) * Real.cos (c * x)) x‖
+          ≤ Real.sqrt (2 / L) * |c| ^ k := norm_iteratedDeriv_cos_mul _ c k x hM
+        _ ≤ M * (ω * (1 + ↑(m + 1))) ^ k := by
+            apply mul_le_mul (le_max_right _ _) (pow_le_pow_left₀ (abs_nonneg _) hc_bound _)
+              (pow_nonneg (abs_nonneg _) _) (le_max_of_le_right hM)
+        _ = M * ω ^ k * (1 + ↑(m + 1)) ^ k := by rw [mul_pow]; ring
+        _ ≤ max 1 (M * ω ^ k) * (1 + ↑(m + 1)) ^ k :=
+            mul_le_mul_of_nonneg_right (le_max_right _ _) (pow_nonneg (by positivity) _)
+    · -- sin case
+      have hfun : fourierBasisFun (L := L) (m + 1) = fun x => Real.sqrt (2 / L) * Real.sin (c * x) := by
+        ext y; simp only [fourierBasisFun, hm, ite_false]; congr 1; simp only [hc_def, ω]; ring
+      rw [hfun]
+      calc ‖iteratedDeriv k (fun x => Real.sqrt (2 / L) * Real.sin (c * x)) x‖
+          ≤ Real.sqrt (2 / L) * |c| ^ k := norm_iteratedDeriv_sin_mul _ c k x hM
+        _ ≤ M * (ω * (1 + ↑(m + 1))) ^ k := by
+            apply mul_le_mul (le_max_right _ _) (pow_le_pow_left₀ (abs_nonneg _) hc_bound _)
+              (pow_nonneg (abs_nonneg _) _) (le_max_of_le_right hM)
+        _ = M * ω ^ k * (1 + ↑(m + 1)) ^ k := by rw [mul_pow]; ring
+        _ ≤ max 1 (M * ω ^ k) * (1 + ↑(m + 1)) ^ k :=
+            mul_le_mul_of_nonneg_right (le_max_right _ _) (pow_nonneg (by positivity) _)
 
 end SmoothCircle
 
