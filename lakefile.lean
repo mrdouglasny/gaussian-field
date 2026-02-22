@@ -22,4 +22,4 @@ lean_lib «Test» where
 @[default_target]
 lean_lib «GaussianField» where
 
-lean_lib «QFTFramework» where
+lean_lib «GaussianFieldAPI» where
