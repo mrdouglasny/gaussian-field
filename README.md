@@ -81,7 +81,7 @@ heat kernels, and the lattice-continuum limit.
 The project has three libraries, with imports flowing left to right:
 `Nuclear` <- `SchwartzNuclear` <- `GaussianField`.
 
-### 1. [Nuclear Space Infrastructure](docs/nuclear-space-infrastructure.md)
+### 1. Nuclear Space Infrastructure
 
 The `DyninMityaginSpace` typeclass and the canonical model `RapidDecaySeq` (the Kothe
 sequence space $s(\mathbb{N})$), shared by both `SchwartzNuclear/` and
@@ -150,7 +150,7 @@ For the concrete construction (Cantor pairing, `pure`, `lift`, reindexing), see
 to Mathlib's abstract `TensorProduct`, see
 [docs/abstract-tensor-product-plan.md](docs/abstract-tensor-product-plan.md).
 
-### 2. [Schwartz Space Nuclearity](docs/schwartz-nuclearity-proof.md)
+### 2. Schwartz Space Nuclearity
 
 Proves `DyninMityaginSpace (SchwartzMap D ℝ)` for any finite-dimensional $D$ via the
 Hermite function expansion and the Dynin-Mityagin isomorphism
@@ -167,7 +167,7 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `DyninMityaginSpace` instance from the isomorphism |
 | [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 363 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
 
-### 2b. [Circle Nuclearity](docs/concrete-instances.md#1-the-circle-s1_l-of-circumference-l)
+### 2b. Circle Nuclearity
 
 Proves `DyninMityaginSpace (SmoothMap_Circle L ℝ)` (sorry-free) for smooth L-periodic
 functions on the circle via the real Fourier basis and the isomorphism
@@ -220,7 +220,7 @@ the GFF covariance on S¹_L × ℝ uses `spectralCLM` with `σ_m = λ_m^{-1/2}` 
 `GaussianFieldAPI.lean` collects the public API (Configuration, measure, charFun,
 moments, spectralCLM) for downstream consumers.
 
-### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
+### 3. Gaussian Field Construction
 
 Given `[DyninMityaginSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
 probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
