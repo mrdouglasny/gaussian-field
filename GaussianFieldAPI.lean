@@ -24,6 +24,7 @@ key definitions and restates proved theorems in a clean axiomatic form.
 
 import GaussianField
 import Nuclear.PointEval
+import Nuclear.Complexification
 import HeatKernel
 
 /-! ## Section 1: HasPointEval -/
