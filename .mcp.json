@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "gemini": {
+      "command": "uv",
+      "args": ["run", "--python", "3.10", "--with", "mcp", "--with", "google-genai", "--with", "python-dotenv", "python", "tools/gemini_mcp/server.py"]
+    },
+    "lean-lsp": {
+      "command": "uvx",
+      "args": ["lean-lsp-mcp"]
+    }
+  }
+}

@@ -15,7 +15,11 @@ lean_lib «SchwartzNuclear» where
 
 lean_lib «SmoothCircle» where
 
+lean_lib «HeatKernel» where
+
 lean_lib «Test» where
 
 @[default_target]
 lean_lib «GaussianField» where
+
+lean_lib «QFTFramework» where
