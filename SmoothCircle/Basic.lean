@@ -25,6 +25,7 @@ basis with polynomial growth and rapid coefficient decay.
 
 import Nuclear.NuclearTensorProduct
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
 import Mathlib.Topology.Order.Compact
 import Mathlib.MeasureTheory.Integral.Bochner.Set
@@ -439,11 +440,314 @@ def fourierCoeffCLM (n : ℕ) : SmoothCircle L →L[ℝ] ℝ where
 
 /-! ### Orthogonality -/
 
+-- Convert set integral on Icc to interval integral
+private theorem setIntegral_Icc_eq_intervalIntegral (f : ℝ → ℝ) (a b : ℝ) (hab : a ≤ b)
+    (hf : IntervalIntegrable f MeasureTheory.volume a b) :
+    ∫ x in Set.Icc a b, f x = ∫ x in a..b, f x := by
+  rw [MeasureTheory.integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le hab]
+
+-- Integral of cos(2πkx/L) over [0, L] is 0 for k ≥ 1
+private theorem sin_two_pi_mul_nat (k : ℕ) : Real.sin (2 * Real.pi * k) = 0 := by
+  have : (2 : ℝ) * Real.pi * k = ↑k * (2 * Real.pi) := by ring
+  rw [this, ← sub_zero (↑k * (2 * Real.pi)), Real.sin_nat_mul_two_pi_sub, Real.sin_zero, neg_zero]
+
+private theorem cos_two_pi_mul_nat (k : ℕ) : Real.cos (2 * Real.pi * k) = 1 := by
+  have : (2 : ℝ) * Real.pi * k = ↑k * (2 * Real.pi) := by ring
+  rw [this, ← sub_zero (↑k * (2 * Real.pi)), Real.cos_nat_mul_two_pi_sub, Real.cos_zero]
+
+private theorem integral_cos_period (k : ℕ) (hk : 0 < k) :
+    ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) = 0 := by
+  set c := 2 * Real.pi * k / L
+  have hc : c ≠ 0 := by simp only [c]; exact div_ne_zero (by positivity) (ne_of_gt hL.out)
+  have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑k * x / L = c * x := fun x => by
+    simp only [c]; ring
+  simp_rw [h_rw]
+  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero]
+  have hcL : c * L = 2 * Real.pi * k := by
+    simp only [c]; field_simp; exact div_self (ne_of_gt hL.out)
+  rw [hcL, integral_cos, sin_two_pi_mul_nat, Real.sin_zero, sub_self,
+    smul_zero]
+
+-- Integral of sin(2πkx/L) over [0, L] is 0 for k ≥ 1
+private theorem integral_sin_period (k : ℕ) (hk : 0 < k) :
+    ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * k * x / L) = 0 := by
+  set c := 2 * Real.pi * k / L
+  have hc : c ≠ 0 := by simp only [c]; exact div_ne_zero (by positivity) (ne_of_gt hL.out)
+  have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑k * x / L = c * x := fun x => by
+    simp only [c]; ring
+  simp_rw [h_rw]
+  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero]
+  have hcL : c * L = 2 * Real.pi * k := by
+    simp only [c]; field_simp; exact div_self (ne_of_gt hL.out)
+  rw [hcL, integral_sin, cos_two_pi_mul_nat, Real.cos_zero, sub_self,
+    smul_zero]
+
+-- Helper: integral of cos/sin over [0, L] with integer frequency is 0
+-- For general integer n ≠ 0, ∫₀ᴸ cos(2πnx/L) = 0 and ∫₀ᴸ sin(2πnx/L) = 0
+private theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
+    ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * n * x / L) = 0 := by
+  set c := 2 * Real.pi * n / L
+  have hc : c ≠ 0 := by
+    simp only [c, ne_eq, div_eq_zero_iff]; push_neg
+    exact ⟨mul_ne_zero (mul_ne_zero two_ne_zero (ne_of_gt Real.pi_pos)) (Int.cast_ne_zero.mpr hn),
+      ne_of_gt hL.out⟩
+  have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑n * x / L = c * x := fun x => by
+    simp only [c]; ring
+  simp_rw [h_rw]
+  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero]
+  have hcL : c * L = 2 * Real.pi * n := by
+    simp only [c]; field_simp; exact div_self (ne_of_gt hL.out)
+  rw [hcL, integral_cos]
+  -- sin(2πn) = 0 for integer n
+  have h1 : Real.sin (2 * Real.pi * ↑n) = 0 := by
+    rw [show (2 : ℝ) * Real.pi * ↑n = ↑(2 * n) * Real.pi from by push_cast; ring]
+    exact Real.sin_int_mul_pi _
+  rw [h1, Real.sin_zero, sub_self, smul_zero]
+
+private theorem integral_sin_int_period (n : ℤ) (hn : n ≠ 0) :
+    ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * n * x / L) = 0 := by
+  set c := 2 * Real.pi * n / L
+  have hc : c ≠ 0 := by
+    simp only [c, ne_eq, div_eq_zero_iff]; push_neg
+    exact ⟨mul_ne_zero (mul_ne_zero two_ne_zero (ne_of_gt Real.pi_pos)) (Int.cast_ne_zero.mpr hn),
+      ne_of_gt hL.out⟩
+  have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑n * x / L = c * x := fun x => by
+    simp only [c]; ring
+  simp_rw [h_rw]
+  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero]
+  have hcL : c * L = 2 * Real.pi * n := by
+    simp only [c]; field_simp; exact div_self (ne_of_gt hL.out)
+  rw [hcL, integral_sin]
+  -- cos(2πn) = 1 for integer n, so cos(0) - cos(2πn) = 1 - 1 = 0
+  have h1 : Real.cos (2 * Real.pi * ↑n) = 1 := by
+    rw [show (2 : ℝ) * Real.pi * ↑n = ↑n * (2 * Real.pi) from by ring,
+      ← sub_zero (↑n * (2 * Real.pi)), Real.cos_int_mul_two_pi_sub, Real.cos_zero]
+  rw [Real.cos_zero, h1, sub_self, smul_zero]
+
+-- Integral of cos(2πkx/L)·cos(2πℓx/L) over [0, L]
+private theorem integral_cos_cos (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
+    ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) *
+      Real.cos (2 * Real.pi * ℓ * x / L) = if k = ℓ then L / 2 else 0 := by
+  -- Product-to-sum: cos A · cos B = (cos(A-B) + cos(A+B))/2
+  have h_prod : ∀ x : ℝ,
+      Real.cos (2 * Real.pi * k * x / L) * Real.cos (2 * Real.pi * ℓ * x / L) =
+      (Real.cos (2 * Real.pi * (↑k - ↑ℓ) * x / L) +
+       Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L)) / 2 := by
+    intro x
+    rw [show 2 * Real.pi * (↑k - ↑ℓ) * x / L =
+        2 * Real.pi * ↑k * x / L - 2 * Real.pi * ↑ℓ * x / L from by ring,
+      show 2 * Real.pi * (↑k + ↑ℓ) * x / L =
+        2 * Real.pi * ↑k * x / L + 2 * Real.pi * ↑ℓ * x / L from by ring,
+      Real.cos_sub, Real.cos_add]; ring
+  simp_rw [h_prod, intervalIntegral.integral_div]
+  -- ∫ cos(2π(k+ℓ)x/L) = 0 (always, since k+ℓ ≥ 2)
+  have h_sum : ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L) = 0 := by
+    rw [show (2 : ℝ) * Real.pi * (↑k + ↑ℓ) = 2 * Real.pi * ↑(k + ℓ : ℤ) from by push_cast; ring]
+    exact integral_cos_int_period (k + ℓ : ℤ) (by omega)
+  -- Split integral of sum: ∫ (f + g) = (∫ f) + (∫ g)
+  have h_split : (∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k - ↑ℓ) * x / L) +
+      Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L)) =
+      (∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k - ↑ℓ) * x / L)) +
+      (∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L)) := by
+    apply intervalIntegral.integral_add
+    all_goals exact (Real.continuous_cos.comp (by fun_prop)).intervalIntegrable _ _
+  rw [h_split, h_sum, add_zero]
+  split_ifs with h
+  · -- k = ℓ: ∫ cos(2π·0·x/L) = ∫ cos(0) = ∫ 1 = L
+    subst h
+    simp only [sub_self, mul_zero, zero_mul, zero_div, Real.cos_zero]
+    rw [intervalIntegral.integral_const, smul_eq_mul, mul_one, sub_zero]
+  · -- k ≠ ℓ: k - ℓ ≠ 0 as integers
+    rw [show (2 : ℝ) * Real.pi * (↑k - ↑ℓ) = 2 * Real.pi * ↑(k - ℓ : ℤ) from by push_cast; ring]
+    rw [integral_cos_int_period (k - ℓ : ℤ) (by omega), zero_div]
+
+-- Integral of sin(2πkx/L)·sin(2πℓx/L) over [0, L]
+private theorem integral_sin_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
+    ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * k * x / L) *
+      Real.sin (2 * Real.pi * ℓ * x / L) = if k = ℓ then L / 2 else 0 := by
+  -- Product-to-sum: sin A · sin B = (cos(A-B) - cos(A+B))/2
+  have h_prod : ∀ x : ℝ,
+      Real.sin (2 * Real.pi * k * x / L) * Real.sin (2 * Real.pi * ℓ * x / L) =
+      (Real.cos (2 * Real.pi * (↑k - ↑ℓ) * x / L) -
+       Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L)) / 2 := by
+    intro x
+    rw [show 2 * Real.pi * (↑k - ↑ℓ) * x / L =
+        2 * Real.pi * ↑k * x / L - 2 * Real.pi * ↑ℓ * x / L from by ring,
+      show 2 * Real.pi * (↑k + ↑ℓ) * x / L =
+        2 * Real.pi * ↑k * x / L + 2 * Real.pi * ↑ℓ * x / L from by ring,
+      Real.cos_sub, Real.cos_add]; ring
+  simp_rw [h_prod, intervalIntegral.integral_div]
+  have h_sum : ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L) = 0 := by
+    rw [show (2 : ℝ) * Real.pi * (↑k + ↑ℓ) = 2 * Real.pi * ↑(k + ℓ : ℤ) from by push_cast; ring]
+    exact integral_cos_int_period (k + ℓ : ℤ) (by omega)
+  have h_split : (∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k - ↑ℓ) * x / L) -
+      Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L)) =
+      (∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k - ↑ℓ) * x / L)) -
+      (∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * (↑k + ↑ℓ) * x / L)) := by
+    apply intervalIntegral.integral_sub
+    all_goals exact (Real.continuous_cos.comp (by fun_prop)).intervalIntegrable _ _
+  rw [h_split, h_sum, sub_zero]
+  split_ifs with h
+  · subst h
+    simp only [sub_self, mul_zero, zero_mul, zero_div, Real.cos_zero]
+    rw [intervalIntegral.integral_const, smul_eq_mul, mul_one, sub_zero]
+  · rw [show (2 : ℝ) * Real.pi * (↑k - ↑ℓ) = 2 * Real.pi * ↑(k - ℓ : ℤ) from by push_cast; ring]
+    rw [integral_cos_int_period (k - ℓ : ℤ) (by omega), zero_div]
+
+-- Integral of cos(2πkx/L)·sin(2πℓx/L) over [0, L] is 0
+private theorem integral_cos_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
+    ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) *
+      Real.sin (2 * Real.pi * ℓ * x / L) = 0 := by
+  -- Product-to-sum: cos A · sin B = (sin(A+B) - sin(A-B))/2
+  have h_prod : ∀ x : ℝ,
+      Real.cos (2 * Real.pi * k * x / L) * Real.sin (2 * Real.pi * ℓ * x / L) =
+      (Real.sin (2 * Real.pi * (↑k + ↑ℓ) * x / L) -
+       Real.sin (2 * Real.pi * (↑k - ↑ℓ) * x / L)) / 2 := by
+    intro x
+    rw [show 2 * Real.pi * (↑k + ↑ℓ) * x / L =
+        2 * Real.pi * ↑k * x / L + 2 * Real.pi * ↑ℓ * x / L from by ring,
+      show 2 * Real.pi * (↑k - ↑ℓ) * x / L =
+        2 * Real.pi * ↑k * x / L - 2 * Real.pi * ↑ℓ * x / L from by ring,
+      Real.sin_add, Real.sin_sub]; ring
+  simp_rw [h_prod, intervalIntegral.integral_div]
+  have h_sum : ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * (↑k + ↑ℓ) * x / L) = 0 := by
+    rw [show (2 : ℝ) * Real.pi * (↑k + ↑ℓ) = 2 * Real.pi * ↑(k + ℓ : ℤ) from by push_cast; ring]
+    exact integral_sin_int_period (k + ℓ : ℤ) (by omega)
+  have h_split : (∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * (↑k + ↑ℓ) * x / L) -
+      Real.sin (2 * Real.pi * (↑k - ↑ℓ) * x / L)) =
+      (∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * (↑k + ↑ℓ) * x / L)) -
+      (∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * (↑k - ↑ℓ) * x / L)) := by
+    apply intervalIntegral.integral_sub
+    all_goals exact (Real.continuous_sin.comp (by fun_prop)).intervalIntegrable _ _
+  rw [h_split, h_sum, zero_sub]
+  by_cases h : (k : ℤ) - ℓ = 0
+  · have hk_eq : (↑k : ℝ) - ↑ℓ = 0 := by exact_mod_cast h
+    simp only [hk_eq, mul_zero, zero_mul, zero_div, Real.sin_zero]
+    rw [intervalIntegral.integral_const, smul_eq_mul, mul_zero, neg_zero, zero_div]
+  · rw [show (2 : ℝ) * Real.pi * (↑k - ↑ℓ) = 2 * Real.pi * ↑(k - ℓ : ℤ) from by push_cast; ring]
+    rw [integral_sin_int_period (k - ℓ : ℤ) h, neg_zero, zero_div]
+
 /-- Orthogonality of the real Fourier basis:
 `∫₀ᴸ ψ_i(x) ψ_j(x) dx = δ_{ij}`. -/
 theorem fourierCoeffReal_fourierBasis (i j : ℕ) :
     fourierCoeffReal (L := L) i (fourierBasis j) = if i = j then 1 else 0 := by
-  sorry
+  unfold fourierCoeffReal
+  simp only [fourierBasis_apply]
+  -- Convert set integral on Icc to interval integral
+  have h_conv : ∫ x in Set.Icc 0 L, fourierBasisFun (L := L) j x * fourierBasisFun (L := L) i x =
+      ∫ x in (0 : ℝ)..L, fourierBasisFun (L := L) j x * fourierBasisFun (L := L) i x :=
+    setIntegral_Icc_eq_intervalIntegral _ 0 L (le_of_lt hL.out)
+      ((fourierBasisFun_smooth (L := L) j).continuous.mul
+        (fourierBasisFun_smooth (L := L) i).continuous).continuousOn.intervalIntegrable
+  rw [h_conv]; clear h_conv
+  -- Helper: rewrite integrand using pointwise equality
+  have integral_rw : ∀ (f g : ℝ → ℝ) (_ : ∀ x, f x = g x),
+      ∫ x in (0 : ℝ)..L, f x = ∫ x in (0 : ℝ)..L, g x :=
+    fun f g h => intervalIntegral.integral_congr (fun x _ => h x)
+  -- Case split on i and j
+  rcases j with _ | j <;> rcases i with _ | i
+  · -- i = 0, j = 0
+    simp only [fourierBasisFun, ↓reduceIte]
+    rw [integral_rw _ (fun _ => 1 / L) (fun _ => by
+      rw [div_mul_div_comm, one_mul, ← sq, Real.sq_sqrt (le_of_lt hL.out)])]
+    rw [intervalIntegral.integral_const, smul_eq_mul, sub_zero,
+      one_div, mul_inv_cancel₀ (ne_of_gt hL.out)]
+  · -- i > 0, j = 0
+    simp only [fourierBasisFun]
+    split
+    · -- i+1 is cos
+      rw [integral_rw _ (fun x => (1 / Real.sqrt L * Real.sqrt (2 / L)) *
+          Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L)) (fun x => by ring)]
+      rw [intervalIntegral.integral_const_mul, integral_cos_period (i / 2 + 1) (by omega), mul_zero]
+      simp [Nat.succ_ne_zero]
+    · -- i+1 is sin
+      rw [integral_rw _ (fun x => (1 / Real.sqrt L * Real.sqrt (2 / L)) *
+          Real.sin (2 * Real.pi * ↑(i / 2 + 1) * x / L)) (fun x => by ring)]
+      rw [intervalIntegral.integral_const_mul, integral_sin_period (i / 2 + 1) (by omega), mul_zero]
+      simp [Nat.succ_ne_zero]
+  · -- i = 0, j > 0
+    simp only [fourierBasisFun]
+    split
+    · -- j+1 is cos
+      rw [integral_rw _ (fun x => (Real.sqrt (2 / L) / Real.sqrt L) *
+          Real.cos (2 * Real.pi * ↑(j / 2 + 1) * x / L)) (fun x => by ring)]
+      rw [intervalIntegral.integral_const_mul, integral_cos_period (j / 2 + 1) (by omega), mul_zero]
+      simp [Nat.succ_ne_zero]
+    · -- j+1 is sin
+      rw [integral_rw _ (fun x => (Real.sqrt (2 / L) / Real.sqrt L) *
+          Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L)) (fun x => by ring)]
+      rw [intervalIntegral.integral_const_mul, integral_sin_period (j / 2 + 1) (by omega), mul_zero]
+      simp [Nat.succ_ne_zero]
+  · -- both i, j > 0
+    simp only [fourierBasisFun]
+    -- Helper: √(2/L) * a * (√(2/L) * b) = (2/L) * (a * b)
+    have factor : ∀ a b : ℝ, Real.sqrt (2 / L) * a * (Real.sqrt (2 / L) * b) = 2 / L * (a * b) := by
+      intro a b
+      have h : Real.sqrt (2 / L) * Real.sqrt (2 / L) = 2 / L :=
+        Real.mul_self_sqrt (le_of_lt (div_pos two_pos hL.out))
+      calc _ = Real.sqrt (2 / L) * Real.sqrt (2 / L) * (a * b) := by ring
+        _ = 2 / L * (a * b) := by rw [h]
+    -- Split on parity
+    by_cases hi : i % 2 = 0 <;> by_cases hj : j % 2 = 0 <;> simp only [hi, hj, ↓reduceIte]
+    · -- hj=0, hi=0: cos(j)*cos(i)
+      have h_eq : ∫ x in (0 : ℝ)..L,
+          Real.sqrt (2 / L) * Real.cos (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          (Real.sqrt (2 / L) * Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L)) =
+          2 / L * ∫ x in (0 : ℝ)..L,
+          Real.cos (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L) := by
+        rw [← intervalIntegral.integral_const_mul]
+        exact intervalIntegral.integral_congr (fun x _ => factor _ _)
+      rw [h_eq, integral_cos_cos (j / 2 + 1) (i / 2 + 1) (by omega) (by omega)]
+      by_cases heq : i + 1 = j + 1
+      · have : j / 2 + 1 = i / 2 + 1 := by omega
+        simp only [if_pos this, if_pos heq]; field_simp; exact div_self (ne_of_gt hL.out)
+      · have : j / 2 + 1 ≠ i / 2 + 1 := by omega
+        simp only [if_neg this, if_neg heq, mul_zero]
+    · -- hj≠0, hi=0: sin(j)*cos(i)
+      have hij : i + 1 ≠ j + 1 := by omega
+      -- Integrand: √(2/L)*sin_j * (√(2/L)*cos_i) → factor then swap for integral_cos_sin
+      have h_eq : ∫ x in (0 : ℝ)..L,
+          Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          (Real.sqrt (2 / L) * Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L)) =
+          2 / L * ∫ x in (0 : ℝ)..L,
+          Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L) *
+          Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L) := by
+        rw [← intervalIntegral.integral_const_mul]
+        apply intervalIntegral.integral_congr; intro x _
+        have h1 := factor (Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L))
+          (Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L))
+        linarith [mul_comm (Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L))
+          (Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L))]
+      rw [h_eq, integral_cos_sin (i / 2 + 1) (j / 2 + 1) (by omega) (by omega), mul_zero]
+      simp only [if_neg hij]
+    · -- hj=0, hi≠0: cos(j)*sin(i)
+      have hij : i + 1 ≠ j + 1 := by omega
+      have h_eq : ∫ x in (0 : ℝ)..L,
+          Real.sqrt (2 / L) * Real.cos (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          (Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑(i / 2 + 1) * x / L)) =
+          2 / L * ∫ x in (0 : ℝ)..L,
+          Real.cos (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          Real.sin (2 * Real.pi * ↑(i / 2 + 1) * x / L) := by
+        rw [← intervalIntegral.integral_const_mul]
+        exact intervalIntegral.integral_congr (fun x _ => factor _ _)
+      rw [h_eq, integral_cos_sin (j / 2 + 1) (i / 2 + 1) (by omega) (by omega), mul_zero]
+      simp only [if_neg hij]
+    · -- hj≠0, hi≠0: sin(j)*sin(i)
+      have h_eq : ∫ x in (0 : ℝ)..L,
+          Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          (Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑(i / 2 + 1) * x / L)) =
+          2 / L * ∫ x in (0 : ℝ)..L,
+          Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L) *
+          Real.sin (2 * Real.pi * ↑(i / 2 + 1) * x / L) := by
+        rw [← intervalIntegral.integral_const_mul]
+        exact intervalIntegral.integral_congr (fun x _ => factor _ _)
+      rw [h_eq, integral_sin_sin (j / 2 + 1) (i / 2 + 1) (by omega) (by omega)]
+      by_cases heq : i + 1 = j + 1
+      · have : j / 2 + 1 = i / 2 + 1 := by omega
+        simp only [if_pos this, if_pos heq]; field_simp; exact div_self (ne_of_gt hL.out)
+      · have : j / 2 + 1 ≠ i / 2 + 1 := by omega
+        simp only [if_neg this, if_neg heq, mul_zero]
 
 /-! ### Sobolev seminorm of Fourier basis: polynomial growth -/
 
