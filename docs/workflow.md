@@ -29,9 +29,9 @@ instance : DyninMityaginSpace (SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :=
 
 ```lean
 -- Smooth functions on the circle ℝ/Lℤ
-abbrev SmoothCircle (L : ℝ) [Fact (0 < L)] := ...
+structure SmoothMap_Circle (L : ℝ) (F : Type*) [Fact (0 < L)] := ...
 
-instance : DyninMityaginSpace (SmoothCircle L) where
+instance : DyninMityaginSpace (SmoothMap_Circle L ℝ) where
   ι := ℕ                            -- single Sobolev index k
   p := sobolevSeminorm L             -- ‖f‖_k² = Σ_n (1+|n|)^{2k} |f̂_n|²
   basis := fourierBasis L             -- e^{2πinx/L} reindexed to ℕ
@@ -77,8 +77,8 @@ def pureCLM_right (e₁ : E₁) : E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ 
 theorem pure_continuous : Continuous (fun p : E₁ × E₂ => pure p.1 p.2) := ...
 
 -- Specific product spaces are abbreviations:
-abbrev Torus2 (L₁ L₂) := NuclearTensorProduct (SmoothCircle L₁) (SmoothCircle L₂)
-abbrev Cylinder (L) := NuclearTensorProduct (SmoothCircle L) (SchwartzMap ℝ¹ ℝ)
+abbrev Torus2 (L₁ L₂) := NuclearTensorProduct (SmoothMap_Circle L ℝ₁) (SmoothMap_Circle L ℝ₂)
+abbrev Cylinder (L) := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SchwartzMap ℝ¹ ℝ)
 ```
 
 ## Layer 2: Build the covariance operator $T$

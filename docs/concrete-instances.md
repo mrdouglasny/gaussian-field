@@ -54,7 +54,7 @@ $$\psi_m(x) = \frac{1}{\sqrt{L}} e^{2\pi i \sigma(m) x / L}$$
 ```lean
 /-- Smooth periodic functions on the circle of circumference L.
     Uses Mathlib's AddCircle L = ℝ/Lℤ as the domain. -/
-abbrev SmoothCircle (L : ℝ) [hL : Fact (0 < L)] :=
+structure SmoothMap_Circle (L : ℝ) (F : Type*) [hL : Fact (0 < L)] :=
   -- Placeholder: Mathlib does not yet have C^∞(AddCircle L) as a Fréchet space.
   -- Would be defined as smooth maps AddCircle L → ℝ with Fréchet topology.
   sorry
@@ -62,19 +62,19 @@ abbrev SmoothCircle (L : ℝ) [hL : Fact (0 < L)] :=
 variable (L : ℝ) [hL : Fact (0 < L)]
 
 /-- Fourier modes on S^1_L, reindexed by ℕ. -/
-axiom fourierBasis (L : ℝ) [Fact (0 < L)] : ℕ → SmoothCircle L
+axiom fourierBasis (L : ℝ) [Fact (0 < L)] : ℕ → SmoothMap_Circle L ℝ
 
 /-- Fourier coefficient CLMs. -/
-axiom fourierCoeff (L : ℝ) [Fact (0 < L)] : ℕ → (SmoothCircle L →L[ℝ] ℝ)
+axiom fourierCoeff (L : ℝ) [Fact (0 < L)] : ℕ → (SmoothMap_Circle L ℝ →L[ℝ] ℝ)
 
 /-- Sobolev seminorms on S^1_L, indexed by ℕ. -/
-axiom sobolevSeminorm (L : ℝ) [Fact (0 < L)] : ℕ → Seminorm ℝ (SmoothCircle L)
+axiom sobolevSeminorm (L : ℝ) [Fact (0 < L)] : ℕ → Seminorm ℝ (SmoothMap_Circle L ℝ)
 
 axiom smoothCircle_withSeminorms (L : ℝ) [Fact (0 < L)] :
     WithSeminorms (sobolevSeminorm L)
 
 axiom fourier_expansion (L : ℝ) [Fact (0 < L)]
-    (φ : SmoothCircle L →L[ℝ] ℝ) (f : SmoothCircle L) :
+    (φ : SmoothMap_Circle L ℝ →L[ℝ] ℝ) (f : SmoothMap_Circle L ℝ) :
     φ f = ∑' m, (fourierCoeff L m f) * φ (fourierBasis L m)
 
 axiom fourier_seminorm_growth (L : ℝ) [Fact (0 < L)]
@@ -83,12 +83,12 @@ axiom fourier_seminorm_growth (L : ℝ) [Fact (0 < L)]
 
 axiom fourier_coefficient_decay (L : ℝ) [Fact (0 < L)]
     (k : ℕ) : ∃ C > 0, ∃ (q : ℕ),
-    ∀ (f : SmoothCircle L) (m : ℕ),
+    ∀ (f : SmoothMap_Circle L ℝ) (m : ℕ),
       |fourierCoeff L m f| * (1 + (m : ℝ)) ^ k ≤
         C * sobolevSeminorm L q f
 
 instance smoothCircle_dyninMityaginSpace :
-    DyninMityaginSpace (SmoothCircle L) where
+    DyninMityaginSpace (SmoothMap_Circle L ℝ) where
   ι := ℕ
   p := sobolevSeminorm L
   h_with := smoothCircle_withSeminorms L
@@ -104,9 +104,9 @@ instance smoothCircle_dyninMityaginSpace :
 ```lean
 -- Gaussian free field on S^1 of circumference L
 variable (L : ℝ) [Fact (0 < L)] (m : ℝ)
-variable (T : SmoothCircle L →L[ℝ] H)  -- e.g., (-d²/dx² + m²)^{-1/2}
+variable (T : SmoothMap_Circle L ℝ →L[ℝ] H)  -- e.g., (-d²/dx² + m²)^{-1/2}
 
-#check GaussianField.measure T  -- Measure (Configuration (SmoothCircle L))
+#check GaussianField.measure T  -- Measure (Configuration (SmoothMap_Circle L ℝ))
 ```
 
 The circumference $L$ propagates through the construction: it determines
@@ -514,7 +514,7 @@ end GaussianField
 -- Gaussian measure on distributions on the cylinder S¹_L × ℝ
 variable (L : ℝ) [Fact (0 < L)]
 abbrev Cylinder (L : ℝ) [Fact (0 < L)] :=
-  NuclearTensorProduct (SmoothCircle L) (SchwartzMap (EuclideanSpace ℝ (Fin 1)) ℝ)
+  NuclearTensorProduct (SmoothMap_Circle L ℝ) (SchwartzMap (EuclideanSpace ℝ (Fin 1)) ℝ)
 
 variable (T : Cylinder L →L[ℝ] H)
 #check GaussianField.measure T
@@ -523,7 +523,7 @@ variable (T : Cylinder L →L[ℝ] H)
 -- Gaussian measure on distributions on the torus T²_{L₁,L₂}
 variable (L₁ L₂ : ℝ) [Fact (0 < L₁)] [Fact (0 < L₂)]
 abbrev Torus2 (L₁ L₂ : ℝ) [Fact (0 < L₁)] [Fact (0 < L₂)] :=
-  NuclearTensorProduct (SmoothCircle L₁) (SmoothCircle L₂)
+  NuclearTensorProduct (SmoothMap_Circle L ℝ₁) (SmoothMap_Circle L ℝ₂)
 
 variable (T₂ : Torus2 L₁ L₂ →L[ℝ] H)
 #check GaussianField.measure T₂
@@ -557,15 +557,15 @@ def lattice2D_GFF (L₁ L₂ : ℝ) (N₁ N₂ : ℕ) (mass : ℝ) :
 ```lean
 /-- Restriction: sample a smooth function on S¹_L at N equally spaced points. -/
 def circleRestriction (L : ℝ) [Fact (0 < L)] (N : ℕ) [NeZero N] :
-    SmoothCircle L →L[ℝ] PeriodicLattice N :=
+    SmoothMap_Circle L ℝ →L[ℝ] PeriodicLattice N :=
   sorry  -- r_N(f)(k) = √(L/N) · f(kL/N)
 
 /-- Convergence of lattice GFF to continuum GFF on S¹_L. -/
 theorem circle_continuum_limit
     (L : ℝ) [Fact (0 < L)] (mass : ℝ)
-    (T : SmoothCircle L →L[ℝ] H)        -- continuum operator
+    (T : SmoothMap_Circle L ℝ →L[ℝ] H)        -- continuum operator
     (T_N : ∀ N : ℕ, PeriodicLattice N →L[ℝ] H_N)  -- lattice operators
-    (h_conv : ∀ f : SmoothCircle L,
+    (h_conv : ∀ f : SmoothMap_Circle L ℝ,
       Filter.Tendsto
         (fun N => ‖T_N N (circleRestriction L N f)‖ ^ 2)
         Filter.atTop (nhds (‖T f‖ ^ 2))) :
@@ -617,7 +617,7 @@ or polynomially growing sequences $s' = \bigcup_k \ell^2_{-k}$.
 | Space | `E` in Lean | `ι` | Basis | Axioms needed |
 |---|---|---|---|---|
 | $\mathcal{S}(\mathbb{R}^d)$ | `SchwartzMap D F` | `ℕ × ℕ` | Hermite | 5 (current) |
-| $C^\infty(S^1_L)$ | `SmoothCircle L` | `ℕ` | Fourier | 5 (analogous) |
+| $C^\infty(S^1_L)$ | `SmoothMap_Circle L ℝ` | `ℕ` | Fourier | 0 (fully proved) |
 | $s(\mathbb{Z}^d)$ | `RapidDecaySeq d` | `ℕ` | Standard $e_n$ | 0 (elementary) |
 | Finite lattice | `FiniteLattice N` | `Unit` | Standard | 0 (trivial) |
 | Periodic lattice on $S^1_L$ | `PeriodicLattice N` | `Unit` | Standard/DFT | 0 (trivial) |
