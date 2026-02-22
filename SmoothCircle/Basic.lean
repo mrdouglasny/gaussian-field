@@ -126,12 +126,12 @@ instance instAddCommGroup : AddCommGroup (SmoothCircle L) where
   zsmul := zsmulRec
 
 instance instModule : Module ℝ (SmoothCircle L) where
-  one_smul f := ext fun x => one_mul _
-  mul_smul r s f := ext fun x => mul_assoc _ _ _
-  smul_zero r := ext fun x => mul_zero _
-  smul_add r f g := ext fun x => mul_add _ _ _
-  add_smul r s f := ext fun x => add_mul _ _ _
-  zero_smul f := ext fun x => zero_mul _
+  one_smul _ := ext fun _ => one_mul _
+  mul_smul _ _ _ := ext fun _ => mul_assoc _ _ _
+  smul_zero _ := ext fun _ => mul_zero _
+  smul_add _ _ _ := ext fun _ => mul_add _ _ _
+  add_smul _ _ _ := ext fun _ => add_mul _ _ _
+  zero_smul _ := ext fun _ => zero_mul _
 
 /-! ### Iterated derivatives of smooth periodic functions -/
 
@@ -186,11 +186,11 @@ def sobolevSeminorm (k : ℕ) : Seminorm ℝ (SmoothCircle L) where
     apply le_antisymm
     · apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
       rintro _ ⟨x, _, rfl⟩
-      simp [iteratedDeriv_fun_const_zero]
+      simp
     · exact le_csSup_of_le
         ((0 : SmoothCircle L).bddAbove_norm_iteratedDeriv_image k)
         ⟨0, Set.left_mem_Icc.mpr (le_of_lt hL.out), rfl⟩
-        (by simp [iteratedDeriv_fun_const_zero])
+        (by simp)
   add_le' f g := by
     apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
     rintro _ ⟨x, hx, rfl⟩
@@ -338,6 +338,7 @@ def fourierBasis (n : ℕ) : SmoothCircle L :=
 @[simp] theorem fourierBasis_apply (n : ℕ) (x : ℝ) :
     (fourierBasis (L := L) n : ℝ → ℝ) x = fourierBasisFun (L := L) n x := rfl
 
+omit [Fact (0 < L)] in
 /-- Each Fourier basis function is pointwise bounded. -/
 theorem fourierBasisFun_abs_le (n : ℕ) (x : ℝ) :
     |fourierBasisFun (L := L) n x| ≤ max (1 / Real.sqrt L) (Real.sqrt (2 / L)) := by
@@ -442,7 +443,7 @@ def fourierCoeffCLM (n : ℕ) : SmoothCircle L →L[ℝ] ℝ where
 
 -- Convert set integral on Icc to interval integral
 private theorem setIntegral_Icc_eq_intervalIntegral (f : ℝ → ℝ) (a b : ℝ) (hab : a ≤ b)
-    (hf : IntervalIntegrable f MeasureTheory.volume a b) :
+    (_hf : IntervalIntegrable f MeasureTheory.volume a b) :
     ∫ x in Set.Icc a b, f x = ∫ x in a..b, f x := by
   rw [MeasureTheory.integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le hab]
 
@@ -659,12 +660,12 @@ theorem fourierCoeffReal_fourierBasis (i j : ℕ) :
       rw [integral_rw _ (fun x => (1 / Real.sqrt L * Real.sqrt (2 / L)) *
           Real.cos (2 * Real.pi * ↑(i / 2 + 1) * x / L)) (fun x => by ring)]
       rw [intervalIntegral.integral_const_mul, integral_cos_period (i / 2 + 1) (by omega), mul_zero]
-      simp [Nat.succ_ne_zero]
+      simp
     · -- i+1 is sin
       rw [integral_rw _ (fun x => (1 / Real.sqrt L * Real.sqrt (2 / L)) *
           Real.sin (2 * Real.pi * ↑(i / 2 + 1) * x / L)) (fun x => by ring)]
       rw [intervalIntegral.integral_const_mul, integral_sin_period (i / 2 + 1) (by omega), mul_zero]
-      simp [Nat.succ_ne_zero]
+      simp
   · -- i = 0, j > 0
     simp only [fourierBasisFun]
     split
@@ -672,12 +673,12 @@ theorem fourierCoeffReal_fourierBasis (i j : ℕ) :
       rw [integral_rw _ (fun x => (Real.sqrt (2 / L) / Real.sqrt L) *
           Real.cos (2 * Real.pi * ↑(j / 2 + 1) * x / L)) (fun x => by ring)]
       rw [intervalIntegral.integral_const_mul, integral_cos_period (j / 2 + 1) (by omega), mul_zero]
-      simp [Nat.succ_ne_zero]
+      simp
     · -- j+1 is sin
       rw [integral_rw _ (fun x => (Real.sqrt (2 / L) / Real.sqrt L) *
           Real.sin (2 * Real.pi * ↑(j / 2 + 1) * x / L)) (fun x => by ring)]
       rw [intervalIntegral.integral_const_mul, integral_sin_period (j / 2 + 1) (by omega), mul_zero]
-      simp [Nat.succ_ne_zero]
+      simp
   · -- both i, j > 0
     simp only [fourierBasisFun]
     -- Helper: √(2/L) * a * (√(2/L) * b) = (2/L) * (a * b)
