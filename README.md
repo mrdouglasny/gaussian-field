@@ -173,28 +173,30 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 
 ### 2b. [Circle Nuclearity](docs/concrete-instances.md#1-the-circle-s1_l-of-circumference-l)
 
-Proves `DyninMityaginSpace (SmoothCircle L)` for smooth L-periodic functions
-on the circle via the real Fourier basis and the isomorphism
-`SmoothCircle L ≃L[ℝ] RapidDecaySeq`.
+Proves `DyninMityaginSpace (SmoothMap_Circle L ℝ)` (sorry-free) for smooth L-periodic
+functions on the circle via the real Fourier basis and the isomorphism
+`SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq`.
 
 | File | Lines | Contents |
 |------|------:|----------|
-| [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | ~400 | Type, seminorms, Fourier basis, coefficients |
-| [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | ~200 | Decay, CLE, `DyninMityaginSpace` instance |
-| [Test.lean](Test.lean) | ~110 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus |
+| [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | 845 | Type, seminorms, Fourier basis, orthogonality, coefficients |
+| [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | 824 | IBP decay, CLE, Fourier completeness, `DyninMityaginSpace` instance |
+| [Test.lean](Test.lean) | 119 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus |
 
 This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
 on cylinders S¹×ℝ and higher tori Tᵈ. The test file verifies the full pipeline
-for both `SmoothCircle L` and the cylinder `NuclearTensorProduct (SmoothCircle L) (SchwartzMap ℝ ℝ)`.
+for `SmoothMap_Circle L ℝ`, the cylinder `NuclearTensorProduct (SmoothMap_Circle L ℝ) (SchwartzMap ℝ ℝ)`, and the torus `NuclearTensorProduct (SmoothMap_Circle L₁ ℝ) (SmoothMap_Circle L₂ ℝ)`.
 See [concrete instances](docs/concrete-instances.md) for the mathematical details.
 
-**Design note:** `SmoothCircle L` represents smooth L-periodic functions as
+**Design note:** `SmoothMap_Circle L ℝ` represents smooth L-periodic functions as
 `{f : ℝ → ℝ | Periodic f L ∧ ContDiff ℝ ⊤ f}`, avoiding manifold machinery.
-Mathlib's `AddCircle L` (= $\mathbb{R}/L\mathbb{Z}$) has rich Fourier analysis
-but currently lacks `ChartedSpace`/`SmoothManifoldWithCorners` instances, so
-`ContMDiffMap (AddCircle L) F` cannot yet be defined. Once Mathlib gains manifold
-structure on `AddCircle`, the type could be refactored to `ContMDiffMap (AddCircle L) F`
-and generalized to vector-valued codomain $F$.
+The codomain parameter `ℝ` is currently a phantom type (the construction only
+works for real-valued functions), but is included for forward compatibility with
+vector-valued generalizations. Mathlib's `AddCircle L` (= $\mathbb{R}/L\mathbb{Z}$)
+has rich Fourier analysis but currently lacks `ChartedSpace`/`SmoothManifoldWithCorners`
+instances, so `ContMDiffMap (AddCircle L) F` cannot yet be defined. Once Mathlib
+gains manifold structure on `AddCircle`, the type could be refactored to
+`ContMDiffMap (AddCircle L) F` with a genuine codomain parameter.
 
 ### 3. [Gaussian Field Construction](docs/gaussian-field-construction.md)
 
@@ -217,7 +219,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 Nuclear/
   DyninMityagin → NuclearTensorProduct
        ↓                ↓
-SchwartzNuclear/   SmoothCircle/         GaussianField/
+SchwartzNuclear/   SmoothCircle/             GaussianField/
   ...              Basic → Nuclear       NuclearFactorization
   HermiteNuclear        ↓                     ↓
        ↓           Test (uses GF)   SpectralTheorem → NuclearSVD → TargetFactorization
@@ -232,7 +234,7 @@ SchwartzNuclear/   SmoothCircle/         GaussianField/
 
 ## Axiom budget
 
-**0 custom axioms.** The Schwartz nuclearity instance `DyninMityaginSpace (SchwartzMap D ℝ)` is fully proved in `SchwartzNuclear/` (~7,700 lines) via the Hermite function expansion and the Dynin-Mityagin isomorphism. See the [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) for details.
+**0 custom axioms.** Both `DyninMityaginSpace (SchwartzMap D ℝ)` (fully proved in `SchwartzNuclear/`, ~7,700 lines, via the Hermite function expansion) and `DyninMityaginSpace (SmoothMap_Circle L ℝ)` (fully proved in `SmoothCircle/`, ~1,670 lines, via the real Fourier basis) are sorry-free. See the [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) for details on the Schwartz space instance.
 
 An axiom fallback is available as an inactive comment in `GaussianField.lean` for faster builds during development.
 
@@ -252,8 +254,8 @@ An axiom fallback is available as an inactive comment in `GaussianField.lean` fo
 
 ## Future work
 
-- **New instances**: $C^\infty(S^1)$ is implemented (with analytical sorrys); remaining targets: $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
-- **Vector-valued generalization**: Generalize `SmoothCircle L` and `SchwartzMap D ℝ` to vector-valued codomains $F$, with nuclearity via $C^\infty(M, \mathbb{R}^n) \cong C^\infty(M, \mathbb{R})^n \cong s(\mathbb{N})$; long-term, refactor to `ContMDiffMap (AddCircle L) F` once Mathlib gains manifold structure on `AddCircle`
+- **New instances**: $C^\infty(S^1)$ is fully proved; remaining targets: $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
+- **Vector-valued generalization**: Generalize `SmoothMap_Circle L ℝ` and `SchwartzMap D ℝ` to vector-valued codomains $F$ (the `F` parameter in `SmoothMap_Circle` is a placeholder for this), with nuclearity via $C^\infty(M, \mathbb{R}^n) \cong C^\infty(M, \mathbb{R})^n \cong s(\mathbb{N})$; long-term, refactor to `ContMDiffMap (AddCircle L) F` once Mathlib gains manifold structure on `AddCircle`
 - **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
 - **Lattice-continuum limits**: Formalize convergence via characteristic functionals (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
 - **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
