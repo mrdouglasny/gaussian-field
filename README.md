@@ -194,7 +194,7 @@ instances, so `ContMDiffMap (AddCircle L) F` cannot yet be defined. Once Mathlib
 gains manifold structure on `AddCircle`, the type could be refactored to
 `ContMDiffMap (AddCircle L) F` with a genuine codomain parameter.
 
-### 2c. Heat Kernel Toolkit
+### 2c. [Heat Kernel Toolkit](docs/heat-kernel-toolkit.md)
 
 Spectral multiplier CLMs and QFT eigenvalue/singular value definitions for
 constructing covariance operators on product spaces.
@@ -209,7 +209,7 @@ multiplier sequence `σ`. This is the key tool for constructing covariance opera
 the GFF covariance on S¹_L × ℝ uses `spectralCLM` with `σ_m = λ_m^{-1/2}` where
 `λ_m = (2πn/L)² + (2k+1) + m²`.
 
-### 2d. Point Evaluation and API
+### 2d. [Point Evaluation and API](docs/point-eval-and-api.md)
 
 | File | Lines | Contents |
 |------|------:|----------|
