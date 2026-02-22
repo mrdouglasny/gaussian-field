@@ -54,6 +54,12 @@ instance : AddCommGroup (Complexification E) where
   add_comm _ _ := by ext <;> simp [add_comm]
   sub_eq_add_neg _ _ := by ext <;> simp [sub_eq_add_neg]
 
+/-! ## Topology (product topology via re and im) -/
+
+instance [TopologicalSpace E] : TopologicalSpace (Complexification E) :=
+  TopologicalSpace.induced Complexification.re ‹_› ⊓
+  TopologicalSpace.induced Complexification.im ‹_›
+
 /-! ## Complex scalar action: (a + bi) • (f, g) = (af - bg, ag + bf) -/
 
 variable [Module ℝ E]
