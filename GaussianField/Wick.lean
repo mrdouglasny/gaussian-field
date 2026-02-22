@@ -46,7 +46,7 @@ noncomputable section
 namespace GaussianField
 
 open MeasureTheory ProbabilityTheory TopologicalSpace
-open scoped BigOperators NNReal
+open scoped BigOperators NNReal ENNReal
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
@@ -61,19 +61,52 @@ Products of n evaluation functionals are integrable, generalizing
 `pairing_product_integrable` from n=2. This is needed for Wick's theorem
 to be well-stated (the integrals must exist). -/
 
+/-- HolderTriple (2p, 2p, p): `(2p)⁻¹ + (2p)⁻¹ = p⁻¹` in ℝ≥0∞.
+
+This allows Hölder's inequality to be applied as: L^{2p} × L^{2p} → L^p. -/
+private lemma holderTriple_double (p : ℝ≥0∞) :
+    ENNReal.HolderTriple (2 * p) (2 * p) p where
+  inv_add_inv_eq_inv := by
+    have h2_ne_zero : (2 : ℝ≥0∞) ≠ 0 := two_ne_zero
+    have h2_ne_top : (2 : ℝ≥0∞) ≠ ⊤ := ENNReal.ofNat_ne_top
+    calc (2 * p)⁻¹ + (2 * p)⁻¹
+        = 2 * (2 * p)⁻¹ := (two_mul _).symm
+      _ = 2 * (2⁻¹ * p⁻¹) := by
+          congr 1
+          exact ENNReal.mul_inv (Or.inl h2_ne_zero) (Or.inl h2_ne_top)
+      _ = (2 * 2⁻¹) * p⁻¹ := by rw [mul_assoc]
+      _ = 1 * p⁻¹ := by rw [ENNReal.mul_inv_cancel h2_ne_zero h2_ne_top]
+      _ = p⁻¹ := one_mul _
+
+/-- Products of evaluation functionals are in L^p for all p.
+
+By induction on n, splitting ∏ = head × tail. At each step, `pairing_memLp`
+gives head ∈ L^{2p}, and the IH gives tail ∈ L^{2p}. Hölder's inequality
+via `HolderTriple (2p) (2p) p` gives the product ∈ L^p. -/
+private theorem product_memLp : ∀ (n : ℕ) (f : Fin n → E) (p : ℝ≥0),
+    MemLp (fun ω : Configuration E => ∏ i, ω (f i)) (↑p) (measure T) := by
+  intro n
+  induction n with
+  | zero => intro f p; simp; exact memLp_const 1
+  | succ n ih =>
+    intro f p
+    simp_rw [Fin.prod_univ_succ]
+    haveI : ENNReal.HolderTriple (↑(2 * p)) (↑(2 * p)) (↑p) := by
+      rw [ENNReal.coe_mul]; exact holderTriple_double ↑p
+    have hf0 : MemLp (fun ω : Configuration E => ω (f 0)) (↑(2 * p)) (measure T) :=
+      pairing_memLp T (f 0) (2 * p)
+    have htail : MemLp (fun ω : Configuration E => ∏ i : Fin n, ω (f (Fin.succ i)))
+        (↑(2 * p)) (measure T) :=
+      ih (fun i => f (Fin.succ i)) (2 * p)
+    exact htail.mul' hf0
+
 /-- Finite products of evaluation functionals are integrable.
 
-Each ω(fᵢ) ∈ L^p for all p (`pairing_memLp`). The product is integrable
-by iterated Hölder: at each induction step, split ∏ = head × tail,
-use head ∈ L² and tail ∈ L², conclude head × tail ∈ L¹.
-
-The full proof requires showing products are in L^p for all p simultaneously
-(to get tail ∈ L² at each step), which uses `pairing_memLp` for arbitrarily
-large p and `MemLp.mul` with `HolderTriple (2p) (2p) p`. The ENNReal
-arithmetic for constructing these Hölder triples is left as sorry. -/
+Corollary of `product_memLp` with p = 1. -/
 theorem product_integrable (n : ℕ) (f : Fin n → E) :
-    Integrable (fun ω : Configuration E => ∏ i, ω (f i)) (measure T) :=
-  sorry
+    Integrable (fun ω : Configuration E => ∏ i, ω (f i)) (measure T) := by
+  rw [← memLp_one_iff_integrable]
+  exact_mod_cast product_memLp T n f 1
 
 /-! ## Odd moments vanish
 
@@ -179,7 +212,7 @@ theorem double_factorial_le_sqrt_factorial (n : ℕ) :
 namespace GaussianField
 
 open MeasureTheory ProbabilityTheory TopologicalSpace
-open scoped BigOperators NNReal
+open scoped BigOperators NNReal ENNReal
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
