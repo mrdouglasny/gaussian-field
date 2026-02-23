@@ -124,23 +124,146 @@ Equating gives: ∫ ω(f₀)·exp(i·ω(h)) dμ = ⟨Tf₀,Th⟩ · i · charFun
 The domination condition for Leibniz: |d/dt exp(i·ω(t·f₀+h))| = |ω(f₀)| ∈ L¹
 by `pairing_integrable`. -/
 
-/-- **Gaussian integration by parts** (characteristic functional form).
+/-- Closed-form derivative of `charFun T (t • f₀ + h)` at `t = 0`.
 
-For the Gaussian measure with covariance C(f,g) = ⟨Tf, Tg⟩_H:
+Uses chain rule: `d/dt exp(-½⟨T(t•f₀+h), T(t•f₀+h)⟩)|_{t=0} = -⟨Tf₀,Th⟩ · charFun T h`. -/
+private lemma hasDerivAt_charFun_closed (f₀ h : E) :
+    HasDerivAt
+      (fun t : ℝ => ∫ ω : Configuration E,
+        Complex.exp (Complex.I * ↑(ω (t • f₀ + h))) ∂(measure T))
+      ((-↑(@inner ℝ H _ (T f₀) (T h))) *
+        ∫ ω : Configuration E,
+          Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+      (0 : ℝ) := by
+  -- Rewrite using charFun: ∫ exp(I·ω(f)) dμ = exp(-½⟨Tf,Tf⟩) for all f
+  have hchar : ∀ t : ℝ,
+      ∫ ω : Configuration E,
+        Complex.exp (Complex.I * ↑(ω (t • f₀ + h))) ∂(measure T) =
+      Complex.exp (-(1/2 : ℂ) * ↑(@inner ℝ H _ (T (t • f₀ + h)) (T (t • f₀ + h)))) :=
+    fun t => charFun T (t • f₀ + h)
+  simp_rw [hchar]
+  -- T(t•f₀+h) = t•Tf₀ + Th by CLM linearity
+  have hT : ∀ t : ℝ, T (t • f₀ + h) = t • T f₀ + T h := by
+    intro t; simp [map_add, map_smul]
+  simp_rw [hT]
+  -- HasDerivAt for t ↦ t • Tf₀ + Th
+  have hu : HasDerivAt (fun t : ℝ => t • T f₀ + T h) (T f₀) 0 := by
+    have := ((hasDerivAt_id (0 : ℝ)).smul_const (T f₀)).add_const (T h)
+    simpa using this
+  -- HasDerivAt for ⟨u(t), u(t)⟩: derivative = ⟨Th, Tf₀⟩ + ⟨Tf₀, Th⟩ at t=0
+  have hq := HasDerivAt.inner (𝕜 := ℝ) hu hu
+  -- Lift to ℂ and multiply by -½
+  have hg := (hq.ofReal_comp).const_mul (-(1/2 : ℂ))
+  -- Chain rule: exp(g(t))
+  have hexp := hg.cexp
+  convert hexp using 1
+  -- Goal: -↑⟨Tf₀,Th⟩ * ∫ exp(I*ω(h)) dμ = exp(-½⟨Th,Th⟩) * (-½ * ↑(⟨Th,Tf₀⟩+⟨Tf₀,Th⟩))
+  simp only [zero_smul, zero_add]
+  rw [real_inner_comm (T h) (T f₀), charFun T h]
+  push_cast; ring
 
-  E[ω(f₀) · exp(iω(h))] = ⟨Tf₀, Th⟩ · i · E[exp(iω(h))]
+/-- Leibniz derivative of `∫ exp(I·ω(t•f₀+h)) dμ` at `t = 0`.
 
-Proof: Differentiate `charFun T (t • f₀ + h)` at `t = 0` using the Leibniz
-integral rule (`hasDerivAt_integral_of_dominated_loc_of_deriv_le`) and equate
-with the closed-form derivative. The domination condition uses `|exp(ix)| = 1`,
-so the derivative bound is `|ω(f₀)|` which is integrable by `pairing_integrable`. -/
+Uses `hasDerivAt_integral_of_dominated_loc_of_deriv_le` with domination by `|ω(f₀)|`. -/
+private lemma charFun_integrand_measurable (f : E) :
+    AEStronglyMeasurable
+      (fun ω : Configuration E => Complex.exp (Complex.I * ↑(ω f)))
+      (measure T) :=
+  (((continuous_const.mul Complex.continuous_ofReal).cexp.measurable).comp
+    (configuration_eval_measurable f)).aestronglyMeasurable
+
+private lemma charFun_integrand_integrable (f : E) :
+    Integrable
+      (fun ω : Configuration E => Complex.exp (Complex.I * ↑(ω f)))
+      (measure T) :=
+  Integrable.of_bound (charFun_integrand_measurable T f) 1
+    (.of_forall fun ω => by
+      rw [Complex.norm_exp_I_mul_ofReal])
+
+private lemma hasDerivAt_charFun_leibniz (f₀ h : E) :
+    HasDerivAt
+      (fun t : ℝ => ∫ ω : Configuration E,
+        Complex.exp (Complex.I * ↑(ω (t • f₀ + h))) ∂(measure T))
+      (∫ ω : Configuration E,
+        Complex.I * ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+      (0 : ℝ) := by
+  -- Apply Leibniz integral rule
+  have hleibniz := hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun (t : ℝ) (ω : Configuration E) => Complex.exp (Complex.I * ↑(ω (t • f₀ + h))))
+    (F' := fun (t : ℝ) (ω : Configuration E) =>
+      Complex.I * ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω (t • f₀ + h))))
+    (x₀ := (0 : ℝ)) (bound := fun ω => ‖ω f₀‖) (s := Set.univ)
+    -- (1) s ∈ 𝓝 0
+    Filter.univ_mem
+    -- (2) F t is a.e. strongly measurable for t near 0
+    (.of_forall fun t => charFun_integrand_measurable T (t • f₀ + h))
+    -- (3) F 0 is integrable
+    (by simpa using charFun_integrand_integrable T h)
+    -- (4) F' 0 is a.e. strongly measurable
+    (by
+      have hmeas_eval : AEStronglyMeasurable (fun ω : Configuration E => (ω f₀ : ℂ))
+          (measure T) :=
+        (Complex.continuous_ofReal.measurable.comp
+          (configuration_eval_measurable f₀)).aestronglyMeasurable
+      have hmeas_exp : AEStronglyMeasurable
+          (fun ω : Configuration E => Complex.exp (Complex.I * ↑(ω h)))
+          (measure T) :=
+        charFun_integrand_measurable T h
+      simpa using (hmeas_eval.const_mul Complex.I).mul hmeas_exp)
+    -- (5) ‖F' t ω‖ ≤ bound ω for all t ∈ s
+    (.of_forall fun ω => by
+      intro t _
+      simp only [Complex.norm_mul, Complex.norm_I, Complex.norm_exp_I_mul_ofReal,
+        Complex.norm_real, one_mul, mul_one, le_refl])
+    -- (6) bound is integrable
+    ((pairing_integrable T f₀).norm)
+    -- (7) ∀ᵐ ω, ∀ t ∈ s, HasDerivAt (F · ω) (F' t ω) t
+    (.of_forall fun ω => by
+      intro t _
+      -- ω(t • f₀ + h) = t * ω(f₀) + ω(h) by CLM linearity
+      have hlin : ∀ t', ω (t' • f₀ + h) = t' * ω f₀ + ω h := by
+        intro t'; simp [map_add, map_smul]
+      simp_rw [hlin]
+      -- d/dt exp(I * ↑(t * a + b)) = I * ↑a * exp(I * ↑(t * a + b))
+      have hg : HasDerivAt (fun t' => t' * ω f₀ + ω h) (ω f₀) t := by
+        simpa using ((hasDerivAt_id t).mul_const (ω f₀)).add_const (ω h)
+      have hc : HasDerivAt (fun t' => Complex.I * ↑(t' * ω f₀ + ω h))
+          (Complex.I * ↑(ω f₀)) t :=
+        (HasDerivAt.ofReal_comp hg).const_mul Complex.I
+      -- cexp gives: exp(f(t)) * f'(t), we need f'(t) * exp(f(t))
+      have hexp := hc.cexp
+      rwa [mul_comm] at hexp)
+  -- Extract the HasDerivAt from the conjunction and simplify at t=0
+  convert hleibniz.2 using 2
+  ext ω; simp
+
 theorem gaussian_ibp (f₀ h : E) :
     ∫ ω : Configuration E,
       ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) =
     ↑(@inner ℝ H _ (T f₀) (T h)) * Complex.I *
       ∫ ω : Configuration E,
-        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) :=
-  sorry
+        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) := by
+  -- Equate the two HasDerivAt results by uniqueness
+  have hclosed := hasDerivAt_charFun_closed T f₀ h
+  have hleibniz := hasDerivAt_charFun_leibniz T f₀ h
+  have heq := hleibniz.unique hclosed
+  -- heq : ∫ I * ↑(ω f₀) * exp(I * ↑(ω h)) dμ = (-↑b) * ∫ exp(I * ↑(ω h)) dμ
+  -- Rewrite integrand as I * (rest)
+  have hpull : ∀ ω : Configuration E,
+      Complex.I * ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω h)) =
+      Complex.I * (↑(ω f₀) * Complex.exp (Complex.I * ↑(ω h))) := by
+    intro ω; ring
+  simp_rw [hpull] at heq
+  -- Pull I out of the integral
+  rw [integral_const_mul] at heq
+  -- heq : I * ∫ ↑(ω f₀) * exp(I * ↑(ω h)) dμ = (-↑b) * ∫ exp(I * ↑(ω h)) dμ
+  -- Multiply both sides by (-I) on the left to isolate the integral
+  have hI_inv : -(Complex.I * Complex.I) = (1 : ℂ) := by
+    simp
+  have key := congr_arg ((-Complex.I) * ·) heq
+  simp only [← mul_assoc, neg_mul, hI_inv, one_mul] at key
+  -- key : ∫ ... = (-I) * ((-↑b) * ∫ exp(...) dμ)
+  rw [key]; ring
 
 /-! ## Wick's theorem — recursive form
 
