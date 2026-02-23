@@ -265,15 +265,59 @@ theorem gaussian_ibp (f₀ h : E) :
   -- key : ∫ ... = (-I) * ((-↑b) * ∫ exp(...) dμ)
   rw [key]; ring
 
+/-! ## Generalized Gaussian IBP
+
+The key intermediate result: Gaussian IBP for polynomial × exponential
+functionals. This extends `gaussian_ibp` to weighted integrals of the form
+E[ω(f₀) · ∏ᵢ ω(gᵢ) · exp(iω(h))]. Setting h = 0 gives Wick's recursive formula.
+
+The proof is by induction on the number of polynomial factors:
+- Base case (n = 0): This is `gaussian_ibp`.
+- Inductive step (n → n + 1): Differentiate the n-case identity
+  (with h replaced by t · gₙ₊₁ + h) at t = 0 using the Leibniz integral rule.
+  The RHS uses the product rule; since ⟨Tf₀, T(t·g+h)⟩ is linear in t,
+  its second derivative vanishes, so only the "differentiate exactly one factor"
+  terms survive.
+
+Each Leibniz step is justified by dominated convergence with the bound
+|∏ᵢ ω(gᵢ) · ω(gₙ₊₁)| (integrable by `product_memLp`). -/
+
+/-- **Generalized Gaussian IBP** for polynomial × exponential functionals.
+
+For a centered Gaussian with covariance C(f,g) = ⟨Tf,Tg⟩:
+
+  E[ω(f₀) · ∏ᵢ ω(gᵢ) · exp(iω(h))]
+  = ∑ⱼ C(f₀,gⱼ) · E[∏_{i≠j} ω(gᵢ) · exp(iω(h))]
+    + C(f₀,h) · i · E[∏ᵢ ω(gᵢ) · exp(iω(h))]
+
+Setting n = 0 (empty product) recovers `gaussian_ibp`.
+Setting h = 0 gives `wick_recursive`.
+
+Reference: Janson, "Gaussian Hilbert Spaces", Theorem 1.28;
+Nualart, "The Malliavin Calculus and Related Topics", §1.3 (Stein identity). -/
+theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E) :
+    ∫ ω : Configuration E,
+      ↑(ω f₀) * (∏ i, (↑(ω (g i)) : ℂ)) *
+      Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) =
+    ∑ j : Fin (n + 1), ↑(@inner ℝ H _ (T f₀) (T (g j))) *
+      ∫ ω : Configuration E,
+        (∏ i : Fin n, (↑(ω (g (Fin.succAbove j i))) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T)
+    + ↑(@inner ℝ H _ (T f₀) (T h)) * Complex.I *
+      ∫ ω : Configuration E,
+        (∏ i, (↑(ω (g i)) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) := by
+  sorry
+
 /-! ## Wick's theorem — recursive form
 
 The recursive form avoids the combinatorial overhead of enumerating
 perfect pairings. It says: pick any index (we use 0), then the
 (n+2)-point function equals the sum over all partners j for index 0.
 
-The proof uses `gaussian_ibp` as the base case and extends by induction,
-differentiating the IBP identity with respect to additional parameters
-(one Leibniz application per step). -/
+The proof of the base case n = 0 uses `cross_moment_eq_covariance`.
+For n ≥ 1, the proof follows from `gaussian_ibp_general` with h = 0,
+which eliminates the exponential factor and reduces to the polynomial case. -/
 
 /-- **Wick's theorem (recursive form).**
 
@@ -281,21 +325,54 @@ For a centered Gaussian measure with covariance C(f,g) = ⟨Tf, Tg⟩_H:
 
   E[ω(f₀) · ∏ⱼ ω(gⱼ)] = ∑ⱼ C(f₀, gⱼ) · E[∏_{i≠j} ω(gᵢ)]
 
-This is proved by induction on n using `gaussian_ibp`. The base case n=0
-is `cross_moment_eq_covariance`. The inductive step differentiates the
-IBP identity ∫ ω(f₀)·exp(iω(h)) = ⟨Tf₀,Th⟩·i·charFun(h) with respect
-to additional test function parameters, extracting polynomial coefficients
-from the exponential generating function. -/
+The base case n = 0 is `cross_moment_eq_covariance`. The general case follows
+from `gaussian_ibp_general` specialized to h = 0 (see above for proof sketch). -/
 theorem wick_recursive (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) :
     ∫ ω : Configuration E, ω f₀ * ∏ i, ω (g i) ∂(measure T) =
       ∑ j : Fin (n + 1), @inner ℝ H _ (T f₀) (T (g j)) *
         ∫ ω : Configuration E, ∏ i : Fin n,
           ω (g (Fin.succAbove j i)) ∂(measure T) := by
-  -- Proof by extracting multilinear coefficients from `gaussian_ibp`:
-  -- Setting h = ∑ⱼ tⱼ gⱼ in gaussian_ibp, the coefficient of ∏ⱼ tⱼ on each side
-  -- gives the Wick recursion. Both sides are analytic in t, so coefficient comparison
-  -- is valid. This requires (n+1)-fold Leibniz differentiation under the integral.
-  sorry
+  cases n with
+  | zero =>
+    -- n = 0: ∫ ω(f₀)·ω(g₀) dμ = ⟨Tf₀,T(g₀)⟩ · ∫ 1 dμ = ⟨Tf₀,T(g₀)⟩
+    simp only [Fin.prod_univ_one, Fin.sum_univ_one, Nat.reduceAdd]
+    simp_rw [Fin.prod_univ_zero]
+    rw [integral_const, probReal_univ, one_smul, mul_one]
+    exact cross_moment_eq_covariance T f₀ (g 0)
+  | succ n =>
+    -- For n ≥ 1: follows from gaussian_ibp_general with h = 0.
+    -- Setting h = 0 eliminates the exponential (exp(0)=1) and the last term
+    -- (⟨Tf₀,T(0)⟩ = 0), giving the ℂ version of this identity.
+    -- The ℝ version follows by Complex.ofReal injectivity, using
+    -- Complex.ofRealCLM.integral_comp_comm to commute ↑ with ∫.
+    have h_gen := gaussian_ibp_general T (n + 1) f₀ g 0
+    simp only [map_zero, Complex.ofReal_zero, mul_zero, Complex.exp_zero, mul_one,
+      inner_zero_right, Complex.ofReal_zero, zero_mul, add_zero] at h_gen
+    -- Helper: lift ∫ ∏ ω(fᵢ) from ℝ to ℂ via Complex.ofRealCLM.integral_comp_comm
+    have lift : ∀ (m : ℕ) (f : Fin m → E),
+        (↑(∫ ω : Configuration E, ∏ i, ω (f i) ∂measure T) : ℂ) =
+        ∫ ω, ∏ i, (↑(ω (f i)) : ℂ) ∂measure T := by
+      intro m f
+      change Complex.ofRealCLM _ = _
+      rw [← ContinuousLinearMap.integral_comp_comm Complex.ofRealCLM (product_integrable T m f)]
+      congr 1; ext ω; simp +decide
+    apply Complex.ofReal_injective
+    -- LHS: lift ∫ ω(f₀) * ∏ ω(gᵢ) to ℂ
+    have lhs_eq : (↑(∫ ω : Configuration E, ω f₀ * ∏ i, ω (g i) ∂measure T) : ℂ) =
+        ∫ ω, ↑(ω f₀) * ∏ i, (↑(ω (g i)) : ℂ) ∂measure T := by
+      change Complex.ofRealCLM _ = _
+      rw [← ContinuousLinearMap.integral_comp_comm]
+      · congr 1; ext ω; simp +decide
+      · -- Rewrite as a product over Fin (n+3) for integrability
+        let f' : Fin (n + 3) → E := @Fin.cons (n + 2) (fun _ => E) f₀ g
+        have heq : (fun ω : Configuration E => ω f₀ * ∏ i, ω (g i)) =
+            fun ω => ∏ i : Fin (n + 3), ω (f' i) := by
+          ext ω; simp only [f', Fin.prod_univ_succ, Fin.cons_zero, Fin.cons_succ]
+        rw [heq]; exact product_integrable T (n + 3) f'
+    rw [lhs_eq, h_gen, Complex.ofReal_sum]
+    congr 1; ext j; rw [Complex.ofReal_mul]
+    congr 1
+    exact (lift (n + 1) (fun i => g (j.succAbove i))).symm
 
 /-! ## Odd moments vanish
 
