@@ -108,26 +108,49 @@ theorem product_integrable (n : ℕ) (f : Fin n → E) :
   rw [← memLp_one_iff_integrable]
   exact_mod_cast product_memLp T n f 1
 
-/-! ## Odd moments vanish
+/-! ## Gaussian integration by parts
 
-For a centered Gaussian measure, all odd-order moments are zero.
-This follows from the symmetry ω ↦ -ω of the measure. -/
+The key analytic input for Wick's theorem. This follows from differentiating
+the characteristic functional `charFun T (t • f₀ + h)` at `t = 0` in two ways:
 
-/-- Odd moments of a centered Gaussian measure vanish.
+**Integral form** (Leibniz rule `hasDerivAt_integral_of_dominated_loc_of_deriv_le`):
+  d/dt ∫ exp(i·ω(t·f₀+h)) dμ |_{t=0} = i · ∫ ω(f₀)·exp(i·ω(h)) dμ
 
-Proof: The Gaussian measure with covariance C is symmetric under ω ↦ -ω
-(since the characteristic functional exp(-½‖Tf‖²) is even). Under this
-symmetry, ∏ᵢ ω(fᵢ) ↦ (-1)ⁿ ∏ᵢ ω(fᵢ). For odd n, this gives
-E[∏ ω(fᵢ)] = -E[∏ ω(fᵢ)] = 0. -/
-theorem odd_moment_vanish (k : ℕ) (f : Fin (2 * k + 1) → E) :
-    ∫ ω : Configuration E, ∏ i, ω (f i) ∂(measure T) = 0 :=
+**Closed form** (chain rule on `exp(-½‖T(t·f₀+h)‖²)`):
+  d/dt exp(-½(t²‖Tf₀‖² + 2t⟨Tf₀,Th⟩ + ‖Th‖²)) |_{t=0} = -⟨Tf₀,Th⟩ · charFun T h
+
+Equating gives: ∫ ω(f₀)·exp(i·ω(h)) dμ = ⟨Tf₀,Th⟩ · i · charFun T h
+
+The domination condition for Leibniz: |d/dt exp(i·ω(t·f₀+h))| = |ω(f₀)| ∈ L¹
+by `pairing_integrable`. -/
+
+/-- **Gaussian integration by parts** (characteristic functional form).
+
+For the Gaussian measure with covariance C(f,g) = ⟨Tf, Tg⟩_H:
+
+  E[ω(f₀) · exp(iω(h))] = ⟨Tf₀, Th⟩ · i · E[exp(iω(h))]
+
+Proof: Differentiate `charFun T (t • f₀ + h)` at `t = 0` using the Leibniz
+integral rule (`hasDerivAt_integral_of_dominated_loc_of_deriv_le`) and equate
+with the closed-form derivative. The domination condition uses `|exp(ix)| = 1`,
+so the derivative bound is `|ω(f₀)|` which is integrable by `pairing_integrable`. -/
+theorem gaussian_ibp (f₀ h : E) :
+    ∫ ω : Configuration E,
+      ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) =
+    ↑(@inner ℝ H _ (T f₀) (T h)) * Complex.I *
+      ∫ ω : Configuration E,
+        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) :=
   sorry
 
 /-! ## Wick's theorem — recursive form
 
 The recursive form avoids the combinatorial overhead of enumerating
 perfect pairings. It says: pick any index (we use 0), then the
-(n+2)-point function equals the sum over all partners j for index 0. -/
+(n+2)-point function equals the sum over all partners j for index 0.
+
+The proof uses `gaussian_ibp` as the base case and extends by induction,
+differentiating the IBP identity with respect to additional parameters
+(one Leibniz application per step). -/
 
 /-- **Wick's theorem (recursive form).**
 
@@ -135,15 +158,48 @@ For a centered Gaussian measure with covariance C(f,g) = ⟨Tf, Tg⟩_H:
 
   E[ω(f₀) · ∏ⱼ ω(gⱼ)] = ∑ⱼ C(f₀, gⱼ) · E[∏_{i≠j} ω(gᵢ)]
 
-This is proved by induction using Gaussian integration by parts.
-The base case n=0 is `measure_centered`, and n=1 is
-`cross_moment_eq_covariance`. -/
+This is proved by induction on n using `gaussian_ibp`. The base case n=0
+is `cross_moment_eq_covariance`. The inductive step differentiates the
+IBP identity ∫ ω(f₀)·exp(iω(h)) = ⟨Tf₀,Th⟩·i·charFun(h) with respect
+to additional test function parameters, extracting polynomial coefficients
+from the exponential generating function. -/
 theorem wick_recursive (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) :
     ∫ ω : Configuration E, ω f₀ * ∏ i, ω (g i) ∂(measure T) =
       ∑ j : Fin (n + 1), @inner ℝ H _ (T f₀) (T (g j)) *
         ∫ ω : Configuration E, ∏ i : Fin n,
           ω (g (Fin.succAbove j i)) ∂(measure T) :=
   sorry
+
+/-! ## Odd moments vanish
+
+For a centered Gaussian measure, all odd-order moments are zero.
+This follows from `wick_recursive` by induction on k. -/
+
+/-- Odd moments of a centered Gaussian measure vanish.
+
+Proof by induction on k using `wick_recursive`:
+- Base case (k=0): `∫ ω(f₀) dμ = 0` by `measure_centered`.
+- Step (k → k+1): Write `∫ ∏_{i≤2k+2} ω(fᵢ) = ∫ ω(f₀) · ∏_{i=1}^{2k+2} ω(fᵢ)`.
+  By `wick_recursive`, this equals `∑ⱼ ⟨Tf₀,Tfⱼ⟩ · ∫ ∏_{i≠0,j} ω(fᵢ)`.
+  Each inner integral is over 2k+1 variables (odd), so vanishes by IH. -/
+theorem odd_moment_vanish (k : ℕ) (f : Fin (2 * k + 1) → E) :
+    ∫ ω : Configuration E, ∏ i, ω (f i) ∂(measure T) = 0 := by
+  induction k with
+  | zero =>
+    simp only [Fin.prod_univ_one, Nat.reduceMul, Nat.reduceAdd]
+    exact measure_centered T (f 0)
+  | succ k ih =>
+    -- Split: ∏_{Fin(2k+3)} = ω(f 0) * ∏_{Fin(2k+2)}
+    simp_rw [Fin.prod_univ_succ]
+    change ∫ ω : Configuration E, ω (f 0) *
+      ∏ i : Fin ((2 * k + 1) + 1), ω (f (Fin.succ i)) ∂(measure T) = 0
+    -- Apply wick_recursive: ∑ⱼ ⟨Tf₀,Tgⱼ⟩ · ∫∏_{i≠j}ω(gᵢ)
+    rw [wick_recursive T (2 * k + 1) (f 0) (fun i => f i.succ)]
+    -- Each inner integral is over 2k+1 terms (odd), vanishes by IH
+    apply Finset.sum_eq_zero
+    intro j _
+    have := ih (fun i => f ((Fin.succAbove j i).succ))
+    rw [this]; simp
 
 /-! ## Wick bound
 
@@ -166,10 +222,66 @@ This bound directly implies OS1' with γ = 1/2, since
 (2k-1)‼ ≤ (2k)!^{1/2} and (2k)! ≤ (2k)^{2k}. More precisely,
 (2k)! = (2k)‼ · (2k-1)‼ = 2^k · k! · (2k-1)‼, so
 (2k-1)‼ = (2k)! / (2^k · k!) ≤ (2k)!^{1/2}. -/
-theorem wick_bound (n : ℕ) (f : Fin n → E) :
+theorem wick_bound : ∀ (n : ℕ) (f : Fin n → E),
     ‖∫ ω : Configuration E, ∏ i, ω (f i) ∂(measure T)‖ ≤
-      (n - 1).doubleFactorial * ∏ i, ‖T (f i)‖ :=
-  sorry
+      (n - 1).doubleFactorial * ∏ i, ‖T (f i)‖
+  | 0, f => by simp [Finset.prod_empty]
+  | 1, f => by
+    simp only [Nat.reduceSub, Fin.prod_univ_one]
+    rw [measure_centered T (f 0)]
+    simp
+  | n + 2, f => by
+    -- Split product once: ∏_{Fin(n+2)} ω(f i) = ω(f 0) * ∏_{Fin(n+1)} ω(f(succ i))
+    have hsplit : (fun ω : Configuration E => ∏ i : Fin (n + 2), ω (f i)) =
+        (fun ω => ω (f 0) * ∏ i : Fin (n + 1), ω (f i.succ)) := by
+      ext ω; exact Fin.prod_univ_succ _
+    simp only [hsplit]
+    -- Apply Wick recursion
+    rw [wick_recursive T n (f 0) (fun i => f i.succ)]
+    -- Bound each summand
+    have bound : ∀ j : Fin (n + 1),
+        ‖@inner ℝ H _ (T (f 0)) (T (f j.succ)) *
+          ∫ ω, ∏ i : Fin n, ω (f (j.succAbove i).succ) ∂(measure T)‖ ≤
+        ((n - 1).doubleFactorial : ℝ) * ∏ i : Fin (n + 2), ‖T (f i)‖ := by
+      intro j
+      rw [norm_mul]
+      -- Cauchy-Schwarz: ‖⟨Tf₀, Tgⱼ⟩‖ ≤ ‖Tf₀‖ * ‖Tgⱼ‖
+      have hCS := norm_inner_le_norm (𝕜 := ℝ) (T (f 0)) (T (f j.succ))
+      -- IH on the n-point function
+      have hIH := wick_bound n (fun i => f (j.succAbove i).succ)
+      -- Product rearrangement: ‖T(f(j+1))‖ * ∏_{complement} = ∏_{Fin(n+1)} ‖T(f(succ i))‖
+      have hprod : ‖T (f j.succ)‖ * ∏ i : Fin n, ‖T (f (j.succAbove i).succ)‖ =
+          ∏ i : Fin (n + 1), ‖T (f i.succ)‖ :=
+        (Fin.prod_univ_succAbove (fun i => ‖T (f i.succ)‖) j).symm
+      calc ‖@inner ℝ H _ (T (f 0)) (T (f j.succ))‖ *
+              ‖∫ ω, ∏ i, ω (f (j.succAbove i).succ) ∂(measure T)‖
+          ≤ (‖T (f 0)‖ * ‖T (f j.succ)‖) *
+            ((n - 1).doubleFactorial * ∏ i, ‖T (f (j.succAbove i).succ)‖) :=
+            mul_le_mul hCS hIH (norm_nonneg _) (by positivity)
+        _ = (n - 1).doubleFactorial *
+            (‖T (f 0)‖ * (‖T (f j.succ)‖ * ∏ i, ‖T (f (j.succAbove i).succ)‖)) := by ring
+        _ = (n - 1).doubleFactorial * (‖T (f 0)‖ * ∏ i : Fin (n + 1), ‖T (f i.succ)‖) := by
+            rw [hprod]
+        _ = ((n - 1).doubleFactorial : ℝ) * ∏ i : Fin (n + 2), ‖T (f i)‖ := by
+            congr 1; exact (Fin.prod_univ_succ (fun i => ‖T (f i)‖)).symm
+    -- Triangle inequality + sum of (n+1) identical bounds
+    have h1 := norm_sum_le (Finset.univ : Finset (Fin (n + 1)))
+      (fun j => @inner ℝ H _ (T (f 0)) (T (f j.succ)) *
+        ∫ ω, ∏ i : Fin n, ω (f (j.succAbove i).succ) ∂(measure T))
+    have h2 : ∑ j : Fin (n + 1),
+        ‖@inner ℝ H _ (T (f 0)) (T (f j.succ)) *
+          ∫ ω, ∏ i : Fin n, ω (f (j.succAbove i).succ) ∂(measure T)‖ ≤
+        ∑ _j : Fin (n + 1),
+          ((n - 1).doubleFactorial * ∏ i : Fin (n + 2), ‖T (f i)‖) :=
+      Finset.sum_le_sum (fun j _ => bound j)
+    have h3 : ∑ _j : Fin (n + 1),
+        ((n - 1).doubleFactorial * ∏ i : Fin (n + 2), ‖T (f i)‖ : ℝ) =
+      ((n + 2) - 1).doubleFactorial * ∏ i : Fin (n + 2), ‖T (f i)‖ := by
+      simp only [Finset.sum_const, Finset.card_fin, nsmul_eq_mul,
+        show (n + 2 : ℕ) - 1 = n + 1 from by omega]
+      rw [Nat.doubleFactorial_add_one n]
+      push_cast; ring
+    exact le_trans h1 (le_trans h2 h3.le)
 
 /-! ## Corollary: OS1' Schwinger growth for GFF
 
