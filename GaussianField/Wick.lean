@@ -265,22 +265,200 @@ theorem gaussian_ibp (f₀ h : E) :
   -- key : ∫ ... = (-I) * ((-↑b) * ∫ exp(...) dμ)
   rw [key]; ring
 
+/-! ## Leibniz rule for polynomial × exponential integrands
+
+Generalizes `hasDerivAt_charFun_leibniz` to allow a polynomial weight P(ω)
+that is constant in the differentiation parameter t. This is the key tool
+for proving `gaussian_ibp_general` by induction. -/
+
+/-- Leibniz rule for `∫ P(ω) * exp(I·ω(t·g+h)) dμ` at `t = 0`.
+
+The polynomial weight P(ω) does not depend on t, so the derivative at t = 0
+simply brings down `I·ω(g)` from the exponential. The domination bound
+is `‖P(ω)‖ * ‖ω(g)‖`, integrable when P is a product of evaluation functionals. -/
+private lemma hasDerivAt_weighted_exp_leibniz
+    (P : Configuration E → ℂ)
+    (hPm : AEStronglyMeasurable P (measure T))
+    (g h : E)
+    (hPint : Integrable (fun ω : Configuration E =>
+      P ω * Complex.exp (Complex.I * ↑(ω h))) (measure T))
+    (hbound : Integrable (fun ω : Configuration E => ‖P ω‖ * ‖ω g‖) (measure T)) :
+    HasDerivAt
+      (fun t : ℝ => ∫ ω : Configuration E,
+        P ω * Complex.exp (Complex.I * ↑(ω (t • g + h))) ∂(measure T))
+      (∫ ω : Configuration E,
+        P ω * (Complex.I * ↑(ω g)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+      (0 : ℝ) := by
+  have hleibniz := hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun (t : ℝ) (ω : Configuration E) =>
+      P ω * Complex.exp (Complex.I * ↑(ω (t • g + h))))
+    (F' := fun (t : ℝ) (ω : Configuration E) =>
+      P ω * (Complex.I * ↑(ω g)) *
+      Complex.exp (Complex.I * ↑(ω (t • g + h))))
+    (x₀ := (0 : ℝ)) (bound := fun ω => ‖P ω‖ * ‖ω g‖) (s := Set.univ)
+    -- (1) s ∈ 𝓝 0
+    Filter.univ_mem
+    -- (2) F t is a.e. strongly measurable
+    (.of_forall fun t => hPm.mul (charFun_integrand_measurable T (t • g + h)))
+    -- (3) F 0 is integrable
+    (by simpa using hPint)
+    -- (4) F' 0 is AEStronglyMeasurable
+    (by
+      simp only [zero_smul, zero_add]
+      have hmeas_g : AEStronglyMeasurable (fun ω : Configuration E => (ω g : ℂ))
+          (measure T) :=
+        (Complex.continuous_ofReal.measurable.comp
+          (configuration_eval_measurable g)).aestronglyMeasurable
+      exact (hPm.mul (hmeas_g.const_mul Complex.I)).mul
+        (charFun_integrand_measurable T h))
+    -- (5) ‖F' t ω‖ ≤ bound ω for all t ∈ s
+    (.of_forall fun ω => by
+      intro t _
+      simp only [Complex.norm_mul, Complex.norm_I, Complex.norm_exp_I_mul_ofReal,
+        Complex.norm_real, one_mul, mul_one, le_refl])
+    -- (6) bound is integrable
+    hbound
+    -- (7) ∀ᵐ ω, ∀ t ∈ s, HasDerivAt (F · ω) (F' t ω) t
+    (.of_forall fun ω => by
+      intro t _
+      have hlin : ∀ t', ω (t' • g + h) = t' * ω g + ω h := by
+        intro t'; simp [map_add, map_smul]
+      simp_rw [hlin]
+      -- P(ω) is constant w.r.t. t, only the exp differentiates
+      have hg : HasDerivAt (fun t' => t' * ω g + ω h) (ω g) t := by
+        simpa using ((hasDerivAt_id t).mul_const (ω g)).add_const (ω h)
+      have hc : HasDerivAt (fun t' => Complex.I * ↑(t' * ω g + ω h))
+          (Complex.I * ↑(ω g)) t :=
+        (HasDerivAt.ofReal_comp hg).const_mul Complex.I
+      -- hc.cexp gives: HasDerivAt (exp ∘ (I * ↑(· * ωg + ωh)))
+      --   (exp(I * ↑(t*ωg+ωh)) * (I * ↑(ωg))) t
+      have hfinal := (hc.cexp).const_mul (P ω)
+      -- hfinal : HasDerivAt (fun t' => P ω * exp(I * ↑(t'*ωg+ωh)))
+      --   (P ω * (exp(...) * (I * ↑(ωg)))) t
+      convert hfinal using 1; ring)
+  convert hleibniz.2 using 2
+  ext ω; simp
+
 /-! ## Generalized Gaussian IBP
 
 The key intermediate result: Gaussian IBP for polynomial × exponential
 functionals. This extends `gaussian_ibp` to weighted integrals of the form
 E[ω(f₀) · ∏ᵢ ω(gᵢ) · exp(iω(h))]. Setting h = 0 gives Wick's recursive formula.
 
-The proof is by induction on the number of polynomial factors:
-- Base case (n = 0): This is `gaussian_ibp`.
-- Inductive step (n → n + 1): Differentiate the n-case identity
-  (with h replaced by t · gₙ₊₁ + h) at t = 0 using the Leibniz integral rule.
-  The RHS uses the product rule; since ⟨Tf₀, T(t·g+h)⟩ is linear in t,
-  its second derivative vanishes, so only the "differentiate exactly one factor"
-  terms survive.
+The proof is by induction on the number of polynomial factors n.
 
-Each Leibniz step is justified by dominated convergence with the bound
-|∏ᵢ ω(gᵢ) · ω(gₙ₊₁)| (integrable by `product_memLp`). -/
+**Base case (n = 0, one polynomial factor):**
+Differentiate `gaussian_ibp T f₀ (t • g₀ + h)` at t = 0.
+The Leibniz integral rule gives the LHS derivative, while the product rule on
+⟨Tf₀, T(t·g₀+h)⟩ · i · charFun(t·g₀+h) gives the RHS derivative.
+Equating and canceling i yields gaussian_ibp_general 0.
+
+**Inductive step (n → n + 1):**
+Let g_last = g(last) and g' = g ∘ castSucc (first n+1 factors).
+Apply the IH with h replaced by t · g_last + h, then differentiate at t = 0.
+The Leibniz rule brings down i·ω(g_last) in each integral. The product rule
+on the boundary term produces two pieces: one fills in the last slot of the
+sum, and the other becomes the new boundary term. -/
+
+/-- Products of evaluation functionals are AEStronglyMeasurable. -/
+private lemma prod_eval_aestronglyMeasurable (n : ℕ) (f : Fin n → E) :
+    AEStronglyMeasurable (fun ω : Configuration E => ∏ i, (↑(ω (f i)) : ℂ))
+      (measure T) := by
+  apply Finset.aestronglyMeasurable_fun_prod
+  intro i _
+  exact (Complex.continuous_ofReal.measurable.comp
+    (configuration_eval_measurable (f i))).aestronglyMeasurable
+
+/-- Products of evaluation functionals times exponentials are integrable.
+Follows from `product_integrable` and `‖exp(iω(h))‖ = 1`. -/
+private lemma poly_exp_integrable (n : ℕ) (f : Fin n → E) (h : E) :
+    Integrable (fun ω : Configuration E =>
+      (∏ i, (↑(ω (f i)) : ℂ)) * Complex.exp (Complex.I * ↑(ω h)))
+      (measure T) := by
+  have hint := (product_integrable T n f).norm
+  refine hint.mono
+    ((prod_eval_aestronglyMeasurable T n f).mul (charFun_integrand_measurable T h))
+    (.of_forall fun ω => ?_)
+  simp only [norm_mul, Complex.norm_exp_I_mul_ofReal, mul_one]
+  rw [show (∏ i, (↑(ω (f i)) : ℂ)) = ↑(∏ i, ω (f i)) from by push_cast; rfl,
+    Complex.norm_real, norm_norm]
+
+/-- The domination bound for applying Leibniz: `‖∏ ω(fᵢ)‖ * ‖ω(g)‖` is integrable. -/
+private lemma poly_exp_bound_integrable (n : ℕ) (f : Fin n → E) (g : E) :
+    Integrable (fun ω : Configuration E =>
+      ‖∏ i, (↑(ω (f i)) : ℂ)‖ * ‖ω g‖)
+      (measure T) := by
+  -- ‖∏ ω(fᵢ)‖ * ‖ω g‖ = |∏ ω(fᵢ)| * |ω g| = ‖∏_{Fin(n+1)} ω(f'ᵢ)‖
+  have h1 : ∀ ω : Configuration E,
+      ‖∏ i, (↑(ω (f i)) : ℂ)‖ * ‖ω g‖ =
+      ‖(∏ i : Fin n, ω (f i)) * ω g‖ := by
+    intro ω
+    rw [norm_mul, show (∏ i, (↑(ω (f i)) : ℂ)) = ↑(∏ i, ω (f i)) from
+      by push_cast; rfl, Complex.norm_real]
+  simp_rw [h1]
+  let f' : Fin (n + 1) → E := Fin.cons g f
+  have h2 : ∀ ω : Configuration E,
+      (∏ i : Fin n, ω (f i)) * ω g = ∏ i : Fin (n + 1), ω (f' i) := by
+    intro ω; simp only [f', Fin.prod_univ_succ, Fin.cons_zero, Fin.cons_succ, mul_comm]
+  simp_rw [h2]
+  exact (product_integrable T (n + 1) f').norm
+
+/-- Weighted products of evaluation functionals times exponentials are integrable. -/
+private lemma weighted_poly_exp_integrable (f₀ : E) (n : ℕ) (f : Fin n → E) (h : E) :
+    Integrable (fun ω : Configuration E =>
+      (↑(ω f₀) : ℂ) * (∏ i, (↑(ω (f i)) : ℂ)) *
+      Complex.exp (Complex.I * ↑(ω h)))
+      (measure T) := by
+  let f' : Fin (n + 1) → E := Fin.cons f₀ f
+  have hf : ∀ ω : Configuration E,
+      (↑(ω f₀) : ℂ) * (∏ i, (↑(ω (f i)) : ℂ)) *
+      Complex.exp (Complex.I * ↑(ω h)) =
+      (∏ i : Fin (n + 1), (↑(ω (f' i)) : ℂ)) *
+      Complex.exp (Complex.I * ↑(ω h)) := by
+    intro ω; simp only [f', Fin.prod_univ_succ, Fin.cons_zero, Fin.cons_succ]
+  simp_rw [hf]
+  exact poly_exp_integrable T (n + 1) f' h
+
+/-- The weighted Leibniz domination bound: `‖↑(ω f₀) * ∏ ω(fᵢ)‖ * ‖ω g‖` is integrable. -/
+private lemma weighted_poly_exp_bound_integrable (f₀ : E) (n : ℕ) (f : Fin n → E) (g : E) :
+    Integrable (fun ω : Configuration E =>
+      ‖(↑(ω f₀) : ℂ) * ∏ i, (↑(ω (f i)) : ℂ)‖ * ‖ω g‖)
+      (measure T) := by
+  -- ‖↑(ω f₀) * ∏ ω(fᵢ)‖ * ‖ω g‖ = |ω f₀ * ∏ ω(fᵢ)| * |ω g|
+  -- = |ω f₀ * ∏ ω(fᵢ) * ω g| = ‖∏_{n+2 factors}‖
+  have heq : ∀ ω : Configuration E,
+      ‖(↑(ω f₀) : ℂ) * ∏ i, (↑(ω (f i)) : ℂ)‖ * ‖ω g‖ =
+      ‖ω f₀ * (∏ i, ω (f i)) * ω g‖ := by
+    intro ω
+    rw [show (↑(ω f₀) : ℂ) * ∏ i, (↑(ω (f i)) : ℂ) =
+      ↑(ω f₀ * ∏ i, ω (f i)) from by push_cast; ring, Complex.norm_real, ← norm_mul]
+  simp_rw [heq]
+  -- ω f₀ * ∏ ω(fᵢ) * ω g = ∏_{Fin(n+2)} ω(f_all i)
+  let f_all : Fin (n + 2) → E := fun i =>
+    if h : i.val = 0 then f₀
+    else if h2 : i.val ≤ n then f ⟨i.val - 1, by omega⟩
+    else g
+  have hprod : ∀ ω : Configuration E,
+      ω f₀ * (∏ i, ω (f i)) * ω g = ∏ i : Fin (n + 2), ω (f_all i) := by
+    intro ω
+    -- RHS = f_all(0) * ∏_{Fin(n+1)} f_all(succ i) = f₀ * ∏_{Fin(n+1)} f_all(succ i)
+    rw [Fin.prod_univ_succ]
+    simp only [f_all, Fin.val_zero, dite_true]
+    -- Goal: ω f₀ * (∏ i, ω (f i)) * ω g = ω f₀ * ∏ i : Fin (n+1), ω(f_all(succ i))
+    rw [mul_assoc]
+    congr 1
+    -- Goal: (∏ i, ω (f i)) * ω g = ∏ i : Fin (n+1), ω(f_all(succ i))
+    rw [Fin.prod_univ_castSucc]
+    -- RHS = (∏ i : Fin n, ω(f_all(succ(castSucc i)))) * ω(f_all(succ(last n)))
+    congr 1
+    · apply Finset.prod_congr rfl; intro i _
+      simp only [f_all, Fin.val_succ, Fin.coe_castSucc, Nat.add_sub_cancel,
+        show i.val + 1 ≠ 0 from by omega, dite_false,
+        show i.val + 1 ≤ n from by omega, dite_true]
+    · simp [f_all, Fin.val_last]
+  simp_rw [hprod]
+  exact (product_integrable T (n + 2) f_all).norm
 
 /-- **Generalized Gaussian IBP** for polynomial × exponential functionals.
 
@@ -290,7 +468,6 @@ For a centered Gaussian with covariance C(f,g) = ⟨Tf,Tg⟩:
   = ∑ⱼ C(f₀,gⱼ) · E[∏_{i≠j} ω(gᵢ) · exp(iω(h))]
     + C(f₀,h) · i · E[∏ᵢ ω(gᵢ) · exp(iω(h))]
 
-Setting n = 0 (empty product) recovers `gaussian_ibp`.
 Setting h = 0 gives `wick_recursive`.
 
 Reference: Janson, "Gaussian Hilbert Spaces", Theorem 1.28;
@@ -307,7 +484,346 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
       ∫ ω : Configuration E,
         (∏ i, (↑(ω (g i)) : ℂ)) *
         Complex.exp (Complex.I * ↑(ω h)) ∂(measure T) := by
-  sorry
+  induction n generalizing h with
+  | zero =>
+    -- Simplify Fin products/sums under binders
+    simp only [Fin.prod_univ_zero, one_mul]
+    -- Goal: ∫ ↑(ωf₀) * ↑(ωg₀) * exp(I*↑(ωh)) dμ
+    -- = ↑⟨Tf₀,Tg₀⟩ * ∫ exp dμ + ↑⟨Tf₀,Th⟩ * I * ∫ ↑(ωg₀)*exp dμ
+    -- Strategy: G(t) = A(t)*B(t) where A(t)=↑⟨Tf₀,T(t•g₀+h)⟩, B(t)=charFun(t•g₀+h)
+    -- G(t) = (-I) * F(t) where F(t) = ∫ ↑(ωf₀)*exp(I*ω(t•g₀+h))  [by gaussian_ibp]
+    -- Differentiate G two ways, equate via HasDerivAt.unique.
+
+    -- Step 1: HasDerivAt for A(t) = (↑⟨Tf₀, T(t•g₀+h)⟩ : ℂ)
+    have hA : HasDerivAt (fun t : ℝ =>
+        (↑(@inner ℝ H _ (T f₀) (T (t • g 0 + h))) : ℂ))
+        (↑(@inner ℝ H _ (T f₀) (T (g 0)))) (0 : ℝ) := by
+      have hlin : ∀ t : ℝ, @inner ℝ H _ (T f₀) (T (t • g 0 + h)) =
+          t * @inner ℝ H _ (T f₀) (T (g 0)) + @inner ℝ H _ (T f₀) (T h) := by
+        intro t; simp [map_add, map_smul, inner_add_right, inner_smul_right]
+      simp_rw [hlin]
+      convert (((hasDerivAt_id (0 : ℝ)).mul_const _).add_const
+        (@inner ℝ H _ (T f₀) (T h))).ofReal_comp using 1
+      push_cast; ring
+    -- Step 2: HasDerivAt for B(t) = ∫ exp(I*↑(ω(t•g₀+h))) dμ
+    have hB := hasDerivAt_charFun_leibniz T (g 0) h
+    -- Step 3: Product rule for G(t) = A(t) * B(t)
+    have hG_prod := hA.mul hB
+    -- Step 4: Leibniz for F(t) = ∫ ↑(ωf₀) * exp(I*ω(t•g₀+h)) dμ
+    have hF := hasDerivAt_weighted_exp_leibniz T
+      (fun ω => ↑(ω f₀))
+      ((Complex.continuous_ofReal.measurable.comp
+        (configuration_eval_measurable f₀)).aestronglyMeasurable)
+      (g 0) h
+      ((pairing_integrable T f₀).mono
+        ((Complex.continuous_ofReal.measurable.comp
+          (configuration_eval_measurable f₀)).aestronglyMeasurable.mul
+          (charFun_integrand_measurable T h))
+        (.of_forall fun ω => by
+          simp only [norm_mul, Complex.norm_exp_I_mul_ofReal, Complex.norm_real, mul_one, le_refl]))
+      (by
+        have : Integrable (fun ω : Configuration E => ω f₀ * ω (g 0)) (measure T) := by
+          have h2 : (fun ω : Configuration E => ω f₀ * ω (g 0)) =
+              (fun ω => ∏ i : Fin 2, ω (![f₀, g 0] i)) := by
+            ext ω; simp [Fin.prod_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one]
+          rw [h2]; exact product_integrable T 2 _
+        exact this.norm.congr (.of_forall fun ω => by
+          simp only [norm_mul, Complex.norm_real]))
+    -- Step 5: Scale F by (-I) to get G
+    have hG_leib := hF.const_mul (-Complex.I)
+    -- Show (-I) * F(t) = A(t) * B(t) using gaussian_ibp
+    have hfun_eq : (fun (t : ℝ) => (-Complex.I) * ∫ ω : Configuration E,
+          ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω (t • g 0 + h))) ∂measure T) =
+        (fun (t : ℝ) => (↑(@inner ℝ H _ (T f₀) (T (t • g 0 + h))) : ℂ) *
+          ∫ ω, Complex.exp (Complex.I * ↑(ω (t • g 0 + h))) ∂measure T) := by
+      ext t; rw [gaussian_ibp T f₀ (t • g 0 + h)]
+      have h1 : -Complex.I * (↑(@inner ℝ H _ (T f₀) (T (t • g 0 + h))) * Complex.I *
+          ∫ ω, Complex.exp (Complex.I * ↑(ω (t • g 0 + h))) ∂measure T) =
+        ↑(@inner ℝ H _ (T f₀) (T (t • g 0 + h))) * (-(Complex.I * Complex.I)) *
+          ∫ ω, Complex.exp (Complex.I * ↑(ω (t • g 0 + h))) ∂measure T := by ring
+      rw [h1, Complex.I_mul_I]; ring
+    rw [hfun_eq] at hG_leib
+    -- Step 6: Equate derivatives
+    have hderiv := hG_leib.unique hG_prod
+    -- Simplify 0 • g 0 + h → h
+    simp only [zero_smul, zero_add] at hderiv
+    -- Step 7: Rewrite integrands in hderiv to match the goal
+    -- Pull I out of each integrand using integral_const_mul
+    have h_lhs : ∫ ω : Configuration E,
+        ↑(ω f₀) * (Complex.I * ↑(ω (g 0))) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
+      Complex.I * ∫ ω : Configuration E, ↑(ω f₀) * ↑(ω (g 0)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
+      rw [← integral_const_mul]; congr 1; ext ω; ring
+    have h_rhs : ∫ ω : Configuration E,
+        Complex.I * ↑(ω (g 0)) * Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
+      Complex.I * ∫ ω : Configuration E,
+        ↑(ω (g 0)) * Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
+      rw [← integral_const_mul]; congr 1; ext ω; ring
+    rw [h_lhs, h_rhs] at hderiv
+    -- hderiv : -I * (I * ∫ f₀*g₀*exp) = ↑c₁ * ∫ exp + ↑c₂ * (I * ∫ g₀*exp)
+    -- Cancel -I*I on LHS
+    have hII : ∀ (x : ℂ), -Complex.I * (Complex.I * x) = x := by
+      intro x; rw [← mul_assoc, show (-Complex.I) * Complex.I = (1 : ℂ) from
+        by rw [neg_mul, Complex.I_mul_I, neg_neg], one_mul]
+    rw [hII] at hderiv
+    -- hderiv : ∫ f₀*g₀*exp = ↑c₁ * ∫ exp + ↑c₂ * (I * ∫ g₀*exp)
+    -- Goal has ∏ i : Fin (0+1), ..., ∑ j : Fin (0+1), ..., ∏ i : Fin 0, ...
+    -- Simplify these in the goal, then match hderiv
+    have hg1 : ∀ ω : Configuration E,
+        (↑(ω f₀) * ∏ i, (↑(ω (g i)) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h)) =
+        ↑(ω f₀) * ↑(ω (g 0)) * Complex.exp (Complex.I * ↑(ω h)) := by
+      intro ω; simp only [Fin.prod_univ_succ, Fin.prod_univ_zero, mul_one]
+    have hg2 : ∀ ω : Configuration E,
+        (∏ i, (↑(ω (g i)) : ℂ)) * Complex.exp (Complex.I * ↑(ω h)) =
+        ↑(ω (g 0)) * Complex.exp (Complex.I * ↑(ω h)) := by
+      intro ω; simp only [Fin.prod_univ_succ, Fin.prod_univ_zero, mul_one]
+    simp_rw [hg1, hg2]
+    simp only [Fin.sum_univ_succ, Fin.sum_univ_zero, add_zero]
+    convert hderiv using 1; ring
+  | succ n ih =>
+    -- We need to show the statement for n+2 polynomial factors.
+    -- Strategy: apply IH with h replaced by t·g_last + h, differentiate at t=0.
+    -- Define g' = first n+1 factors, g_last = last factor
+    set g_last : E := g (Fin.last (n + 1)) with hg_last_def
+    set g' : Fin (n + 1) → E := g ∘ Fin.castSucc with hg'_def
+    -- Product splitting: ∏_{Fin(n+2)} ω(gᵢ) = (∏_{Fin(n+1)} ω(g'ᵢ)) * ω(g_last)
+    have hprod_split : ∀ ω : Configuration E,
+        (∏ i : Fin (n + 2), (↑(ω (g i)) : ℂ)) =
+        (∏ i : Fin (n + 1), (↑(ω (g' i)) : ℂ)) * ↑(ω g_last) := by
+      intro ω
+      rw [Fin.prod_univ_castSucc]; rfl
+    -- The IH for any h':
+    -- ih : ∀ g' h', ∫ ω(f₀) * ∏_{n+1} ω(g'ᵢ) * exp(iω(h')) =
+    --   ∑_j ⟨Tf₀,Tg'_j⟩ * ∫ ∏_{n} ω(g'(sA j)) * exp(iω(h'))
+    --   + ⟨Tf₀,Th'⟩ * I * ∫ ∏_{n+1} ω(g'ᵢ) * exp(iω(h'))
+    -- Instantiate with h' = t • g_last + h:
+    have ih_t : ∀ (t : ℝ),
+        ∫ ω : Configuration E,
+          ↑(ω f₀) * (∏ i, (↑(ω (g' i)) : ℂ)) *
+          Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T) =
+        ∑ j : Fin (n + 1), ↑(@inner ℝ H _ (T f₀) (T (g' j))) *
+          ∫ ω : Configuration E,
+            (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T)
+        + ↑(@inner ℝ H _ (T f₀) (T (t • g_last + h))) * Complex.I *
+          ∫ ω : Configuration E,
+            (∏ i, (↑(ω (g' i)) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T) :=
+      fun t => ih g' (t • g_last + h)
+    -- Now differentiate both sides at t = 0.
+    -- LHS derivative using hasDerivAt_weighted_exp_leibniz:
+    have hLHS := hasDerivAt_weighted_exp_leibniz T
+      (fun ω => (↑(ω f₀) : ℂ) * ∏ i, (↑(ω (g' i)) : ℂ))
+      ((Complex.continuous_ofReal.measurable.comp
+        (configuration_eval_measurable f₀)).aestronglyMeasurable.mul
+        (prod_eval_aestronglyMeasurable T (n + 1) g'))
+      g_last h
+      (weighted_poly_exp_integrable T f₀ (n + 1) g' h)
+      (by
+        exact weighted_poly_exp_bound_integrable T f₀ (n + 1) g' g_last)
+    -- hLHS : HasDerivAt (fun t => ∫ ω(f₀) * ∏g' * exp(iω(t·g_last+h)))
+    --   (∫ ω(f₀) * ∏g' * (I·ω(g_last)) * exp(iω(h))) 0
+    -- By ih_t, both sides of ih_t are equal for all t, so have same derivative.
+    -- Use hasDerivAt_of_eq to transfer the derivative from hLHS to the RHS.
+    have hRHS_eq : HasDerivAt
+      (fun (t : ℝ) =>
+        ∑ j : Fin (n + 1), ↑(@inner ℝ H _ (T f₀) (T (g' j))) *
+          ∫ ω : Configuration E,
+            (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T)
+        + ↑(@inner ℝ H _ (T f₀) (T (t • g_last + h))) * Complex.I *
+          ∫ ω : Configuration E,
+            (∏ i, (↑(ω (g' i)) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T))
+      (∫ ω : Configuration E,
+        (fun ω => ↑(ω f₀) * ∏ i, (↑(ω (g' i)) : ℂ)) ω *
+        (Complex.I * ↑(ω g_last)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+      (0 : ℝ) := by
+      rw [show (fun (t : ℝ) => ∑ j : Fin (n + 1), _ + _) =
+        (fun (t : ℝ) => ∫ ω : Configuration E,
+          ↑(ω f₀) * (∏ i, (↑(ω (g' i)) : ℂ)) *
+          Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T)) from
+        funext fun t => (ih_t t).symm]
+      exact hLHS
+    -- Also compute the RHS derivative independently using sum/product differentiation
+    -- Each summand A_j(t) = ∫ ∏_n g'(sA j) * exp(iω(t·g_last+h))
+    -- is differentiable by hasDerivAt_weighted_exp_leibniz
+    have hA_j : ∀ j : Fin (n + 1), HasDerivAt
+        (fun (t : ℝ) => ∫ ω : Configuration E,
+          (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+          Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T))
+        (∫ ω : Configuration E,
+          (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+          (Complex.I * ↑(ω g_last)) *
+          Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+        (0 : ℝ) := by
+      intro j
+      exact hasDerivAt_weighted_exp_leibniz T
+        (fun ω => ∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ))
+        (prod_eval_aestronglyMeasurable T n (g' ∘ Fin.succAbove j))
+        g_last h
+        (poly_exp_integrable T n (g' ∘ Fin.succAbove j) h)
+        (poly_exp_bound_integrable T n (g' ∘ Fin.succAbove j) g_last)
+    -- B(t) = ⟨Tf₀, T(t·g_last+h)⟩ is affine in t
+    have hB : HasDerivAt
+        (fun (t : ℝ) => (↑(@inner ℝ H _ (T f₀) (T (t • g_last + h))) : ℂ))
+        (↑(@inner ℝ H _ (T f₀) (T g_last)))
+        (0 : ℝ) := by
+      have hlin : ∀ t : ℝ, @inner ℝ H _ (T f₀) (T (t • g_last + h)) =
+          t * @inner ℝ H _ (T f₀) (T g_last) + @inner ℝ H _ (T f₀) (T h) := by
+        intro t; simp [map_add, map_smul, inner_add_right, inner_smul_right]
+      simp_rw [hlin]
+      convert (((hasDerivAt_id (0 : ℝ)).mul_const _).add_const
+        (@inner ℝ H _ (T f₀) (T h))).ofReal_comp using 1
+      push_cast; ring
+    -- C(t) = ∫ ∏ ω(g'ᵢ) * exp(iω(t·g_last+h)) dμ
+    have hC : HasDerivAt
+        (fun (t : ℝ) => ∫ ω : Configuration E,
+          (∏ i, (↑(ω (g' i)) : ℂ)) *
+          Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T))
+        (∫ ω : Configuration E,
+          (∏ i, (↑(ω (g' i)) : ℂ)) * (Complex.I * ↑(ω g_last)) *
+          Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+        (0 : ℝ) :=
+      hasDerivAt_weighted_exp_leibniz T
+        (fun ω => ∏ i, (↑(ω (g' i)) : ℂ))
+        (prod_eval_aestronglyMeasurable T (n + 1) g')
+        g_last h
+        (poly_exp_integrable T (n + 1) g' h)
+        (poly_exp_bound_integrable T (n + 1) g' g_last)
+    -- Combine: RHS(t) = ∑_j c_j * A_j(t) + (B(t) * I) * C(t)
+    -- HasDerivAt for the sum part
+    have hSum : HasDerivAt
+        (fun (t : ℝ) => ∑ j : Fin (n + 1), ↑(@inner ℝ H _ (T f₀) (T (g' j))) *
+          ∫ ω : Configuration E,
+            (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T))
+        (∑ j : Fin (n + 1), ↑(@inner ℝ H _ (T f₀) (T (g' j))) *
+          ∫ ω : Configuration E,
+            (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+            (Complex.I * ↑(ω g_last)) *
+            Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+        (0 : ℝ) :=
+      by
+        have h_sum := HasDerivAt.sum (fun j (_ : j ∈ Finset.univ) =>
+          (hA_j j).const_mul (↑(@inner ℝ H _ (T f₀) (T (g' j)))))
+        convert h_sum using 1; ext; simp [Finset.sum_apply]
+    -- HasDerivAt for the product part B(t) * I * C(t)
+    have hProd : HasDerivAt
+        (fun (t : ℝ) => ↑(@inner ℝ H _ (T f₀) (T (t • g_last + h))) * Complex.I *
+          ∫ ω : Configuration E,
+            (∏ i, (↑(ω (g' i)) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (t • g_last + h))) ∂(measure T))
+        (↑(@inner ℝ H _ (T f₀) (T g_last)) * Complex.I *
+          ∫ ω : Configuration E,
+            (∏ i, (↑(ω (g' i)) : ℂ)) *
+            Complex.exp (Complex.I * ↑(ω (0 • g_last + h))) ∂(measure T)
+        + ↑(@inner ℝ H _ (T f₀) (T (0 • g_last + h))) * Complex.I *
+          ∫ ω : Configuration E,
+            (∏ i, (↑(ω (g' i)) : ℂ)) * (Complex.I * ↑(ω g_last)) *
+            Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
+        (0 : ℝ) := by
+      have h1 := (hB.mul_const Complex.I).mul hC
+      convert h1 using 1; simp only [zero_smul, zero_add]
+    have hRHS_indep := hSum.add hProd
+    -- Now use HasDerivAt.unique to equate the two derivatives
+    have hderiv_eq := hRHS_eq.unique hRHS_indep
+    -- hderiv_eq equates the derivative from hRHS_eq with the one from hRHS_indep
+    -- Simplify 0 • g_last + h → h in hderiv_eq
+    simp only [zero_smul, zero_add] at hderiv_eq
+    -- hderiv_eq : ∫ ω(f₀) * ∏g' * (I·ωg_last) * exp(iωh) =
+    --   ∑_j c_j * ∫ ∏_n g'(sA j) * (I·ωg_last) * exp
+    --   + c_h * I * ∫ ∏g' * exp
+    --   + c_h * I * ∫ ∏g' * (I·ωg_last) * exp
+    -- Multiply both sides by (-I) to get the desired identity
+    -- First, rewrite the LHS of the goal using hprod_split
+    -- LHS goal: ∫ ω(f₀) * ∏_{n+2} * exp
+    -- = (-I) * I * ∫ ω(f₀) * ∏_{n+2} * exp  (since -I*I = 1)
+    -- = (-I) * ∫ ω(f₀) * ∏g' * (I*ωg_last) * exp  (by pulling I*ωg_last back)
+    -- = (-I) * (RHS of hderiv_eq)
+    -- This gives us the desired sum + boundary term
+    -- hderiv_eq gives us the key identity. Now extract the goal.
+    -- Step 1: Pull I out of integrands using integral_const_mul
+    -- LHS of hderiv_eq: ∫ (ω(f₀) * ∏g') * (I*ωg_last) * exp
+    --   = I * ∫ ω(f₀) * ∏g' * ωg_last * exp  (by pulling I out)
+    --   = I * ∫ ω(f₀) * ∏_{n+2}g * exp  (by hprod_split)
+    have hI_lhs : ∫ ω : Configuration E,
+        (↑(ω f₀) * ∏ i, (↑(ω (g' i)) : ℂ)) * (Complex.I * ↑(ω g_last)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
+      Complex.I * ∫ ω : Configuration E,
+        (↑(ω f₀) * ∏ i, (↑(ω (g i)) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
+      rw [← integral_const_mul]; congr 1; ext ω
+      rw [hprod_split ω]; ring
+    -- Each summand RHS: ∫ ∏g'(sA j) * (I*ωg_last) * exp
+    --   = I * ∫ ∏g'(sA j) * ωg_last * exp
+    have hI_sum : ∀ j : Fin (n + 1),
+        ∫ ω : Configuration E,
+          (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+          (Complex.I * ↑(ω g_last)) *
+          Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
+        Complex.I * ∫ ω : Configuration E,
+          (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) * ↑(ω g_last) *
+          Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
+      intro j; rw [← integral_const_mul]; congr 1; ext ω; ring
+    -- Last integrand: ∫ ∏g' * (I*ωg_last) * exp = I * ∫ ∏_{n+2}g * exp
+    have hI_last : ∫ ω : Configuration E,
+        (∏ i, (↑(ω (g' i)) : ℂ)) * (Complex.I * ↑(ω g_last)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
+      Complex.I * ∫ ω : Configuration E,
+        (∏ i, (↑(ω (g i)) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
+      rw [← integral_const_mul]; congr 1; ext ω
+      rw [hprod_split ω]; ring
+    rw [hI_lhs] at hderiv_eq
+    simp_rw [hI_sum] at hderiv_eq
+    rw [hI_last] at hderiv_eq
+    -- hderiv_eq:
+    -- I * LHS = ∑_j c_j * (I * ∫ ∏_n g'(sA j) * g_last * exp)
+    --   + c_last * I * ∫ ∏g' * exp + c_h * I * (I * ∫ ∏_{n+2} * exp)
+    -- Multiply both sides by (-I) to cancel
+    have hII : ∀ (x : ℂ), -Complex.I * (Complex.I * x) = x := by
+      intro x; rw [← mul_assoc, show (-Complex.I) * Complex.I = (1 : ℂ) from
+        by rw [neg_mul, Complex.I_mul_I, neg_neg], one_mul]
+    have hderiv2 := congr_arg ((-Complex.I) * ·) hderiv_eq
+    simp only [hII, mul_add] at hderiv2
+    -- Step 1: Product reindexing — relate g/g'/g_last via succAbove
+    -- For j = last: succAbove(last) = castSucc, so ∏ g(sA(last) i) = ∏ g'
+    have hprod_last_sA : ∀ (ω : Configuration E),
+        (∏ i : Fin (n + 1), (↑(ω (g ((Fin.last (n + 1)).succAbove i))) : ℂ)) =
+        ∏ i : Fin (n + 1), (↑(ω (g' i)) : ℂ) := by
+      intro ω; congr 1; ext i; simp [Fin.succAbove_last, hg'_def]
+    -- For j = castSucc j': ∏_{n+1} g(sA(castSucc j') i) = ∏_n g'(sA j' i) * g_last
+    have hprod_castSucc_sA : ∀ (j : Fin (n + 1)) (ω : Configuration E),
+        (∏ i : Fin (n + 1), (↑(ω (g ((Fin.castSucc j).succAbove i))) : ℂ)) =
+        (∏ i : Fin n, (↑(ω (g' (j.succAbove i))) : ℂ)) * ↑(ω g_last) := by
+      intro j ω
+      rw [Fin.prod_univ_castSucc]
+      congr 1
+      · congr 1; ext i
+        simp only [Fin.castSucc_succAbove_castSucc, hg'_def, Function.comp]
+      · congr 2
+        rw [Fin.succAbove_ne_last_last (by simp [Fin.ext_iff, Fin.val_last, Fin.val_castSucc]; omega)]
+    -- Step 2: Rewrite the goal sum using Fin.sum_univ_castSucc + product reindexing
+    rw [Fin.sum_univ_castSucc]
+    simp_rw [hprod_castSucc_sA, hprod_last_sA]
+    -- Step 3: Cancel I by multiplying both sides
+    -- Use hderiv_eq: I * LHS = hderiv_eq_RHS, then show I * goal_RHS = hderiv_eq_RHS
+    refine mul_left_cancel₀ Complex.I_ne_zero ?_
+    rw [hderiv_eq]
+    -- Distribute I on the RHS
+    rw [mul_add, mul_add, Finset.mul_sum]
+    -- Fold g(castSucc i) → g' i and g(last) → g_last on the RHS
+    simp only [show ∀ i, g (Fin.castSucc i) = g' i from fun _ => rfl,
+               show g (Fin.last (n + 1)) = g_last from rfl]
+    -- Normalize + association and match termwise
+    simp only [add_assoc]
+    congr 1
+    · congr 1; ext j; ring
+    · ring
 
 /-! ## Wick's theorem — recursive form
 
