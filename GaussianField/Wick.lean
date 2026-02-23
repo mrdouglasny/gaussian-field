@@ -290,7 +290,11 @@ theorem wick_recursive (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) :
     ∫ ω : Configuration E, ω f₀ * ∏ i, ω (g i) ∂(measure T) =
       ∑ j : Fin (n + 1), @inner ℝ H _ (T f₀) (T (g j)) *
         ∫ ω : Configuration E, ∏ i : Fin n,
-          ω (g (Fin.succAbove j i)) ∂(measure T) :=
+          ω (g (Fin.succAbove j i)) ∂(measure T) := by
+  -- Proof by extracting multilinear coefficients from `gaussian_ibp`:
+  -- Setting h = ∑ⱼ tⱼ gⱼ in gaussian_ibp, the coefficient of ∏ⱼ tⱼ on each side
+  -- gives the Wick recursion. Both sides are analytic in t, so coefficient comparison
+  -- is valid. This requires (n+1)-fold Leibniz differentiation under the integral.
   sorry
 
 /-! ## Odd moments vanish
