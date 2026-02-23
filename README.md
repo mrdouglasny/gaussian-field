@@ -59,6 +59,10 @@ The user provides:
 | `pairing_memLp` | `MemLp` | $\omega(f) \in L^p$ for all finite $p$ (Fernique-type) |
 | `pairing_product_integrable` | `Integrable` | $\omega(f)\omega(g)$ is integrable |
 | `measure_isGaussian` | `IsGaussian (measure T)` | Mathlib's `IsGaussian` typeclass instance |
+| `gaussian_ibp_general` | integral identity | $\mathbb{E}[\omega(f_0)\prod_i\omega(g_i)\,e^{i\omega(h)}] = \sum_j C(f_0,g_j)\mathbb{E}[\prod_{i\neq j}\omega(g_i)\,e^{i\omega(h)}] + iC(f_0,h)\mathbb{E}[\prod_i\omega(g_i)\,e^{i\omega(h)}]$ |
+| `wick_recursive` | integral identity | Recursive Wick formula for $n$-point functions |
+| `wick_bound` | norm bound | $\|\mathbb{E}[\prod_i\omega(g_i)\,e^{i\omega(h)}]\| \le \prod_i\|Tg_i\|$ |
+| `odd_moment_vanish` | integral = 0 | Odd moments vanish: $\mathbb{E}[\prod_i\omega(g_i)] = 0$ when $n$ is odd |
 
 ### Design notes
 
@@ -234,6 +238,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Construction.lean](GaussianField/Construction.lean) | 715 | Main construction + characteristic functional |
 | [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
 | [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
+| [Wick.lean](GaussianField/Wick.lean) | 1,067 | Wick's theorem: Gaussian IBP, recursive Wick formula, moment bounds |
 
 ### Dependency graph
 
@@ -250,8 +255,8 @@ SchwartzNuclear/   SmoothCircle/             GaussianField/
        └──────────────→ GaussianField.lean ←─────────────────── Construction
                               ↓                                        ↓
                        HeatKernel/                                 Properties
-                     Axioms, PositionKernel                            ↓
-                              ↓                                    IsGaussian
+                     Axioms, PositionKernel                          ↓     ↓
+                              ↓                                IsGaussian  Wick
                        GaussianFieldAPI.lean (re-exports for downstream)
 ```
 
@@ -271,6 +276,7 @@ The core results are fully proved with no custom axioms:
 - `DyninMityaginSpace (SmoothMap_Circle L ℝ)` — sorry-free (~1,670 lines via Fourier basis)
 - `DyninMityaginSpace.toNuclearSpace` — sorry-free (Dynin-Mityagin implies Pietsch)
 - `GaussianField.measure`, `charFun`, moments — sorry-free
+- `gaussian_ibp_general`, `wick_recursive`, `wick_bound`, `odd_moment_vanish` — sorry-free
 
 The `HeatKernel/` module uses axioms for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
 
