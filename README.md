@@ -213,7 +213,22 @@ multiplier sequence `σ`. This is the key tool for constructing covariance opera
 the GFF covariance on S¹_L × ℝ uses `spectralCLM` with `σ_m = λ_m^{-1/2}` where
 `λ_m = (2πn/L)² + (2k+1) + m²`.
 
-### 2d. [Point Evaluation and API](docs/point-eval-and-api.md)
+### 2d. Lattice Field Theory
+
+Lattice site types, discrete Laplacian, lattice Gaussian measures, and the FKG
+inequality. Used by [pphi2](https://github.com/mrdouglasny/pphi2) for the
+Glimm-Jaffe/Nelson construction.
+
+| File | Contents |
+|------|----------|
+| [Lattice/Sites.lean](Lattice/Sites.lean) | `FinLatticeSites d N`, `InfLatticeSites d`, `latticeNorm`, neighbors |
+| [Lattice/FiniteField.lean](Lattice/FiniteField.lean) | `FinLatticeField d N`, `DyninMityaginSpace` and `HasPointEval` instances |
+| [Lattice/RapidDecayLattice.lean](Lattice/RapidDecayLattice.lean) | `RapidDecayLattice d` (rapidly decaying functions on ℤ^d), seminorms, topology |
+| [Lattice/Laplacian.lean](Lattice/Laplacian.lean) | `finiteLaplacian`, `infiniteLaplacian`, `massOperator`, eigenvalue formulas |
+| [Lattice/Covariance.lean](Lattice/Covariance.lean) | `latticeCovariance` via `spectralCLM`, `latticeGaussianMeasure` |
+| [Lattice/FKG.lean](Lattice/FKG.lean) | FKG inequality for lattice Gaussian and convexly-perturbed measures |
+
+### 2e. [Point Evaluation and API](docs/point-eval-and-api.md)
 
 | File | Lines | Contents |
 |------|------:|----------|
@@ -263,6 +278,8 @@ SchwartzNuclear/   SmoothCircle/             GaussianField/
 ## Downstream projects
 
 This library provides the concrete functional analysis infrastructure for:
+
+- **[pphi2](https://github.com/mrdouglasny/pphi2)** — Formal construction of the P(Φ)₂ interacting Euclidean QFT via the Glimm-Jaffe/Nelson lattice approach. Uses the Lattice module (lattice Gaussian measure, FKG inequality, discrete Laplacian) and the core Gaussian field API.
 
 - **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
 
