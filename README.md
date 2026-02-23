@@ -238,7 +238,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Construction.lean](GaussianField/Construction.lean) | 715 | Main construction + characteristic functional |
 | [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
 | [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
-| [Wick.lean](GaussianField/Wick.lean) | 1,067 | Wick's theorem: Gaussian IBP, recursive Wick formula, moment bounds |
+| [Wick.lean](GaussianField/Wick.lean) | 1,067 | [Wick's theorem](docs/wick-theorem.md): Gaussian IBP, recursive Wick formula, moment bounds |
 
 ### Dependency graph
 
@@ -287,6 +287,7 @@ The `HeatKernel/` module uses axioms for `spectralCLM` and `qft_singular_values_
 - [Nuclear space infrastructure](docs/nuclear-space-infrastructure.md) — the `NuclearSpace` and `DyninMityaginSpace` typeclasses, `RapidDecaySeq`, and why nuclearity is needed
 - [Schwartz nuclearity proof](docs/schwartz-nuclearity-proof.md) — the 7,700-line proof that Schwartz space is nuclear
 - [Gaussian field construction](docs/gaussian-field-construction.md) — the 2,960-line measure construction
+- [Wick's theorem](docs/wick-theorem.md) — Gaussian IBP, recursive Wick formula, moment bounds, and OS1' growth estimate
 - [Concrete instances](docs/concrete-instances.md) — `DyninMityaginSpace` instances for $C^\infty(S^1_L)$, finite lattices, periodic lattices, and generic tensor products, with Lean sketches
 - [Operator construction](docs/operator-construction.md) — building covariance operators on product spaces via the heat kernel $e^{-s\Delta}$, Mathlib support, and the factorization theorem
 - [Lattice-continuum limit](docs/lattice-continuum-limit.md) — convergence of lattice Gaussian measures to continuum measures via characteristic functionals
