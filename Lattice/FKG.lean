@@ -37,10 +37,15 @@ Gaussian measure and for measures with single-site perturbations.
 - `gaussianDensity_integrable` — Gaussian density is Lebesgue-integrable
 - `gaussianDensity_integral_pos` — Gaussian integral is strictly positive
 
-## Derived theorems (with sorry for integrability transfer)
+## Derived theorems
 
 - `gaussian_fkg_lattice_condition` — FKG for Gaussian measure
 - `fkg_perturbed` — FKG for single-site perturbations
+
+## Lemmas with sorry (1)
+
+- `integrable_mul_gaussianDensity` — `F · ρ` is Lebesgue-integrable;
+  follows from density bridge relationship
 
 ## Proof architecture
 
@@ -539,6 +544,21 @@ that ρ is continuous and positive everywhere, so has positive integral. -/
 axiom gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     0 < ∫ φ, gaussianDensity d N a mass φ
 
+/-- Any function times the Gaussian density is integrable when the function
+is integrable against the Gaussian measure (integrability transfer).
+
+For F integrable against μ (the Gaussian measure), the product F·ρ is
+integrable against Lebesgue measure. This follows from the density bridge:
+μ has density ρ/Z with respect to Lebesgue, so `∫|F|dμ = ∫|F|ρ/Z dλ < ∞`
+implies `∫|F|ρ dλ < ∞`.
+
+Currently uses sorry; proof requires formalizing the density relationship
+between the Gaussian measure and Lebesgue measure. -/
+private lemma integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ) :
+    Integrable (fun φ => F φ * gaussianDensity d N a mass φ) := by
+  sorry
+
 /-! ### FKG for the Gaussian measure
 
 With the density bridge and the proved FKG lattice condition for the Gaussian
@@ -572,10 +592,12 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
   have hG_eq : ∀ ω, G ω = G' (fun x => ω (finLatticeDelta d N x)) :=
     fun ω => congr_arg G (config_eq_liftToConfig d N ω)
   -- Step 2: Integrability of weighted functions (Lebesgue measure on ℝ^{N^d})
-  -- These follow from the density bridge + integrability on the Gaussian measure.
-  have hF'ρi : Integrable (fun φ => F' φ * ρ φ) := sorry
-  have hG'ρi : Integrable (fun φ => G' φ * ρ φ) := sorry
-  have hFG'ρi : Integrable (fun φ => F' φ * G' φ * ρ φ) := sorry
+  have hF'ρi : Integrable (fun φ => F' φ * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass F'
+  have hG'ρi : Integrable (fun φ => G' φ * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass G'
+  have hFG'ρi : Integrable (fun φ => F' φ * G' φ * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass (fun φ => F' φ * G' φ)
   -- Step 3: Rewrite each integral using density bridge
   have hI_FG : ∫ ω, F ω * G ω ∂μ = (∫ φ, F' φ * G' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω * G ω ∂μ) =
@@ -679,10 +701,15 @@ theorem fkg_perturbed (a mass : ℝ)
     fun ω => congr_arg V (config_eq_liftToConfig d N ω)
   -- Integrability of weighted functions (Lebesgue measure on ℝ^{N^d})
   -- All follow from density bridge + integrability on the Gaussian measure.
-  have hVρi : Integrable (fun φ => Real.exp (-V' φ) * ρ φ) := sorry
-  have hFVρi : Integrable (fun φ => F' φ * Real.exp (-V' φ) * ρ φ) := sorry
-  have hGVρi : Integrable (fun φ => G' φ * Real.exp (-V' φ) * ρ φ) := sorry
-  have hFGVρi : Integrable (fun φ => F' φ * G' φ * Real.exp (-V' φ) * ρ φ) := sorry
+  have hVρi : Integrable (fun φ => Real.exp (-V' φ) * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass (fun φ => Real.exp (-V' φ))
+  have hFVρi : Integrable (fun φ => F' φ * Real.exp (-V' φ) * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass (fun φ => F' φ * Real.exp (-V' φ))
+  have hGVρi : Integrable (fun φ => G' φ * Real.exp (-V' φ) * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass (fun φ => G' φ * Real.exp (-V' φ))
+  have hFGVρi : Integrable (fun φ => F' φ * G' φ * Real.exp (-V' φ) * ρ φ) :=
+    integrable_mul_gaussianDensity d N a mass ha hmass
+      (fun φ => F' φ * G' φ * Real.exp (-V' φ))
   have hρ'i : Integrable ρ' :=
     hVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
   have hFρ'i : Integrable (fun φ => F' φ * ρ' φ) :=
