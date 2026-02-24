@@ -23,6 +23,7 @@ function) and K_osc is the Mehler kernel (harmonic oscillator heat kernel).
 import HeatKernel.Axioms
 import SmoothCircle.Basic
 import SchwartzNuclear.HermiteFunctions
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 
 noncomputable section
 
@@ -56,8 +57,14 @@ theorem mehlerKernel_symmetric (t x₁ x₂ : ℝ) :
   unfold mehlerKernel; ring_nf
 
 /-- The Mehler kernel is positive for t > 0. -/
-axiom mehlerKernel_pos (t : ℝ) (ht : 0 < t) (x₁ x₂ : ℝ) :
-    0 < mehlerKernel t x₁ x₂
+theorem mehlerKernel_pos (t : ℝ) (ht : 0 < t) (x₁ x₂ : ℝ) :
+    0 < mehlerKernel t x₁ x₂ := by
+  unfold mehlerKernel
+  apply mul_pos
+  · apply rpow_pos_of_pos
+    apply mul_pos (mul_pos two_pos pi_pos)
+    exact Real.sinh_pos_iff.mpr (by linarith)
+  · exact exp_pos _
 
 /-- The Mehler kernel reproduces Hermite eigenfunctions. -/
 axiom mehlerKernel_reproduces_hermite (t : ℝ) (ht : 0 < t)
@@ -87,9 +94,11 @@ axiom circleHeatKernel_summable (L : ℝ) [Fact (0 < L)]
       fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
 
 /-- The circle heat kernel is symmetric. -/
-axiom circleHeatKernel_symmetric (L : ℝ) [Fact (0 < L)]
+theorem circleHeatKernel_symmetric (L : ℝ) [Fact (0 < L)]
     (t θ₁ θ₂ : ℝ) :
-    circleHeatKernel L t θ₁ θ₂ = circleHeatKernel L t θ₂ θ₁
+    circleHeatKernel L t θ₁ θ₂ = circleHeatKernel L t θ₂ θ₁ := by
+  unfold circleHeatKernel
+  exact tsum_congr (fun n => by ring)
 
 /-- The circle heat kernel is positive for t > 0. -/
 axiom circleHeatKernel_pos (L : ℝ) [Fact (0 < L)]
@@ -97,14 +106,18 @@ axiom circleHeatKernel_pos (L : ℝ) [Fact (0 < L)]
     0 < circleHeatKernel L t θ₁ θ₂
 
 /-- The circle heat kernel is L-periodic in the first argument. -/
-axiom circleHeatKernel_periodic₁ (L : ℝ) [Fact (0 < L)]
+theorem circleHeatKernel_periodic₁ (L : ℝ) [Fact (0 < L)]
     (t θ₁ θ₂ : ℝ) :
-    circleHeatKernel L t (θ₁ + L) θ₂ = circleHeatKernel L t θ₁ θ₂
+    circleHeatKernel L t (θ₁ + L) θ₂ = circleHeatKernel L t θ₁ θ₂ := by
+  unfold circleHeatKernel
+  exact tsum_congr (fun n => by rw [fourierBasisFun_periodic n θ₁])
 
 /-- The circle heat kernel is L-periodic in the second argument. -/
-axiom circleHeatKernel_periodic₂ (L : ℝ) [Fact (0 < L)]
+theorem circleHeatKernel_periodic₂ (L : ℝ) [Fact (0 < L)]
     (t θ₁ θ₂ : ℝ) :
-    circleHeatKernel L t θ₁ (θ₂ + L) = circleHeatKernel L t θ₁ θ₂
+    circleHeatKernel L t θ₁ (θ₂ + L) = circleHeatKernel L t θ₁ θ₂ := by
+  unfold circleHeatKernel
+  exact tsum_congr (fun n => by rw [fourierBasisFun_periodic n θ₂])
 
 /-- The circle heat kernel reproduces Fourier eigenfunctions. -/
 axiom circleHeatKernel_reproduces_fourier (L : ℝ) [Fact (0 < L)]
