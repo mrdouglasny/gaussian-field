@@ -84,16 +84,148 @@ noncomputable def finiteLaplacian (d N : ℕ) [NeZero N] (a : ℝ) :
 
 /-- The finite Laplacian is self-adjoint (symmetric matrix).
 Proof: exchange of summation indices using periodicity. -/
-axiom finiteLaplacian_selfAdjoint (d N : ℕ) [NeZero N] (a : ℝ)
+private lemma update_add_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
+    (i : Fin d) (c : Fin N) :
+    (fun j => if j = i then x j + c else x j) = x + Pi.single i c := by
+  ext j; simp only [Pi.add_apply, Pi.single_apply]
+  split_ifs with h <;> simp [h]
+
+private lemma update_sub_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
+    (i : Fin d) (c : Fin N) :
+    (fun j => if j = i then x j - c else x j) = x - Pi.single i c := by
+  ext j; simp only [Pi.sub_apply, Pi.single_apply]
+  split_ifs with h <;> simp [h]
+
+private lemma sum_mul_shift_fwd {d N : ℕ} [NeZero N]
+    (h k : FinLatticeField d N) (v : FinLatticeSites d N) :
+    ∑ x, h x * k (x + v) = ∑ x, h (x - v) * k x := by
+  symm; exact Fintype.sum_equiv (Equiv.addRight (-v))
+    (fun x => h (x - v) * k x) (fun x => h x * k (x + v))
+    (fun x => by simp [sub_eq_add_neg])
+
+private lemma sum_mul_shift_bwd {d N : ℕ} [NeZero N]
+    (h k : FinLatticeField d N) (v : FinLatticeSites d N) :
+    ∑ x, h x * k (x - v) = ∑ x, h (x + v) * k x := by
+  symm; exact Fintype.sum_equiv (Equiv.addRight v)
+    (fun x => h (x + v) * k x) (fun x => h x * k (x - v))
+    (fun x => by simp [add_sub_cancel_right])
+
+/-- Helper: The Laplacian inner product for a single direction, after expanding. -/
+private lemma laplacian_direction_eq {d N : ℕ} [NeZero N]
+    (f g : FinLatticeField d N) (i : Fin d) (a : ℝ) :
+    ∑ x, f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : Fin N)) +
+      g (x - Pi.single i (1 : Fin N))) - 2 * g x)) =
+    ∑ x, a⁻¹ ^ 2 * ((f (x + Pi.single i (1 : Fin N)) +
+      f (x - Pi.single i (1 : Fin N))) - 2 * f x) * g x := by
+  -- Expand both sides into three terms
+  have lhs_expand : ∀ x : FinLatticeSites d N,
+      f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : Fin N)) +
+        g (x - Pi.single i (1 : Fin N))) - 2 * g x)) =
+      a⁻¹ ^ 2 * (f x * g (x + Pi.single i 1)) +
+      a⁻¹ ^ 2 * (f x * g (x - Pi.single i 1)) +
+      a⁻¹ ^ 2 * (-(2 : ℝ) * (f x * g x)) := by intro; ring
+  have rhs_expand : ∀ x : FinLatticeSites d N,
+      a⁻¹ ^ 2 * ((f (x + Pi.single i (1 : Fin N)) +
+        f (x - Pi.single i (1 : Fin N))) - 2 * f x) * g x =
+      a⁻¹ ^ 2 * (f (x + Pi.single i 1) * g x) +
+      a⁻¹ ^ 2 * (f (x - Pi.single i 1) * g x) +
+      a⁻¹ ^ 2 * (-(2 : ℝ) * (f x * g x)) := by intro; ring
+  simp_rw [lhs_expand, rhs_expand, Finset.sum_add_distrib, ← Finset.mul_sum]
+  -- Diagonal terms match. Reindex the shift terms.
+  have h1 : ∑ x, f x * g (x + Pi.single i (1 : Fin N)) =
+      ∑ x, f (x - Pi.single i (1 : Fin N)) * g x :=
+    sum_mul_shift_fwd f g _
+  have h2 : ∑ x, f x * g (x - Pi.single i (1 : Fin N)) =
+      ∑ x, f (x + Pi.single i (1 : Fin N)) * g x :=
+    sum_mul_shift_bwd f g _
+  rw [h1, h2]; ring
+
+/-- The finite Laplacian is self-adjoint: ⟨f, Δg⟩ = ⟨Δf, g⟩. -/
+theorem finiteLaplacian_selfAdjoint (d N : ℕ) [NeZero N] (a : ℝ)
     (f g : FinLatticeField d N) :
     ∑ x, f x * (finiteLaplacian d N a g) x =
-    ∑ x, (finiteLaplacian d N a f) x * g x
+    ∑ x, (finiteLaplacian d N a f) x * g x := by
+  -- Unfold to the raw function definition
+  change ∑ x, f x * finiteLaplacianFun d N a g x =
+    ∑ x, finiteLaplacianFun d N a f x * g x
+  simp only [finiteLaplacianFun]
+  simp_rw [update_add_eq, update_sub_eq]
+  -- Pull the direction sum outside and swap with the site sum
+  simp_rw [Finset.mul_sum, Finset.sum_mul]
+  rw [Finset.sum_comm (s := Finset.univ) (t := Finset.univ)]
+  conv_rhs => rw [Finset.sum_comm (s := Finset.univ) (t := Finset.univ)]
+  congr 1; ext i
+  exact laplacian_direction_eq f g i a
+
+/-- For each lattice direction, the inner product ∑ₓ f(x)·Δᵢf(x) equals
+minus a sum of squares: -(∑ₓ (f(x+eᵢ) - f(x))²). -/
+private lemma direction_sum_eq_neg_sq {d N : ℕ} [NeZero N]
+    (f : FinLatticeField d N) (i : Fin d) :
+    ∑ x : FinLatticeSites d N,
+      f x * (f (x + Pi.single i 1) + f (x - Pi.single i 1) - 2 * f x) =
+    -(∑ x : FinLatticeSites d N, (f (x + Pi.single i 1) - f x) ^ 2) := by
+  have reindex_sq : ∑ x : FinLatticeSites d N, f (x + Pi.single i 1) ^ 2 =
+      ∑ x : FinLatticeSites d N, f x ^ 2 :=
+    Fintype.sum_equiv (Equiv.addRight (Pi.single i (1 : Fin N)))
+      (fun x => f (x + Pi.single i 1) ^ 2) (fun x => f x ^ 2)
+      (fun x => by simp)
+  have shift_bwd : ∑ x : FinLatticeSites d N, f x * f (x - Pi.single i 1) =
+      ∑ x : FinLatticeSites d N, f (x + Pi.single i 1) * f x :=
+    sum_mul_shift_bwd f f _
+  have comm_sum : ∑ x : FinLatticeSites d N, f (x + Pi.single i 1) * f x =
+      ∑ x : FinLatticeSites d N, f x * f (x + Pi.single i 1) :=
+    Finset.sum_congr rfl (fun x _ => mul_comm _ _)
+  have lhs_eq : ∑ x : FinLatticeSites d N,
+      f x * (f (x + Pi.single i 1) + f (x - Pi.single i 1) - 2 * f x) =
+      (∑ x : FinLatticeSites d N, f x * f (x + Pi.single i 1)) +
+      (∑ x : FinLatticeSites d N, f x * f (x - Pi.single i 1)) +
+      (-2) * (∑ x : FinLatticeSites d N, f x ^ 2) := by
+    have h1 : ∀ x : FinLatticeSites d N,
+        f x * (f (x + Pi.single i 1) + f (x - Pi.single i 1) - 2 * f x) =
+        f x * f (x + Pi.single i 1) + f x * f (x - Pi.single i 1) +
+        (-2) * (f x ^ 2) := by intro; ring
+    simp_rw [h1, Finset.sum_add_distrib, ← Finset.mul_sum]
+  rw [lhs_eq, shift_bwd, comm_sum]
+  have rhs_eq : -(∑ x : FinLatticeSites d N, (f (x + Pi.single i 1) - f x) ^ 2) =
+      -(∑ x : FinLatticeSites d N, f (x + Pi.single i 1) ^ 2) +
+      2 * (∑ x : FinLatticeSites d N, f x * f (x + Pi.single i 1)) +
+      (-1) * (∑ x : FinLatticeSites d N, f x ^ 2) := by
+    have h2 : ∀ x : FinLatticeSites d N,
+        (f (x + Pi.single i 1) - f x) ^ 2 =
+        f (x + Pi.single i 1) ^ 2 + (-2) * (f x * f (x + Pi.single i 1)) +
+        f x ^ 2 := by intro; ring
+    simp_rw [h2, Finset.sum_add_distrib, ← Finset.mul_sum]
+    ring
+  rw [rhs_eq, reindex_sq]
+  ring
 
 /-- The finite Laplacian is negative semidefinite: ⟨f, Δf⟩ ≤ 0.
 Proof: summation by parts gives -a⁻² Σᵢ Σₓ (f(x+eᵢ) - f(x))² ≤ 0. -/
-axiom finiteLaplacian_neg_semidefinite (d N : ℕ) [NeZero N] (a : ℝ) (ha : 0 < a)
+theorem finiteLaplacian_neg_semidefinite (d N : ℕ) [NeZero N] (a : ℝ) (ha : 0 < a)
     (f : FinLatticeField d N) :
-    ∑ x, f x * (finiteLaplacian d N a f) x ≤ 0
+    ∑ x, f x * (finiteLaplacian d N a f) x ≤ 0 := by
+  change ∑ x, f x * finiteLaplacianFun d N a f x ≤ 0
+  simp only [finiteLaplacianFun]
+  simp_rw [update_add_eq, update_sub_eq]
+  -- Rewrite to a⁻¹² * ∑_i ∑_x f(x)·(D_i f)(x) and swap sums
+  have step1 : (∑ x : FinLatticeSites d N,
+      f x * (a⁻¹ ^ 2 * ∑ i : Fin d,
+        (f (x + Pi.single i 1) + f (x - Pi.single i 1) - 2 * f x))) =
+    a⁻¹ ^ 2 * ∑ i : Fin d, ∑ x : FinLatticeSites d N,
+      (f x * (f (x + Pi.single i 1) + f (x - Pi.single i 1) - 2 * f x)) := by
+    conv_lhs =>
+      arg 2; ext x
+      rw [mul_comm (f x) (a⁻¹ ^ 2 * _), mul_assoc, Finset.sum_mul]
+    rw [← Finset.mul_sum, Finset.sum_comm]
+    congr 1; apply Finset.sum_congr rfl
+    intro i _; apply Finset.sum_congr rfl
+    intro x _; ring
+  rw [step1]
+  simp_rw [direction_sum_eq_neg_sq]
+  apply mul_nonpos_of_nonneg_of_nonpos
+  · exact sq_nonneg _
+  · exact Finset.sum_nonpos (fun i _ =>
+      neg_nonpos_of_nonneg (Finset.sum_nonneg (fun x _ => sq_nonneg _)))
 
 /-! ## Infinite Laplacian -/
 
@@ -121,10 +253,26 @@ def massOperator (d N : ℕ) [NeZero N] (a mass : ℝ) :
 
 /-- The mass operator is positive definite when mass > 0.
 Proof: ⟨f, (-Δ+m²)f⟩ = -⟨f,Δf⟩ + m²‖f‖² ≥ m²‖f‖² > 0 for f ≠ 0. -/
-axiom massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
+theorem massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
     (f : FinLatticeField d N) (hf : f ≠ 0) :
-    0 < ∑ x, f x * (massOperator d N a mass f) x
+    0 < ∑ x, f x * (massOperator d N a mass f) x := by
+  simp only [massOperator, ContinuousLinearMap.add_apply,
+    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+    ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply,
+    smul_eq_mul]
+  have split : ∀ x : FinLatticeSites d N,
+      f x * (-(finiteLaplacian d N a f) x + mass ^ 2 * f x) =
+      -(f x * (finiteLaplacian d N a f) x) + mass ^ 2 * f x ^ 2 := by
+    intro x; ring
+  simp_rw [split, Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_neg_distrib]
+  have h_neg : 0 ≤ -(∑ x : FinLatticeSites d N, f x * (finiteLaplacian d N a f) x) :=
+    neg_nonneg.mpr (finiteLaplacian_neg_semidefinite d N a ha f)
+  have h_sq_pos : 0 < ∑ x : FinLatticeSites d N, f x ^ 2 := by
+    obtain ⟨x, hx⟩ : ∃ x, f x ≠ 0 := by
+      by_contra h; push_neg at h; exact hf (funext h)
+    exact Finset.sum_pos' (fun x _ => sq_nonneg (f x)) ⟨x, Finset.mem_univ _, by positivity⟩
+  linarith [mul_pos (sq_pos_of_pos hmass) h_sq_pos]
 
 /-! ## Eigenvalues -/
 
