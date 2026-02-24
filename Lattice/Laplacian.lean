@@ -1,0 +1,155 @@
+/-
+Copyright (c) 2026 Michael R. Douglas. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+
+# Discrete Laplacian with Lattice Spacing
+
+Defines the discrete Laplacian on both finite (periodic) and infinite lattices,
+parametrized by lattice spacing `a : ℝ`. Also defines the massive operator
+`-Δ_a + m²` and its eigenvalues on the finite lattice.
+
+## Main definitions
+
+- `finiteLaplacian d N a` — discrete Laplacian on the finite torus
+- `infiniteLaplacian d a` — discrete Laplacian on ℤ^d
+- `massOperator d N a mass` — the massive operator `-Δ_a + m²`
+- `latticeEigenvalue d N a mass m` — eigenvalues of the mass operator
+
+## Mathematical background
+
+The discrete Laplacian with spacing `a` is:
+  `(Δ_a f)(x) = (1/a²) Σ_{i=1}^d [f(x + eᵢ) + f(x - eᵢ) - 2f(x)]`
+
+On the finite torus with periodic BC, it has eigenvalues:
+  `λ_k = -(4/a²) Σᵢ sin²(πkᵢ/N)`
+
+The mass operator `-Δ_a + m²` is positive definite when `m > 0`.
+-/
+
+import Lattice.Sites
+import Lattice.FiniteField
+import Lattice.RapidDecayLattice
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+import Mathlib.Topology.Algebra.Module.Basic
+
+noncomputable section
+
+namespace GaussianField
+
+open Real
+
+/-! ## Finite Laplacian -/
+
+/-- The discrete Laplacian on the finite torus (ℤ/Nℤ)^d with spacing `a`.
+
+`(Δ_a f)(x) = (1/a²) Σᵢ [f(x + eᵢ) + f(x - eᵢ) - 2f(x)]`
+
+where addition is modulo N (periodic boundary conditions). -/
+def finiteLaplacianFun (d N : ℕ) [NeZero N] (a : ℝ) (f : FinLatticeField d N)
+    (x : FinLatticeSites d N) : ℝ :=
+  a⁻¹ ^ 2 * ∑ i : Fin d,
+    (f (fun j => if j = i then x j + 1 else x j) +
+     f (fun j => if j = i then x j - 1 else x j) -
+     2 * f x)
+
+/-- The finite Laplacian as a continuous linear map. Continuity is automatic
+since FinLatticeField d N is finite-dimensional. -/
+def finiteLaplacianLM (d N : ℕ) [NeZero N] (a : ℝ) :
+    FinLatticeField d N →ₗ[ℝ] FinLatticeField d N where
+  toFun := finiteLaplacianFun d N a
+  map_add' := fun f g => by
+    funext x; simp only [finiteLaplacianFun, Pi.add_apply]
+    rw [← mul_add, ← Finset.sum_add_distrib]
+    congr 1; apply Finset.sum_congr rfl; intro i _; ring
+  map_smul' := fun r f => by
+    funext x; simp only [finiteLaplacianFun, Pi.smul_apply, smul_eq_mul, RingHom.id_apply]
+    -- Factor r out of each summand, then pull through sum and a⁻¹²
+    have : ∀ i : Fin d,
+        (r * (f fun j => if j = i then x j + 1 else x j)) +
+        (r * (f fun j => if j = i then x j - 1 else x j)) -
+        2 * (r * f x) =
+        r * (((f fun j => if j = i then x j + 1 else x j) +
+              (f fun j => if j = i then x j - 1 else x j)) -
+             2 * f x) := fun i => by ring
+    simp_rw [this, ← Finset.mul_sum, ← mul_assoc, mul_comm (a⁻¹ ^ 2) r]
+
+/-- The finite Laplacian as a continuous linear map. Continuity is automatic
+since FinLatticeField d N is finite-dimensional. -/
+noncomputable def finiteLaplacian (d N : ℕ) [NeZero N] (a : ℝ) :
+    FinLatticeField d N →L[ℝ] FinLatticeField d N :=
+  { finiteLaplacianLM d N a with
+    cont := (finiteLaplacianLM d N a).continuous_of_finiteDimensional }
+
+/-! ## Properties of the finite Laplacian -/
+
+/-- The finite Laplacian is self-adjoint (symmetric matrix).
+Proof: exchange of summation indices using periodicity. -/
+axiom finiteLaplacian_selfAdjoint (d N : ℕ) [NeZero N] (a : ℝ)
+    (f g : FinLatticeField d N) :
+    ∑ x, f x * (finiteLaplacian d N a g) x =
+    ∑ x, (finiteLaplacian d N a f) x * g x
+
+/-- The finite Laplacian is negative semidefinite: ⟨f, Δf⟩ ≤ 0.
+Proof: summation by parts gives -a⁻² Σᵢ Σₓ (f(x+eᵢ) - f(x))² ≤ 0. -/
+axiom finiteLaplacian_neg_semidefinite (d N : ℕ) [NeZero N] (a : ℝ) (ha : 0 < a)
+    (f : FinLatticeField d N) :
+    ∑ x, f x * (finiteLaplacian d N a f) x ≤ 0
+
+/-! ## Infinite Laplacian -/
+
+/-- The discrete Laplacian on ℤ^d with spacing `a`.
+Preserves rapid decay since it's a finite difference operator. -/
+axiom infiniteLaplacian (d : ℕ) (a : ℝ) :
+    RapidDecayLattice d →L[ℝ] RapidDecayLattice d
+
+/-- The infinite Laplacian acts as the expected finite difference formula. -/
+axiom infiniteLaplacian_apply (d : ℕ) (a : ℝ) (f : RapidDecayLattice d)
+    (x : Fin d → ℤ) :
+    (infiniteLaplacian d a f).val x =
+    a⁻¹ ^ 2 * ∑ i : Fin d,
+      (f.val (fun j => x j + stdBasisInt d i j) +
+       f.val (fun j => x j - stdBasisInt d i j) -
+       2 * f.val x)
+
+/-! ## Mass operator -/
+
+/-- The mass operator `-Δ_a + m²` on the finite lattice.
+This is the covariance operator's inverse in the lattice Gaussian measure. -/
+def massOperator (d N : ℕ) [NeZero N] (a mass : ℝ) :
+    FinLatticeField d N →L[ℝ] FinLatticeField d N :=
+  -finiteLaplacian d N a + mass ^ 2 • ContinuousLinearMap.id ℝ _
+
+/-- The mass operator is positive definite when mass > 0.
+Proof: ⟨f, (-Δ+m²)f⟩ = -⟨f,Δf⟩ + m²‖f‖² ≥ m²‖f‖² > 0 for f ≠ 0. -/
+axiom massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
+    (f : FinLatticeField d N) (hf : f ≠ 0) :
+    0 < ∑ x, f x * (massOperator d N a mass f) x
+
+/-! ## Eigenvalues -/
+
+/-- Eigenvalue of `-Δ_a + m²` on the finite torus.
+Mode index `m : ℕ` decodes to multi-index `k ∈ (Fin N)^d` via Fintype
+enumeration. The eigenvalue is:
+  `(4/a²) Σᵢ sin²(πkᵢ/N) + mass²` -/
+def latticeEigenvalue (d N : ℕ) [NeZero N] (a mass : ℝ) (m : ℕ) : ℝ :=
+  if h : m < Fintype.card (FinLatticeSites d N) then
+    let k := (Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩
+    (4 / a ^ 2) * ∑ i : Fin d, sin (π * (k i : ℝ) / N) ^ 2 + mass ^ 2
+  else
+    mass ^ 2  -- default for out-of-range indices
+
+/-- Eigenvalues are strictly positive when mass > 0. -/
+theorem latticeEigenvalue_pos (d N : ℕ) [NeZero N] (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) (m : ℕ) :
+    0 < latticeEigenvalue d N a mass m := by
+  unfold latticeEigenvalue
+  split_ifs with h
+  · have h1 : (0 : ℝ) ≤ (4 / a ^ 2) *
+        ∑ i : Fin d, sin (π * ↑((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i) / ↑N) ^ 2 := by
+      apply mul_nonneg (div_nonneg (by norm_num) (sq_nonneg _))
+      exact Finset.sum_nonneg fun _ _ => sq_nonneg _
+    linarith [sq_pos_of_pos hmass]
+  · exact sq_pos_of_pos hmass
+
+end GaussianField

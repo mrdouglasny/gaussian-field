@@ -22,4 +22,6 @@ lean_lib «Test» where
 @[default_target]
 lean_lib «GaussianField» where
 
+lean_lib «Lattice» where
+
 lean_lib «GaussianFieldAPI» where
