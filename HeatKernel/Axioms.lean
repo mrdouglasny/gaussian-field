@@ -261,12 +261,4 @@ theorem heat_singular_values_bounded (L mass : ℝ) (hL : 0 < L)
     rw [abs_of_pos (heatSingularValue_pos L mass s m)]
     exact heatSingularValue_le_one hL mass hmass s hs m⟩
 
-/-- Heat singular values are bounded for any s (including negative).
-    For s < 0, eigenvalues grow so e^{|s|λ/2} is unbounded, but
-    each individual e^{-sλ_m/2} is still finite; the sequence grows
-    but is bounded on any finite prefix. This axiom postulates the
-    global bound — in practice only s ≥ 0 is physically relevant. -/
-axiom heat_singular_values_bounded' (L mass s : ℝ) :
-    IsBoundedSeq (fun m => heatSingularValue L mass s m)
-
 end GaussianField

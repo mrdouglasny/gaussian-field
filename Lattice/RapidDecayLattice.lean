@@ -215,7 +215,26 @@ def latticeCoeffCLM (d : ℕ) (m : ℕ) : RapidDecayLattice d →L[ℝ] ℝ wher
       map_add' := fun _ _ => rfl
       map_smul' := fun r a => by simp [smul_eq_mul] }
   cont := by
-    sorry
+    set f : RapidDecayLattice d →ₗ[ℝ] ℝ :=
+      { toFun := fun a => a.val ((latticeEnum d).symm m)
+        map_add' := fun _ _ => rfl
+        map_smul' := fun r a => by simp [smul_eq_mul] }
+    show Continuous f
+    apply Seminorm.cont_withSeminorms_normedSpace ℝ lattice_withSeminorms
+    refine ⟨{0}, 1, ?_⟩
+    rw [Seminorm.le_def]
+    intro a
+    simp only [Seminorm.comp_apply, coe_normSeminorm, Finset.sup_singleton, one_smul]
+    show ‖f a‖ ≤ latticeRapidDecaySeminorm d 0 a
+    rw [Real.norm_eq_abs]
+    show |a.val ((latticeEnum d).symm m)| ≤
+      ∑' x, |a.val x| * (1 + latticeNorm x) ^ 0
+    calc |a.val ((latticeEnum d).symm m)|
+        = |a.val ((latticeEnum d).symm m)| * (1 + latticeNorm ((latticeEnum d).symm m)) ^ 0 := by
+          simp [pow_zero]
+      _ ≤ ∑' x, |a.val x| * (1 + latticeNorm x) ^ 0 :=
+          (a.rapid_decay 0).le_tsum ((latticeEnum d).symm m)
+            (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j 0))
 
 /-! ### CLE to RapidDecaySeq -/
 
