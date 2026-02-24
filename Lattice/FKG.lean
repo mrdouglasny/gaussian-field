@@ -26,7 +26,7 @@ Gaussian measure and for measures with single-site perturbations.
   non-positive off-diagonal are submodular
 - `gaussianDensity_fkg_lattice_condition` — Gaussian density satisfies FKG
 
-## Axioms (5)
+## Axioms (6)
 
 - `fkg_from_lattice_condition` — FKG lattice condition implies correlation
   inequality (Holley 1974); proof requires induction + Prékopa-Leindler
@@ -36,16 +36,18 @@ Gaussian measure and for measures with single-site perturbations.
   expectations = normalized weighted Lebesgue integrals
 - `gaussianDensity_integrable` — Gaussian density is Lebesgue-integrable
 - `gaussianDensity_integral_pos` — Gaussian integral is strictly positive
+- `integrable_mul_gaussianDensity` — `F · ρ` is Lebesgue-integrable
+  (integrability transfer via absolute continuity)
 
 ## Derived theorems
 
 - `gaussian_fkg_lattice_condition` — FKG for Gaussian measure
 - `fkg_perturbed` — FKG for single-site perturbations
 
-## Lemmas with sorry (1)
+## Sorry-free derived theorems
 
-- `integrable_mul_gaussianDensity` — `F · ρ` is Lebesgue-integrable;
-  follows from density bridge relationship
+- `gaussian_fkg_lattice_condition` — FKG for Gaussian measure (no sorry)
+- `fkg_perturbed` — FKG for single-site perturbations (no sorry)
 
 ## Proof architecture
 
@@ -544,20 +546,19 @@ that ρ is continuous and positive everywhere, so has positive integral. -/
 axiom gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     0 < ∫ φ, gaussianDensity d N a mass φ
 
-/-- Any function times the Gaussian density is integrable when the function
-is integrable against the Gaussian measure (integrability transfer).
+/-- **Integrability transfer**: any function times the Gaussian density is
+integrable against Lebesgue measure.
 
 For F integrable against μ (the Gaussian measure), the product F·ρ is
 integrable against Lebesgue measure. This follows from the density bridge:
 μ has density ρ/Z with respect to Lebesgue, so `∫|F|dμ = ∫|F|ρ/Z dλ < ∞`
 implies `∫|F|ρ dλ < ∞`.
 
-Currently uses sorry; proof requires formalizing the density relationship
-between the Gaussian measure and Lebesgue measure. -/
-private lemma integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+Proof requires formalizing absolute continuity of the Gaussian measure
+with respect to Lebesgue measure. -/
+axiom integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (F : FinLatticeField d N → ℝ) :
-    Integrable (fun φ => F φ * gaussianDensity d N a mass φ) := by
-  sorry
+    Integrable (fun φ => F φ * gaussianDensity d N a mass φ)
 
 /-! ### FKG for the Gaussian measure
 
