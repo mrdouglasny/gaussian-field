@@ -167,9 +167,9 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [Basis1D.lean](SchwartzNuclear/Basis1D.lean) | 157 | 1D DyninMityaginSpace fields assembly |
 | [ParametricCalculus.lean](SchwartzNuclear/ParametricCalculus.lean) | 316 | Differentiation under the integral sign |
 | [SchwartzSlicing.lean](SchwartzNuclear/SchwartzSlicing.lean) | 1,134 | Multi-d slicing and partial Hermite coefficients |
-| [HermiteTensorProduct.lean](SchwartzNuclear/HermiteTensorProduct.lean) | 2,619 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
-| [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 174 | `DyninMityaginSpace` instance from the isomorphism |
-| [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 363 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
+| [HermiteTensorProduct.lean](SchwartzNuclear/HermiteTensorProduct.lean) | 2,742 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
+| [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 63 | `DyninMityaginSpace` instance from the isomorphism |
+| [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 427 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
 
 ### 2b. Circle Nuclearity
 
@@ -205,8 +205,8 @@ constructing covariance operators on product spaces.
 
 | File | Lines | Contents |
 |------|------:|----------|
-| [HeatKernel/Axioms.lean](HeatKernel/Axioms.lean) | 187 | `spectralCLM`, `qftEigenvalue`, `qftSingularValue`, boundedness |
-| [HeatKernel/PositionKernel.lean](HeatKernel/PositionKernel.lean) | 215 | Position-space heat kernel axioms |
+| [HeatKernel/Axioms.lean](HeatKernel/Axioms.lean) | 264 | `spectralCLM`, `qftEigenvalue`, `qftSingularValue`, boundedness |
+| [HeatKernel/PositionKernel.lean](HeatKernel/PositionKernel.lean) | 1,843 | Position-space heat kernels: Mehler kernel, circle heat kernel, proved axioms |
 
 `spectralCLM σ hσ : E →L[ℝ] ℓ²` maps `f ↦ (σ_m · coeff_m(f))_m` for any bounded
 multiplier sequence `σ`. This is the key tool for constructing covariance operators:
@@ -233,7 +233,7 @@ Glimm-Jaffe/Nelson construction.
 | File | Lines | Contents |
 |------|------:|----------|
 | [Nuclear/PointEval.lean](Nuclear/PointEval.lean) | 66 | `HasPointEval` typeclass + instances |
-| [GaussianFieldAPI.lean](GaussianFieldAPI.lean) | 80 | Re-export file for downstream QFT projects |
+| [GaussianFieldAPI.lean](GaussianFieldAPI.lean) | 90 | Re-export file for downstream QFT projects |
 
 `HasPointEval E M` abstracts pointwise evaluation across test function spaces.
 `GaussianFieldAPI.lean` collects the public API (Configuration, measure, charFun,
@@ -289,13 +289,15 @@ This library provides the concrete functional analysis infrastructure for:
 
 The core results are fully proved with no custom axioms:
 
-- `DyninMityaginSpace (SchwartzMap D ℝ)` — sorry-free (~7,700 lines via Hermite expansion)
+- `DyninMityaginSpace (SchwartzMap D ℝ)` — sorry-free (~8,100 lines via Hermite expansion)
 - `DyninMityaginSpace (SmoothMap_Circle L ℝ)` — sorry-free (~1,670 lines via Fourier basis)
 - `DyninMityaginSpace.toNuclearSpace` — sorry-free (Dynin-Mityagin implies Pietsch)
 - `GaussianField.measure`, `charFun`, moments — sorry-free
 - `gaussian_ibp_general`, `wick_recursive`, `wick_bound`, `odd_moment_vanish` — sorry-free
 
-The `HeatKernel/` module uses axioms for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
+The `HeatKernel/` module has proved the Mehler kernel closed form, positivity, semigroup property, Hermite reproducing property, and circle heat kernel properties. Remaining axioms are for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
+
+The `Lattice/FKG.lean` module proves the FKG inequality for lattice Gaussian measures and single-site perturbations (sorry-free, 6 axioms for measure-theoretic infrastructure).
 
 ## Further documentation
 
