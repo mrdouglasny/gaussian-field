@@ -247,11 +247,11 @@ Key identity: `J(n, m+1) = n · J(n-1, m)`, giving `J(n,m) = δₙₘ · n! · �
 -/
 
 /-- Abbreviation: Hermite polynomial evaluated over ℝ. -/
-private abbrev hermiteR (n : ℕ) : ℝ[X] := (hermite n).map (Int.castRingHom ℝ)
+abbrev hermiteR (n : ℕ) : ℝ[X] := (hermite n).map (Int.castRingHom ℝ)
 
 /-- The derivative of the (n+1)-th Hermite polynomial is (n+1) times the n-th.
     Adapted from auto1's `probHermite_derivative`. -/
-private theorem hermite_derivative (n : ℕ) :
+theorem hermite_derivative (n : ℕ) :
     derivative (hermite (n + 1)) = (↑(n + 1) : ℤ[X]) * hermite n := by
   induction n with
   | zero => simp [hermite_succ, hermite_zero]
@@ -684,11 +684,11 @@ private lemma normConst_succ (n : ℕ) :
   field_simp
 
 /-- X · Hₙ₊₁ = Hₙ₊₂ + (n+1) · Hₙ in ℤ[X]. -/
-private lemma hermite_X_mul (n : ℕ) :
+lemma hermite_X_mul (n : ℕ) :
     X * hermite (n + 1) = hermite (n + 2) + (↑(n + 1) : ℤ[X]) * hermite n := by
   linear_combination -(hermite_succ (n + 1)) + hermite_derivative n
 
-private lemma hermiteR_recurrence_succ (n : ℕ) (t : ℝ) :
+lemma hermiteR_recurrence_succ (n : ℕ) (t : ℝ) :
     t * (hermiteR (n + 1)).eval t =
     (hermiteR (n + 2)).eval t + ↑(n + 1) * (hermiteR n).eval t := by
   have h := congr_arg (fun p => (Polynomial.map (Int.castRingHom ℝ) p).eval t)
@@ -699,7 +699,7 @@ private lemma hermiteR_recurrence_succ (n : ℕ) (t : ℝ) :
   linarith
 
 /-- Hermite recurrence for n = 0: t · H₀(t) = H₁(t). -/
-private lemma hermiteR_recurrence_zero (t : ℝ) :
+lemma hermiteR_recurrence_zero (t : ℝ) :
     t * (hermiteR 0).eval t = (hermiteR 1).eval t := by
   simp [hermiteR, hermite_zero, hermite_succ, Polynomial.eval_X,
     Polynomial.map_X]
