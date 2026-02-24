@@ -18,7 +18,7 @@ constructions used in the multi-dimensional Hermite expansion proof.
 
 ## Sorry inventory
 
-**0 sorrys.** All lemmas fully proved.
+**0 sorrys.** All lemmas fully proved. <!-- count_axioms:skip -->
 
 ## Proved lemmas
 

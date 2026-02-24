@@ -55,7 +55,7 @@ establishes the same result as a theorem.
 ```
 open GaussianField
 
-axiom schwartz_dyninMityaginSpace_axiom
+axiom schwartz_dyninMityaginSpace_axiom -- count_axioms:skip
     (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
     [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
     DyninMityaginSpace (SchwartzMap D ℝ)

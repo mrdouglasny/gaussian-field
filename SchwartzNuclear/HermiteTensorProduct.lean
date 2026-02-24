@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Nuclear Space Instance for Schwartz Space via Sequence Space Isomorphism
 
 Proves `DyninMityaginSpace (SchwartzMap D ℝ)` for any finite-dimensional `D`.
-**0 sorrys, 0 axioms.**
+**0 sorrys, 0 axioms.** <!-- count_axioms:skip -->
 
 ## Strategy
 
@@ -2730,7 +2730,7 @@ The proof decomposes as:
   `SchwartzMap D ℝ ≃L SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ ≃L RapidDecaySeq`
 where `d = finrank ℝ D ≥ 1` (from `Nontrivial D`).
 
-**Sorry**: sorrys for `d ≥ 2` are decomposed into multi-index Hermite analysis components.
+**Sorry**: sorrys for `d ≥ 2` are decomposed into multi-index Hermite analysis components. count_axioms:skip
 The 1D forward and backward maps and all structural components are fully proved. -/
 noncomputable def schwartzRapidDecayEquiv (D : Type*)
     [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D] [Nontrivial D] :

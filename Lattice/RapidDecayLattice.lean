@@ -195,7 +195,7 @@ private def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
 For d ≥ 1, constructed via iterated Cantor pairing using `Fin.succFunEquiv`
 and `Denumerable.eqv`.
 For d = 0, `(Fin 0 → ℤ)` is a singleton and no bijection with ℕ exists;
-this case uses `sorry` but is never needed in practice (d ≥ 1 always). -/
+this case uses `sorry` but is never needed in practice (d ≥ 1 always). count_axioms:skip -/
 def latticeEnum (d : ℕ) : (Fin d → ℤ) ≃ ℕ :=
   match d with
   | 0 => Equiv.ofBijective (fun _ => 0) (by constructor <;> sorry)
