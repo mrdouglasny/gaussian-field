@@ -373,6 +373,58 @@ def IsFieldMonotone (F : Configuration (FinLatticeField d N) → ℝ) : Prop :=
     (∀ x : FinLatticeSites d N, ω₁ (finLatticeDelta d N x) ≤ ω₂ (finLatticeDelta d N x)) →
     F ω₁ ≤ F ω₂
 
+/-- Basis decomposition: any field configuration is a linear combination
+of delta functions. -/
+private lemma field_basis_decomposition (φ : FinLatticeField d N) :
+    φ = ∑ y : FinLatticeSites d N, φ y • finLatticeDelta d N y := by
+  ext x
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, finLatticeDelta,
+    mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
+
+/-! ### Field-Configuration correspondence
+
+In finite dimensions, a configuration ω ∈ E* is uniquely determined by its
+values on the basis {δ_x}. The map `liftToConfig` reconstructs ω from field
+values φ(x). -/
+
+/-- Lift field values to a configuration (continuous linear functional).
+Given `φ : FinLatticeField d N`, constructs the CLM `f ↦ ∑ x, f(x) · φ(x)`. -/
+private def liftToConfig (φ : FinLatticeField d N) :
+    Configuration (FinLatticeField d N) :=
+  { toFun := fun f => ∑ x : FinLatticeSites d N, f x * φ x
+    map_add' := fun f g => by
+      simp only [Pi.add_apply, add_mul, Finset.sum_add_distrib]
+    map_smul' := fun r f => by
+      simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.mul_sum, mul_assoc]
+    cont := continuous_finset_sum _ (fun i _ =>
+      (continuous_apply i).mul continuous_const) }
+
+/-- Lifting preserves delta function evaluation: `(liftToConfig φ)(δ_x) = φ(x)`. -/
+private lemma liftToConfig_delta (φ : FinLatticeField d N) (x : FinLatticeSites d N) :
+    (liftToConfig d N φ) (finLatticeDelta d N x) = φ x := by
+  show ∑ z : FinLatticeSites d N, (finLatticeDelta d N x) z * φ z = φ x
+  simp only [finLatticeDelta, ite_mul, one_mul, zero_mul,
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+
+/-- Any configuration equals the lift of its field values. -/
+private lemma config_eq_liftToConfig (ω : Configuration (FinLatticeField d N)) :
+    ω = liftToConfig d N (fun x => ω (finLatticeDelta d N x)) := by
+  apply ContinuousLinearMap.ext; intro f
+  show ω f = ∑ z : FinLatticeSites d N, f z * ω (finLatticeDelta d N z)
+  conv_lhs => rw [show f = ∑ y : FinLatticeSites d N, f y • finLatticeDelta d N y from
+    field_basis_decomposition d N f]
+  simp only [map_sum, map_smul, smul_eq_mul]
+
+/-- `IsFieldMonotone` implies `Monotone` for the lifted function. -/
+private lemma isFieldMonotone_lift {F : Configuration (FinLatticeField d N) → ℝ}
+    (hF : IsFieldMonotone d N F) :
+    Monotone (fun φ : FinLatticeField d N => F (liftToConfig d N φ)) := by
+  intro φ₁ φ₂ hle
+  apply hF
+  intro x
+  simp only [liftToConfig_delta]
+  exact hle x
+
 /-! ### Gaussian density and FKG lattice condition
 
 The lattice Gaussian measure has precision matrix Q = -Δ_a + m².
@@ -400,6 +452,25 @@ axiom massOperator_offDiag_nonpos (d N : ℕ) [NeZero N] (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass) :
     ∀ x y : FinLatticeSites d N, x ≠ y → massOperatorEntry d N a mass x y ≤ 0
 
+/-- The mass operator applied to φ, evaluated at x, equals the sum over
+matrix entries times field values. -/
+private lemma massOperator_apply_eq_sum (a mass : ℝ) (φ : FinLatticeField d N)
+    (x : FinLatticeSites d N) :
+    (massOperator d N a mass φ) x =
+    ∑ y : FinLatticeSites d N, massOperatorEntry d N a mass x y * φ y := by
+  conv_lhs => rw [field_basis_decomposition d N φ]
+  simp only [map_sum, map_smul, Finset.sum_apply, Pi.smul_apply, smul_eq_mul,
+    massOperatorEntry]
+  congr 1; ext y; ring
+
+/-- The quadratic form `⟨φ, Qφ⟩` equals the double sum of matrix entries. -/
+private lemma massOperator_bilinear_eq_sum (a mass : ℝ) (φ : FinLatticeField d N) :
+    ∑ x, φ x * (massOperator d N a mass φ) x =
+    ∑ x, ∑ y, massOperatorEntry d N a mass x y * φ x * φ y := by
+  congr 1; ext x
+  rw [massOperator_apply_eq_sum d N a mass φ x, Finset.mul_sum]
+  congr 1; ext y; ring
+
 /-- The Gaussian density satisfies the FKG lattice condition.
 
 Proof chain:
@@ -412,11 +483,12 @@ theorem gaussianDensity_fkg_lattice_condition (a mass : ℝ) (ha : 0 < a) (hmass
   unfold gaussianDensity
   rw [← Real.exp_add, ← Real.exp_add]
   apply Real.exp_le_exp_of_le
-  -- Need: -(1/2) * ∑ z, x z * (Q x) z + -(1/2) * ∑ z, y z * (Q y) z ≤
-  --       -(1/2) * ∑ z, (x⊔y) z * (Q (x⊔y)) z + -(1/2) * ∑ z, (x⊓y) z * (Q (x⊓y)) z
-  -- i.e., the quadratic form ½⟨φ,Qφ⟩ is submodular
-  sorry -- TODO: expand massOperator as bilinear form with matrix entries,
-  -- apply quadraticForm_submodular_of_nonpos_offDiag using massOperator_offDiag_nonpos
+  -- Rewrite quadratic forms as double sums
+  have hQ := massOperator_offDiag_nonpos d N a mass ha hmass
+  have hsub := quadraticForm_submodular_of_nonpos_offDiag
+    (massOperatorEntry d N a mass) hQ x y
+  simp only [massOperator_bilinear_eq_sum d N] at *
+  linarith
 
 /-- The Gaussian density is non-negative. -/
 theorem gaussianDensity_nonneg (a mass : ℝ) (φ : FinLatticeField d N) :
@@ -475,8 +547,48 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
     (∫ ω, F ω * G ω ∂(latticeGaussianMeasure d N a mass ha hmass)) ≥
     (∫ ω, F ω ∂(latticeGaussianMeasure d N a mass ha hmass)) *
     (∫ ω, G ω ∂(latticeGaussianMeasure d N a mass ha hmass)) := by
-  sorry -- TODO: use latticeGaussianMeasure_density_integral to rewrite,
-  -- then apply fkg_from_lattice_condition with gaussianDensity_fkg_lattice_condition
+  -- Abbreviations for readability
+  set F' := fun φ : FinLatticeField d N => F (liftToConfig d N φ) with hF'_def
+  set G' := fun φ : FinLatticeField d N => G (liftToConfig d N φ) with hG'_def
+  set ρ := gaussianDensity d N a mass with hρ_def
+  set μ := latticeGaussianMeasure d N a mass ha hmass with hμ_def
+  -- Step 1: Rewrite F(ω) = F'(field values of ω) using config_eq_liftToConfig
+  have hF_eq : ∀ ω, F ω = F' (fun x => ω (finLatticeDelta d N x)) :=
+    fun ω => congr_arg F (config_eq_liftToConfig d N ω)
+  have hG_eq : ∀ ω, G ω = G' (fun x => ω (finLatticeDelta d N x)) :=
+    fun ω => congr_arg G (config_eq_liftToConfig d N ω)
+  -- Step 2: Rewrite each integral using density bridge
+  have hI_FG : ∫ ω, F ω * G ω ∂μ = (∫ φ, F' φ * G' φ * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, F ω * G ω ∂μ) =
+        ∫ ω, (fun φ => F' φ * G' φ) (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hG_eq])]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _
+      (sorry : Integrable (fun φ => F' φ * G' φ * ρ φ))
+  have hI_F : ∫ ω, F ω ∂μ = (∫ φ, F' φ * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, F ω ∂μ) =
+        ∫ ω, F' (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; exact hF_eq ω)]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass F'
+      (sorry : Integrable (fun φ => F' φ * ρ φ))
+  have hI_G : ∫ ω, G ω ∂μ = (∫ φ, G' φ * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, G ω ∂μ) =
+        ∫ ω, G' (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; exact hG_eq ω)]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass G'
+      (sorry : Integrable (fun φ => G' φ * ρ φ))
+  -- Step 3: Apply FKG in unnormalized form, then convert to normalized
+  have hρ_pos : 0 < ∫ φ, ρ φ :=
+    sorry -- Gaussian integral is strictly positive (ρ = exp(-½⟨φ,Qφ⟩) > 0)
+  have hfkg := fkg_from_lattice_condition ρ (gaussianDensity_nonneg d N a mass)
+    (gaussianDensity_fkg_lattice_condition d N a mass ha hmass) F' G'
+    (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG)
+    (sorry : Integrable ρ)
+    (sorry : Integrable (fun φ => F' φ * ρ φ))
+    (sorry : Integrable (fun φ => G' φ * ρ φ))
+    (sorry : Integrable (fun φ => F' φ * G' φ * ρ φ))
+  -- Convert: (∫ F'G'ρ)(∫ ρ) ≥ (∫ F'ρ)(∫ G'ρ) implies (∫ F'G'ρ)/(∫ ρ) ≥ (∫ F'ρ/∫ρ)·(∫ G'ρ/∫ρ)
+  rw [hI_FG, hI_F, hI_G, ge_iff_le, div_mul_div_comm]
+  exact (div_le_div_iff₀ (mul_pos hρ_pos hρ_pos) hρ_pos).mpr (by nlinarith [hfkg])
 
 /-- Synonym for `gaussian_fkg_lattice_condition`. -/
 theorem fkg_lattice_gaussian (a mass : ℝ)
@@ -524,9 +636,72 @@ theorem fkg_perturbed (a mass : ℝ)
     let μ := latticeGaussianMeasure d N a mass ha hmass
     (∫ ω, F ω * G ω * Real.exp (-V ω) ∂μ) * (∫ ω, Real.exp (-V ω) ∂μ) ≥
     (∫ ω, F ω * Real.exp (-V ω) ∂μ) * (∫ ω, G ω * Real.exp (-V ω) ∂μ) := by
-  sorry -- TODO: use latticeGaussianMeasure_density_integral to rewrite,
-  -- then apply fkg_from_lattice_condition with density = gaussianDensity * exp(-V)
-  -- using fkg_lattice_condition_mul, gaussianDensity_fkg_lattice_condition,
-  -- and fkg_lattice_condition_single_site
+  intro μ
+  -- Lift to FinLatticeField
+  set F' := fun φ : FinLatticeField d N => F (liftToConfig d N φ) with hF'_def
+  set G' := fun φ : FinLatticeField d N => G (liftToConfig d N φ) with hG'_def
+  set V' := fun φ : FinLatticeField d N => V (liftToConfig d N φ) with hV'_def
+  set ρ := gaussianDensity d N a mass with hρ_def
+  -- V' is single-site (transfer from hV_single_site via liftToConfig)
+  obtain ⟨v, hv⟩ := hV_single_site
+  have hV'_single : IsSingleSite V' := by
+    exact ⟨v, fun φ => by
+      show V (liftToConfig d N φ) = ∑ x, v x (φ x)
+      rw [hv]; congr 1; ext x; congr 1; exact liftToConfig_delta d N φ x⟩
+  -- Combined density ρ' = ρ · exp(-V') satisfies FKG lattice condition
+  set ρ' := fun φ => ρ φ * Real.exp (-V' φ) with hρ'_def
+  have hρ'_fkg : FKGLatticeCondition ρ' :=
+    fkg_lattice_condition_mul
+      (gaussianDensity_fkg_lattice_condition d N a mass ha hmass)
+      (fkg_lattice_condition_single_site V' hV'_single)
+      (gaussianDensity_nonneg d N a mass)
+      (fun φ => le_of_lt (Real.exp_pos _))
+  have hρ'_nn : ∀ φ, 0 ≤ ρ' φ :=
+    fun φ => mul_nonneg (gaussianDensity_nonneg d N a mass φ) (le_of_lt (Real.exp_pos _))
+  -- Rewrite using config_eq_liftToConfig
+  have hF_eq : ∀ ω, F ω = F' (fun x => ω (finLatticeDelta d N x)) :=
+    fun ω => congr_arg F (config_eq_liftToConfig d N ω)
+  have hG_eq : ∀ ω, G ω = G' (fun x => ω (finLatticeDelta d N x)) :=
+    fun ω => congr_arg G (config_eq_liftToConfig d N ω)
+  have hV_eq : ∀ ω, V ω = V' (fun x => ω (finLatticeDelta d N x)) :=
+    fun ω => congr_arg V (config_eq_liftToConfig d N ω)
+  -- Rewrite each integral using density bridge
+  -- Rewrite integrals using density bridge (sorry for integrability transfer)
+  have hI_FGV : ∫ ω, F ω * G ω * Real.exp (-V ω) ∂μ =
+      (∫ φ, F' φ * G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
+    sorry -- density bridge for F·G·exp(-V)
+  have hI_V : ∫ ω, Real.exp (-V ω) ∂μ =
+      (∫ φ, Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
+    sorry -- density bridge for exp(-V)
+  have hI_FV : ∫ ω, F ω * Real.exp (-V ω) ∂μ =
+      (∫ φ, F' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
+    sorry -- density bridge for F·exp(-V)
+  have hI_GV : ∫ ω, G ω * Real.exp (-V ω) ∂μ =
+      (∫ φ, G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
+    sorry -- density bridge for G·exp(-V)
+  -- Apply FKG to combined density ρ'
+  have hfkg := fkg_from_lattice_condition ρ' hρ'_nn hρ'_fkg F' G'
+    (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG)
+    (sorry : Integrable ρ')
+    (sorry : Integrable (fun φ => F' φ * ρ' φ))
+    (sorry : Integrable (fun φ => G' φ * ρ' φ))
+    (sorry : Integrable (fun φ => F' φ * G' φ * ρ' φ))
+  -- hfkg: (∫ F'G'ρ')(∫ ρ') ≥ (∫ F'ρ')(∫ G'ρ')
+  -- Equate integrals: ∫ F'ρ' = ∫ F'e^{-V'}ρ, etc.
+  have hI_eq1 : ∫ φ, F' φ * G' φ * ρ' φ =
+      ∫ φ, F' φ * G' φ * Real.exp (-V' φ) * ρ φ :=
+    integral_congr_ae (by filter_upwards with φ; simp only [hρ'_def]; ring)
+  have hI_eq2 : ∫ φ, ρ' φ = ∫ φ, Real.exp (-V' φ) * ρ φ :=
+    integral_congr_ae (by filter_upwards with φ; simp only [hρ'_def]; ring)
+  have hI_eq3 : ∫ φ, F' φ * ρ' φ = ∫ φ, F' φ * Real.exp (-V' φ) * ρ φ :=
+    integral_congr_ae (by filter_upwards with φ; simp only [hρ'_def]; ring)
+  have hI_eq4 : ∫ φ, G' φ * ρ' φ = ∫ φ, G' φ * Real.exp (-V' φ) * ρ φ :=
+    integral_congr_ae (by filter_upwards with φ; simp only [hρ'_def]; ring)
+  -- Substitute and simplify
+  rw [hI_FGV, hI_V, hI_FV, hI_GV, ge_iff_le, div_mul_div_comm, div_mul_div_comm]
+  have hρ_pos : 0 < ∫ φ, ρ φ :=
+    sorry -- Gaussian integral is strictly positive
+  exact (div_le_div_iff₀ (mul_pos hρ_pos hρ_pos) (mul_pos hρ_pos hρ_pos)).mpr
+    (by rw [← hI_eq3, ← hI_eq4, ← hI_eq1, ← hI_eq2]; nlinarith [hfkg])
 
 end GaussianField
