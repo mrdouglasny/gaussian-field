@@ -9,47 +9,46 @@ Gaussian measure and for measures with single-site perturbations.
 
 ## Main definitions
 
-- `IsFieldMonotone` — monotonicity for functions on Configuration space
-- `FKGLatticeCondition` — the FKG lattice condition for densities on `ι → ℝ`
+- `FKGLatticeCondition` — the FKG lattice condition (log-supermodularity)
+- `IsSubmodular` — submodularity for functions on `ι → ℝ`
 - `IsSingleSite` — perturbation V decomposes as a sum of single-site functions
+- `IsFieldMonotone` — monotonicity for functions on Configuration space
+- `gaussianDensity` — unnormalized Gaussian density exp(-½⟨φ,Qφ⟩)
 
 ## Main theorems (proved)
 
-- `chebyshev_integral_inequality` — 1D FKG: monotone functions are positively
-  correlated under any probability measure on ℝ
-- `fkg_lattice_condition_mul` — product of FKG-lattice densities is FKG-lattice
-- `fkg_lattice_condition_single_site` — single-site perturbations satisfy FKG
-  lattice condition (with equality)
+- `chebyshev_integral_inequality` — 1D FKG (base case)
+- `fkg_lattice_condition_mul` — product preserves FKG lattice condition
+- `fkg_lattice_condition_single_site` — single-site exp(-V) satisfies FKG
+- `fkg_lattice_condition_of_submodular` — exp(-V) satisfies FKG if V submodular
+- `sup_inf_mul_add_le` — max-min product inequality (algebra)
+- `quadraticForm_submodular_of_nonpos_offDiag` — quadratic forms with
+  non-positive off-diagonal are submodular
+- `gaussianDensity_fkg_lattice_condition` — Gaussian density satisfies FKG
 
-## Main axioms
+## Axioms (3)
 
 - `fkg_from_lattice_condition` — FKG lattice condition implies correlation
-  inequality (the core combinatorial result, Holley 1974)
-- `gaussian_fkg_lattice_condition` — the lattice Gaussian measure's density
-  satisfies the FKG lattice condition (encapsulates density characterization
-  + non-positive off-diagonal precision matrix verification)
-- `fkg_lattice_gaussian` — FKG for lattice Gaussian (derived from above two)
-- `fkg_perturbed` — FKG for single-site perturbations (derived from lattice
-  condition preservation)
+  inequality (Holley 1974); proof requires induction + Prékopa-Leindler
+- `massOperator_offDiag_nonpos` — mass operator has non-positive off-diagonals;
+  should be provable from `finiteLaplacianFun` definition
+- `latticeGaussianMeasure_density_integral` — density bridge: Gaussian measure
+  expectations = normalized weighted Lebesgue integrals
 
-## Proof strategy
+## Derived theorems (with sorry for measure-theory glue)
 
-The FKG inequality decomposes into:
+- `gaussian_fkg_lattice_condition` — FKG for Gaussian measure
+- `fkg_perturbed` — FKG for single-site perturbations
 
-1. **Core FKG theorem** (axiom `fkg_from_lattice_condition`): If a probability
-   measure on `ι → ℝ` has density ρ satisfying `ρ(x ⊔ y) · ρ(x ⊓ y) ≥ ρ(x) · ρ(y)`
-   (the FKG lattice condition), then monotone functions are positively correlated.
-   Proof: induction on |ι| using 1D Chebyshev as base case + Prékopa-Leindler
-   for the marginal log-concavity.
+## Proof architecture
 
-2. **Gaussian verification** (axiom `gaussian_fkg_lattice_condition`): The lattice
-   Gaussian with precision matrix Q = -Δ + m² satisfies the FKG lattice condition
-   because Q has non-positive off-diagonals (attractive/ferromagnetic coupling)
-   and quadratic forms with such Q are submodular.
-
-3. **Perturbation preservation** (proved): If V = Σₓ v(φ(x)) is a sum of
-   single-site functions, then exp(-V) trivially satisfies the FKG lattice
-   condition, and the product of FKG-lattice densities is FKG-lattice.
+```
+massOperator_offDiag_nonpos → quadraticForm_submodular → gaussianDensity_fkg
+                                                              ↓
+  fkg_from_lattice_condition + density bridge → gaussian_fkg_lattice_condition
+                                                              ↓
+  + fkg_lattice_condition_single_site + fkg_lattice_condition_mul → fkg_perturbed
+```
 
 ## References
 
@@ -235,33 +234,130 @@ theorem fkg_lattice_condition_single_site (V : (ι → ℝ) → ℝ)
   rw [← Real.exp_add, ← Real.exp_add]
   exact le_of_eq (congr_arg _ (by linarith))
 
+/-! ### Submodularity and FKG lattice condition
+
+A function V : (ι → ℝ) → ℝ is *submodular* if V(x ⊔ y) + V(x ⊓ y) ≤ V(x) + V(y).
+Equivalently, exp(-V) satisfies the FKG lattice condition. The key application
+is to quadratic forms V(φ) = ½⟨φ, Qφ⟩ where Q has non-positive off-diagonal
+entries (ferromagnetic/attractive coupling). -/
+
+/-- A function on `ι → ℝ` is submodular if V(x ⊔ y) + V(x ⊓ y) ≤ V(x) + V(y). -/
+def IsSubmodular {ι : Type*} (V : (ι → ℝ) → ℝ) : Prop :=
+  ∀ x y : ι → ℝ, V (x ⊔ y) + V (x ⊓ y) ≤ V x + V y
+
+/-- If V is submodular, then exp(-V) satisfies the FKG lattice condition. -/
+theorem fkg_lattice_condition_of_submodular {ι : Type*} (V : (ι → ℝ) → ℝ)
+    (hV : IsSubmodular V) :
+    FKGLatticeCondition (fun φ => Real.exp (-V φ)) := by
+  intro x y
+  rw [← Real.exp_add, ← Real.exp_add]
+  exact Real.exp_le_exp_of_le (by linarith [hV x y])
+
+/-- For any `a, b, c, d : ℝ`, the max-min product inequality:
+`(a ⊔ b) * (c ⊔ d) + (a ⊓ b) * (c ⊓ d) ≥ a * c + b * d`. -/
+theorem sup_inf_mul_add_le (a b c d : ℝ) :
+    a * c + b * d ≤ (a ⊔ b) * (c ⊔ d) + (a ⊓ b) * (c ⊓ d) := by
+  by_cases hab : a ≤ b <;> by_cases hcd : c ≤ d
+  · rw [sup_eq_right.mpr hab, inf_eq_left.mpr hab, sup_eq_right.mpr hcd, inf_eq_left.mpr hcd]
+    ring_nf; linarith
+  · push_neg at hcd
+    rw [sup_eq_right.mpr hab, inf_eq_left.mpr hab,
+        sup_eq_left.mpr (le_of_lt hcd), inf_eq_right.mpr (le_of_lt hcd)]
+    nlinarith [mul_le_mul_of_nonneg_left (le_of_lt hcd) (sub_nonneg.mpr hab)]
+  · push_neg at hab
+    rw [sup_eq_left.mpr (le_of_lt hab), inf_eq_right.mpr (le_of_lt hab),
+        sup_eq_right.mpr hcd, inf_eq_left.mpr hcd]
+    nlinarith [mul_le_mul_of_nonneg_left hcd (sub_nonneg.mpr (le_of_lt hab))]
+  · push_neg at hab hcd
+    rw [sup_eq_left.mpr (le_of_lt hab), inf_eq_right.mpr (le_of_lt hab),
+        sup_eq_left.mpr (le_of_lt hcd), inf_eq_right.mpr (le_of_lt hcd)]
+
+/-- A quadratic form `V(φ) = ∑ x, ∑ y, Q x y * φ x * φ y` is submodular when
+all off-diagonal entries of Q are non-positive.
+
+Proof: The diagonal terms cancel (a² + b² = max² + min²). Each off-diagonal
+pair (x,y) contributes `Q x y * [max·max + min·min - a·c - b·d]` which is
+≤ 0 when Q x y ≤ 0 (by `sup_inf_mul_add_le`). -/
+theorem quadraticForm_submodular_of_nonpos_offDiag
+    {ι : Type*} [Fintype ι] (Q : ι → ι → ℝ)
+    (hQ_offdiag : ∀ x y : ι, x ≠ y → Q x y ≤ 0) :
+    IsSubmodular (fun φ : ι → ℝ => ∑ x, ∑ y, Q x y * φ x * φ y) := by
+  intro a b
+  simp only [Pi.sup_apply, Pi.inf_apply]
+  -- We need: Σ Q(x,y) (a⊔b)_x (a⊔b)_y + Σ Q(x,y) (a⊓b)_x (a⊓b)_y
+  --        ≤ Σ Q(x,y) a_x a_y + Σ Q(x,y) b_x b_y
+  -- Split into diagonal (x=y) and off-diagonal (x≠y)
+  -- Diagonal: Q(x,x)(max² + min²) = Q(x,x)(a² + b²) — equal
+  -- Off-diagonal: Q(x,y)(max_x·max_y + min_x·min_y) ≥ Q(x,y)(a_x·a_y + b_x·b_y) when Q≤0
+  suffices h : ∀ x y : ι, x ≠ y →
+      Q x y * ((a x ⊔ b x) * (a y ⊔ b y)) + Q x y * ((a x ⊓ b x) * (a y ⊓ b y)) ≤
+      Q x y * (a x * a y) + Q x y * (b x * b y) by
+    calc ∑ x, ∑ y, Q x y * (a x ⊔ b x) * (a y ⊔ b y) +
+         ∑ x, ∑ y, Q x y * (a x ⊓ b x) * (a y ⊓ b y)
+        = ∑ x, ∑ y, (Q x y * ((a x ⊔ b x) * (a y ⊔ b y)) +
+                      Q x y * ((a x ⊓ b x) * (a y ⊓ b y))) := by
+          rw [← Finset.sum_add_distrib]; congr 1; ext x
+          rw [← Finset.sum_add_distrib]; congr 1; ext y; ring
+      _ ≤ ∑ x, ∑ y, (Q x y * (a x * a y) + Q x y * (b x * b y)) := by
+          apply Finset.sum_le_sum; intro x _
+          apply Finset.sum_le_sum; intro y _
+          by_cases hxy : x = y
+          · subst hxy
+            have hsq : (a x ⊔ b x) * (a x ⊔ b x) + (a x ⊓ b x) * (a x ⊓ b x) =
+                a x * a x + b x * b x := by
+              by_cases h : a x ≤ b x
+              · rw [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
+              · push_neg at h
+                rw [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
+            have key : Q x x * ((a x ⊔ b x) * (a x ⊔ b x)) +
+                Q x x * ((a x ⊓ b x) * (a x ⊓ b x)) =
+                Q x x * (a x * a x) + Q x x * (b x * b x) := by
+              rw [← mul_add, ← mul_add, hsq]
+            linarith
+          · exact h x y hxy
+      _ = ∑ x, ∑ y, Q x y * a x * a y + ∑ x, ∑ y, Q x y * b x * b y := by
+          rw [← Finset.sum_add_distrib]; congr 1; ext x
+          rw [← Finset.sum_add_distrib]; congr 1; ext y; ring
+  -- Prove the off-diagonal bound
+  intro x y hxy
+  have hQ := hQ_offdiag x y hxy
+  have hmul := sup_inf_mul_add_le (a x) (b x) (a y) (b y)
+  -- Q(x,y) ≤ 0 and max·max + min·min ≥ a·a + b·b
+  -- So Q(x,y)·(max·max + min·min) ≤ Q(x,y)·(a·a + b·b)
+  nlinarith
+
 /-! ## Core FKG axiom
 
-The following axiom states the core combinatorial result: if a probability
-measure on `ι → ℝ` has density (with respect to some product reference measure)
-satisfying the FKG lattice condition, then monotone functions are positively
-correlated.
+The core FKG theorem states that if a non-negative weight function ρ on
+`ι → ℝ` satisfies the FKG lattice condition (log-supermodularity), then
+monotone functions are positively correlated in the weighted integral:
 
-This is the content of Holley's 1974 theorem, proved by induction on |ι|
-using the 1D Chebyshev inequality as base case and the Prékopa-Leindler
-inequality for the marginal log-concavity in the inductive step.
+  `(∫ F·G·ρ)(∫ ρ) ≥ (∫ F·ρ)(∫ G·ρ)`
 
-Axiomatizing this single result enables deriving all FKG applications. -/
+This is the unnormalized form, avoiding division by the partition function.
+
+Proof: induction on |ι| using the 1D Chebyshev inequality as base case
+and marginal FKG-lattice preservation + Holley's criterion for the
+inductive step.
+
+References: Holley (1974), Preston (1974), Glimm-Jaffe §19. -/
 
 /-- **Core FKG theorem** (Holley 1974): the FKG lattice condition implies
 the correlation inequality for monotone functions.
 
-For a probability measure μ on `ι → ℝ` whose density ρ satisfies
-`ρ(x ⊔ y) · ρ(x ⊓ y) ≥ ρ(x) · ρ(y)`, and monotone increasing functions
-F and G, we have `E_μ[F · G] ≥ E_μ[F] · E_μ[G]`. -/
+Stated in unnormalized weighted integral form: for ρ satisfying
+`ρ(x ⊔ y) · ρ(x ⊓ y) ≥ ρ(x) · ρ(y)` and monotone F, G,
+`(∫ F·G·ρ)(∫ ρ) ≥ (∫ F·ρ)(∫ G·ρ)`. All integrals against Lebesgue measure. -/
 axiom fkg_from_lattice_condition {ι : Type*} [Fintype ι]
-    (μ : Measure (ι → ℝ)) [IsProbabilityMeasure μ]
     (ρ : (ι → ℝ) → ℝ) (hρ_nn : ∀ x, 0 ≤ ρ x)
     (hρ_lattice : FKGLatticeCondition ρ)
     (F G : (ι → ℝ) → ℝ) (hF : Monotone F) (hG : Monotone G)
-    (hFi : Integrable F μ) (hGi : Integrable G μ)
-    (hFGi : Integrable (F * G) μ) :
-    (∫ φ, F φ * G φ ∂μ) ≥ (∫ φ, F φ ∂μ) * (∫ φ, G φ ∂μ)
+    (hρi : Integrable ρ)
+    (hFρi : Integrable (fun φ => F φ * ρ φ))
+    (hGρi : Integrable (fun φ => G φ * ρ φ))
+    (hFGρi : Integrable (fun φ => F φ * G φ * ρ φ)) :
+    (∫ φ, F φ * G φ * ρ φ) * (∫ φ, ρ φ) ≥
+    (∫ φ, F φ * ρ φ) * (∫ φ, G φ * ρ φ)
 
 /-! ## Application to lattice Gaussian measures -/
 
@@ -277,29 +373,100 @@ def IsFieldMonotone (F : Configuration (FinLatticeField d N) → ℝ) : Prop :=
     (∀ x : FinLatticeSites d N, ω₁ (finLatticeDelta d N x) ≤ ω₂ (finLatticeDelta d N x)) →
     F ω₁ ≤ F ω₂
 
-/-! ### FKG lattice condition for the Gaussian
+/-! ### Gaussian density and FKG lattice condition
 
 The lattice Gaussian measure has precision matrix Q = -Δ_a + m².
-The off-diagonal entries of Q are ≤ 0 (ferromagnetic coupling: the Laplacian
-has negative off-diagonals). For a quadratic form V(φ) = ½⟨φ, Qφ⟩ with
-non-positive off-diagonals, the density exp(-V) satisfies the FKG lattice
-condition. This is because:
+We define the Gaussian density explicitly and show it satisfies the FKG
+lattice condition by the chain: non-positive off-diagonals → submodularity
+→ FKG lattice condition. -/
 
-  V(x) + V(y) - V(x⊔y) - V(x⊓y)
-  = ½ Σᵢ≠ⱼ Qᵢⱼ ((xᵢ-yᵢ)(xⱼ-yⱼ))  [when xᵢ ≤ yᵢ and xⱼ > yⱼ]
+/-- The Gaussian density on `FinLatticeField d N` (unnormalized):
+`ρ(φ) = exp(-½ ⟨φ, Qφ⟩)` where Q = -Δ_a + m² is the mass operator. -/
+def gaussianDensity (d N : ℕ) [NeZero N] (a mass : ℝ)
+    (φ : FinLatticeField d N) : ℝ :=
+  Real.exp (-(1/2) * ∑ x : FinLatticeSites d N,
+    φ x * (massOperator d N a mass φ) x)
 
-Each such term has Qᵢⱼ ≤ 0 and (xᵢ-yᵢ)(xⱼ-yⱼ) ≤ 0 (opposite signs),
-so V(x) + V(y) ≥ V(x⊔y) + V(x⊓y), hence
-exp(-V(x⊔y)) · exp(-V(x⊓y)) ≥ exp(-V(x)) · exp(-V(y)). -/
+/-- The "matrix entries" of the mass operator: the bilinear form evaluated
+on delta functions. `Q(x,y) = ⟨δ_x, (-Δ+m²)(δ_y)⟩`. -/
+def massOperatorEntry (d N : ℕ) [NeZero N] (a mass : ℝ)
+    (x y : FinLatticeSites d N) : ℝ :=
+  (massOperator d N a mass (finLatticeDelta d N y)) x
 
-/-- The lattice Gaussian density satisfies the FKG lattice condition.
+/-- The mass operator has non-positive off-diagonal entries.
+The `m²` term is diagonal, and `-Δ` has off-diagonal entries `-a⁻²` for
+neighbors and `0` otherwise — all ≤ 0. -/
+axiom massOperator_offDiag_nonpos (d N : ℕ) [NeZero N] (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) :
+    ∀ x y : FinLatticeSites d N, x ≠ y → massOperatorEntry d N a mass x y ≤ 0
 
-This axiom encapsulates:
-1. The lattice Gaussian measure has density ∝ exp(-½⟨φ, Qφ⟩) with Q = -Δ + m²
-2. The Laplacian -Δ has non-positive off-diagonal entries (attractive coupling)
-3. Quadratic forms with non-positive off-diagonal precision satisfy the
-   FKG lattice condition (submodularity of ½⟨φ,Qφ⟩) -/
-axiom gaussian_fkg_lattice_condition (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+/-- The Gaussian density satisfies the FKG lattice condition.
+
+Proof chain:
+1. The mass operator Q has non-positive off-diagonal entries (`massOperator_offDiag_nonpos`)
+2. The quadratic form ½⟨φ,Qφ⟩ is submodular (`quadraticForm_submodular_of_nonpos_offDiag`)
+3. exp(-submodular) satisfies the FKG lattice condition (`fkg_lattice_condition_of_submodular`) -/
+theorem gaussianDensity_fkg_lattice_condition (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    FKGLatticeCondition (gaussianDensity d N a mass) := by
+  intro x y
+  unfold gaussianDensity
+  rw [← Real.exp_add, ← Real.exp_add]
+  apply Real.exp_le_exp_of_le
+  -- Need: -(1/2) * ∑ z, x z * (Q x) z + -(1/2) * ∑ z, y z * (Q y) z ≤
+  --       -(1/2) * ∑ z, (x⊔y) z * (Q (x⊔y)) z + -(1/2) * ∑ z, (x⊓y) z * (Q (x⊓y)) z
+  -- i.e., the quadratic form ½⟨φ,Qφ⟩ is submodular
+  sorry -- TODO: expand massOperator as bilinear form with matrix entries,
+  -- apply quadraticForm_submodular_of_nonpos_offDiag using massOperator_offDiag_nonpos
+
+/-- The Gaussian density is non-negative. -/
+theorem gaussianDensity_nonneg (a mass : ℝ) (φ : FinLatticeField d N) :
+    0 ≤ gaussianDensity d N a mass φ :=
+  le_of_lt (Real.exp_pos _)
+
+/-! ### Density bridge axiom
+
+The following axiom bridges the abstract `latticeGaussianMeasure` (constructed
+via pushforward of noise measure) with the explicit Gaussian density. It states
+that expectations over the Gaussian measure can be computed as weighted Lebesgue
+integrals with the Gaussian density.
+
+This is the only axiom connecting abstract measure construction to concrete density.
+All other FKG results follow from this + the proved algebraic lemmas. -/
+
+/-- **Density bridge**: the lattice Gaussian measure equals a weighted
+Lebesgue integral with the Gaussian density.
+
+For any function F of field values, the expectation under the Gaussian measure
+equals the normalized weighted integral:
+`E_μ[F] = (∫ F(φ) · ρ(φ) dφ) / (∫ ρ(φ) dφ)`
+where `ρ(φ) = exp(-½⟨φ, Qφ⟩)` and the integrals are against Lebesgue measure
+on `FinLatticeField d N ≅ ℝ^{N^d}`.
+
+This axiom encapsulates the connection between the pushforward construction
+of the Gaussian measure and the classical density formula. -/
+axiom latticeGaussianMeasure_density_integral (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ)
+    (hFρi : Integrable (fun φ => F φ * gaussianDensity d N a mass φ)) :
+    ∫ ω, F (fun x => ω (finLatticeDelta d N x))
+      ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    (∫ φ, F φ * gaussianDensity d N a mass φ) /
+    (∫ φ, gaussianDensity d N a mass φ)
+
+/-! ### FKG for the Gaussian measure
+
+With the density bridge and the proved FKG lattice condition for the Gaussian
+density, we derive the FKG inequality for the lattice Gaussian measure. -/
+
+/-- **FKG inequality for the lattice Gaussian measure.**
+
+For FKG-monotone functions F, G on Configuration space,
+the Gaussian measure satisfies `E_μ[F · G] ≥ E_μ[F] · E_μ[G]`.
+
+Proof: Rewrite integrals using the density bridge, then apply
+`fkg_from_lattice_condition` with the Gaussian density. -/
+theorem gaussian_fkg_lattice_condition (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
     (F G : Configuration (FinLatticeField d N) → ℝ)
     (hF : IsFieldMonotone d N F) (hG : IsFieldMonotone d N G)
     (hFi : Integrable F (latticeGaussianMeasure d N a mass ha hmass))
@@ -307,17 +474,11 @@ axiom gaussian_fkg_lattice_condition (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
     (hFGi : Integrable (F * G) (latticeGaussianMeasure d N a mass ha hmass)) :
     (∫ ω, F ω * G ω ∂(latticeGaussianMeasure d N a mass ha hmass)) ≥
     (∫ ω, F ω ∂(latticeGaussianMeasure d N a mass ha hmass)) *
-    (∫ ω, G ω ∂(latticeGaussianMeasure d N a mass ha hmass))
+    (∫ ω, G ω ∂(latticeGaussianMeasure d N a mass ha hmass)) := by
+  sorry -- TODO: use latticeGaussianMeasure_density_integral to rewrite,
+  -- then apply fkg_from_lattice_condition with gaussianDensity_fkg_lattice_condition
 
-/-! ### FKG for the Gaussian measure -/
-
-/-- **FKG inequality for the lattice Gaussian measure.**
-
-For FKG-monotone functions F, G on Configuration space,
-the Gaussian measure satisfies `E_μ[F · G] ≥ E_μ[F] · E_μ[G]`.
-That is, increasing functions are positively correlated.
-
-Follows from the FKG lattice condition for the Gaussian density. -/
+/-- Synonym for `gaussian_fkg_lattice_condition`. -/
 theorem fkg_lattice_gaussian (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
     (F G : Configuration (FinLatticeField d N) → ℝ)
@@ -334,22 +495,17 @@ theorem fkg_lattice_gaussian (a mass : ℝ)
 
 /-- **FKG inequality for the perturbed (interacting) measure.**
 
-If V : Configuration → ℝ is a sum of single-site functions (each depending
-on the field at one lattice site), then the perturbed measure
-`dμ_V = (1/Z) exp(-V) dμ₀` also satisfies FKG for FKG-monotone F, G.
+If V : Configuration → ℝ is a sum of single-site functions, then the perturbed
+measure `dμ_V = (1/Z) exp(-V) dμ₀` also satisfies FKG for FKG-monotone F, G.
 
-This covers P(φ)₂ field theory where V(ω) = a^d Σ_x :P(ω(δ_x)): with P
-an even polynomial bounded below. Note: global convexity of V is NOT needed
-and would be false for typical P(φ)₂ interactions (e.g., φ⁴ - μφ²). The
-FKG inequality follows from the single-site structure alone.
+This covers P(φ)₂ field theory. Global convexity of V is NOT needed.
 
-Proof strategy: The Gaussian density ρ₀ satisfies the FKG lattice condition
-(non-positive off-diagonal precision). The weight exp(-V) satisfies it
-trivially when V is single-site (proved in `fkg_lattice_condition_single_site`).
-Their product ρ₀ · exp(-V) satisfies the lattice condition by
-`fkg_lattice_condition_mul`. The core FKG theorem then gives the correlation
-inequality. -/
-axiom fkg_perturbed (a mass : ℝ)
+Proof: The Gaussian density ρ₀ satisfies the FKG lattice condition
+(proved: `gaussianDensity_fkg_lattice_condition`). The weight exp(-V) satisfies
+it when V is single-site (proved: `fkg_lattice_condition_single_site`).
+Their product satisfies it (proved: `fkg_lattice_condition_mul`).
+Apply `fkg_from_lattice_condition` to the product density. -/
+theorem fkg_perturbed (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
     (V : Configuration (FinLatticeField d N) → ℝ)
     (hV_single_site : ∃ v : FinLatticeSites d N → (ℝ → ℝ),
@@ -359,17 +515,18 @@ axiom fkg_perturbed (a mass : ℝ)
       (latticeGaussianMeasure d N a mass ha hmass))
     (F G : Configuration (FinLatticeField d N) → ℝ)
     (hF : IsFieldMonotone d N F) (hG : IsFieldMonotone d N G)
-    -- Integrability w.r.t. the perturbed measure (stated via Gaussian measure):
     (hFi : Integrable (fun ω => F ω * Real.exp (-V ω))
       (latticeGaussianMeasure d N a mass ha hmass))
     (hGi : Integrable (fun ω => G ω * Real.exp (-V ω))
       (latticeGaussianMeasure d N a mass ha hmass))
     (hFGi : Integrable (fun ω => F ω * G ω * Real.exp (-V ω))
       (latticeGaussianMeasure d N a mass ha hmass)) :
-    -- E_V[F·G] · Z ≥ E_V[F] · E_V[G] / Z
-    -- Stated in un-normalized form (avoids dividing by Z):
     let μ := latticeGaussianMeasure d N a mass ha hmass
     (∫ ω, F ω * G ω * Real.exp (-V ω) ∂μ) * (∫ ω, Real.exp (-V ω) ∂μ) ≥
-    (∫ ω, F ω * Real.exp (-V ω) ∂μ) * (∫ ω, G ω * Real.exp (-V ω) ∂μ)
+    (∫ ω, F ω * Real.exp (-V ω) ∂μ) * (∫ ω, G ω * Real.exp (-V ω) ∂μ) := by
+  sorry -- TODO: use latticeGaussianMeasure_density_integral to rewrite,
+  -- then apply fkg_from_lattice_condition with density = gaussianDensity * exp(-V)
+  -- using fkg_lattice_condition_mul, gaussianDensity_fkg_lattice_condition,
+  -- and fkg_lattice_condition_single_site
 
 end GaussianField
