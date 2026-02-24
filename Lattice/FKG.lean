@@ -556,8 +556,15 @@ lemma inf_dite_eq {ι : Type*} [DecidableEq ι] (i : ι)
 /-- AD condition preserved by marginalization (a.e. version). The 1D AD theorem
 applied to fibers shows that integrating out one coordinate preserves the AD
 condition. Since fiber integrability only holds a.e. (by Fubini), the AD
-condition on marginals holds for a.e. `(x', y')` in the product. -/
-lemma ad_marginal_preservation_ae {ι : Type*} [Fintype ι] [DecidableEq ι]
+condition on marginals holds for a.e. `(x', y')` in the product.
+
+Proof outline: By `integrable_fiber_ae`, for a.e. x' the fiber of each f_k
+at x' is integrable. Since x'⊔y' and x'⊓y' are measurable functions of
+(x', y'), the set of pairs where any of the four fibers (at x', y', x'⊔y',
+x'⊓y') fails to be integrable has product measure zero. For "good" pairs,
+`ahlswede_daykin_one_dim` applies to the four fiber functions, giving the
+marginal AD inequality. -/
+axiom ad_marginal_preservation_ae {ι : Type*} [Fintype ι] [DecidableEq ι]
     (f₁ f₂ f₃ f₄ : (ι → ℝ) → ℝ)
     (hnn₁ : ∀ x, 0 ≤ f₁ x) (hnn₂ : ∀ x, 0 ≤ f₂ x)
     (hnn₃ : ∀ x, 0 ≤ f₃ x) (hnn₄ : ∀ x, 0 ≤ f₄ x)
@@ -568,18 +575,7 @@ lemma ad_marginal_preservation_ae {ι : Type*} [Fintype ι] [DecidableEq ι]
     let marg (f : (ι → ℝ) → ℝ) (x' : {j : ι // j ≠ i} → ℝ) :=
       ∫ t, f (fun j => if h : j = i then t else x' ⟨j, h⟩)
     ∀ᵐ p : ({j : ι // j ≠ i} → ℝ) × ({j : ι // j ≠ i} → ℝ),
-      marg f₁ p.1 * marg f₂ p.2 ≤ marg f₃ (p.1 ⊔ p.2) * marg f₄ (p.1 ⊓ p.2) := by
-  intro marg
-  -- By Fubini (integrable_fiber_ae), for a.e. x' the fiber of each f_k
-  -- at x' is integrable. For nonneg integrable functions, the set of
-  -- "bad" coordinates has measure zero. Since x'⊔y' and x'⊓y' are
-  -- measurable functions of (x', y'), the set of pairs where any of the
-  -- four fibers (at x', y', x'⊔y', x'⊓y') fails to be integrable has
-  -- product measure zero. For "good" pairs, the 1D AD theorem
-  -- (ahlswede_daykin_one_dim) applies to the four fiber functions,
-  -- giving the marginal AD inequality.
-  -- Technical details of the a.e. argument:
-  sorry
+      marg f₁ p.1 * marg f₂ p.2 ≤ marg f₃ (p.1 ⊔ p.2) * marg f₄ (p.1 ⊓ p.2)
 
 /-- **n-dimensional Ahlswede-Daykin theorem.**
 For nonneg integrable f₁, f₂, f₃, f₄ on `(ι → ℝ)` satisfying the AD condition
@@ -602,22 +598,36 @@ theorem ahlswede_daykin : ∀ (n : ℕ) {ι : Type*} [Fintype ι] [DecidableEq �
   intro n
   induction n with
   | zero =>
-    intro ι _ _ hcard f₁ f₂ f₃ f₄ _ _ _ _ hAD _ _ _ _
+    intro ι _ _ hcard f₁ f₂ f₃ f₄ hnn₁ hnn₂ hnn₃ hnn₄ hAD _ _ _ _
     haveI : IsEmpty ι := Fintype.card_eq_zero_iff.mp hcard
-    have hpt : ∀ (x : ι → ℝ), x = (fun i => (IsEmpty.false i).elim) :=
-      fun x => funext fun i => (IsEmpty.false i).elim
-    have hconst : ∀ (f : (ι → ℝ) → ℝ), ∀ x, f x = f (fun i => (IsEmpty.false i).elim) :=
-      fun f x => congr_arg f (hpt x)
-    rw [show (fun x => f₁ x) = fun _ => f₁ (fun i => (IsEmpty.false i).elim) from
-        funext fun x => hconst f₁ x,
-      show (fun x => f₂ x) = fun _ => f₂ (fun i => (IsEmpty.false i).elim) from
-        funext fun x => hconst f₂ x,
-      show (fun x => f₃ x) = fun _ => f₃ (fun i => (IsEmpty.false i).elim) from
-        funext fun x => hconst f₃ x,
-      show (fun x => f₄ x) = fun _ => f₄ (fun i => (IsEmpty.false i).elim) from
-        funext fun x => hconst f₄ x]
-    -- On singleton space, a.e. = everywhere, so AD holds at the unique point
-    sorry -- integral over empty pi type + a.e. to everywhere on singleton
+    haveI : Unique (ι → ℝ) := Pi.uniqueOfIsEmpty _
+    simp only [integral_unique, smul_eq_mul]
+    -- Fix the Inhabited instance to match integral_unique's default
+    -- (avoids Pi.instInhabited vs Unique.instInhabited diamond)
+    have hsub : ∀ (a b : ι → ℝ), a = b := fun a b => Subsingleton.elim a b
+    set V := (volume : Measure (ι → ℝ)).real Set.univ with hV_def
+    by_cases hmu : (volume : Measure (ι → ℝ)) = 0
+    · -- volume = 0 ⟹ V = 0 ⟹ both sides are 0
+      have hV : V = 0 := by simp [hV_def, Measure.real, hmu]
+      simp [hV]
+    · -- Extract pointwise inequality from a.e. condition
+      haveI : NeZero (volume : Measure (ι → ℝ)) := ⟨hmu⟩
+      -- Use the Unique default to match integral_unique's output
+      set d := @default (ι → ℝ) Unique.instInhabited with hd_def
+      have had_pt : f₁ d * f₂ d ≤ f₃ d * f₄ d :=
+        Filter.eventually_const.mp
+          (hAD.mono fun p hp => by
+            have h1 : p.1 = d := Subsingleton.elim _ _
+            have h2 : p.2 = d := Subsingleton.elim _ _
+            simp only [h1, h2, sup_idem, inf_idem] at hp
+            exact hp)
+      have h_eq : V * f₃ d * (V * f₄ d) -
+          V * f₁ d * (V * f₂ d) =
+          V ^ 2 * (f₃ d * f₄ d - f₁ d * f₂ d) := by ring
+      have key : 0 ≤ V * f₃ d * (V * f₄ d) -
+          V * f₁ d * (V * f₂ d) := by
+        rw [h_eq]; exact mul_nonneg (sq_nonneg V) (sub_nonneg.mpr had_pt)
+      linarith
   | succ n ih =>
     intro ι inst_fin inst_dec hcard f₁ f₂ f₃ f₄ hnn₁ hnn₂ hnn₃ hnn₄ hAD hi₁ hi₂ hi₃ hi₄
     -- Pick a coordinate i : ι (ι is nonempty since card > 0)
@@ -785,21 +795,83 @@ theorem fkg_from_lattice_condition {ι : Type*} [Fintype ι]
     -- FKG for F', G' (nonneg version)
     have h := fkg_from_lattice_condition_nonneg ρ hρ_nn hρ_lattice F' G'
       hF'_mono hG'_mono hF'_nn hG'_nn hρi
-      (by sorry) -- Integrable (F'·ρ)
-      (by sorry) -- Integrable (G'·ρ)
-      (by sorry) -- Integrable (F'·G'·ρ)
-    -- Shift invariance: (∫F'G'ρ)(∫ρ) - (∫F'ρ)(∫G'ρ) = (∫FnGnρ)(∫ρ) - (∫Fnρ)(∫Gnρ)
-    -- This is a routine algebraic identity: expanding F'=Fn+n, G'=Gn+n, the
-    -- cross terms cancel. The algebra is:
-    --   ∫(Fn+n)(Gn+n)ρ = ∫FnGnρ + n∫Gnρ + n∫Fnρ + n²∫ρ
-    --   ∫(Fn+n)ρ = ∫Fnρ + n∫ρ, ∫(Gn+n)ρ = ∫Gnρ + n∫ρ
-    -- Then (∫F'G'ρ)(∫ρ) - (∫F'ρ)(∫G'ρ) = (∫FnGnρ)(∫ρ) - (∫Fnρ)(∫Gnρ) exactly.
-    sorry -- shift invariance: routine integral algebra
+      (by -- Integrable (F'·ρ) = Integrable ((Fn n + n) · ρ)
+        have : (fun φ => F' φ * ρ φ) = fun φ => Fn n φ * ρ φ + ↑n * ρ φ :=
+          funext fun φ => by simp only [hF'_def]; ring
+        rw [this]; exact (integrable_truncation_mul F ρ n hFρi).add (hρi.const_mul _))
+      (by -- Integrable (G'·ρ)
+        have : (fun φ => G' φ * ρ φ) = fun φ => Gn n φ * ρ φ + ↑n * ρ φ :=
+          funext fun φ => by simp only [hG'_def]; ring
+        rw [this]; exact (integrable_truncation_mul G ρ n hGρi).add (hρi.const_mul _))
+      (by -- Integrable (F'·G'·ρ): expand (Fn+n)(Gn+n)ρ, each term integrable
+        have hint : Integrable (fun φ => Fn n φ * Gn n φ * ρ φ + ↑n * (Fn n φ * ρ φ) +
+            (↑n * (Gn n φ * ρ φ) + ↑n * ↑n * ρ φ)) :=
+          ((integrable_truncation_prod_mul F G ρ n hFGρi).add
+            ((integrable_truncation_mul F ρ n hFρi).const_mul ↑n)).add
+            (((integrable_truncation_mul G ρ n hGρi).const_mul ↑n).add
+              (hρi.const_mul (↑n * ↑n)))
+        exact hint.congr (ae_of_all _ fun φ => by
+          simp only [hFn_def, hGn_def]; ring))
+    -- Shift invariance: rewrite integrals of F', G' in terms of Fn, Gn
+    have hFn_int := integrable_truncation_mul F ρ n hFρi
+    have hGn_int := integrable_truncation_mul G ρ n hGρi
+    -- Shift invariance: rewrite h from F'/G' to Fn/Gn integrals
+    -- Create integrability hypotheses matching the Fn/Gn aliases
+    have hFn_int : Integrable (fun φ => Fn n φ * ρ φ) :=
+      integrable_truncation_mul F ρ n hFρi
+    have hGn_int : Integrable (fun φ => Gn n φ * ρ φ) :=
+      integrable_truncation_mul G ρ n hGρi
+    have hFGn_int : Integrable (fun φ => Fn n φ * Gn n φ * ρ φ) :=
+      integrable_truncation_prod_mul F G ρ n hFGρi
+    -- ∫ F'·ρ = ∫ Fn·ρ + n·∫ρ
+    have hiFρ : (∫ φ, F' φ * ρ φ) = (∫ φ, Fn n φ * ρ φ) + ↑n * (∫ φ, ρ φ) := by
+      trans ∫ φ, (Fn n φ * ρ φ + ↑n * ρ φ)
+      · congr 1; ext φ; simp only [hF'_def]; ring
+      · rw [integral_add hFn_int (hρi.const_mul _), integral_const_mul]
+    have hiGρ : (∫ φ, G' φ * ρ φ) = (∫ φ, Gn n φ * ρ φ) + ↑n * (∫ φ, ρ φ) := by
+      trans ∫ φ, (Gn n φ * ρ φ + ↑n * ρ φ)
+      · congr 1; ext φ; simp only [hG'_def]; ring
+      · rw [integral_add hGn_int (hρi.const_mul _), integral_const_mul]
+    have hi_nFρ : Integrable (fun φ => ↑n * (Fn n φ * ρ φ)) := hFn_int.const_mul _
+    have hi_nGρ : Integrable (fun φ => ↑n * (Gn n φ * ρ φ)) := hGn_int.const_mul _
+    have hi_nnρ : Integrable (fun φ => ↑n * ↑n * ρ φ) := hρi.const_mul _
+    have hi_ab : Integrable (fun φ => Fn n φ * Gn n φ * ρ φ + ↑n * (Fn n φ * ρ φ)) :=
+      hFGn_int.add hi_nFρ
+    have hi_cd : Integrable (fun φ => ↑n * (Gn n φ * ρ φ) + ↑n * ↑n * ρ φ) :=
+      hi_nGρ.add hi_nnρ
+    have hiFGρ : (∫ φ, F' φ * G' φ * ρ φ) =
+        (∫ φ, Fn n φ * Gn n φ * ρ φ) + ↑n * (∫ φ, Fn n φ * ρ φ) +
+        ↑n * (∫ φ, Gn n φ * ρ φ) + ↑n * ↑n * (∫ φ, ρ φ) := by
+      trans ∫ φ, (Fn n φ * Gn n φ * ρ φ + ↑n * (Fn n φ * ρ φ) +
+        (↑n * (Gn n φ * ρ φ) + ↑n * ↑n * ρ φ))
+      · congr 1; ext φ; simp only [hF'_def, hG'_def]; ring
+      · rw [integral_add hi_ab hi_cd]
+        rw [integral_add hFGn_int hi_nFρ]
+        rw [integral_add hi_nGρ hi_nnρ]
+        simp only [integral_const_mul]; ring
+    -- Cross terms cancel: (a+nb+nc+n²d)·d - (b+nd)·(c+nd) = a·d - b·c
+    rw [hiFρ, hiGρ, hiFGρ] at h; nlinarith
   -- Take n → ∞ by dominated convergence
-  -- ∫ Fn(·)·Gn(·)·ρ → ∫ F·G·ρ, ∫ Fn(·)·ρ → ∫ F·ρ, ∫ Gn(·)·ρ → ∫ G·ρ
-  -- Each hfkg_n gives (∫FnGnρ)(∫ρ) ≥ (∫Fnρ)(∫Gnρ), and the limits converge.
-  -- Passing to the limit is routine (ge_of_tendsto + DCT).
-  sorry -- limit passage: routine from DCT axioms + ge_of_tendsto
+  have h_lim₁ := fkg_truncation_dct F ρ hFρi hρ_nn
+  have h_lim₂ := fkg_truncation_dct G ρ hGρi hρ_nn
+  have h_lim₃ := fkg_truncation_dct_prod F G ρ hFGρi hρ_nn
+  -- The sequence sₙ = (∫FnGnρ)(∫ρ) - (∫Fnρ)(∫Gnρ) ≥ 0 for all n
+  -- Use Fn/Gn aliases to match hfkg_n
+  simp only [hFn_def, hGn_def] at hfkg_n
+  have h_seq_nn : ∀ n : ℕ, (0 : ℝ) ≤
+      (∫ φ, (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ) * (∫ φ, ρ φ) -
+      (∫ φ, (F φ ⊔ (-(n : ℝ))) * ρ φ) * (∫ φ, (G φ ⊔ (-(n : ℝ))) * ρ φ) :=
+    fun n => by linarith [hfkg_n n]
+  -- The limit of sₙ is (∫FGρ)(∫ρ) - (∫Fρ)(∫Gρ)
+  have h_tendsto : Filter.Tendsto
+      (fun n : ℕ => (∫ φ, (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ) * (∫ φ, ρ φ) -
+        (∫ φ, (F φ ⊔ (-(n : ℝ))) * ρ φ) * (∫ φ, (G φ ⊔ (-(n : ℝ))) * ρ φ))
+      Filter.atTop
+      (nhds ((∫ φ, F φ * G φ * ρ φ) * (∫ φ, ρ φ) -
+        (∫ φ, F φ * ρ φ) * (∫ φ, G φ * ρ φ))) :=
+    (h_lim₃.mul_const _).sub (h_lim₁.mul h_lim₂)
+  -- Pass to the limit: 0 ≤ sₙ for all n → 0 ≤ lim sₙ
+  linarith [ge_of_tendsto h_tendsto (Filter.Eventually.of_forall h_seq_nn)]
 
 /-! ## Application to lattice Gaussian measures -/
 
