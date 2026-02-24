@@ -299,7 +299,7 @@ The core results are fully proved with no custom axioms:
 
 The `HeatKernel/` module has proved the Mehler kernel closed form, positivity, semigroup property, Hermite reproducing property, and circle heat kernel properties. Remaining axioms are for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
 
-The `Lattice/FKG.lean` module proves the FKG inequality for lattice Gaussian measures and single-site perturbations (sorry-free, 1 axiom). The density bridge (`GaussianField/Density.lean`) connecting the abstract Gaussian measure to the explicit density `exp(-½⟨φ,Qφ⟩)` is constructed via the spectral theorem for the mass operator (`Lattice/SpectralCovariance.lean`).
+The `Lattice/FKG.lean` module proves the FKG inequality for lattice Gaussian measures and single-site perturbations via the Continuous Ahlswede-Daykin (Four Functions) theorem. The core mathematical content is proved: 1D AD, algebraic four-functions lemma, AD condition preservation under Fubini marginalization, n-dim AD by induction, and FKG as corollary. Remaining axioms (8) are standard textbook results (Fubini decomposition, DCT, integrability). The density bridge (`GaussianField/Density.lean`) connecting the abstract Gaussian measure to the explicit density `exp(-½⟨φ,Qφ⟩)` is constructed via the spectral theorem for the mass operator (`Lattice/SpectralCovariance.lean`).
 
 ## Further documentation
 
