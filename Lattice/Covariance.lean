@@ -57,7 +57,27 @@ All eigenvalues satisfy `λ_m ≥ mass² > 0`, so `σ_m ≤ 1/mass`. -/
 theorem lattice_singular_values_bounded (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass) :
     IsBoundedSeq (fun m => latticeSingularValue d N a mass m) := by
-  sorry
+  refine ⟨mass⁻¹, fun m => ?_⟩
+  rw [abs_of_nonneg (latticeSingularValue_nonneg d N a mass ha hmass m)]
+  unfold latticeSingularValue
+  have hev_pos := latticeEigenvalue_pos d N a mass ha hmass m
+  -- Eigenvalue ≥ mass²
+  have hev_ge : mass ^ 2 ≤ latticeEigenvalue d N a mass m := by
+    unfold latticeEigenvalue; split_ifs with h
+    · have : 0 ≤ 4 / a ^ 2 * ∑ i : Fin d,
+          Real.sin (Real.pi * ↑((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i) / ↑N) ^ 2 :=
+        mul_nonneg (div_nonneg (by norm_num) (sq_nonneg a))
+          (Finset.sum_nonneg (fun _ _ => sq_nonneg _))
+      linarith
+    · linarith
+  -- σ_m ≤ (mass²)^{-1/2} = mass⁻¹
+  have h1 : (latticeEigenvalue d N a mass m) ^ (-(1:ℝ)/2) ≤ (mass ^ 2) ^ (-(1:ℝ)/2) :=
+    Real.rpow_le_rpow_of_nonpos (sq_pos_of_pos hmass) hev_ge (by norm_num)
+  have h2 : (mass ^ 2) ^ (-(1:ℝ)/2) = mass⁻¹ := by
+    rw [← Real.rpow_natCast mass 2, ← Real.rpow_mul (le_of_lt hmass)]
+    norm_num
+    exact Real.rpow_neg_one mass
+  linarith
 
 /-! ## Covariance CLM -/
 
