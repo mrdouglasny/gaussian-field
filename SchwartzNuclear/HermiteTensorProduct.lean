@@ -589,6 +589,19 @@ noncomputable def schwartzRapidDecayEquiv1D :
         fun m => by split_ifs <;> simp_all]
       simp [mul_ite, mul_one, mul_zero, tsum_ite_eq])
 
+/-- The inverse of `schwartzRapidDecayEquiv1D` evaluates pointwise as the 1D Hermite series
+reconstruction: `(equiv.symm a) t = ∑' n, a_n * ψ_n(t)`. -/
+theorem schwartzRapidDecayEquiv1D_symm_apply (a : RapidDecaySeq) (t : ℝ) :
+    (schwartzRapidDecayEquiv1D.symm a) t =
+      ∑' n, a.val n * hermiteFunction n t := by
+  simp only [schwartzRapidDecayEquiv1D, ContinuousLinearEquiv.symm_equivOfInverse,
+    ContinuousLinearEquiv.equivOfInverse_apply]
+  show fromRapidDecay1DCLM a t = _
+  show fromRapidDecay1DLM a t = _
+  rw [fromRapidDecay1DLM_eq]
+  show rapidDecay_schwartzMap a t = _
+  rfl
+
 /-! ## Multi-Dimensional Sequence Space and Flattening -/
 
 /-- A multi-index is a function `Fin d → ℕ`. -/
@@ -2589,6 +2602,116 @@ noncomputable def schwartzRapidDecayEquivNd (d' : ℕ) :
     (fun a => by
       apply RapidDecaySeq.ext; intro n
       exact hermiteCoeffNd_rapidDecay_schwartzMapNd d' a n)
+
+/-- The inverse of `schwartzRapidDecayEquivNd` evaluates pointwise as the Hermite series
+reconstruction: `(equiv.symm a) x = ∑' n, a_n * Ψ_n(x)`. -/
+theorem schwartzRapidDecayEquivNd_symm_apply (d' : ℕ) (a : RapidDecaySeq)
+    (x : EuclideanSpace ℝ (Fin (d' + 1))) :
+    ((schwartzRapidDecayEquivNd d').symm a) x =
+      ∑' n, a.val n * hermiteFunctionNd (d' + 1) ((multiIndexEquiv d').symm n) x := by
+  -- The symm of equivOfInverse f₁ f₂ h₁ h₂ applies f₂
+  simp only [schwartzRapidDecayEquivNd, ContinuousLinearEquiv.symm_equivOfInverse,
+    ContinuousLinearEquiv.equivOfInverse_apply]
+  -- Now the goal is fromRapidDecayNdCLM (d'+1) a x = tsum
+  -- fromRapidDecayNdCLM (d'+1) for d'+1 ≥ 1 gives fromRapidDecayNdLM d' a
+  -- which is rapidDecay_schwartzMapNd d' a
+  show fromRapidDecayNdCLM (d' + 1) a x = _
+  -- Unfold fromRapidDecayNdCLM to fromRapidDecayNdLM, then to rapidDecay_schwartzMapNd
+  show rapidDecay_schwartzMapNd d' a x = _
+  -- By definition, this is ∑' n, a.val n * flatBasisNd d' n x
+  show ∑' n, a.val n * flatBasisNd d' n x = _
+  -- flatBasisNd d' n = schwartzHermiteBasisNd (d'+1) ((multiIndexEquiv d').symm n)
+  -- and schwartzHermiteBasisNd (d'+1) α x = hermiteFunctionNd (d'+1) α x
+  rfl
+
+/-- Pointwise summability of the multi-d Hermite series. -/
+theorem schwartzRapidDecayEquivNd_summable (d' : ℕ) (a : RapidDecaySeq)
+    (x : EuclideanSpace ℝ (Fin (d' + 1))) :
+    Summable (fun n => a.val n * hermiteFunctionNd (d' + 1) ((multiIndexEquiv d').symm n) x) :=
+  rapidDecay_pointwise_summableNd d' a x
+
+/-- Pointwise norm summability of the multi-d Hermite series. -/
+theorem schwartzRapidDecayEquivNd_norm_summable (d' : ℕ) (a : RapidDecaySeq)
+    (x : EuclideanSpace ℝ (Fin (d' + 1))) :
+    Summable (fun n => ‖a.val n * hermiteFunctionNd (d' + 1) ((multiIndexEquiv d').symm n) x‖) :=
+  (schwartzRapidDecayEquivNd_summable d' a x).norm
+
+/-- Pointwise summability of the 1D Hermite series. -/
+theorem schwartzRapidDecayEquiv1D_summable (a : RapidDecaySeq) (t : ℝ) :
+    Summable (fun n => a.val n * hermiteFunction n t) := by
+  apply Summable.of_norm_bounded
+    (g := fun n => |a.val n| * SchwartzMap.seminorm ℝ 0 0 (schwartzHermiteBasis1D n))
+  · exact rapidDecay_seminorm_summable a 0 0
+  · intro n
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left
+      (by rw [← Real.norm_eq_abs, ← schwartzHermiteBasis1D_apply]
+          exact SchwartzMap.norm_le_seminorm ℝ _ t)
+      (abs_nonneg _)
+
+/-- Pointwise norm summability of the 1D Hermite series. -/
+theorem schwartzRapidDecayEquiv1D_norm_summable (a : RapidDecaySeq) (t : ℝ) :
+    Summable (fun n => ‖a.val n * hermiteFunction n t‖) :=
+  (schwartzRapidDecayEquiv1D_summable a t).norm
+
+/-- The (d+2)-dimensional Hermite basis function, indexed via `multiIndexEquiv (d+1)`, factors
+into a product along `euclideanInit` and `Fin.last` coordinates.
+
+This is the key identity for proving that the inverse of `schwartzPeelOff` sends pure tensors
+to pointwise products. It uses the decomposition of `multiIndexEquiv (d+1)` via Cantor
+unpairing and the product structure of `hermiteFunctionNd`. -/
+theorem hermiteFunctionNd_unpair (d : ℕ) (n : ℕ)
+    (x : EuclideanSpace ℝ (Fin (d + 2))) :
+    hermiteFunctionNd (d + 2) ((multiIndexEquiv (d + 1)).symm n) x =
+      hermiteFunctionNd (d + 1) ((multiIndexEquiv d).symm (Nat.unpair n).1)
+        (euclideanInit (d + 1) x) *
+      hermiteFunction (Nat.unpair n).2 (x (Fin.last (d + 1))) := by
+  -- Use euclideanSnoc_init_last to decompose x, then apply hermiteFunctionNd_snoc
+  -- and the multiIndexEquiv decomposition
+  set α := (multiIndexEquiv (d + 1)).symm n
+  -- Step 1: Rewrite x = euclideanSnoc (init x) (last x)
+  conv_lhs => rw [← euclideanSnoc_init_last (d + 1) x]
+  -- Step 2: Use hermiteFunctionNd_snoc to split the product
+  rw [hermiteFunctionNd_snoc d α (euclideanInit (d + 1) x) (x (Fin.last (d + 1)))]
+  -- Goal now: hermiteFunctionNd (d+1) (fun i => α (castSucc i)) (init x) *
+  --           hermiteFunction (α (last (d+1))) (x (last (d+1)))
+  --         = hermiteFunctionNd (d+1) (β) (init x) * hermiteFunction k (x (last (d+1)))
+  -- Step 3: Show the multi-indices match using multiIndexEquiv_succ_symm
+  have h_alpha := multiIndexEquiv_succ_symm d n
+  congr 1
+  · -- fun i => α (castSucc i) = (multiIndexEquiv d).symm (unpair n).1
+    simp only [hermiteFunctionNd]
+    apply Finset.prod_congr rfl
+    intro j _
+    congr 1
+    -- α (castSucc j) = ((multiIndexEquiv d).symm (unpair n).1) j
+    show ((multiIndexEquiv (d + 1)).symm n) (Fin.castSucc j) =
+        ((multiIndexEquiv d).symm (Nat.unpair n).1) j
+    conv_lhs => rw [h_alpha]
+    -- succFunEquiv.symm (β, k) at castSucc j: this is β j
+    simp only [Fin.succFunEquiv, Equiv.symm_trans_apply, Equiv.prodCongrRight_symm,
+      Equiv.prodCongrRight_apply, Equiv.funUnique_symm_apply]
+    -- Goal should now involve Fin.appendEquiv or Fin.append with castAdd
+    rw [show Fin.castSucc j = Fin.castAdd 1 j from rfl]
+    simp [Fin.append_left]
+  · -- α (last (d+1)) = (unpair n).2
+    congr 1
+    show ((multiIndexEquiv (d + 1)).symm n) (Fin.last (d + 1)) = (Nat.unpair n).2
+    conv_lhs => rw [h_alpha]
+    -- Need: (succFunEquiv.symm (β, k)) (Fin.last (d+1)) = k
+    -- Key: succFunEquiv applied to the inverse gives back (β, k)
+    set f := (Fin.succFunEquiv ℕ (d + 1)).symm
+      ((multiIndexEquiv d).symm (Nat.unpair n).1, (Nat.unpair n).2)
+    -- f is the function whose succFunEquiv image is (β, k)
+    have hf : (Fin.succFunEquiv ℕ (d + 1) f).2 = (Nat.unpair n).2 :=
+      congr_arg Prod.snd (Equiv.apply_symm_apply _ _)
+    -- But (succFunEquiv f).2 involves f applied via funUnique, which extracts f (Fin.last)
+    -- succFunEquiv = (appendEquiv n 1).symm.trans (prodCongrRight ...) so
+    -- (succFunEquiv f).2 = Equiv.funUnique (Fin 1) ℕ (appendEquiv n 1 f).2
+    -- = (appendEquiv n 1 f).2 0 = f (natAdd n 0) = f (last n)
+    -- We just use simp to resolve the computed form
+    simp only [Fin.succFunEquiv, Equiv.trans_apply] at hf
+    exact hf
 
 /-- Schwartz space isomorphism for `EuclideanSpace ℝ (Fin d)` with `d ≥ 1`.
 - For `d = 1`: reduces to `SchwartzMap ℝ ℝ` via `euclideanFin1Equiv`,

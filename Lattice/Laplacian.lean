@@ -229,19 +229,369 @@ theorem finiteLaplacian_neg_semidefinite (d N : ℕ) [NeZero N] (a : ℝ) (ha : 
 
 /-! ## Infinite Laplacian -/
 
+/-- The ℓ¹ norm is invariant under negation. -/
+private lemma latticeNorm_neg {d : ℕ} (v : Fin d → ℤ) :
+    latticeNorm (-v) = latticeNorm v := by
+  simp only [latticeNorm, Pi.neg_apply, Int.cast_neg, abs_neg]
+
+/-- Shifting a rapidly decaying function by a bounded vector preserves rapid decay. -/
+private lemma shift_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
+    (v : Fin d → ℤ) (hv : latticeNorm v ≤ 1) (k : ℕ) :
+    Summable (fun x => |f.val (x + v)| * (1 + latticeNorm x) ^ k) := by
+  -- Bound: (1+‖x‖) ≤ 2(1+‖x+v‖) because ‖x‖ ≤ ‖x+v‖ + ‖v‖ ≤ ‖x+v‖ + 1
+  apply Summable.of_nonneg_of_le
+    (fun x => mul_nonneg (abs_nonneg _) (RapidDecayLattice.weight_nonneg x k))
+  · intro x
+    have h_norm : latticeNorm x ≤ latticeNorm (x + v) + 1 := by
+      have h1 : latticeNorm x = latticeNorm (fun i => (x + v) i + (-v) i) := by
+        congr 1; ext j; simp
+      have h2 := latticeNorm_triangle (x + v) (-v)
+      have h3 : latticeNorm (-v) = latticeNorm v := latticeNorm_neg v
+      linarith
+    have h_le : 1 + latticeNorm x ≤ 2 * (1 + latticeNorm (x + v)) := by
+      have := latticeNorm_nonneg (x + v)
+      linarith
+    calc |f.val (x + v)| * (1 + latticeNorm x) ^ k
+        ≤ |f.val (x + v)| * (2 * (1 + latticeNorm (x + v))) ^ k := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          exact pow_le_pow_left₀ (by linarith [latticeNorm_nonneg x]) h_le k
+      _ = 2 ^ k * (|f.val (x + v)| * (1 + latticeNorm (x + v)) ^ k) := by
+          rw [mul_pow]; ring
+  · -- The upper bound is summable: reindex y = x + v
+    have h_sum : Summable (fun x => |f.val (x + v)| *
+        (1 + latticeNorm (x + v)) ^ k) := by
+      show Summable ((fun y => |f.val y| * (1 + latticeNorm y) ^ k) ∘ (· + v))
+      exact (Equiv.summable_iff (Equiv.addRight v)).mpr (f.rapid_decay k)
+    exact h_sum.const_smul (2 ^ k : ℝ)
+
+/-- The raw function for the infinite Laplacian. -/
+private def infiniteLaplacianFun (d : ℕ) (a : ℝ)
+    (f : RapidDecayLattice d) (x : Fin d → ℤ) : ℝ :=
+  a⁻¹ ^ 2 * ∑ i : Fin d,
+    (f.val (fun j => x j + stdBasisInt d i j) +
+     f.val (fun j => x j - stdBasisInt d i j) -
+     2 * f.val x)
+
+/-- Tsum bound for shifted rapid decay: the weighted tsum of a shift is bounded by
+2^k times the original weighted tsum. -/
+private lemma shift_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
+    (v : Fin d → ℤ) (hv : latticeNorm v ≤ 1) (k : ℕ) :
+    ∑' x, |f.val (x + v)| * (1 + latticeNorm x) ^ k ≤
+    2 ^ k * ∑' x, |f.val x| * (1 + latticeNorm x) ^ k := by
+  have h_pw : ∀ x : Fin d → ℤ, |f.val (x + v)| * (1 + latticeNorm x) ^ k ≤
+      2 ^ k * (|f.val (x + v)| * (1 + latticeNorm (x + v)) ^ k) := by
+    intro x
+    have h_norm : latticeNorm x ≤ latticeNorm (x + v) + 1 := by
+      have h1 : latticeNorm x = latticeNorm (fun i => (x + v) i + (-v) i) := by
+        congr 1; ext j; simp
+      have h2 := latticeNorm_triangle (x + v) (-v)
+      have h3 : latticeNorm (-v) = latticeNorm v := latticeNorm_neg v
+      linarith
+    have h_le : 1 + latticeNorm x ≤ 2 * (1 + latticeNorm (x + v)) := by
+      have := latticeNorm_nonneg (x + v)
+      linarith
+    calc |f.val (x + v)| * (1 + latticeNorm x) ^ k
+        ≤ |f.val (x + v)| * (2 * (1 + latticeNorm (x + v))) ^ k := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          exact pow_le_pow_left₀ (by linarith [latticeNorm_nonneg x]) h_le k
+      _ = 2 ^ k * (|f.val (x + v)| * (1 + latticeNorm (x + v)) ^ k) := by
+          rw [mul_pow]; ring
+  -- Reindex the upper bound sum: y = x + v
+  have h_reindex : ∑' x, |f.val (x + v)| * (1 + latticeNorm (x + v)) ^ k =
+      ∑' y, |f.val y| * (1 + latticeNorm y) ^ k := by
+    show ∑' x, ((fun y => |f.val y| * (1 + latticeNorm y) ^ k) (x + v)) =
+      ∑' y, |f.val y| * (1 + latticeNorm y) ^ k
+    exact Equiv.tsum_eq (Equiv.addRight v)
+      (fun y => |f.val y| * (1 + latticeNorm y) ^ k)
+  calc ∑' x, |f.val (x + v)| * (1 + latticeNorm x) ^ k
+      ≤ ∑' x, 2 ^ k * (|f.val (x + v)| * (1 + latticeNorm (x + v)) ^ k) :=
+        (shift_rapid_decay f v hv k).tsum_le_tsum h_pw
+          ((f.rapid_decay k).comp_injective (Equiv.addRight v).injective |>.const_smul (2 ^ k : ℝ))
+    _ = 2 ^ k * ∑' x, |f.val (x + v)| * (1 + latticeNorm (x + v)) ^ k := tsum_mul_left
+    _ = 2 ^ k * ∑' y, |f.val y| * (1 + latticeNorm y) ^ k := by rw [h_reindex]
+
+/-- Summability of shifted terms for the negative basis direction. -/
+private lemma shift_neg_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
+    (i : Fin d) (k : ℕ) :
+    Summable (fun x => |f.val (fun j => x j - stdBasisInt d i j)| *
+      (1 + latticeNorm x) ^ k) := by
+  have hv : latticeNorm (fun j => -stdBasisInt d i j) ≤ 1 := by
+    rw [show (fun j => -stdBasisInt d i j) = -(stdBasisInt d i) from by ext j; simp]
+    rw [latticeNorm_neg]; exact le_of_eq (latticeNorm_stdBasis i)
+  have h_eq : ∀ x : Fin d → ℤ,
+      (fun j => x j - stdBasisInt d i j) = (x + fun j => -stdBasisInt d i j) := by
+    intro x; ext j; simp [Pi.add_apply, sub_eq_add_neg]
+  simp_rw [h_eq]
+  exact shift_rapid_decay f _ hv k
+
+/-- Tsum bound for negative shifted rapid decay. -/
+private lemma shift_neg_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
+    (i : Fin d) (k : ℕ) :
+    ∑' x, |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k ≤
+    2 ^ k * ∑' x, |f.val x| * (1 + latticeNorm x) ^ k := by
+  have hv : latticeNorm (fun j => -stdBasisInt d i j) ≤ 1 := by
+    rw [show (fun j => -stdBasisInt d i j) = -(stdBasisInt d i) from by ext j; simp]
+    rw [latticeNorm_neg]; exact le_of_eq (latticeNorm_stdBasis i)
+  show ∑' x, |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k ≤
+    2 ^ k * ∑' x, |f.val x| * (1 + latticeNorm x) ^ k
+  have : (fun x : Fin d → ℤ => |f.val (fun j => x j - stdBasisInt d i j)| *
+      (1 + latticeNorm x) ^ k) =
+    (fun x => |f.val (x + fun j => -stdBasisInt d i j)| *
+      (1 + latticeNorm x) ^ k) := by
+    ext x; congr 1
+  rw [this]
+  exact shift_rapid_decay_tsum_le f _ hv k
+
+/-- The infinite Laplacian preserves rapid decay. -/
+private lemma infiniteLaplacian_rapid_decay (d : ℕ) (a : ℝ)
+    (f : RapidDecayLattice d) (k : ℕ) :
+    Summable (fun x => |infiniteLaplacianFun d a f x| * (1 + latticeNorm x) ^ k) := by
+  -- Strategy: bound |Δf(x)| * w(x) ≤ sum of shifted terms, each summable.
+  -- Build the summable upper bound as a sum over directions
+  have h_shift_plus : ∀ i : Fin d, Summable (fun x =>
+      |f.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k) :=
+    fun i => shift_rapid_decay f (stdBasisInt d i) (le_of_eq (latticeNorm_stdBasis i)) k
+  have h_shift_minus : ∀ i : Fin d, Summable (fun x =>
+      |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k) :=
+    fun i => shift_neg_rapid_decay f i k
+  have h_diag : Summable (fun x => |f.val x| * (1 + latticeNorm x) ^ k) :=
+    f.rapid_decay k
+  -- The summable upper bound per direction
+  have h_dir_summable : ∀ i : Fin d, Summable (fun x =>
+      |f.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+      |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+      2 * (|f.val x| * (1 + latticeNorm x) ^ k)) := by
+    intro i
+    apply Summable.add
+    · exact (h_shift_plus i).add (h_shift_minus i)
+    · show Summable (fun x => (2 : ℝ) • (|f.val x| * (1 + latticeNorm x) ^ k))
+      exact h_diag.const_smul 2
+  -- Sum over all d directions is summable
+  have h_all_summable : Summable (fun x => ∑ i : Fin d,
+      (|f.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+       |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+       2 * (|f.val x| * (1 + latticeNorm x) ^ k))) :=
+    summable_sum (fun i _ => h_dir_summable i)
+  -- Scale by |a⁻¹|²
+  have h_ub_summable : Summable (fun x => |a⁻¹| ^ 2 * ∑ i : Fin d,
+      (|f.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+       |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+       2 * (|f.val x| * (1 + latticeNorm x) ^ k))) :=
+    h_all_summable.const_smul (|a⁻¹| ^ 2)
+  -- Pointwise bound for each x
+  have h_pw : ∀ x, |infiniteLaplacianFun d a f x| * (1 + latticeNorm x) ^ k ≤
+      |a⁻¹| ^ 2 * ∑ i : Fin d,
+        (|f.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+         |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+         2 * (|f.val x| * (1 + latticeNorm x) ^ k)) := by
+    intro x
+    simp only [infiniteLaplacianFun]
+    rw [abs_mul, abs_pow]
+    have hw := RapidDecayLattice.weight_nonneg x k
+    -- Bound |∑ ...| ≤ ∑ (|f(x+eᵢ)| + |f(x-eᵢ)| + 2|f(x)|)
+    have h_abs_sum : |∑ i : Fin d, (f.val (fun j => x j + stdBasisInt d i j) +
+            f.val (fun j => x j - stdBasisInt d i j) - 2 * f.val x)| ≤
+        ∑ i : Fin d,
+          (|f.val (fun j => x j + stdBasisInt d i j)| +
+           |f.val (fun j => x j - stdBasisInt d i j)| +
+           2 * |f.val x|) := by
+      calc |∑ i : Fin d, _|
+          ≤ ∑ i : Fin d, |f.val (fun j => x j + stdBasisInt d i j) +
+              f.val (fun j => x j - stdBasisInt d i j) - 2 * f.val x| :=
+            Finset.abs_sum_le_sum_abs _ _
+        _ ≤ _ := by
+          apply Finset.sum_le_sum; intro i _
+          set a₁ := f.val (fun j => x j + stdBasisInt d i j)
+          set a₂ := f.val (fun j => x j - stdBasisInt d i j)
+          calc |a₁ + a₂ - 2 * f.val x|
+              ≤ |a₁ + a₂| + |2 * f.val x| := by
+                have := abs_add_le (a₁ + a₂) (-(2 * f.val x))
+                rwa [abs_neg, ← sub_eq_add_neg] at this
+            _ ≤ (|a₁| + |a₂|) + 2 * |f.val x| := by
+                have := abs_add_le a₁ a₂
+                rw [abs_mul, abs_of_nonneg (by norm_num : (2 : ℝ) ≥ 0)]
+                linarith
+    -- Combine: |a⁻¹|² * |∑...| * w ≤ |a⁻¹|² * ∑(abs terms) * w = |a⁻¹|² * ∑(abs*w terms)
+    calc |a⁻¹| ^ 2 * |∑ i : Fin d, _| * (1 + latticeNorm x) ^ k
+        ≤ |a⁻¹| ^ 2 * (∑ i : Fin d,
+            (|f.val (fun j => x j + stdBasisInt d i j)| +
+             |f.val (fun j => x j - stdBasisInt d i j)| +
+             2 * |f.val x|)) * (1 + latticeNorm x) ^ k := by
+          gcongr
+      _ = |a⁻¹| ^ 2 * ∑ i : Fin d,
+            (|f.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+             |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+             2 * (|f.val x| * (1 + latticeNorm x) ^ k)) := by
+          rw [mul_assoc, Finset.sum_mul]
+          congr 1; apply Finset.sum_congr rfl; intro i _; ring
+  exact h_ub_summable.of_nonneg_of_le
+    (fun x => mul_nonneg (abs_nonneg _) (RapidDecayLattice.weight_nonneg x k)) h_pw
+
+/-- The infinite Laplacian as a linear map on rapid decay functions. -/
+private def infiniteLaplacianLM (d : ℕ) (a : ℝ) :
+    RapidDecayLattice d →ₗ[ℝ] RapidDecayLattice d where
+  toFun f := ⟨infiniteLaplacianFun d a f, infiniteLaplacian_rapid_decay d a f⟩
+  map_add' f g := by
+    ext x; simp only [infiniteLaplacianFun, RapidDecayLattice.add_val]
+    rw [← mul_add, ← Finset.sum_add_distrib]
+    congr 1; apply Finset.sum_congr rfl; intro i _; ring
+  map_smul' r f := by
+    ext x; simp only [infiniteLaplacianFun, RapidDecayLattice.smul_val, RingHom.id_apply]
+    -- Factor r out of sum, commute with a⁻¹²
+    have h_sum_eq : ∀ i : Fin d,
+        r * f.val (fun j => x j + stdBasisInt d i j) +
+        r * f.val (fun j => x j - stdBasisInt d i j) -
+        2 * (r * f.val x) =
+        r * (f.val (fun j => x j + stdBasisInt d i j) +
+             f.val (fun j => x j - stdBasisInt d i j) -
+             2 * f.val x) := fun i => by ring
+    simp_rw [h_sum_eq, ← Finset.mul_sum, ← mul_assoc, mul_comm (a⁻¹ ^ 2) r]
+
 /-- The discrete Laplacian on ℤ^d with spacing `a`.
 Preserves rapid decay since it's a finite difference operator. -/
-axiom infiniteLaplacian (d : ℕ) (a : ℝ) :
-    RapidDecayLattice d →L[ℝ] RapidDecayLattice d
+noncomputable def infiniteLaplacian (d : ℕ) (a : ℝ) :
+    RapidDecayLattice d →L[ℝ] RapidDecayLattice d where
+  toLinearMap := infiniteLaplacianLM d a
+  cont := by
+    apply Seminorm.continuous_from_bounded RapidDecayLattice.lattice_withSeminorms
+      RapidDecayLattice.lattice_withSeminorms
+    intro k
+    -- For each output seminorm k, bound by input seminorm k with constant
+    -- C = |a⁻¹|² * d * (2^(k+1) + 2). Each shifted tsum ≤ 2^k * seminorm_k(f).
+    set C_val : ℝ := |a⁻¹| ^ 2 * (↑d * (2 * 2 ^ k + 2))
+    have hC_nonneg : 0 ≤ C_val := by positivity
+    refine ⟨{k}, ⟨⟨C_val, hC_nonneg⟩, fun g => ?_⟩⟩
+    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def,
+      NNReal.coe_mk]
+    -- Goal: seminorm_k(Δg) ≤ C * seminorm_k(g)
+    show ∑' x, |(infiniteLaplacianLM d a g).val x| * (1 + latticeNorm x) ^ k ≤
+      C_val * (∑' x, |g.val x| * (1 + latticeNorm x) ^ k)
+    -- The LM value is just infiniteLaplacianFun
+    change ∑' x, |infiniteLaplacianFun d a g x| * (1 + latticeNorm x) ^ k ≤
+      C_val * (∑' x, |g.val x| * (1 + latticeNorm x) ^ k)
+    set S := ∑' x, |g.val x| * (1 + latticeNorm x) ^ k
+    -- Pointwise bound: |Δg(x)| * w ≤ |a⁻¹|² * ∑_i (|g(x+eᵢ)|*w + |g(x-eᵢ)|*w + 2*|g(x)|*w)
+    -- (Same as in the rapid decay proof)
+    have h_pw : ∀ x, |infiniteLaplacianFun d a g x| * (1 + latticeNorm x) ^ k ≤
+        |a⁻¹| ^ 2 * ∑ i : Fin d,
+          (|g.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+           |g.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+           2 * (|g.val x| * (1 + latticeNorm x) ^ k)) := by
+      intro x
+      simp only [infiniteLaplacianFun]
+      rw [abs_mul, abs_pow]
+      have hw := RapidDecayLattice.weight_nonneg x k
+      have h_abs_sum : |∑ i : Fin d, (g.val (fun j => x j + stdBasisInt d i j) +
+              g.val (fun j => x j - stdBasisInt d i j) - 2 * g.val x)| ≤
+          ∑ i : Fin d,
+            (|g.val (fun j => x j + stdBasisInt d i j)| +
+             |g.val (fun j => x j - stdBasisInt d i j)| +
+             2 * |g.val x|) := by
+        calc |∑ i : Fin d, _|
+            ≤ ∑ i : Fin d, |g.val (fun j => x j + stdBasisInt d i j) +
+                g.val (fun j => x j - stdBasisInt d i j) - 2 * g.val x| :=
+              Finset.abs_sum_le_sum_abs _ _
+          _ ≤ _ := by
+            apply Finset.sum_le_sum; intro i _
+            set a₁ := g.val (fun j => x j + stdBasisInt d i j)
+            set a₂ := g.val (fun j => x j - stdBasisInt d i j)
+            calc |a₁ + a₂ - 2 * g.val x|
+                ≤ |a₁ + a₂| + |2 * g.val x| := by
+                  have := abs_add_le (a₁ + a₂) (-(2 * g.val x))
+                  rwa [abs_neg, ← sub_eq_add_neg] at this
+              _ ≤ (|a₁| + |a₂|) + 2 * |g.val x| := by
+                  have := abs_add_le a₁ a₂
+                  rw [abs_mul, abs_of_nonneg (by norm_num : (2 : ℝ) ≥ 0)]
+                  linarith
+      calc |a⁻¹| ^ 2 * |∑ i : Fin d, _| * (1 + latticeNorm x) ^ k
+          ≤ |a⁻¹| ^ 2 * (∑ i : Fin d,
+              (|g.val (fun j => x j + stdBasisInt d i j)| +
+               |g.val (fun j => x j - stdBasisInt d i j)| +
+               2 * |g.val x|)) * (1 + latticeNorm x) ^ k := by gcongr
+        _ = |a⁻¹| ^ 2 * ∑ i : Fin d,
+              (|g.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+               |g.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+               2 * (|g.val x| * (1 + latticeNorm x) ^ k)) := by
+            rw [mul_assoc, Finset.sum_mul]
+            congr 1; apply Finset.sum_congr rfl; intro i _; ring
+    -- Take the tsum of both sides
+    have h_ub_summable : Summable (fun x => |a⁻¹| ^ 2 * ∑ i : Fin d,
+        (|g.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+         |g.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+         2 * (|g.val x| * (1 + latticeNorm x) ^ k))) := by
+      apply Summable.const_smul (b := |a⁻¹| ^ 2)
+      apply summable_sum; intro i _
+      apply Summable.add
+      · exact (shift_rapid_decay g (stdBasisInt d i)
+            (le_of_eq (latticeNorm_stdBasis i)) k).add (shift_neg_rapid_decay g i k)
+      · show Summable (fun x => (2 : ℝ) • (|g.val x| * (1 + latticeNorm x) ^ k))
+        exact (g.rapid_decay k).const_smul 2
+    -- Step 1: tsum bound using pointwise inequality
+    calc ∑' x, |infiniteLaplacianFun d a g x| * (1 + latticeNorm x) ^ k
+        ≤ ∑' x, |a⁻¹| ^ 2 * ∑ i : Fin d,
+            (|g.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+             |g.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+             2 * (|g.val x| * (1 + latticeNorm x) ^ k)) :=
+          (infiniteLaplacian_rapid_decay d a g k).tsum_le_tsum h_pw h_ub_summable
+    -- Step 2: Pull constant out and swap sum/tsum
+      _ = |a⁻¹| ^ 2 * ∑ i : Fin d,
+            ∑' x, (|g.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+             |g.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k +
+             2 * (|g.val x| * (1 + latticeNorm x) ^ k)) := by
+          rw [tsum_mul_left]
+          congr 1
+          exact Summable.tsum_finsetSum (fun i _ => by
+            apply Summable.add
+            · exact (shift_rapid_decay g (stdBasisInt d i)
+                  (le_of_eq (latticeNorm_stdBasis i)) k).add (shift_neg_rapid_decay g i k)
+            · show Summable (fun x => (2 : ℝ) • (|g.val x| * (1 + latticeNorm x) ^ k))
+              exact (g.rapid_decay k).const_smul 2)
+    -- Step 3: Bound each direction's tsum
+      _ ≤ |a⁻¹| ^ 2 * ∑ i : Fin d, (2 ^ k * S + 2 ^ k * S + 2 * S) := by
+          apply mul_le_mul_of_nonneg_left _ (pow_nonneg (abs_nonneg _) 2)
+          apply Finset.sum_le_sum; intro i _
+          -- Split tsum(A + B + C) ≤ tsum A + tsum B + tsum C then bound each
+          set T_plus := fun x : Fin d → ℤ =>
+            |g.val (fun j => x j + stdBasisInt d i j)| * (1 + latticeNorm x) ^ k
+          set T_minus := fun x : Fin d → ℤ =>
+            |g.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k
+          set T_diag := fun x : Fin d → ℤ =>
+            2 * (|g.val x| * (1 + latticeNorm x) ^ k)
+          have hS_plus : Summable T_plus := by
+            show Summable (fun x => |g.val (fun j => x j + stdBasisInt d i j)| *
+              (1 + latticeNorm x) ^ k)
+            exact shift_rapid_decay g (stdBasisInt d i) (le_of_eq (latticeNorm_stdBasis i)) k
+          have hS_minus : Summable T_minus := shift_neg_rapid_decay g i k
+          have hS_diag : Summable T_diag := by
+            show Summable (fun x => (2 : ℝ) • (|g.val x| * (1 + latticeNorm x) ^ k))
+            exact (g.rapid_decay k).const_smul 2
+          have h_split : ∑' x, (T_plus x + T_minus x + T_diag x) =
+              ∑' x, T_plus x + ∑' x, T_minus x + ∑' x, T_diag x := by
+            rw [show (fun x => T_plus x + T_minus x + T_diag x) =
+                 (fun x => (T_plus x + T_minus x) + T_diag x) from by ext; ring]
+            rw [(hS_plus.add hS_minus).tsum_add hS_diag,
+                hS_plus.tsum_add hS_minus]
+          rw [h_split]
+          have h1 : ∑' x, T_plus x ≤ 2 ^ k * S :=
+            shift_rapid_decay_tsum_le g (stdBasisInt d i)
+              (le_of_eq (latticeNorm_stdBasis i)) k
+          have h2 : ∑' x, T_minus x ≤ 2 ^ k * S :=
+            shift_neg_rapid_decay_tsum_le g i k
+          have h3 : ∑' x, T_diag x = 2 * S := tsum_mul_left
+          linarith
+    -- Step 4: Simplify constant sum
+      _ = C_val * S := by
+          simp only [C_val, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, Fintype.card_fin]
+          ring
 
 /-- The infinite Laplacian acts as the expected finite difference formula. -/
-axiom infiniteLaplacian_apply (d : ℕ) (a : ℝ) (f : RapidDecayLattice d)
+theorem infiniteLaplacian_apply (d : ℕ) (a : ℝ) (f : RapidDecayLattice d)
     (x : Fin d → ℤ) :
     (infiniteLaplacian d a f).val x =
     a⁻¹ ^ 2 * ∑ i : Fin d,
       (f.val (fun j => x j + stdBasisInt d i j) +
        f.val (fun j => x j - stdBasisInt d i j) -
-       2 * f.val x)
+       2 * f.val x) := rfl
 
 /-! ## Mass operator -/
 

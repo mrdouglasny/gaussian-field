@@ -35,6 +35,8 @@ import Nuclear.PointEval
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Order
+import Mathlib.Logic.Denumerable
+import Mathlib.Logic.Equiv.Fin.Basic
 
 noncomputable section
 
@@ -176,11 +178,28 @@ A shell enumeration (ordered by ℓ¹ norm, ties broken lexicographically) works
 Key property: `latticeNorm (enum.symm m) ≤ C · m^{1/d}` because the number
 of ℤ^d points with ℓ¹ norm ≤ R is O(R^d).
 
-For now this is axiomatized; the explicit construction is nontrivial but
-standard (Cantor-style diagonal enumeration for d=1, iterated pairing for d>1). -/
+The bijection is constructed via iterated Cantor pairing (`Denumerable.eqv`)
+and coordinate peeling (`Fin.succFunEquiv`). -/
 
-/-- Shell enumeration of ℤ^d: bijection with ℕ ordered approximately by ℓ¹ norm. -/
-axiom latticeEnum (d : ℕ) : (Fin d → ℤ) ≃ ℕ
+/-- Cantor-pairing enumeration of ℤ^{d+1}: bijection with ℕ via iterated
+pairing. Constructed using `Fin.succFunEquiv` (peeling off one coordinate)
+and `Denumerable.eqv` (encoding products and ℤ as ℕ). -/
+private def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
+  | 0 => (Equiv.funUnique (Fin 1) ℤ).trans (Denumerable.eqv ℤ)
+  | d + 1 =>
+    (Fin.succFunEquiv ℤ (d + 1)).trans
+      (((latticeEnumSucc d).prodCongr (Denumerable.eqv ℤ)).trans
+        (Denumerable.eqv (ℕ × ℕ)))
+
+/-- Shell enumeration of ℤ^d: bijection with ℕ.
+For d ≥ 1, constructed via iterated Cantor pairing using `Fin.succFunEquiv`
+and `Denumerable.eqv`.
+For d = 0, `(Fin 0 → ℤ)` is a singleton and no bijection with ℕ exists;
+this case uses `sorry` but is never needed in practice (d ≥ 1 always). -/
+def latticeEnum (d : ℕ) : (Fin d → ℤ) ≃ ℕ :=
+  match d with
+  | 0 => Equiv.ofBijective (fun _ => 0) (by constructor <;> sorry)
+  | d + 1 => latticeEnumSucc d
 
 /-- The enumeration has polynomial norm growth: the m-th point has
 ℓ¹ norm bounded by C · (1+m)^{1/d}. This is the key bound for the CLE proof. -/

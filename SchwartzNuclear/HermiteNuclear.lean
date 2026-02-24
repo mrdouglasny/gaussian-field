@@ -39,4 +39,25 @@ noncomputable instance schwartz_dyninMityaginSpace [Nontrivial D] :
     (schwartz_withSeminorms ℝ D ℝ)
     (schwartzRapidDecayEquiv D)
 
+/-- Specialized `DyninMityaginSpace` instance for `SchwartzMap ℝ ℝ` using
+`schwartzRapidDecayEquiv1D` directly, avoiding the `toEuclidean` detour.
+This is preferred by instance resolution since `ℝ` is more specific than `D`. -/
+noncomputable instance schwartz_dyninMityaginSpace_1D :
+    DyninMityaginSpace (SchwartzMap ℝ ℝ) :=
+  DyninMityaginSpace.ofRapidDecayEquiv
+    (fun (kl : ℕ × ℕ) => SchwartzMap.seminorm ℝ kl.1 kl.2)
+    (schwartz_withSeminorms ℝ ℝ ℝ)
+    schwartzRapidDecayEquiv1D
+
+/-- Specialized `DyninMityaginSpace` instance for `SchwartzMap (EuclideanSpace ℝ (Fin (d+1))) ℝ`
+using `schwartzRapidDecayEquivNd` directly, avoiding the `toEuclidean` detour.
+This ensures that `DyninMityaginSpace.coeff` produces the Hermite coefficients from the
+standard multi-index encoding, matching the basis used by `schwartzPeelOff`. -/
+noncomputable instance schwartz_dyninMityaginSpace_euclidean (d : ℕ) :
+    DyninMityaginSpace (SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ) :=
+  DyninMityaginSpace.ofRapidDecayEquiv
+    (fun (kl : ℕ × ℕ) => SchwartzMap.seminorm ℝ kl.1 kl.2)
+    (schwartz_withSeminorms ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
+    (schwartzRapidDecayEquivNd d)
+
 end GaussianField

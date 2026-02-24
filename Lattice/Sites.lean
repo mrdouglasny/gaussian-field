@@ -48,11 +48,52 @@ theorem latticeNorm_nonneg {d : ℕ} (x : Fin d → ℤ) : 0 ≤ latticeNorm x :
 theorem latticeNorm_zero {d : ℕ} : latticeNorm (fun _ : Fin d => (0 : ℤ)) = 0 := by
   simp [latticeNorm]
 
+theorem latticeNorm_triangle {d : ℕ} (x y : Fin d → ℤ) :
+    latticeNorm (fun i => x i + y i) ≤ latticeNorm x + latticeNorm y := by
+  simp only [latticeNorm]
+  calc ∑ i : Fin d, |(↑(x i + y i) : ℝ)|
+      = ∑ i : Fin d, |(↑(x i) : ℝ) + ↑(y i)| := by
+        congr 1; ext i; push_cast; ring_nf
+    _ ≤ ∑ i : Fin d, (|(↑(x i) : ℝ)| + |(↑(y i) : ℝ)|) :=
+        Finset.sum_le_sum fun i _ => abs_add_le _ _
+    _ = (∑ i, |(↑(x i) : ℝ)|) + (∑ i, |(↑(y i) : ℝ)|) := Finset.sum_add_distrib
+
 /-! ## Standard basis vectors in ℤ^d -/
 
 /-- The i-th standard basis vector in ℤ^d. -/
 def stdBasisInt (d : ℕ) (i : Fin d) : Fin d → ℤ :=
   fun j => if j = i then 1 else 0
+
+/-- The norm of a standard basis vector is 1. -/
+theorem latticeNorm_stdBasis {d : ℕ} (i : Fin d) :
+    latticeNorm (stdBasisInt d i) = 1 := by
+  simp only [latticeNorm, stdBasisInt]
+  calc ∑ j : Fin d, |(↑(if j = i then (1 : ℤ) else 0) : ℝ)|
+      = ∑ j : Fin d, if j = i then 1 else 0 := by
+        congr 1; ext j; split_ifs <;> simp
+    _ = 1 := by simp [Finset.sum_ite_eq']
+
+/-- Shifting by +eᵢ changes the norm by at most 1. -/
+theorem latticeNorm_shift_le {d : ℕ} (x : Fin d → ℤ) (i : Fin d) :
+    latticeNorm (fun j => x j + stdBasisInt d i j) ≤ latticeNorm x + 1 := by
+  calc latticeNorm (fun j => x j + stdBasisInt d i j)
+      ≤ latticeNorm x + latticeNorm (stdBasisInt d i) :=
+        latticeNorm_triangle x (stdBasisInt d i)
+    _ = latticeNorm x + 1 := by rw [latticeNorm_stdBasis]
+
+/-- Shifting by -eᵢ changes the norm by at most 1. -/
+theorem latticeNorm_shift_sub_le {d : ℕ} (x : Fin d → ℤ) (i : Fin d) :
+    latticeNorm (fun j => x j - stdBasisInt d i j) ≤ latticeNorm x + 1 := by
+  have : (fun j => x j - stdBasisInt d i j) = (fun j => x j + (-stdBasisInt d i j)) := by
+    ext j; ring
+  rw [this]
+  calc latticeNorm (fun j => x j + (-stdBasisInt d i j))
+      ≤ latticeNorm x + latticeNorm (fun j => -stdBasisInt d i j) :=
+        latticeNorm_triangle x (fun j => -stdBasisInt d i j)
+    _ = latticeNorm x + latticeNorm (stdBasisInt d i) := by
+        congr 1; simp only [latticeNorm]; congr 1; ext j
+        push_cast; rw [abs_neg]
+    _ = latticeNorm x + 1 := by rw [latticeNorm_stdBasis]
 
 /-! ## Nearest neighbors -/
 

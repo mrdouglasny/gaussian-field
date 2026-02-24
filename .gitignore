@@ -6,3 +6,6 @@ build/
 *.trace
 tools/
 history/
+.env
+.mcp.json
+.claude/

@@ -334,7 +334,71 @@ theorem schwartzPointwiseProduct_apply (d : ℕ)
     (x : EuclideanSpace ℝ (Fin (d + 2))) :
     schwartzPointwiseProduct d f g x =
       f (euclideanInit (d + 1) x) * g (x (Fin.last (d + 1))) := by
-  sorry
+  -- Abbreviations for the Hermite coefficient sequences
+  set a := schwartzRapidDecayEquivNd d f
+  set b := schwartzRapidDecayEquiv1D g
+  -- Step 1: Unfold to the Hermite series tsum
+  show (schwartzRapidDecayEquivNd (d + 1)).symm (NuclearTensorProduct.pure f g) x = _
+  rw [schwartzRapidDecayEquivNd_symm_apply]
+  -- Step 2: Rewrite each summand using pure tensor factorization and basis factorization
+  -- (pure f g).val n = a.val (unpair n).1 * b.val (unpair n).2
+  have h_pure : ∀ n, (NuclearTensorProduct.pure f g).val n =
+      a.val (Nat.unpair n).1 * b.val (Nat.unpair n).2 := by
+    intro n
+    simp only [NuclearTensorProduct.pure_val,
+      DyninMityaginSpace.coeff, schwartz_dyninMityaginSpace_euclidean,
+      schwartz_dyninMityaginSpace_1D, DyninMityaginSpace.ofRapidDecayEquiv,
+      RapidDecaySeq.coeffCLM, ContinuousLinearMap.comp_apply,
+      ContinuousLinearMap.coe_coe, RapidDecaySeq.coeffLM]
+    rfl
+  simp_rw [h_pure, hermiteFunctionNd_unpair]
+  -- Goal: ∑' n, (a.val i * b.val j) * (Phi_i(init x) * psi_j(last x)) = f(init x) * g(last x)
+  -- where i = (unpair n).1, j = (unpair n).2
+  -- Define the factor functions
+  set F : ℕ → ℝ := fun i => a.val i *
+    hermiteFunctionNd (d + 1) ((multiIndexEquiv d).symm i) (euclideanInit (d + 1) x)
+  set G : ℕ → ℝ := fun j => b.val j * hermiteFunction j (x (Fin.last (d + 1)))
+  -- Step 3: Rearrange (a_i * b_j) * (Phi_i * psi_j) = F i * G j
+  conv_lhs => arg 1; ext n; rw [show
+    a.val (Nat.unpair n).1 * b.val (Nat.unpair n).2 *
+      (hermiteFunctionNd (d + 1) ((multiIndexEquiv d).symm (Nat.unpair n).1)
+        (euclideanInit (d + 1) x) *
+      hermiteFunction (Nat.unpair n).2 (x (Fin.last (d + 1)))) =
+    F (Nat.unpair n).1 * G (Nat.unpair n).2 from by simp only [F, G]; ring]
+  -- Step 4: Convert from Cantor-paired ℕ to ℕ × ℕ indexing
+  -- ∑' n, F (unpair n).1 * G (unpair n).2 = ∑' (p : ℕ × ℕ), F p.1 * G p.2
+  -- Use change of variables: the Cantor pairing bijection
+  have h_eq_prod : ∑' n, F (Nat.unpair n).1 * G (Nat.unpair n).2 =
+      ∑' (p : ℕ × ℕ), F p.1 * G p.2 :=
+    Nat.pairEquiv.symm.tsum_eq (fun p : ℕ × ℕ => F p.1 * G p.2)
+  rw [h_eq_prod]
+  -- Step 5: Factor the product sum into a product of two sums
+  -- Summability of F and G
+  have hF : Summable F :=
+    schwartzRapidDecayEquivNd_summable d a (euclideanInit (d + 1) x)
+  have hG : Summable G :=
+    schwartzRapidDecayEquiv1D_summable b (x (Fin.last (d + 1)))
+  -- Product summability (from norm summability)
+  have hFG : Summable (fun p : ℕ × ℕ => F p.1 * G p.2) :=
+    summable_mul_of_summable_norm hF.norm hG.norm
+  -- Apply the product formula: ∑' (i,j), F i * G j = (∑' i, F i) * (∑' j, G j)
+  rw [← hF.tsum_mul_tsum hG hFG]
+  -- Step 6: Each factor tsum reconstructs f and g
+  -- ∑' i, F i = ∑' i, a.val i * Phi_i(init x) = f(init x)
+  have hF_eq : ∑' i, F i = f (euclideanInit (d + 1) x) := by
+    rw [show ∑' i, F i = ∑' i, a.val i *
+        hermiteFunctionNd (d + 1) ((multiIndexEquiv d).symm i)
+          (euclideanInit (d + 1) x) from rfl]
+    rw [← schwartzRapidDecayEquivNd_symm_apply d a (euclideanInit (d + 1) x)]
+    -- (schwartzRapidDecayEquivNd d).symm a = (schwartzRapidDecayEquivNd d).symm (equiv d f) = f
+    simp [a]
+  -- ∑' j, G j = ∑' j, b.val j * psi_j(last x) = g(last x)
+  have hG_eq : ∑' j, G j = g (x (Fin.last (d + 1))) := by
+    rw [show ∑' j, G j = ∑' j, b.val j *
+        hermiteFunction j (x (Fin.last (d + 1))) from rfl]
+    rw [← schwartzRapidDecayEquiv1D_symm_apply b (x (Fin.last (d + 1)))]
+    simp [b]
+  rw [hF_eq, hG_eq]
 
 /-! ## Step 6: General Tensor Equivalence by Induction -/
 

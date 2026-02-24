@@ -13,6 +13,7 @@ We represent this as a structure with `re` and `im` fields (rather than
 -/
 
 import Mathlib.Analysis.Complex.Basic
+import Mathlib.Analysis.Complex.OperatorNorm
 import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
 
 namespace GaussianField
@@ -123,6 +124,50 @@ via (f, g) ↦ (x ↦ f(x) + i·g(x)). This validates the euclidean spacetime's
 choice of TestFunℂ := SchwartzMap D ℂ as equivalent to the complexification
 used for cylinder/torus spacetimes. -/
 
+section SchwartzComplexification
+
+variable {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
+
+/-- Auxiliary: bound on iterated derivative of CLM composed with Schwartz function. -/
+private theorem norm_iteratedFDeriv_clm_comp_schwartz
+    {E F G : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F]
+    [NormedAddCommGroup G] [NormedSpace ℝ G]
+    (L : F →L[ℝ] G) (f : SchwartzMap E F) (n : ℕ) (x : E) :
+    ‖iteratedFDeriv ℝ n (L ∘ ⇑f) x‖ ≤ ‖L‖ * ‖iteratedFDeriv ℝ n f x‖ :=
+  L.norm_iteratedFDeriv_comp_left (f.smooth ⊤).contDiffAt (mod_cast le_top)
+
+/-- Post-compose a real-valued Schwartz map with `Complex.ofRealCLM` to get a
+ℂ-valued Schwartz map. This is ℝ-linear. -/
+private noncomputable def schwartzOfReal (f : SchwartzMap D ℝ) : SchwartzMap D ℂ :=
+  ⟨fun x => ↑(f x), Complex.ofRealCLM.contDiff.comp (f.smooth _), fun k n => by
+    rcases f.decay k n with ⟨C, hC, hbound⟩
+    refine ⟨C, fun x => ?_⟩
+    calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (Complex.ofRealCLM ∘ ⇑f) x‖
+        ≤ ‖x‖ ^ k * (‖Complex.ofRealCLM‖ * ‖iteratedFDeriv ℝ n f x‖) := by
+          gcongr; exact norm_iteratedFDeriv_clm_comp_schwartz _ _ _ _
+        _ ≤ C := by rw [Complex.ofRealCLM_norm, one_mul]; exact hbound x⟩
+
+/-- Extract the real part of a ℂ-valued Schwartz map. -/
+private noncomputable def schwartzRe (f : SchwartzMap D ℂ) : SchwartzMap D ℝ :=
+  ⟨fun x => (f x).re, Complex.reCLM.contDiff.comp (f.smooth _), fun k n => by
+    rcases f.decay k n with ⟨C, hC, hbound⟩
+    refine ⟨C, fun x => ?_⟩
+    calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (Complex.reCLM ∘ ⇑f) x‖
+        ≤ ‖x‖ ^ k * (‖Complex.reCLM‖ * ‖iteratedFDeriv ℝ n f x‖) := by
+          gcongr; exact norm_iteratedFDeriv_clm_comp_schwartz _ _ _ _
+        _ ≤ C := by rw [Complex.reCLM_norm, one_mul]; exact hbound x⟩
+
+/-- Extract the imaginary part of a ℂ-valued Schwartz map. -/
+private noncomputable def schwartzIm (f : SchwartzMap D ℂ) : SchwartzMap D ℝ :=
+  ⟨fun x => (f x).im, Complex.imCLM.contDiff.comp (f.smooth _), fun k n => by
+    rcases f.decay k n with ⟨C, hC, hbound⟩
+    refine ⟨C, fun x => ?_⟩
+    calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (Complex.imCLM ∘ ⇑f) x‖
+        ≤ ‖x‖ ^ k * (‖Complex.imCLM‖ * ‖iteratedFDeriv ℝ n f x‖) := by
+          gcongr; exact norm_iteratedFDeriv_clm_comp_schwartz _ _ _ _
+        _ ≤ C := by rw [Complex.imCLM_norm, one_mul]; exact hbound x⟩
+
 /-- The complexification of real Schwartz space is ℂ-linearly isomorphic
 to complex Schwartz space via (f, g) ↦ (x ↦ f(x) + ig(x)).
 
@@ -130,9 +175,35 @@ The proof requires showing: (1) the map preserves Schwartz decay
 (from ‖a + bi‖ ≤ |a| + |b|), (2) the inverse preserves decay
 (from |re z| ≤ ‖z‖), (3) both are ℂ-linear, and (4) both are
 continuous in the Schwartz topology (from seminorm equivalence). -/
-noncomputable def schwartzComplexificationEquiv
-    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D] :
+noncomputable def schwartzComplexificationEquiv :
     Complexification (SchwartzMap D ℝ) ≃ₗ[ℂ] SchwartzMap D ℂ :=
-  sorry
+  { toFun := fun p => schwartzOfReal p.re + Complex.I • schwartzOfReal p.im
+    invFun := fun f => ⟨schwartzRe f, schwartzIm f⟩
+    left_inv := fun p => by
+      ext x
+      · show (↑(p.re x) + Complex.I * ↑(p.im x)).re = p.re x
+        simp
+      · show (↑(p.re x) + Complex.I * ↑(p.im x)).im = p.im x
+        simp
+    right_inv := fun f => by
+      ext x
+      show ↑(f x).re + Complex.I * ↑(f x).im = f x
+      rw [mul_comm]
+      exact Complex.re_add_im (f x)
+    map_add' := fun p q => by
+      ext x
+      show ↑((p.re + q.re) x) + Complex.I * ↑((p.im + q.im) x) =
+        (↑(p.re x) + Complex.I * ↑(p.im x)) + (↑(q.re x) + Complex.I * ↑(q.im x))
+      simp only [SchwartzMap.add_apply, Complex.ofReal_add]
+      ring
+    map_smul' := fun z p => by
+      ext x
+      show ↑(z.re • p.re x - z.im • p.im x) +
+        Complex.I * ↑(z.re • p.im x + z.im • p.re x) =
+        z * (↑(p.re x) + Complex.I * ↑(p.im x))
+      apply Complex.ext <;> simp [Complex.mul_re, Complex.mul_im, Complex.add_re,
+        Complex.add_im, Complex.I_re, Complex.I_im, smul_eq_mul] }
+
+end SchwartzComplexification
 
 end GaussianField
