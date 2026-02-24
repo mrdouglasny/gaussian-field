@@ -46,10 +46,101 @@ axiom mehlerKernel_eq_series (t : ℝ) (ht : 0 < t) (x₁ x₂ : ℝ) :
       ∑' (k : ℕ), exp (-(t * (2 * ↑k + 1))) *
         hermiteFunction k x₁ * hermiteFunction k x₂
 
+set_option maxHeartbeats 400000 in
 /-- The Mehler series converges absolutely for t > 0. -/
-axiom mehlerKernel_summable (t : ℝ) (ht : 0 < t) (x₁ x₂ : ℝ) :
+theorem mehlerKernel_summable (t : ℝ) (ht : 0 < t) (x₁ x₂ : ℝ) :
     Summable fun (k : ℕ) => exp (-(t * (2 * ↑k + 1))) *
-      hermiteFunction k x₁ * hermiteFunction k x₂
+      hermiteFunction k x₁ * hermiteFunction k x₂ := by
+  -- Hermite function sup bound: |ψ_n(x)| ≤ C * (1+n)^s
+  obtain ⟨C, s, hC, hs, hbound⟩ := hermiteFunction_sup_bound
+  -- Set r = exp(-2t) < 1
+  set r := exp (-(2 * t))
+  have hr_pos : 0 < r := exp_pos _
+  have hr_lt_one : r < 1 := Real.exp_lt_one_iff.mpr (by linarith)
+  have h_norm_r : ‖r‖ < 1 := by rwa [Real.norm_eq_abs, abs_of_pos hr_pos]
+  -- exp(-(t*(2k+1))) = exp(-t) * exp(-2t)^k
+  have h_exp_split : ∀ k : ℕ, exp (-(t * (2 * ↑k + 1))) = exp (-t) * r ^ k := by
+    intro k
+    rw [show r ^ k = exp (-(2 * t)) ^ k from rfl, ← Real.exp_nat_mul,
+      show ↑k * -(2 * t) = -(2 * t * ↑k) from by ring, ← Real.exp_add]
+    congr 1; ring
+  -- Bound (1+k)^(2s) by (1+k)^p for natural p = ⌈2s⌉₊
+  set p := Nat.ceil (2 * s)
+  have hp : (2 * s) ≤ ↑p := Nat.le_ceil _
+  have h_rpow_le_pow : ∀ k : ℕ, (1 + (↑k : ℝ)) ^ (2 * s) ≤ (1 + ↑k) ^ p := by
+    intro k
+    rw [← Real.rpow_natCast (1 + ↑k) p]
+    exact Real.rpow_le_rpow_of_exponent_le (by linarith [Nat.cast_nonneg (α := ℝ) k]) hp
+  -- Summability of (1+k)^p * r^k: reduce to Σ k^p * r^k + Σ r^k
+  -- (1+k)^p ≤ 2^p * (1 + k^p) by max bound
+  have h_geom := summable_geometric_of_lt_one hr_pos.le hr_lt_one
+  have h_pow_geom := summable_pow_mul_geometric_of_norm_lt_one p h_norm_r
+  have h_sum_comp : Summable (fun k : ℕ => (1 + (↑k : ℝ)) ^ p * r ^ k) := by
+    -- Use: (1+k)^p ≤ 2^p * (1 + k^p)
+    refine Summable.of_nonneg_of_le
+      (fun k => mul_nonneg
+        (pow_nonneg (by linarith [Nat.cast_nonneg (α := ℝ) k] : (0:ℝ) ≤ 1 + ↑k) p)
+        (pow_nonneg hr_pos.le k))
+      (fun k => ?_) ((h_geom.add h_pow_geom).mul_left (2 ^ p))
+    -- Bound: (1+k)^p * r^k ≤ 2^p * (1 + k^p) * r^k = 2^p * (r^k + k^p * r^k)
+    have h1k : (1 + (↑k : ℝ)) ^ p ≤ 2 ^ p * (1 + (↑k : ℝ) ^ p) := by
+      calc (1 + (↑k : ℝ)) ^ p
+          ≤ (2 * max 1 (↑k : ℝ)) ^ p := by
+            apply pow_le_pow_left₀ (by linarith [Nat.cast_nonneg (α := ℝ) k] : (0:ℝ) ≤ 1 + ↑k)
+            calc (1 : ℝ) + ↑k ≤ max 1 ↑k + max 1 ↑k :=
+                  add_le_add (le_max_left _ _) (le_max_right (1 : ℝ) ↑k)
+              _ = 2 * max 1 ↑k := (two_mul _).symm
+        _ = 2 ^ p * (max 1 (↑k : ℝ)) ^ p := mul_pow _ _ _
+        _ ≤ 2 ^ p * (1 + (↑k : ℝ) ^ p) := by
+            apply mul_le_mul_of_nonneg_left _ (pow_nonneg (by norm_num : (0:ℝ) ≤ 2) p)
+            by_cases h : (↑k : ℝ) ≤ 1
+            · rw [max_eq_left h, one_pow]
+              linarith [pow_nonneg (Nat.cast_nonneg (α := ℝ) k) p]
+            · push_neg at h; rw [max_eq_right h.le]
+              linarith [one_le_pow₀ (M₀ := ℝ) h.le (n := p)]
+    calc (1 + (↑k : ℝ)) ^ p * r ^ k
+        ≤ 2 ^ p * (1 + (↑k : ℝ) ^ p) * r ^ k :=
+          mul_le_mul_of_nonneg_right h1k (pow_nonneg hr_pos.le k)
+      _ = 2 ^ p * (r ^ k + (↑k : ℝ) ^ p * r ^ k) := by ring
+  -- Main bound: each term's norm ≤ exp(-t) * C² * (1+k)^p * r^k
+  set g : ℕ → ℝ := fun k => exp (-t) * C ^ 2 * ((1 + ↑k) ^ p * r ^ k) with hg_def
+  have hg_summable : Summable g := h_sum_comp.mul_left _
+  have h_norm_le : ∀ k : ℕ, ‖exp (-(t * (2 * ↑k + 1))) *
+      hermiteFunction k x₁ * hermiteFunction k x₂‖ ≤ g k := by
+    intro k
+    rw [Real.norm_eq_abs, h_exp_split k]
+    have h_exp_nonneg : (0 : ℝ) ≤ exp (-t) := le_of_lt (exp_pos _)
+    have hr_pow_nonneg : (0 : ℝ) ≤ r ^ k := pow_nonneg hr_pos.le k
+    have h1k_nonneg : (0 : ℝ) ≤ 1 + ↑k := by linarith [Nat.cast_nonneg (α := ℝ) k]
+    have h1k_pos : (0 : ℝ) < 1 + ↑k := by linarith [Nat.cast_nonneg (α := ℝ) k]
+    -- |exp(-t) * r^k * ψ(x₁) * ψ(x₂)| ≤ exp(-t) * r^k * C(1+k)^s * C(1+k)^s
+    have step1 : |exp (-t) * r ^ k * hermiteFunction k x₁ * hermiteFunction k x₂| ≤
+        exp (-t) * r ^ k * (C * (1 + ↑k) ^ s) * (C * (1 + ↑k) ^ s) := by
+      rw [abs_mul, abs_mul, abs_of_nonneg (mul_nonneg h_exp_nonneg hr_pow_nonneg)]
+      apply mul_le_mul (mul_le_mul_of_nonneg_left (hbound k x₁)
+        (mul_nonneg h_exp_nonneg hr_pow_nonneg))
+        (hbound k x₂) (abs_nonneg _)
+        (mul_nonneg (mul_nonneg h_exp_nonneg hr_pow_nonneg)
+          (mul_nonneg hC.le (Real.rpow_nonneg h1k_nonneg _)))
+    -- C(1+k)^s * C(1+k)^s = C² * (1+k)^(2s)
+    have step2 : exp (-t) * r ^ k * (C * (1 + ↑k) ^ s) * (C * (1 + ↑k) ^ s) =
+        exp (-t) * C ^ 2 * ((1 + ↑k) ^ (2 * s) * r ^ k) := by
+      -- Rearrange: exp * r^k * (C * a) * (C * a) = exp * C² * (a * a * r^k)
+      -- where a = (1+k)^s, then a * a = (1+k)^(2s)
+      set a := (1 + (↑k : ℝ)) ^ s
+      have ha2 : a * a = (1 + ↑k) ^ (2 * s) :=
+        (Real.rpow_add h1k_pos s s).symm ▸ (show s + s = 2 * s by ring) ▸ rfl
+      calc exp (-t) * r ^ k * (C * a) * (C * a)
+          = exp (-t) * (C * C) * (a * a) * r ^ k := by ring
+        _ = exp (-t) * C ^ 2 * ((1 + ↑k) ^ (2 * s) * r ^ k) := by
+            rw [ha2, sq, mul_assoc]
+    -- (1+k)^(2s) ≤ (1+k)^p
+    have step3 : exp (-t) * C ^ 2 * ((1 + ↑k) ^ (2 * s) * r ^ k) ≤ g k := by
+      simp only [hg_def]
+      apply mul_le_mul_of_nonneg_left _ (mul_nonneg h_exp_nonneg (sq_nonneg _))
+      exact mul_le_mul_of_nonneg_right (h_rpow_le_pow k) hr_pow_nonneg
+    linarith
+  exact Summable.of_norm_bounded (g := g) hg_summable h_norm_le
 
 /-- The Mehler kernel is symmetric. -/
 theorem mehlerKernel_symmetric (t x₁ x₂ : ℝ) :
@@ -88,10 +179,62 @@ noncomputable def circleHeatKernel (L : ℝ) [Fact (0 < L)]
     fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
 
 /-- The circle heat kernel series converges absolutely for t > 0. -/
-axiom circleHeatKernel_summable (L : ℝ) [Fact (0 < L)]
+theorem circleHeatKernel_summable (L : ℝ) [hL : Fact (0 < L)]
     (t : ℝ) (ht : 0 < t) (θ₁ θ₂ : ℝ) :
     Summable fun (n : ℕ) => exp (-(t * (2 * π * ↑n / L) ^ 2)) *
-      fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
+      fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂ := by
+  -- Bound: |fourierBasisFun n x| ≤ M for all n, x
+  set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
+  have hM_nonneg : 0 ≤ M := le_max_of_le_right (Real.sqrt_nonneg _)
+  -- Set r = exp(-t*(2π/L)²) < 1
+  set c := t * (2 * π / L) ^ 2 with hc_def
+  have hc_pos : 0 < c := mul_pos ht (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
+  set r := exp (-c)
+  have hr_pos : 0 < r := exp_pos _
+  have hr_lt_one : r < 1 := Real.exp_lt_one_iff.mpr (by linarith)
+  -- Key inequality: t * (2πn/L)² = c * n², and n² ≥ n for n : ℕ
+  have h_exp_le : ∀ n : ℕ, exp (-(t * (2 * π * ↑n / L) ^ 2)) ≤ r ^ n := by
+    intro n
+    rw [show r ^ n = exp (-c) ^ n from rfl, ← Real.exp_nat_mul,
+      show ↑n * -c = -(c * ↑n) from by ring]
+    apply Real.exp_le_exp.mpr
+    -- Need: -(t * (2πn/L)²) ≤ -(c * n), i.e., c * n ≤ t * (2πn/L)²
+    -- t * (2πn/L)² = t * (2π/L)² * n² = c * n²
+    have h_eq : t * (2 * π * ↑n / L) ^ 2 = c * (↑n) ^ 2 := by
+      simp only [hc_def]; ring
+    rw [h_eq]
+    -- -(c * n²) ≤ -(c * n) ⟸ c * n ≤ c * n² ⟸ n ≤ n² (since c > 0)
+    -- n ≤ n² for n : ℕ: either n = 0 (trivial) or n ≥ 1 so n * 1 ≤ n * n
+    have hn_sq : (↑n : ℝ) ≤ (↑n) ^ 2 := by
+      rcases n with _ | n
+      · simp
+      · have h1 : (1 : ℝ) ≤ ↑(n + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
+        calc (↑(n + 1) : ℝ) = ↑(n + 1) * 1 := (mul_one _).symm
+          _ ≤ ↑(n + 1) * ↑(n + 1) := by apply mul_le_mul_of_nonneg_left h1; positivity
+          _ = (↑(n + 1)) ^ 2 := (sq _).symm
+    linarith [mul_le_mul_of_nonneg_left hn_sq hc_pos.le]
+  -- Comparison: ‖term n‖ ≤ M² · r^n
+  have h_geom : Summable (fun n => M ^ 2 * r ^ n) :=
+    (summable_geometric_of_lt_one hr_pos.le hr_lt_one).mul_left _
+  apply Summable.of_norm_bounded (g := fun n => M ^ 2 * r ^ n) h_geom
+  intro n
+  rw [Real.norm_eq_abs]
+  have h_exp_nonneg : 0 ≤ exp (-(t * (2 * π * ↑n / L) ^ 2)) := le_of_lt (exp_pos _)
+  calc |exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+        fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂|
+      ≤ exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+        |fourierBasisFun (L := L) n θ₁| * |fourierBasisFun (L := L) n θ₂| := by
+        rw [abs_mul, abs_mul, abs_of_nonneg h_exp_nonneg]
+    _ ≤ exp (-(t * (2 * π * ↑n / L) ^ 2)) * M * M := by
+        apply mul_le_mul
+        · exact mul_le_mul_of_nonneg_left
+            (SmoothMap_Circle.fourierBasisFun_abs_le n θ₁) h_exp_nonneg
+        · exact SmoothMap_Circle.fourierBasisFun_abs_le n θ₂
+        · exact abs_nonneg _
+        · exact mul_nonneg h_exp_nonneg hM_nonneg
+    _ = M ^ 2 * exp (-(t * (2 * π * ↑n / L) ^ 2)) := by ring
+    _ ≤ M ^ 2 * r ^ n := by
+        apply mul_le_mul_of_nonneg_left (h_exp_le n) (sq_nonneg _)
 
 /-- The circle heat kernel is symmetric. -/
 theorem circleHeatKernel_symmetric (L : ℝ) [Fact (0 < L)]

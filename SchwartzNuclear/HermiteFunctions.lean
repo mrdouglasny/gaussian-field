@@ -1049,7 +1049,7 @@ private lemma hermiteFunction_sq_tendsto_atTop (n : ℕ) :
 /-- Agmon-type sup bound: |ψₙ(x)| grows at most polynomially in n.
     Uses FTC + Cauchy-Schwarz + orthonormality + derivative identity:
     |ψₙ(x)|² ≤ 2‖ψₙ‖₂ · ‖ψₙ'‖₂ = 2√((2n+1)/2) ≤ C·(1+n)^{1/2}. -/
-private theorem hermiteFunction_sup_bound :
+theorem hermiteFunction_sup_bound :
     ∃ (C : ℝ) (s : ℝ), 0 < C ∧ 0 ≤ s ∧
     ∀ (n : ℕ) (x : ℝ), |hermiteFunction n x| ≤ C * (1 + ↑n) ^ s := by
   -- We use FTC + AM-GM: |ψ_n(x)|² ≤ ||ψ_n||₂² + ||ψ_n'||₂² = 1 + (2n+1)/2 ≤ 2(1+n)
