@@ -26,7 +26,7 @@ Gaussian measure and for measures with single-site perturbations.
   non-positive off-diagonal are submodular
 - `gaussianDensity_fkg_lattice_condition` — Gaussian density satisfies FKG
 
-## Axioms (3)
+## Axioms (5)
 
 - `fkg_from_lattice_condition` — FKG lattice condition implies correlation
   inequality (Holley 1974); proof requires induction + Prékopa-Leindler
@@ -34,8 +34,10 @@ Gaussian measure and for measures with single-site perturbations.
   should be provable from `finiteLaplacianFun` definition
 - `latticeGaussianMeasure_density_integral` — density bridge: Gaussian measure
   expectations = normalized weighted Lebesgue integrals
+- `gaussianDensity_integrable` — Gaussian density is Lebesgue-integrable
+- `gaussianDensity_integral_pos` — Gaussian integral is strictly positive
 
-## Derived theorems (with sorry for measure-theory glue)
+## Derived theorems (with sorry for integrability transfer)
 
 - `gaussian_fkg_lattice_condition` — FKG for Gaussian measure
 - `fkg_perturbed` — FKG for single-site perturbations
@@ -525,6 +527,18 @@ axiom latticeGaussianMeasure_density_integral (a mass : ℝ)
     (∫ φ, F φ * gaussianDensity d N a mass φ) /
     (∫ φ, gaussianDensity d N a mass φ)
 
+/-- The Gaussian density is integrable against Lebesgue measure on `ℝ^{N^d}`.
+This follows from the standard Gaussian integral: `exp(-½⟨φ,Qφ⟩)` is integrable
+when Q is positive definite. -/
+axiom gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    Integrable (gaussianDensity d N a mass)
+
+/-- The Gaussian integral is strictly positive: `∫ exp(-½⟨φ,Qφ⟩) dφ > 0`.
+Follows from `gaussianDensity_nonneg` + `gaussianDensity_integrable` + the fact
+that ρ is continuous and positive everywhere, so has positive integral. -/
+axiom gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    0 < ∫ φ, gaussianDensity d N a mass φ
+
 /-! ### FKG for the Gaussian measure
 
 With the density bridge and the proved FKG lattice condition for the Gaussian
@@ -557,35 +571,33 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
     fun ω => congr_arg F (config_eq_liftToConfig d N ω)
   have hG_eq : ∀ ω, G ω = G' (fun x => ω (finLatticeDelta d N x)) :=
     fun ω => congr_arg G (config_eq_liftToConfig d N ω)
-  -- Step 2: Rewrite each integral using density bridge
+  -- Step 2: Integrability of weighted functions (Lebesgue measure on ℝ^{N^d})
+  -- These follow from the density bridge + integrability on the Gaussian measure.
+  have hF'ρi : Integrable (fun φ => F' φ * ρ φ) := sorry
+  have hG'ρi : Integrable (fun φ => G' φ * ρ φ) := sorry
+  have hFG'ρi : Integrable (fun φ => F' φ * G' φ * ρ φ) := sorry
+  -- Step 3: Rewrite each integral using density bridge
   have hI_FG : ∫ ω, F ω * G ω ∂μ = (∫ φ, F' φ * G' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω * G ω ∂μ) =
         ∫ ω, (fun φ => F' φ * G' φ) (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hG_eq])]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _
-      (sorry : Integrable (fun φ => F' φ * G' φ * ρ φ))
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hFG'ρi
   have hI_F : ∫ ω, F ω ∂μ = (∫ φ, F' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω ∂μ) =
         ∫ ω, F' (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; exact hF_eq ω)]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass F'
-      (sorry : Integrable (fun φ => F' φ * ρ φ))
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass F' hF'ρi
   have hI_G : ∫ ω, G ω ∂μ = (∫ φ, G' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, G ω ∂μ) =
         ∫ ω, G' (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; exact hG_eq ω)]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass G'
-      (sorry : Integrable (fun φ => G' φ * ρ φ))
-  -- Step 3: Apply FKG in unnormalized form, then convert to normalized
-  have hρ_pos : 0 < ∫ φ, ρ φ :=
-    sorry -- Gaussian integral is strictly positive (ρ = exp(-½⟨φ,Qφ⟩) > 0)
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass G' hG'ρi
+  -- Step 4: Apply FKG in unnormalized form, then convert to normalized
+  have hρ_pos : 0 < ∫ φ, ρ φ := gaussianDensity_integral_pos d N a mass ha hmass
   have hfkg := fkg_from_lattice_condition ρ (gaussianDensity_nonneg d N a mass)
     (gaussianDensity_fkg_lattice_condition d N a mass ha hmass) F' G'
     (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG)
-    (sorry : Integrable ρ)
-    (sorry : Integrable (fun φ => F' φ * ρ φ))
-    (sorry : Integrable (fun φ => G' φ * ρ φ))
-    (sorry : Integrable (fun φ => F' φ * G' φ * ρ φ))
+    (gaussianDensity_integrable d N a mass ha hmass) hF'ρi hG'ρi hFG'ρi
   -- Convert: (∫ F'G'ρ)(∫ ρ) ≥ (∫ F'ρ)(∫ G'ρ) implies (∫ F'G'ρ)/(∫ ρ) ≥ (∫ F'ρ/∫ρ)·(∫ G'ρ/∫ρ)
   rw [hI_FG, hI_F, hI_G, ge_iff_le, div_mul_div_comm]
   exact (div_le_div_iff₀ (mul_pos hρ_pos hρ_pos) hρ_pos).mpr (by nlinarith [hfkg])
@@ -665,27 +677,53 @@ theorem fkg_perturbed (a mass : ℝ)
     fun ω => congr_arg G (config_eq_liftToConfig d N ω)
   have hV_eq : ∀ ω, V ω = V' (fun x => ω (finLatticeDelta d N x)) :=
     fun ω => congr_arg V (config_eq_liftToConfig d N ω)
-  -- Rewrite each integral using density bridge
-  -- Rewrite integrals using density bridge (sorry for integrability transfer)
+  -- Integrability of weighted functions (Lebesgue measure on ℝ^{N^d})
+  -- All follow from density bridge + integrability on the Gaussian measure.
+  have hVρi : Integrable (fun φ => Real.exp (-V' φ) * ρ φ) := sorry
+  have hFVρi : Integrable (fun φ => F' φ * Real.exp (-V' φ) * ρ φ) := sorry
+  have hGVρi : Integrable (fun φ => G' φ * Real.exp (-V' φ) * ρ φ) := sorry
+  have hFGVρi : Integrable (fun φ => F' φ * G' φ * Real.exp (-V' φ) * ρ φ) := sorry
+  have hρ'i : Integrable ρ' :=
+    hVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
+  have hFρ'i : Integrable (fun φ => F' φ * ρ' φ) :=
+    hFVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
+  have hGρ'i : Integrable (fun φ => G' φ * ρ' φ) :=
+    hGVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
+  have hFGρ'i : Integrable (fun φ => F' φ * G' φ * ρ' φ) :=
+    hFGVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
+  -- Rewrite integrals using density bridge
   have hI_FGV : ∫ ω, F ω * G ω * Real.exp (-V ω) ∂μ =
-      (∫ φ, F' φ * G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
-    sorry -- density bridge for F·G·exp(-V)
+      (∫ φ, F' φ * G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, F ω * G ω * Real.exp (-V ω) ∂μ) =
+        ∫ ω, (fun φ => F' φ * G' φ * Real.exp (-V' φ))
+          (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hG_eq, hV_eq])]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hFGVρi
   have hI_V : ∫ ω, Real.exp (-V ω) ∂μ =
-      (∫ φ, Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
-    sorry -- density bridge for exp(-V)
+      (∫ φ, Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, Real.exp (-V ω) ∂μ) =
+        ∫ ω, (fun φ => Real.exp (-V' φ))
+          (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; simp only [hV_eq])]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hVρi
   have hI_FV : ∫ ω, F ω * Real.exp (-V ω) ∂μ =
-      (∫ φ, F' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
-    sorry -- density bridge for F·exp(-V)
+      (∫ φ, F' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, F ω * Real.exp (-V ω) ∂μ) =
+        ∫ ω, (fun φ => F' φ * Real.exp (-V' φ))
+          (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hV_eq])]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hFVρi
   have hI_GV : ∫ ω, G ω * Real.exp (-V ω) ∂μ =
-      (∫ φ, G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) :=
-    sorry -- density bridge for G·exp(-V)
+      (∫ φ, G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
+    rw [show (∫ ω, G ω * Real.exp (-V ω) ∂μ) =
+        ∫ ω, (fun φ => G' φ * Real.exp (-V' φ))
+          (fun x => ω (finLatticeDelta d N x)) ∂μ from
+      integral_congr_ae (by filter_upwards with ω; simp only [hG_eq, hV_eq])]
+    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hGVρi
   -- Apply FKG to combined density ρ'
   have hfkg := fkg_from_lattice_condition ρ' hρ'_nn hρ'_fkg F' G'
     (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG)
-    (sorry : Integrable ρ')
-    (sorry : Integrable (fun φ => F' φ * ρ' φ))
-    (sorry : Integrable (fun φ => G' φ * ρ' φ))
-    (sorry : Integrable (fun φ => F' φ * G' φ * ρ' φ))
+    hρ'i hFρ'i hGρ'i hFGρ'i
   -- hfkg: (∫ F'G'ρ')(∫ ρ') ≥ (∫ F'ρ')(∫ G'ρ')
   -- Equate integrals: ∫ F'ρ' = ∫ F'e^{-V'}ρ, etc.
   have hI_eq1 : ∫ φ, F' φ * G' φ * ρ' φ =
@@ -699,8 +737,7 @@ theorem fkg_perturbed (a mass : ℝ)
     integral_congr_ae (by filter_upwards with φ; simp only [hρ'_def]; ring)
   -- Substitute and simplify
   rw [hI_FGV, hI_V, hI_FV, hI_GV, ge_iff_le, div_mul_div_comm, div_mul_div_comm]
-  have hρ_pos : 0 < ∫ φ, ρ φ :=
-    sorry -- Gaussian integral is strictly positive
+  have hρ_pos : 0 < ∫ φ, ρ φ := gaussianDensity_integral_pos d N a mass ha hmass
   exact (div_le_div_iff₀ (mul_pos hρ_pos hρ_pos) (mul_pos hρ_pos hρ_pos)).mpr
     (by rw [← hI_eq3, ← hI_eq4, ← hI_eq1, ← hI_eq2]; nlinarith [hfkg])
 
