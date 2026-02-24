@@ -225,7 +225,9 @@ Glimm-Jaffe/Nelson construction.
 | [Lattice/FiniteField.lean](Lattice/FiniteField.lean) | `FinLatticeField d N`, `DyninMityaginSpace` and `HasPointEval` instances |
 | [Lattice/RapidDecayLattice.lean](Lattice/RapidDecayLattice.lean) | `RapidDecayLattice d` (rapidly decaying functions on ℤ^d), seminorms, topology |
 | [Lattice/Laplacian.lean](Lattice/Laplacian.lean) | `finiteLaplacian`, `infiniteLaplacian`, `massOperator`, eigenvalue formulas |
-| [Lattice/Covariance.lean](Lattice/Covariance.lean) | `latticeCovariance` via `spectralCLM`, `latticeGaussianMeasure` |
+| [Lattice/SpectralCovariance.lean](Lattice/SpectralCovariance.lean) | Mass operator spectral decomposition, `spectralLatticeCovariance` CLM, `gaussianDensity` |
+| [Lattice/Covariance.lean](Lattice/Covariance.lean) | `latticeCovariance` via spectral theorem, `latticeGaussianMeasure` |
+| [GaussianField/Density.lean](GaussianField/Density.lean) | Density bridge: Gaussian measure ↔ Gaussian density |
 | [Lattice/FKG.lean](Lattice/FKG.lean) | FKG inequality for lattice Gaussian and convexly-perturbed measures |
 
 ### 2e. [Point Evaluation and API](docs/point-eval-and-api.md)
@@ -297,7 +299,7 @@ The core results are fully proved with no custom axioms:
 
 The `HeatKernel/` module has proved the Mehler kernel closed form, positivity, semigroup property, Hermite reproducing property, and circle heat kernel properties. Remaining axioms are for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
 
-The `Lattice/FKG.lean` module proves the FKG inequality for lattice Gaussian measures and single-site perturbations (sorry-free, 6 axioms for measure-theoretic infrastructure).
+The `Lattice/FKG.lean` module proves the FKG inequality for lattice Gaussian measures and single-site perturbations (sorry-free, 1 axiom). The density bridge (`GaussianField/Density.lean`) connecting the abstract Gaussian measure to the explicit density `exp(-½⟨φ,Qφ⟩)` is constructed via the spectral theorem for the mass operator (`Lattice/SpectralCovariance.lean`).
 
 ## Further documentation
 

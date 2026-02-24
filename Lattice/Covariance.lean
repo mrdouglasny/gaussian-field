@@ -4,14 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Lattice Covariance and Gaussian Measure
 
-Constructs the lattice Green's function / covariance as a `spectralCLM` into
-ℓ², and the lattice Gaussian measure via `GaussianField.measure`.
+Constructs the lattice covariance CLM into ℓ² via the spectral theorem for
+the mass operator Q = -Δ + m², and the lattice Gaussian measure via
+`GaussianField.measure`.
 
 ## Main definitions
 
-- `latticeSingularValue` — eigenvalue^{-1/2} for spectral CLM
-- `lattice_singular_values_bounded` — bounded sequence condition
-- `latticeCovariance` — the CLM `FinLatticeField d N →L[ℝ] ell2'`
+- `latticeCovariance` — the CLM `T = Q^{-1/2} : FinLatticeField d N →L[ℝ] ell2'`
 - `latticeGaussianMeasure` — centered Gaussian measure on the lattice
 
 ## Mathematical background
@@ -19,15 +18,14 @@ Constructs the lattice Green's function / covariance as a `spectralCLM` into
 For the finite lattice with periodic BC, the covariance matrix is
   `C = (-Δ_a + m²)⁻¹`
 
-Eigenvalues of `-Δ_a + m²`: `λ_k = (4/a²) Σᵢ sin²(πkᵢ/N) + m²`
-These are all strictly positive when m > 0.
-
-Singular values: `σ_m = λ_m^{-1/2}`
-These are bounded by `1/m` (mass > 0), enabling the spectralCLM construction.
+The covariance CLM satisfies `⟨Tf, Tg⟩_ℓ² = ⟨f, Q⁻¹g⟩_L²` where Q is
+the mass operator. This is constructed via the spectral decomposition
+`T(f)(k) = λ_k^{-1/2} ⟪e_k, f⟫` where `{e_k}` are eigenvectors of Q.
 -/
 
 import Lattice.FiniteField
 import Lattice.Laplacian
+import Lattice.SpectralCovariance
 import HeatKernel.Axioms
 import GaussianField.Construction
 import GaussianField.Properties
@@ -82,13 +80,15 @@ theorem lattice_singular_values_bounded (a mass : ℝ)
 /-! ## Covariance CLM -/
 
 /-- The lattice covariance as a CLM into ℓ².
-Constructed via `spectralCLM` with the lattice singular values. -/
+Constructed via spectral decomposition of Q = -Δ + m²: maps
+`f ↦ (k ↦ λ_k^{-1/2} ⟪e_k, f⟫)` where `{e_k, λ_k}` are the eigenvectors
+and eigenvalues of the mass operator.
+
+Satisfies `⟨Tf, Tg⟩_ℓ² = ⟨f, Q⁻¹g⟩_L²`. -/
 noncomputable def latticeCovariance (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass) :
     FinLatticeField d N →L[ℝ] ell2' :=
-  spectralCLM
-    (fun m => latticeSingularValue d N a mass m)
-    (lattice_singular_values_bounded d N a mass ha hmass)
+  spectralLatticeCovariance d N a mass ha hmass
 
 /-! ## Lattice Gaussian Measure -/
 
@@ -117,15 +117,26 @@ instance latticeGaussianMeasure_isProbability (a mass : ℝ)
 /-! ## Covariance identity
 
 The two-point function of the lattice Gaussian measure equals the Green's
-function of the mass operator, following automatically from the general
-GaussianField API:
-  `E[ω(f)·ω(g)] = ⟨T(f), T(g)⟩_ℓ² = G_a(f,g) = ((-Δ_a + m²)⁻¹ f, g)` -/
+function of the mass operator:
+  `E[ω(f)·ω(g)] = ⟨T(f), T(g)⟩_ℓ² = ⟨f, Q⁻¹g⟩_L²` -/
 
+/-- The cross moment equals the abstract covariance. -/
 theorem lattice_cross_moment (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f g : FinLatticeField d N) :
     ∫ ω : Configuration (FinLatticeField d N),
       (ω f) * (ω g) ∂(latticeGaussianMeasure d N a mass ha hmass) =
     GaussianField.covariance (latticeCovariance d N a mass ha hmass) f g :=
   GaussianField.cross_moment_eq_covariance _ f g
+
+/-- The covariance equals the spectral expansion of Q⁻¹. -/
+theorem lattice_covariance_eq_spectral (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f g : FinLatticeField d N) :
+    GaussianField.covariance (latticeCovariance d N a mass ha hmass) f g =
+    ∑ k : FinLatticeSites d N,
+      (massEigenvalues d N a mass k)⁻¹ *
+      (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+      (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
+  unfold covariance latticeCovariance
+  exact spectralLatticeCovariance_inner d N a mass ha hmass f g
 
 end GaussianField

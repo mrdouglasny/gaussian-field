@@ -26,14 +26,17 @@ Gaussian measure and for measures with single-site perturbations.
   non-positive off-diagonal are submodular
 - `gaussianDensity_fkg_lattice_condition` — Gaussian density satisfies FKG
 
-## Axioms (3)
+## Axioms (1)
 
 - `fkg_from_lattice_condition` — FKG lattice condition implies correlation
   inequality (Holley 1974); proof requires induction + Prékopa-Leindler
-- `latticeGaussianMeasure_density_integral` — density bridge: Gaussian measure
-  expectations = normalized weighted Lebesgue integrals
-- `integrable_mul_gaussianDensity` — for F integrable w.r.t. Gaussian measure,
-  `F · ρ` is Lebesgue-integrable (integrability transfer via absolute continuity)
+
+## Proved (formerly axioms)
+
+- `latticeGaussianMeasure_density_integral` — density bridge: proved in
+  `GaussianField.Density` via characteristic function matching
+- `integrable_mul_gaussianDensity` — integrability transfer: proved in
+  `GaussianField.Density` via density bridge
 
 ## Derived theorems
 
@@ -65,6 +68,7 @@ massOperator_offDiag_nonpos → quadraticForm_submodular → gaussianDensity_fkg
 -/
 
 import Lattice.Covariance
+import GaussianField.Density
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Integral.Prod
 
@@ -437,18 +441,7 @@ We define the Gaussian density explicitly and show it satisfies the FKG
 lattice condition by the chain: non-positive off-diagonals → submodularity
 → FKG lattice condition. -/
 
-/-- The Gaussian density on `FinLatticeField d N` (unnormalized):
-`ρ(φ) = exp(-½ ⟨φ, Qφ⟩)` where Q = -Δ_a + m² is the mass operator. -/
-def gaussianDensity (d N : ℕ) [NeZero N] (a mass : ℝ)
-    (φ : FinLatticeField d N) : ℝ :=
-  Real.exp (-(1/2) * ∑ x : FinLatticeSites d N,
-    φ x * (massOperator d N a mass φ) x)
-
-/-- The "matrix entries" of the mass operator: the bilinear form evaluated
-on delta functions. `Q(x,y) = ⟨δ_x, (-Δ+m²)(δ_y)⟩`. -/
-def massOperatorEntry (d N : ℕ) [NeZero N] (a mass : ℝ)
-    (x y : FinLatticeSites d N) : ℝ :=
-  (massOperator d N a mass (finLatticeDelta d N y)) x
+-- gaussianDensity and massOperatorEntry are now defined in SpectralCovariance.lean
 
 /-- The mass operator has non-positive off-diagonal entries.
 The `m²` term is diagonal, and `-Δ` has off-diagonal entries `-a⁻²` for
@@ -518,40 +511,20 @@ theorem gaussianDensity_fkg_lattice_condition (a mass : ℝ) (ha : 0 < a) (hmass
   simp only [massOperator_bilinear_eq_sum d N] at *
   linarith
 
-/-- The Gaussian density is non-negative. -/
-theorem gaussianDensity_nonneg (a mass : ℝ) (φ : FinLatticeField d N) :
-    0 ≤ gaussianDensity d N a mass φ :=
-  le_of_lt (Real.exp_pos _)
+-- gaussianDensity_nonneg is now in SpectralCovariance.lean
 
-/-! ### Density bridge axiom
+/-! ### Density bridge (proved)
 
-The following axiom bridges the abstract `latticeGaussianMeasure` (constructed
+The density bridge connects the abstract `latticeGaussianMeasure` (constructed
 via pushforward of noise measure) with the explicit Gaussian density. It states
 that expectations over the Gaussian measure can be computed as weighted Lebesgue
 integrals with the Gaussian density.
 
-This is the only axiom connecting abstract measure construction to concrete density.
-All other FKG results follow from this + the proved algebraic lemmas. -/
+Proved in `GaussianField.Density` via characteristic function matching:
+both measures have charFun `exp(-½ ⟨t, Q⁻¹t⟩)`, so they are equal. -/
 
-/-- **Density bridge**: the lattice Gaussian measure equals a weighted
-Lebesgue integral with the Gaussian density.
-
-For any function F of field values, the expectation under the Gaussian measure
-equals the normalized weighted integral:
-`E_μ[F] = (∫ F(φ) · ρ(φ) dφ) / (∫ ρ(φ) dφ)`
-where `ρ(φ) = exp(-½⟨φ, Qφ⟩)` and the integrals are against Lebesgue measure
-on `FinLatticeField d N ≅ ℝ^{N^d}`.
-
-This axiom encapsulates the connection between the pushforward construction
-of the Gaussian measure and the classical density formula. -/
-axiom latticeGaussianMeasure_density_integral (a mass : ℝ)
-    (ha : 0 < a) (hmass : 0 < mass)
-    (F : FinLatticeField d N → ℝ)
-    (hFρi : Integrable (fun φ => F φ * gaussianDensity d N a mass φ)) :
-    ∫ ω, F (fun x => ω (finLatticeDelta d N x))
-      ∂(latticeGaussianMeasure d N a mass ha hmass) =
-    (∫ φ, F φ * gaussianDensity d N a mass φ) /
-    (∫ φ, gaussianDensity d N a mass φ)
+-- Re-export from GaussianField.Density (no longer an axiom)
+#check @GaussianField.latticeGaussianMeasure_density_integral
 
 /-- The Gaussian density is integrable against Lebesgue measure on `ℝ^{N^d}`.
 
@@ -624,19 +597,8 @@ theorem gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
   · exact fun φ => le_of_lt (Real.exp_pos _)
   · exact ne_of_gt (Real.exp_pos _)
 
-/-- **Integrability transfer**: for F integrable against the Gaussian measure μ,
-the product F·ρ is integrable against Lebesgue measure.
-
-This follows from the density bridge: μ has density ρ/Z with respect to
-Lebesgue, so `∫|F|dμ = ∫|F|ρ/Z dλ < ∞` implies `∫|F|ρ dλ = Z · ∫|F|dμ < ∞`.
-
-Proof requires formalizing absolute continuity of the Gaussian measure
-with respect to Lebesgue measure. -/
-axiom integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
-    (F : FinLatticeField d N → ℝ)
-    (hF : Integrable (fun ω => F (fun x => ω (finLatticeDelta d N x)))
-           (latticeGaussianMeasure d N a mass ha hmass)) :
-    Integrable (fun φ => F φ * gaussianDensity d N a mass φ)
+-- Re-export from GaussianField.Density (no longer an axiom)
+#check @GaussianField.integrable_mul_gaussianDensity
 
 /-! ### FKG for the Gaussian measure
 
@@ -685,11 +647,11 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
         (fun φ => F' φ * G' φ) (fun x => ω (finLatticeDelta d N x))) μ :=
     hFGi.congr (by filter_upwards with ω; simp only [Pi.mul_apply, hF_eq, hG_eq])
   have hF'ρi : Integrable (fun φ => F' φ * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass F' hF'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass F' hF'_int
   have hG'ρi : Integrable (fun φ => G' φ * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass G' hG'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass G' hG'_int
   have hFG'ρi : Integrable (fun φ => F' φ * G' φ * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass
+    integrable_mul_gaussianDensity d N a mass ha hmass
       (fun φ => F' φ * G' φ) hFG'_int
   -- Step 3: Rewrite each integral using density bridge
   have hI_FG : ∫ ω, F ω * G ω ∂μ = (∫ φ, F' φ * G' φ * ρ φ) / (∫ φ, ρ φ) := by
@@ -812,13 +774,13 @@ theorem fkg_perturbed (a mass : ℝ)
         (fun φ => F' φ * G' φ * Real.exp (-V' φ)) (fun x => ω (finLatticeDelta d N x))) μ :=
     hFGi.congr (by filter_upwards with ω; simp only [hF_eq, hG_eq, hV_eq])
   have hVρi : Integrable (fun φ => Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass _ hV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _ hV'_int
   have hFVρi : Integrable (fun φ => F' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass _ hFV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _ hFV'_int
   have hGVρi : Integrable (fun φ => G' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass _ hGV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _ hGV'_int
   have hFGVρi : Integrable (fun φ => F' φ * G' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity (ι := FinLatticeSites d N) d N a mass ha hmass _ hFGV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _ hFGV'_int
   have hρ'i : Integrable ρ' :=
     hVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
   have hFρ'i : Integrable (fun φ => F' φ * ρ' φ) :=
