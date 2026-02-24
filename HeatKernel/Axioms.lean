@@ -2,23 +2,21 @@
 Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 
-# Heat Kernel Toolkit — Axiom Interface
+# Heat Kernel Toolkit — Spectral Multiplier CLM
 
-Postulates the spectral multiplier CLM construction and heat kernel properties
-as axioms. These will be replaced by proofs using Mathlib's matrix exponential
-and Kronecker product API when the full `HeatKernel/` library is implemented.
+Constructs the spectral multiplier CLM and proves its basic properties
+using `nuclear_ell2_embedding_from_decay` from the Gaussian field library.
 
-## Main axioms
+## Main results
 
 - `spectralCLM` — given a bounded multiplier sequence σ : ℕ → ℝ, constructs
   a CLM from any DyninMityaginSpace E to ℓ² acting as f ↦ (σ_m · coeff_m(f))_m
 
 - `spectralCLM_coord` — pointwise specification of spectralCLM
 
-## Justification
+## Proof strategy
 
-The axioms are consequences of `nuclear_ell2_embedding_from_decay`:
-for bounded σ_m, set φ_m = σ_m • coeff_m. Then
+For bounded σ_m, set φ_m = σ_m • coeff_m. Then
   |φ_m(f)| = |σ_m| · |coeff_m(f)| ≤ ‖σ‖_∞ · C · p_q(f) · (1+m)^{-k}
 for any k (by DyninMityaginSpace.coeff_decay). Choosing k = 2 gives the
 required (1+m)^{-2} decay for the embedding theorem.
@@ -42,35 +40,104 @@ variable {E : Type*} [AddCommGroup E] [Module ℝ E]
 def IsBoundedSeq (σ : ℕ → ℝ) : Prop :=
   ∃ C : ℝ, ∀ m : ℕ, |σ m| ≤ C
 
+/-! ### Helper: decay bound for σ • coeff -/
+
+/-- The key decay estimate: for bounded σ and DM-space coefficients,
+    |σ_m * coeff_m(f)| ≤ K * (s.sup p) f * (1+m)^{-2}. -/
+private theorem spectral_decay_bound (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) :
+    ∃ (s : Finset (DyninMityaginSpace.ι (E := E))) (K : ℝ) (_ : 0 < K),
+    ∀ (m : ℕ) (f : E),
+      |(fun m => (σ m) • DyninMityaginSpace.coeff m) m f| ≤
+        (K * (s.sup DyninMityaginSpace.p) f) * (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
+  obtain ⟨Cσ, hCσ⟩ := hσ
+  obtain ⟨C, hC_pos, s, hdecay⟩ := DyninMityaginSpace.coeff_decay (E := E) 2
+  refine ⟨s, |Cσ| * C + 1, by positivity, fun m f => ?_⟩
+  simp only [ContinuousLinearMap.smul_apply, smul_eq_mul]
+  have hpos : (0 : ℝ) < 1 + (↑m : ℝ) := by positivity
+  have hm2_pos : (0 : ℝ) < (1 + (↑m : ℝ)) ^ 2 := by positivity
+  have hcd := hdecay f m
+  -- |coeff_m(f)| ≤ C * (s.sup p) f / (1+m)^2
+  have hcoeff_bound : |DyninMityaginSpace.coeff m f| ≤
+      C * (s.sup DyninMityaginSpace.p) f * (1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
+    have h1 : |DyninMityaginSpace.coeff m f| ≤
+        C * (s.sup DyninMityaginSpace.p) f / (1 + (↑m : ℝ)) ^ 2 := by
+      rw [le_div_iff₀ hm2_pos]; linarith [hcd]
+    calc |DyninMityaginSpace.coeff m f|
+        ≤ C * (s.sup DyninMityaginSpace.p) f / (1 + (↑m : ℝ)) ^ 2 := h1
+      _ = C * (s.sup DyninMityaginSpace.p) f *
+            ((1 + (↑m : ℝ)) ^ (2 : ℕ))⁻¹ := by rw [div_eq_mul_inv]
+      _ = C * (s.sup DyninMityaginSpace.p) f *
+            (1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
+          congr 1
+          rw [show ((-2 : ℤ) : ℝ) = -(2 : ℝ) from by norm_cast,
+              Real.rpow_neg (le_of_lt hpos),
+              show (2 : ℝ) = ((2 : ℕ) : ℝ) from by norm_cast,
+              Real.rpow_natCast]
+  have hrpow_nn : (0 : ℝ) ≤ (1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ) :=
+    Real.rpow_nonneg (le_of_lt hpos) _
+  calc |σ m * DyninMityaginSpace.coeff m f|
+      = |σ m| * |DyninMityaginSpace.coeff m f| := abs_mul _ _
+    _ ≤ |Cσ| * |DyninMityaginSpace.coeff m f| := by
+        apply mul_le_mul_of_nonneg_right
+        · exact (hCσ m).trans (le_abs_self _)
+        · exact abs_nonneg _
+    _ ≤ |Cσ| * (C * (s.sup DyninMityaginSpace.p) f *
+          (1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ)) := by
+        apply mul_le_mul_of_nonneg_left hcoeff_bound (abs_nonneg _)
+    _ = (|Cσ| * C) * (s.sup DyninMityaginSpace.p) f *
+          (1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by ring
+    _ ≤ (|Cσ| * C + 1) * (s.sup DyninMityaginSpace.p) f *
+          (1 + (↑m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
+        apply mul_le_mul_of_nonneg_right _ hrpow_nn
+        apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+        linarith
+
 /-- **Spectral multiplier CLM.**
 
     Given a bounded sequence σ : ℕ → ℝ, constructs the continuous linear map
       f ↦ (σ_m · coeff_m(f))_m
-    from a DyninMityaginSpace E to ℓ².
-
-    This is well-defined because DyninMityaginSpace.coeff_decay guarantees
-    |coeff_m(f)| ≤ C · p_q(f) · (1+m)^{-k} for any k. Multiplying by
-    bounded σ_m preserves the (1+m)^{-2} decay needed for ℓ² membership.
-
-    Proof sketch: apply `nuclear_ell2_embedding_from_decay` with
-    φ_m := σ_m • DyninMityaginSpace.coeff m. -/
-axiom spectralCLM (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) :
-    E →L[ℝ] ell2'
+    from a DyninMityaginSpace E to ℓ². -/
+noncomputable def spectralCLM (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) :
+    E →L[ℝ] ell2' :=
+  (nuclear_ell2_embedding_from_decay
+    (fun m => (σ m) • DyninMityaginSpace.coeff m)
+    (spectral_decay_bound σ hσ).choose
+    (spectral_decay_bound σ hσ).choose_spec.choose
+    (spectral_decay_bound σ hσ).choose_spec.choose_spec.choose
+    (spectral_decay_bound σ hσ).choose_spec.choose_spec.choose_spec).choose
 
 /-- The m-th coordinate of spectralCLM σ f is σ_m · coeff_m(f). -/
-axiom spectralCLM_coord (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) (f : E) (m : ℕ) :
-    (spectralCLM σ hσ f : ℕ → ℝ) m = σ m * DyninMityaginSpace.coeff m f
+theorem spectralCLM_coord (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) (f : E) (m : ℕ) :
+    (spectralCLM σ hσ f : ℕ → ℝ) m = σ m * DyninMityaginSpace.coeff m f := by
+  have h := (nuclear_ell2_embedding_from_decay
+    (fun m => (σ m) • DyninMityaginSpace.coeff m)
+    (spectral_decay_bound σ hσ).choose
+    (spectral_decay_bound σ hσ).choose_spec.choose
+    (spectral_decay_bound σ hσ).choose_spec.choose_spec.choose
+    (spectral_decay_bound σ hσ).choose_spec.choose_spec.choose_spec).choose_spec f m
+  simp only [ContinuousLinearMap.smul_apply, smul_eq_mul] at h
+  exact h
 
 /-- spectralCLM with the zero sequence is zero. -/
-axiom spectralCLM_zero :
-    spectralCLM (E := E) (fun _ => 0) ⟨0, fun _ => by simp⟩ = 0
+theorem spectralCLM_zero :
+    spectralCLM (E := E) (fun _ => 0) ⟨0, fun _ => by simp⟩ = 0 := by
+  ext f : 1
+  refine Subtype.ext (funext fun m => ?_)
+  rw [spectralCLM_coord]
+  simp only [zero_mul, ContinuousLinearMap.zero_apply]
+  rfl
 
 /-- spectralCLM respects scalar multiplication:
     spectralCLM (c • σ) = c • spectralCLM σ. -/
-axiom spectralCLM_smul (c : ℝ) (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ)
+theorem spectralCLM_smul (c : ℝ) (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ)
     (hcσ : IsBoundedSeq (fun m => c * σ m)) :
     spectralCLM (E := E) (fun m => c * σ m) hcσ =
-      c • spectralCLM σ hσ
+      c • spectralCLM σ hσ := by
+  ext f : 1
+  refine Subtype.ext (funext fun m => ?_)
+  simp only [ContinuousLinearMap.smul_apply, lp.coeFn_smul, Pi.smul_apply, smul_eq_mul]
+  rw [spectralCLM_coord, spectralCLM_coord]
+  ring
 
 /-! ## Bounded sequence helpers -/
 
@@ -165,8 +232,26 @@ theorem heatSingularValue_factors (L mass s : ℝ) (m : ℕ) :
 
 /-- Singular values σ_m = λ_m^{-1/2} for positive eigenvalues ≥ λ_min > 0
     are bounded by λ_min^{-1/2}. -/
-axiom qft_singular_values_bounded (L mass : ℝ) (hL : 0 < L) (hmass : 0 < mass) :
-    IsBoundedSeq (fun m => qftSingularValue L mass m)
+theorem qft_singular_values_bounded (L mass : ℝ) (hL : 0 < L) (hmass : 0 < mass) :
+    IsBoundedSeq (fun m => qftSingularValue L mass m) := by
+  refine ⟨mass⁻¹, fun m => ?_⟩
+  rw [abs_of_nonneg (qftSingularValue_nonneg hL mass hmass m)]
+  unfold qftSingularValue
+  have hev_pos := qftEigenvalue_pos hL mass hmass m
+  -- Eigenvalue ≥ mass²
+  have hev_ge : mass ^ 2 ≤ qftEigenvalue L mass m := by
+    unfold qftEigenvalue
+    have h1 : (0 : ℝ) ≤ (2 * Real.pi * ↑(Nat.unpair m).1 / L) ^ 2 := sq_nonneg _
+    have h2 : (0 : ℝ) < 2 * ↑(Nat.unpair m).2 + 1 := by positivity
+    linarith
+  -- σ_m ≤ (mass²)^{-1/2} = mass⁻¹
+  have h1 : (qftEigenvalue L mass m) ^ (-(1:ℝ)/2) ≤ (mass ^ 2) ^ (-(1:ℝ)/2) :=
+    Real.rpow_le_rpow_of_nonpos (sq_pos_of_pos hmass) hev_ge (by norm_num)
+  have h2 : (mass ^ 2) ^ (-(1:ℝ)/2) = mass⁻¹ := by
+    rw [← Real.rpow_natCast mass 2, ← Real.rpow_mul (le_of_lt hmass)]
+    norm_num
+    exact Real.rpow_neg_one mass
+  linarith
 
 /-- Heat singular values e^{-sλ_m/2} are bounded by 1 for s ≥ 0. -/
 theorem heat_singular_values_bounded (L mass : ℝ) (hL : 0 < L)
