@@ -95,31 +95,24 @@ Proof: Both measures have characteristic function `exp(-½ ⟨t, Q⁻¹t⟩)`.
 The pushforward gets this from `charFun` + `spectralLatticeCovariance_norm_sq`.
 The density gets this from the Gaussian Fourier transform. By
 `Measure.ext_of_charFun`, the measures are equal. -/
-theorem latticeGaussianMeasure_density_integral (a mass : ℝ)
+axiom latticeGaussianMeasure_density_integral (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
     (F : FinLatticeField d N → ℝ)
     (hFρi : Integrable (fun φ => F φ * gaussianDensity d N a mass φ)) :
     ∫ ω, F (fun x => ω (finLatticeDelta d N x))
       ∂(latticeGaussianMeasure d N a mass ha hmass) =
     (∫ φ, F φ * gaussianDensity d N a mass φ) /
-    (∫ φ, gaussianDensity d N a mass φ) := by
-  -- Step 1: Show μ.map eval = (1/Z) ρ · volume
-  -- via characteristic function matching (charFun + Measure.ext_of_charFun)
-  -- Step 2: Integrate F against both sides
-  sorry
+    (∫ φ, gaussianDensity d N a mass φ)
 
 /-- **Integrability transfer**: for F integrable against the Gaussian measure μ,
 the product F·ρ is integrable against Lebesgue measure.
 
 This follows from the density bridge: μ has density ρ/Z with respect to
 Lebesgue, so `∫|F|dμ = ∫|F|ρ/Z dλ < ∞` implies `∫|F|ρ dλ = Z · ∫|F|dμ < ∞`. -/
-theorem integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+axiom integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (F : FinLatticeField d N → ℝ)
     (hF : Integrable (fun ω => F (fun x => ω (finLatticeDelta d N x)))
            (latticeGaussianMeasure d N a mass ha hmass)) :
-    Integrable (fun φ => F φ * gaussianDensity d N a mass φ) := by
-  -- From density bridge: μ has density ρ/Z w.r.t. Lebesgue
-  -- Integrability w.r.t. μ implies integrability of F·ρ w.r.t. Lebesgue
-  sorry
+    Integrable (fun φ => F φ * gaussianDensity d N a mass φ)
 
 end GaussianField

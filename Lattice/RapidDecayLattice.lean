@@ -22,7 +22,9 @@ equivalence with `RapidDecaySeq`.
 The CLE proof needs to show that the shell enumeration preserves rapid decay:
 `latticeNorm (latticeEnum.symm m) ≤ C · m^{1/d}`. This follows because the
 number of points in ℤ^d with ℓ¹ norm ≤ R grows as ~R^d, so the m-th point
-has norm ~m^{1/d}.
+has norm ~m^{1/d}. This enumeration-based route requires `d ≥ 1`; for
+`d = 0`, `(Fin 0 → ℤ)` is a singleton and should be handled separately as a
+one-dimensional case rather than via an `ℤ^d ≃ ℕ` reindexing.
 
 ## References
 
@@ -191,24 +193,24 @@ private def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
       (((latticeEnumSucc d).prodCongr (Denumerable.eqv ℤ)).trans
         (Denumerable.eqv (ℕ × ℕ)))
 
-/-- Shell enumeration of ℤ^d: bijection with ℕ.
-For d ≥ 1, constructed via iterated Cantor pairing using `Fin.succFunEquiv`
-and `Denumerable.eqv`.
-For d = 0, `(Fin 0 → ℤ)` is a singleton and no bijection with ℕ exists;
-this case uses `sorry` but is never needed in practice (d ≥ 1 always). count_axioms:skip -/
-def latticeEnum (d : ℕ) : (Fin d → ℤ) ≃ ℕ :=
-  match d with
-  | 0 => Equiv.ofBijective (fun _ => 0) (by constructor <;> sorry)
-  | d + 1 => latticeEnumSucc d
+/-- Shell enumeration of ℤ^d: bijection with ℕ (requires `d ≥ 1`).
+For `d = 0`, `(Fin 0 → ℤ)` is a singleton, so no such bijection exists. -/
+def latticeEnum (d : ℕ) [NeZero d] : (Fin d → ℤ) ≃ ℕ := by
+  cases d with
+  | zero =>
+      exfalso
+      exact (NeZero.ne (0 : ℕ)) rfl
+  | succ d =>
+      exact latticeEnumSucc d
 
 /-- The enumeration has polynomial norm growth: the m-th point has
 ℓ¹ norm bounded by C · (1+m)^{1/d}. This is the key bound for the CLE proof. -/
-axiom latticeEnum_norm_bound (d : ℕ) :
+axiom latticeEnum_norm_bound (d : ℕ) [NeZero d] :
     ∃ C > (0 : ℝ), ∀ m : ℕ,
     latticeNorm ((latticeEnum d).symm m) ≤ C * (1 + (m : ℝ)) ^ ((1 : ℝ) / d)
 
 /-- Converse bound: points with small norm have small index. -/
-axiom latticeEnum_index_bound (d : ℕ) :
+axiom latticeEnum_index_bound (d : ℕ) [NeZero d] :
     ∃ C > (0 : ℝ), ∀ x : Fin d → ℤ,
     (latticeEnum d x : ℝ) ≤ C * (1 + latticeNorm x) ^ (d : ℝ)
 
@@ -224,11 +226,11 @@ def latticeBasisAt (x : Fin d → ℤ) : RapidDecayLattice d where
     simp [hy]
 
 /-- The m-th basis vector: delta function at the m-th site in the enumeration. -/
-def latticeBasisVec (d : ℕ) (m : ℕ) : RapidDecayLattice d :=
+def latticeBasisVec (d : ℕ) [NeZero d] (m : ℕ) : RapidDecayLattice d :=
   latticeBasisAt ((latticeEnum d).symm m)
 
 /-- The m-th coefficient CLM: evaluation at the m-th site. -/
-def latticeCoeffCLM (d : ℕ) (m : ℕ) : RapidDecayLattice d →L[ℝ] ℝ where
+def latticeCoeffCLM (d : ℕ) [NeZero d] (m : ℕ) : RapidDecayLattice d →L[ℝ] ℝ where
   toLinearMap :=
     { toFun := fun a => a.val ((latticeEnum d).symm m)
       map_add' := fun _ _ => rfl
@@ -264,14 +266,14 @@ The key proof obligation is that reindexing preserves rapid decay:
 - Forward: `|f(enum.symm m)| * (1+m)^k ≤ C_k * Σ_x |f(x)| * (1+|x|)^{k·d}`
   follows from `latticeEnum_norm_bound`.
 - Backward: similar using `latticeEnum_index_bound`. -/
-axiom latticeRapidDecayEquiv (d : ℕ) :
+axiom latticeRapidDecayEquiv (d : ℕ) [NeZero d] :
     RapidDecayLattice d ≃L[ℝ] RapidDecaySeq
 
 /-! ### DyninMityaginSpace instance -/
 
 /-- `RapidDecayLattice d` is a DyninMityaginSpace, established via the CLE
 to `RapidDecaySeq` and the general transfer constructor `ofRapidDecayEquiv`. -/
-noncomputable instance lattice_dyninMityaginSpace :
+noncomputable instance lattice_dyninMityaginSpace [NeZero d] :
     DyninMityaginSpace (RapidDecayLattice d) :=
   DyninMityaginSpace.ofRapidDecayEquiv
     (latticeRapidDecaySeminorm d)

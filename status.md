@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**15 axioms, 13 sorries**
+**17 axioms, 0 sorries**
 
-*Updated 2026-02-24.*
+*Updated 2026-02-25.*
 
 ## Axiom inventory
 
@@ -16,9 +16,9 @@ projects (pphi2, OSforGFF-dimensions).
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `fkg_from_lattice_condition` | Lattice/FKG | axiom | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
-| `integrable_mul_gaussianDensity` | Lattice/FKG | axiom | Medium | Integrability of f*gaussianDensity (fixed: added integrability hypothesis). |
-| `latticeGaussianMeasure_density_integral` | Lattice/FKG | axiom | Medium | Gaussian measure density integral formula. |
+| `fkg_from_lattice_condition` | Lattice/FKG | theorem | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
+| `integrable_mul_gaussianDensity` | GaussianField/Density | axiom | Medium | Integrability transfer from Gaussian measure to weighted Lebesgue integral. |
+| `latticeGaussianMeasure_density_integral` | GaussianField/Density | axiom | Medium | Gaussian measure density integral formula. |
 
 Proved FKG results (no longer axioms):
 - `gaussian_fkg_lattice_condition` -- now a theorem
@@ -29,9 +29,9 @@ Proved FKG results (no longer axioms):
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `latticeEnum_norm_bound` | Lattice/RapidDecayLattice | axiom | Hard | ‖enum^{-1}(m)‖ <= C*m^{1/d}. |
-| `latticeEnum_index_bound` | Lattice/RapidDecayLattice | axiom | Hard | enum(x) <= C*(1+‖x‖)^d. |
-| `latticeRapidDecayEquiv` | Lattice/RapidDecayLattice | axiom | Hard | CLE to RapidDecaySeq. |
+| `latticeEnum_norm_bound` | Lattice/RapidDecayLattice | axiom | Hard | ‖enum^{-1}(m)‖ <= C*m^{1/d}. (requires `d ≥ 1`) |
+| `latticeEnum_index_bound` | Lattice/RapidDecayLattice | axiom | Hard | enum(x) <= C*(1+‖x‖)^d. (requires `d ≥ 1`) |
+| `latticeRapidDecayEquiv` | Lattice/RapidDecayLattice | axiom | Hard | CLE to RapidDecaySeq (enumeration branch excludes `d=0`). |
 
 ### Heat kernel (cylinder QFT, not used by lattice approach)
 
@@ -40,14 +40,18 @@ Proved FKG results (no longer axioms):
 | `mehlerKernel_eq_series` | HeatKernel/PositionKernel | axiom | Hard | Mehler's formula. |
 | `circleHeatKernel_pos` | HeatKernel/PositionKernel | axiom | Hard | Requires Poisson summation. |
 | `cylinderEval_summable` | HeatKernel/PositionKernel | axiom | Medium | Convergence of eigenfunction expansion. |
+| `integral_norm_tsum_le_tsum_integral_norm` | HeatKernel/PositionKernel | axiom | Medium | Dominated-convergence corollary: integral norm of series ≤ series of integral norms. |
+| `integrable_tsum_of_summable_integral_norm` | HeatKernel/PositionKernel | axiom | Medium | Dominated-convergence corollary: summable integral norms imply integrable pointwise tsum. |
 
 ### Hypercontractive estimates
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-Proved hypercontractive results (no longer axioms):
-- `gaussian_hypercontractive` -- now a theorem (1D reduction via Gamma function moments)
-- `gross_log_sobolev` -- now a theorem (1D reduction via `pairing_is_gaussian` + `log(y) ≤ y-1`)
+| `gaussian_moment_ratio_bound` | GaussianField/Hypercontractive | axiom | Hard | Core Gamma-function inequality used in 1D hypercontractivity. |
+
+Proved hypercontractive results (derived using the axiom above):
+- `gaussian_hypercontractive` -- theorem
+- `gross_log_sobolev` -- theorem
 
 ### Infrastructure
 
@@ -59,13 +63,14 @@ Proved hypercontractive results (no longer axioms):
 
 | File | Axioms | Sorries |
 |------|--------|---------|
-| HeatKernel/PositionKernel | 3 | 2 |
-| Lattice/RapidDecayLattice | 3 | 1 |
-| Lattice/FKG | 9 | 0 |
-| Lattice/SpectralCovariance | 0 | 7 |
-| GaussianField/Density | 0 | 2 |
-| GaussianField/Hypercontractive | 0 | 1 |
-| **Total** | **15** | **13** |
+| HeatKernel/PositionKernel | 5 | 0 |
+| Lattice/RapidDecayLattice | 3 | 0 |
+| Lattice/FKG | 5 | 0 |
+| Lattice/SpectralCovariance | 0 | 0 |
+| GaussianField/Density | 2 | 0 |
+| GaussianField/Hypercontractive | 1 | 0 |
+| GaussianField | 1 | 0 |
+| **Total** | **17** | **0** |
 
 ## References
 

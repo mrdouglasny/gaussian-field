@@ -1060,6 +1060,27 @@ axiom cylinderEval_summable (L : ℝ) [Fact (0 < L)]
       fourierBasisFun (L := L) (m.unpair).1 θ *
       hermiteFunction (m.unpair).2 x
 
+/-! ### General integration lemmas (to prove later)
+
+These are standard dominated-convergence corollaries used below as
+measure-theoretic infrastructure. -/
+
+private axiom integral_norm_tsum_le_tsum_integral_norm
+    {α E : Type*} [MeasurableSpace α]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure α)
+    (F : ℕ → α → E)
+    (hF_int : ∀ j, Integrable (F j) μ)
+    (hF_sum : Summable (fun j => ∫ a, ‖F j a‖ ∂μ)) :
+    ∫ a, ‖∑' j, F j a‖ ∂μ ≤ ∑' j, ∫ a, ‖F j a‖ ∂μ
+
+private axiom integrable_tsum_of_summable_integral_norm
+    {α E : Type*} [MeasurableSpace α]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure α)
+    (F : ℕ → α → E)
+    (hF_int : ∀ j, Integrable (F j) μ)
+    (hF_sum : Summable (fun j => ∫ a, ‖F j a‖ ∂μ)) :
+    Integrable (fun a => ∑' j, F j a) μ
+
 set_option maxHeartbeats 800000 in
 /-- Uniform bound on `∫ |K_osc(x,x',t) * φ_k(x')| dx'` in k.
 
@@ -1211,8 +1232,12 @@ private lemma mehlerKernel_hermite_integral_abs_bound (t : ℝ) (ht : 0 < t) (x 
           hermiteFunction j x' * hermiteFunction k x'|
       ≤ ∑' j, ∫ x', |exp (-(t * (2 * ↑j + 1))) * hermiteFunction j x *
           hermiteFunction j x' * hermiteFunction k x'| := by
-        -- Triangle inequality + integral-tsum swap for absolute values
-        sorry
+        simpa [Real.norm_eq_abs] using
+          integral_norm_tsum_le_tsum_integral_norm volume
+            (fun j x' =>
+              exp (-(t * (2 * ↑j + 1))) * hermiteFunction j x *
+                hermiteFunction j x' * hermiteFunction k x')
+            hF_int hF_sum
     _ ≤ B :=
         Summable.tsum_le_tsum (fun j => h_term_le j)
           hF_abs_int_summable h_B_summable
@@ -1498,8 +1523,7 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
                 = exp (-t) * C * ((1 + ↑j) ^ s * r ^ j) := by ring
               _ ≤ exp (-t) * C * ((1 + ↑j) ^ p * r ^ j) := by gcongr; exact h_rpow_le_pow j)
             (h_sum_comp.mul_left (exp (-t) * C))
-      -- Integrability of tsum from integral_tsum convergence
-      sorry
+      exact integrable_tsum_of_summable_integral_norm volume Fk hFk_int hFk_sum
     exact (h_prod_int.const_mul (DyninMityaginSpace.coeff m f *
       fourierBasisFun (L := L) (m.unpair).1 θ' *
       circleHeatKernel L t θ θ')).congr

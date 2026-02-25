@@ -149,12 +149,11 @@ The inequality is stated in "moment-formula form" so that `hypercontractive_1d`
 follows by a direct rewrite.
 
 Reference: Bohr-Mollerup theorem; Simon, P(φ)₂, Theorem I.17. -/
-lemma gaussian_moment_ratio_bound (n : ℕ) (p : ℝ) (hp : 2 ≤ p) :
+axiom gaussian_moment_ratio_bound (n : ℕ) (p : ℝ) (hp : 2 ≤ p) :
     2 ^ (p * ↑n / 2) * Real.Gamma ((p * ↑n + 1) / 2) / Real.sqrt Real.pi ≤
       (p - 1) ^ (p * ↑n / 2) *
       (2 ^ ((2 : ℝ) * ↑n / 2) * Real.Gamma (((2 : ℝ) * ↑n + 1) / 2) /
-        Real.sqrt Real.pi) ^ (p / 2) := by
-  sorry
+        Real.sqrt Real.pi) ^ (p / 2)
 
 /-- **1D hypercontractive inequality** for the standard Gaussian measure.
 

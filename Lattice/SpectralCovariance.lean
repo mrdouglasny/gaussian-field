@@ -32,6 +32,7 @@ import Lattice.Laplacian
 import Lattice.FiniteField
 import HeatKernel.Axioms
 import Mathlib.Analysis.Matrix.Spectrum
+import Mathlib.Analysis.Matrix.PosDef
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
 noncomputable section
@@ -157,12 +158,21 @@ theorem massOperatorMatrix_eigenvalues_pos (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
     (k : FinLatticeSites d N) :
     0 < massEigenvalues d N a mass k := by
-  unfold massEigenvalues
-  -- The mass operator Q = -Δ + m² is positive definite (massOperator_pos_def).
-  -- For eigenvector e_k with eigenvalue λ_k:
-  --   0 < ⟨e_k, Q e_k⟩ = λ_k ⟨e_k, e_k⟩ = λ_k
-  -- since e_k is a unit vector from the orthonormal eigenbasis.
-  sorry
+  let M : Matrix (FinLatticeSites d N) (FinLatticeSites d N) ℝ := massOperatorMatrix d N a mass
+  have hPosDef : M.PosDef := by
+    refine Matrix.posDef_iff_dotProduct_mulVec.mpr ?_
+    refine ⟨massOperatorMatrix_isHermitian d N a mass, ?_⟩
+    intro x hx
+    have hpos := massOperator_pos_def d N a mass ha hmass x hx
+    have hmul : M *ᵥ x = massOperator d N a mass x := by
+      ext i
+      symm
+      exact massOperator_eq_matrix_mulVec d N a mass x i
+    simpa [M, dotProduct, hmul] using hpos
+  have hEigPos : ∀ i : FinLatticeSites d N, 0 < (massMatrixHerm d N a mass).eigenvalues i :=
+    (Matrix.IsHermitian.posDef_iff_eigenvalues_pos
+      (hA := massMatrixHerm d N a mass)).mp hPosDef
+  simpa [massEigenvalues] using hEigPos k
 
 /-! ## Spectral covariance CLM -/
 
@@ -188,10 +198,38 @@ noncomputable def spectralLatticeCovariance (a mass : ℝ)
         ((Real.sqrt (eigvals k))⁻¹ *
          ∑ x : FinLatticeSites d N, (eigvecs k : EuclideanSpace ℝ _) x * f x) •
         lp.single 2 (enum k).val (1 : ℝ)
-      map_add' := by intro f g; sorry
-      map_smul' := by intro r f; sorry }
+      map_add' := by
+        intro f g
+        simp only [Pi.add_apply, mul_add, Finset.sum_add_distrib, add_smul]
+      map_smul' := by
+        intro r f
+        simp only [Pi.smul_apply, RingHom.id_apply]
+        rw [Finset.smul_sum]
+        refine Finset.sum_congr rfl ?_
+        intro k hk
+        rw [smul_smul]
+        congr 1
+        calc
+          (Real.sqrt (eigvals k))⁻¹ *
+              (∑ x : FinLatticeSites d N, (eigvecs k : EuclideanSpace ℝ _) x * (r * f x))
+              = (Real.sqrt (eigvals k))⁻¹ *
+                  (r * ∑ x : FinLatticeSites d N, (eigvecs k : EuclideanSpace ℝ _) x * f x) := by
+                    congr 1
+                    calc
+                      (∑ x : FinLatticeSites d N, (eigvecs k : EuclideanSpace ℝ _) x * (r * f x))
+                          = ∑ x : FinLatticeSites d N,
+                              r * ((eigvecs k : EuclideanSpace ℝ _) x * f x) := by
+                                apply Finset.sum_congr rfl
+                                intro x hx
+                                ring
+                      _ = r * ∑ x : FinLatticeSites d N,
+                            (eigvecs k : EuclideanSpace ℝ _) x * f x := by
+                              rw [Finset.mul_sum]
+          _ = r * ((Real.sqrt (eigvals k))⁻¹ *
+                  ∑ x : FinLatticeSites d N, (eigvecs k : EuclideanSpace ℝ _) x * f x) := by
+                    ring }
   -- Any linear map from a finite-dimensional space to a normed space is continuous
-  exact L.mkContinuousOfExistsBound (by sorry)
+  exact { L with cont := L.continuous_of_finiteDimensional }
 
 /-- Key identity: `⟨Tf, Tg⟩_ℓ² = ∑ x, f(x) · (Q⁻¹g)(x)` where `Q⁻¹g`
 is the inverse mass operator applied to g.
@@ -208,7 +246,97 @@ theorem spectralLatticeCovariance_inner (a mass : ℝ)
       (massEigenvalues d N a mass k)⁻¹ *
       (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
       (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
-  sorry
+  let enum : FinLatticeSites d N ≃ Fin (Fintype.card (FinLatticeSites d N)) :=
+    Fintype.equivFin (FinLatticeSites d N)
+  let lam : FinLatticeSites d N → ℝ := massEigenvalues d N a mass
+  let s : FinLatticeSites d N → ℝ := fun k =>
+    ∑ x : FinLatticeSites d N, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x
+  let t : FinLatticeSites d N → ℝ := fun k =>
+    ∑ x : FinLatticeSites d N, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x
+  have hlam : ∀ k : FinLatticeSites d N, 0 < lam k := by
+    intro k
+    simpa [lam] using massOperatorMatrix_eigenvalues_pos d N a mass ha hmass k
+  have hf :
+      spectralLatticeCovariance d N a mass ha hmass f =
+      ∑ k : FinLatticeSites d N,
+        ((Real.sqrt (lam k))⁻¹ * s k) • lp.single 2 (enum k).val (1 : ℝ) := by
+    unfold spectralLatticeCovariance
+    simp [enum, lam, s, mul_assoc, mul_left_comm, mul_comm]
+  have hg :
+      spectralLatticeCovariance d N a mass ha hmass g =
+      ∑ k : FinLatticeSites d N,
+        ((Real.sqrt (lam k))⁻¹ * t k) • lp.single 2 (enum k).val (1 : ℝ) := by
+    unfold spectralLatticeCovariance
+    simp [enum, lam, t, mul_assoc, mul_left_comm, mul_comm]
+  rw [hf, hg]
+  simp [inner_sum, sum_inner, Finset.sum_mul, Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro k hk
+  have hleft :
+      ∑ i,
+        inner ℝ (((Real.sqrt (lam i))⁻¹ * s i) •
+          lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+          (((Real.sqrt (lam k))⁻¹ * t k) •
+            lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) =
+      ((Real.sqrt (lam k))⁻¹ * s k) * ((Real.sqrt (lam k))⁻¹ * t k) := by
+    classical
+    simpa using (show ∑ i : FinLatticeSites d N,
+      inner ℝ (((Real.sqrt (lam i))⁻¹ * s i) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+        (((Real.sqrt (lam k))⁻¹ * t k) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ))
+      = ((Real.sqrt (lam k))⁻¹ * s k) * ((Real.sqrt (lam k))⁻¹ * t k) from by
+        classical
+        rw [Finset.sum_eq_single k]
+        · have hsingle : inner ℝ (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ))
+              (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 1 := by
+              simp [PiLp.inner_apply, lp.single_apply]
+          simpa [inner_smul_left, inner_smul_right, hsingle, mul_assoc, mul_left_comm, mul_comm]
+        · intro i hi hik
+          have hne : enum i ≠ enum k := by
+            intro h; exact hik (enum.injective h)
+          have : inner ℝ (((Real.sqrt (lam i))⁻¹ * s i) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+              (((Real.sqrt (lam k))⁻¹ * t k) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 0 := by
+                have hne_val : (enum i).val ≠ (enum k).val := by
+                  intro h
+                  apply hne
+                  exact Fin.ext h
+                have hsingle0 :
+                    inner ℝ (lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+                      (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 0 := by
+                  rw [lp.inner_single_left]
+                  simp [lp.single_apply, hne_val]
+                simpa [inner_smul_left, inner_smul_right, hsingle0, mul_assoc, mul_left_comm, mul_comm]
+          exact this
+        · intro hknot
+          exact (hknot (Finset.mem_univ k)).elim)
+  have hrhs :
+      (∑ x, ∑ i,
+        (massEigenvalues d N a mass k)⁻¹ *
+          ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) i * f i) *
+          ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x)) =
+      (lam k)⁻¹ * s k * t k := by
+    calc
+      (∑ x, ∑ i,
+        (massEigenvalues d N a mass k)⁻¹ *
+          ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) i * f i) *
+          ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x))
+          = ∑ i, ∑ x,
+              (massEigenvalues d N a mass k)⁻¹ *
+                ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) i * f i) *
+                ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
+              rw [Finset.sum_comm]
+      _ = (lam k)⁻¹ *
+            (∑ i, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) i * f i) *
+            (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
+              simp [lam, Finset.mul_sum, Finset.sum_mul, mul_assoc, mul_left_comm, mul_comm]
+      _ = (lam k)⁻¹ * s k * t k := by simp [s, t]
+  rw [hleft, hrhs]
+  have hsq : Real.sqrt (lam k) * Real.sqrt (lam k) = lam k := by
+    nlinarith [Real.sq_sqrt (le_of_lt (hlam k))]
+  calc
+    ((Real.sqrt (lam k))⁻¹ * s k) * ((Real.sqrt (lam k))⁻¹ * t k)
+        = (((Real.sqrt (lam k))⁻¹ * (Real.sqrt (lam k))⁻¹) * s k) * t k := by ring
+    _ = (((Real.sqrt (lam k) * Real.sqrt (lam k))⁻¹) * s k) * t k := by ring
+    _ = (lam k)⁻¹ * s k * t k := by simp [hsq]
 
 /-- The ℓ² norm squared of `Tf` equals the quadratic form `⟨f, Q⁻¹f⟩_L²`.
 This is `spectralLatticeCovariance_inner` with `g = f`. -/
@@ -241,7 +369,43 @@ theorem spectral_eq_site_bilinear (a mass : ℝ)
         (massEigenvalues d N a mass k)⁻¹ *
         (∑ y, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) y * g y) *
         (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) := by
-  sorry
+  let A : FinLatticeSites d N → ℝ := fun k => (massEigenvalues d N a mass k)⁻¹
+  let B : FinLatticeSites d N → FinLatticeSites d N → ℝ :=
+    fun k x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x
+  let C : FinLatticeSites d N → ℝ := fun k => ∑ y, B k y * g y
+  calc
+    ∑ k : FinLatticeSites d N, A k * (∑ x, B k x * f x) * C k
+        = ∑ k : FinLatticeSites d N, ∑ x, f x * (A k * C k * B k x) := by
+            refine Finset.sum_congr rfl ?_
+            intro k hk
+            have hsum : (∑ x, B k x * f x) = ∑ x, f x * B k x := by
+              refine Finset.sum_congr rfl ?_
+              intro x hx
+              ring
+            rw [hsum]
+            calc
+              A k * (∑ x : FinLatticeSites d N, f x * B k x) * C k
+                  = (A k * C k) * (∑ x : FinLatticeSites d N, f x * B k x) := by ring
+              _ = ∑ x : FinLatticeSites d N, (A k * C k) * (f x * B k x) := by
+                    rw [Finset.mul_sum]
+              _ = ∑ x : FinLatticeSites d N, f x * (A k * C k * B k x) := by
+                    refine Finset.sum_congr rfl ?_
+                    intro x hx
+                    ring
+    _ = ∑ x : FinLatticeSites d N, ∑ k, f x * (A k * C k * B k x) := by
+          rw [Finset.sum_comm]
+    _ = ∑ x : FinLatticeSites d N, f x * (∑ k, A k * C k * B k x) := by
+          refine Finset.sum_congr rfl ?_
+          intro x hx
+          rw [← Finset.mul_sum]
+    _ = ∑ x, f x *
+          (∑ k : FinLatticeSites d N, A k * C k * B k x) := rfl
+    _ = ∑ x, f x *
+          (∑ k : FinLatticeSites d N,
+            (massEigenvalues d N a mass k)⁻¹ *
+            (∑ y, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) y * g y) *
+            (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) := by
+          simp [A, B, C]
 
 /-- The bounded sequence condition for the spectral singular values.
 Needed to show the CLM maps into ℓ². -/
@@ -252,7 +416,22 @@ theorem spectral_singular_values_bounded (a mass : ℝ)
         Real.sqrt ((massEigenvalues d N a mass
           ((Fintype.equivFin _).symm ⟨m, h⟩))⁻¹)
       else 0) := by
-  sorry
+  let n := Fintype.card (FinLatticeSites d N)
+  let σ : ℕ → ℝ := fun m =>
+    if h : m < n then
+      Real.sqrt ((massEigenvalues d N a mass
+        ((Fintype.equivFin _).symm ⟨m, h⟩))⁻¹)
+    else 0
+  change IsBoundedSeq σ
+  unfold IsBoundedSeq
+  refine ⟨Finset.sum (Finset.range n) (fun i => |σ i|), ?_⟩
+  intro m
+  by_cases hm : m < n
+  · have hm_mem : m ∈ Finset.range n := Finset.mem_range.mpr hm
+    exact Finset.single_le_sum (fun i _ => abs_nonneg (σ i)) hm_mem
+  · have hsum_nonneg : 0 ≤ Finset.sum (Finset.range n) (fun i => |σ i|) :=
+      Finset.sum_nonneg (fun i _ => abs_nonneg (σ i))
+    simpa [σ, hm] using hsum_nonneg
 
 /-! ## Gaussian density
 
