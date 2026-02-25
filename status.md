@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**9 axioms, 0 sorries**
+**8 axioms, 0 sorries**
 
 *Updated 2026-02-25.*
 
@@ -17,8 +17,7 @@ projects (pphi2, OSforGFF-dimensions).
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `fkg_from_lattice_condition` | Lattice/FKG | theorem | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
-| `integrable_mul_gaussianDensity` | GaussianField/Density | axiom | Medium | Integrability transfer from Gaussian measure to weighted Lebesgue integral. |
-| `latticeGaussianMeasure_density_integral` | GaussianField/Density | axiom | Medium | Gaussian measure density integral formula. |
+| `latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure` | GaussianField/Density | axiom | Hard | Master density theorem: field-law pushforward equals normalized density measure. |
 
 Density rewrite progress (P0 master theorem path):
 - Added `evalMap` measurability and `latticeGaussianFieldLaw` wrapper in
@@ -30,9 +29,9 @@ Density rewrite progress (P0 master theorem path):
 - Added normalization scaffolding for density measure:
   `gaussianDensityWeight_measurable`, `gaussianDensityNormConst_eq_lintegral`,
   `gaussianDensityNormConst_ne_top`, `gaussianDensityNormConst_eq_ofReal_integral`.
-- `latticeGaussianFieldLaw_density_integral` now factors through the field-law
-  notation, preparing replacement of the two axioms by a single measure-equality
-  theorem.
+- Replaced density axioms `latticeGaussianMeasure_density_integral` and
+  `integrable_mul_gaussianDensity` with theorem proofs derived from the master
+  density-law axiom. The old names remain as theorems for compatibility.
 
 Proved FKG results (no longer axioms):
 - `ahlswede_daykin_ennreal` -- theorem (ENNReal n-dimensional induction)
@@ -89,10 +88,10 @@ Proved hypercontractive results (derived using the axiom above):
 | Lattice/RapidDecayLattice | 3 | 0 |
 | Lattice/FKG | 0 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
-| GaussianField/Density | 2 | 0 |
+| GaussianField/Density | 1 | 0 |
 | GaussianField/Hypercontractive | 1 | 0 |
 | GaussianField | 1 | 0 |
-| **Total** | **9** | **0** |
+| **Total** | **8** | **0** |
 
 ## References
 

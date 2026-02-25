@@ -58,6 +58,15 @@ def evalMap :
     Configuration (FinLatticeField d N) → FinLatticeField d N :=
   fun ω x => ω (finLatticeDelta d N x)
 
+omit [NeZero N] in
+theorem measurable_evalMap :
+    Measurable (evalMap d N) := by
+  rw [measurable_pi_iff]
+  intro x
+  simpa [evalMap] using
+    (configuration_eval_measurable (E := FinLatticeField d N)
+      (finLatticeDelta d N x))
+
 theorem gaussianDensity_measurable (a mass : ℝ) :
     Measurable (gaussianDensity d N a mass) := by
   unfold gaussianDensity
@@ -65,6 +74,24 @@ theorem gaussianDensity_measurable (a mass : ℝ) :
       (continuous_finset_sum _ fun x _ =>
         (continuous_apply x).mul
           ((continuous_apply x).comp (massOperator d N a mass).continuous)))).measurable
+
+def gaussianDensityWeight (a mass : ℝ) : FinLatticeField d N → ENNReal :=
+  fun φ => ENNReal.ofReal (gaussianDensity d N a mass φ)
+
+def gaussianDensityMeasure (a mass : ℝ) : Measure (FinLatticeField d N) :=
+  volume.withDensity (gaussianDensityWeight d N a mass)
+
+noncomputable def gaussianDensityNormConst (a mass : ℝ) : ENNReal :=
+  (gaussianDensityMeasure d N a mass) Set.univ
+
+def normalizedGaussianDensityMeasure (a mass : ℝ) :
+    Measure (FinLatticeField d N) :=
+  (gaussianDensityNormConst d N a mass)⁻¹ • gaussianDensityMeasure d N a mass
+
+/-- Stage-1 wrapper for the finite-dimensional field law. -/
+def latticeGaussianFieldLaw (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    Measure (FinLatticeField d N) :=
+  (latticeGaussianMeasure d N a mass ha hmass).map (evalMap d N)
 
 /-! ## Density bridge
 
@@ -90,38 +117,263 @@ Both measures have the same characteristic function, hence are equal.
 **Step 4**: The density bridge and integrability transfer follow
 from the measure equality. -/
 
-/-- **Density bridge**: the lattice Gaussian measure equals a weighted
-Lebesgue integral with the Gaussian density.
+/-- Stage-2 master theorem target: identify the finite-dimensional field law with
+the normalized Gaussian density measure. Existing density theorems will be
+rewired to derive from this statement in subsequent stages. -/
+axiom latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    latticeGaussianFieldLaw d N a mass ha hmass =
+      normalizedGaussianDensityMeasure d N a mass
 
-For any function F of field values, the expectation under the Gaussian measure
-equals the normalized weighted integral:
-`E_μ[F] = (∫ F(φ) · ρ(φ) dφ) / (∫ ρ(φ) dφ)`
-where `ρ(φ) = exp(-½⟨φ, Qφ⟩)` and the integrals are against Lebesgue measure
-on `FinLatticeField d N ≅ ℝ^{N^d}`.
+theorem gaussianDensityWeight_measurable (a mass : ℝ) :
+    Measurable (gaussianDensityWeight d N a mass) := by
+  simpa [gaussianDensityWeight] using
+    (gaussianDensity_measurable (d := d) (N := N) a mass).ennreal_ofReal
 
-Proof: Both measures have characteristic function `exp(-½ ⟨t, Q⁻¹t⟩)`.
-The pushforward gets this from `charFun` + `spectralLatticeCovariance_norm_sq`.
-The density gets this from the Gaussian Fourier transform. By
-`Measure.ext_of_charFun`, the measures are equal. -/
-axiom latticeGaussianMeasure_density_integral (a mass : ℝ)
+theorem gaussianDensityWeight_toReal (a mass : ℝ) (φ : FinLatticeField d N) :
+    (gaussianDensityWeight d N a mass φ).toReal = gaussianDensity d N a mass φ := by
+  simpa [gaussianDensityWeight] using
+    (ENNReal.toReal_ofReal (gaussianDensity_nonneg (d := d) (N := N) a mass φ))
+
+theorem gaussianDensityNormConst_eq_lintegral (a mass : ℝ) :
+    gaussianDensityNormConst d N a mass =
+      ∫⁻ φ, gaussianDensityWeight d N a mass φ := by
+  simp [gaussianDensityNormConst, gaussianDensityMeasure]
+
+theorem latticeGaussianFieldLaw_univ (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    (latticeGaussianFieldLaw d N a mass ha hmass) Set.univ = 1 := by
+  letI : IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
+    rw [latticeGaussianFieldLaw]
+    exact Measure.isProbabilityMeasure_map (measurable_evalMap (d := d) (N := N)).aemeasurable
+  simpa using (measure_univ : (latticeGaussianFieldLaw d N a mass ha hmass) Set.univ = 1)
+
+theorem gaussianDensityNormConst_ne_zero (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    gaussianDensityNormConst d N a mass ≠ 0 := by
+  have hnorm_univ : (normalizedGaussianDensityMeasure d N a mass) Set.univ = 1 := by
+    simpa [latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure (d := d) (N := N)
+      a mass ha hmass] using latticeGaussianFieldLaw_univ (d := d) (N := N) a mass ha hmass
+  by_contra h0
+  have hμ0 : gaussianDensityMeasure d N a mass = 0 := by
+    exact (Measure.measure_univ_eq_zero.mp (by simpa [gaussianDensityNormConst] using h0))
+  have hz : (normalizedGaussianDensityMeasure d N a mass) Set.univ = 0 := by
+    simp [normalizedGaussianDensityMeasure, hμ0]
+  have hne : (normalizedGaussianDensityMeasure d N a mass) Set.univ ≠ 0 := by
+    simpa [hnorm_univ]
+  exact hne hz
+
+theorem gaussianDensityNormConst_ne_top (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    gaussianDensityNormConst d N a mass ≠ (⊤ : ENNReal) := by
+  have hnorm_univ : (normalizedGaussianDensityMeasure d N a mass) Set.univ = 1 := by
+    simpa [latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure (d := d) (N := N)
+      a mass ha hmass] using latticeGaussianFieldLaw_univ (d := d) (N := N) a mass ha hmass
+  by_contra htop
+  have hz : (normalizedGaussianDensityMeasure d N a mass) Set.univ = 0 := by
+    simp [normalizedGaussianDensityMeasure, htop]
+  have hne : (normalizedGaussianDensityMeasure d N a mass) Set.univ ≠ 0 := by
+    simpa [hnorm_univ]
+  exact hne hz
+
+theorem integrable_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    Integrable (gaussianDensity d N a mass) := by
+  have hEq := latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
+    (d := d) (N := N) a mass ha hmass
+  letI : IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
+    rw [latticeGaussianFieldLaw]
+    exact Measure.isProbabilityMeasure_map (measurable_evalMap (d := d) (N := N)).aemeasurable
+  have hIntLaw : Integrable (fun _ : FinLatticeField d N => (1 : ℝ))
+      (latticeGaussianFieldLaw d N a mass ha hmass) := by
+    simpa using (integrable_const (1 : ℝ))
+  have hIntNorm : Integrable (fun _ : FinLatticeField d N => (1 : ℝ))
+      (normalizedGaussianDensityMeasure d N a mass) := by
+    simpa [hEq] using hIntLaw
+  have hIntWD : Integrable (fun _ : FinLatticeField d N => (1 : ℝ))
+      (gaussianDensityMeasure d N a mass) := by
+    have hEquiv := integrable_smul_measure
+      (μ := gaussianDensityMeasure d N a mass)
+      (f := fun _ : FinLatticeField d N => (1 : ℝ))
+      (h₁ := ENNReal.inv_ne_zero.mpr (gaussianDensityNormConst_ne_top (d := d) (N := N) a mass ha hmass))
+      (h₂ := ENNReal.inv_ne_top.mpr (gaussianDensityNormConst_ne_zero (d := d) (N := N) a mass ha hmass))
+    exact hEquiv.mp (by simpa [normalizedGaussianDensityMeasure] using hIntNorm)
+  have hflt : ∀ᵐ φ ∂(volume : Measure (FinLatticeField d N)),
+      gaussianDensityWeight d N a mass φ < (⊤ : ENNReal) :=
+    Filter.Eventually.of_forall (fun _ => by simp [gaussianDensityWeight])
+  have hIntMul : Integrable
+      (fun φ : FinLatticeField d N => (gaussianDensityWeight d N a mass φ).toReal • (1 : ℝ)) volume := by
+    exact (integrable_withDensity_iff_integrable_smul'
+      (μ := volume) (f := gaussianDensityWeight d N a mass)
+      (hf := gaussianDensityWeight_measurable (d := d) (N := N) a mass)
+      (hflt := hflt)).mp (by simpa [gaussianDensityMeasure] using hIntWD)
+  simpa [smul_eq_mul, one_mul, gaussianDensityWeight_toReal (d := d) (N := N) a mass] using hIntMul
+
+theorem gaussianDensityNormConst_eq_ofReal_integral (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    gaussianDensityNormConst d N a mass =
+      ENNReal.ofReal (∫ φ, gaussianDensity d N a mass φ) := by
+  rw [gaussianDensityNormConst_eq_lintegral]
+  simp [gaussianDensityWeight]
+  symm
+  exact ofReal_integral_eq_lintegral_ofReal
+    (integrable_gaussianDensity (d := d) (N := N) a mass ha hmass)
+    (Filter.Eventually.of_forall (gaussianDensity_nonneg (d := d) (N := N) a mass))
+
+theorem gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    0 < ∫ φ, gaussianDensity d N a mass φ := by
+  apply integral_pos_of_integrable_nonneg_nonzero (x := 0)
+  · unfold gaussianDensity
+    exact Real.continuous_exp.comp (continuous_const.mul
+      (continuous_finset_sum _ fun x _ =>
+        (continuous_apply x).mul
+          ((continuous_apply x).comp (massOperator d N a mass).continuous)))
+  · exact integrable_gaussianDensity d N a mass ha hmass
+  · exact fun φ => le_of_lt (Real.exp_pos _)
+  · exact ne_of_gt (Real.exp_pos _)
+
+theorem latticeGaussianFieldLaw_density_integral (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
-    (F : FinLatticeField d N → ℝ)
-    (hFρi : Integrable (fun φ => F φ * gaussianDensity d N a mass φ)) :
-    ∫ ω, F (fun x => ω (finLatticeDelta d N x))
-      ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    (F : FinLatticeField d N → ℝ) :
+    ∫ φ, F φ ∂(latticeGaussianFieldLaw d N a mass ha hmass) =
     (∫ φ, F φ * gaussianDensity d N a mass φ) /
-    (∫ φ, gaussianDensity d N a mass φ)
+    (∫ φ, gaussianDensity d N a mass φ) := by
+  have hEq := latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
+    (d := d) (N := N) a mass ha hmass
+  have hflt : ∀ᵐ φ ∂(volume : Measure (FinLatticeField d N)),
+      gaussianDensityWeight d N a mass φ < (⊤ : ENNReal) :=
+    Filter.Eventually.of_forall (fun _ => by simp [gaussianDensityWeight])
+  calc
+    ∫ φ, F φ ∂(latticeGaussianFieldLaw d N a mass ha hmass)
+        = ∫ φ, F φ ∂(normalizedGaussianDensityMeasure d N a mass) := by simpa [hEq]
+    _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+          ∫ φ, F φ ∂(gaussianDensityMeasure d N a mass) := by
+          simp [normalizedGaussianDensityMeasure, integral_smul_measure]
+    _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+          ∫ φ, (gaussianDensityWeight d N a mass φ).toReal • F φ := by
+          congr 1
+          simpa [gaussianDensityMeasure] using (integral_withDensity_eq_integral_toReal_smul
+            (μ := volume) (f := gaussianDensityWeight d N a mass)
+            (f_meas := gaussianDensityWeight_measurable (d := d) (N := N) a mass)
+            (hf_lt_top := hflt) (g := F))
+    _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+          ∫ φ, F φ * gaussianDensity d N a mass φ := by
+          congr 1
+          refine integral_congr_ae <| Filter.Eventually.of_forall <| fun φ => ?_
+          simp [smul_eq_mul, gaussianDensityWeight_toReal (d := d) (N := N) a mass φ, mul_comm]
+    _ = (∫ φ, F φ * gaussianDensity d N a mass φ) /
+          (∫ φ, gaussianDensity d N a mass φ) := by
+          rw [gaussianDensityNormConst_eq_ofReal_integral (d := d) (N := N) a mass ha hmass]
+          have hρpos : 0 < ∫ φ, gaussianDensity d N a mass φ :=
+            gaussianDensity_integral_pos (d := d) (N := N) a mass ha hmass
+          have hInv :
+              ((ENNReal.ofReal (∫ φ, gaussianDensity d N a mass φ))⁻¹).toReal =
+                (∫ φ, gaussianDensity d N a mass φ)⁻¹ := by
+            have hρnn : 0 ≤ ∫ φ, gaussianDensity d N a mass φ :=
+              integral_nonneg fun _ => gaussianDensity_nonneg (d := d) (N := N) a mass _
+            simp [ENNReal.toReal_inv, hρnn]
+          rw [hInv]
+          field_simp [hρpos.ne']
 
-/-- **Integrability transfer**: for F integrable against the Gaussian measure μ,
-the product F·ρ is integrable against Lebesgue measure.
+theorem integrable_mul_gaussianDensity_of_fieldLaw (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ)
+    (hF : Integrable F (latticeGaussianFieldLaw d N a mass ha hmass)) :
+    Integrable (fun φ => F φ * gaussianDensity d N a mass φ) := by
+  have hEq := latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
+    (d := d) (N := N) a mass ha hmass
+  have hNorm : Integrable F (normalizedGaussianDensityMeasure d N a mass) := by
+    simpa [hEq] using hF
+  have hWD : Integrable F (gaussianDensityMeasure d N a mass) := by
+    have hEquiv := integrable_smul_measure
+      (μ := gaussianDensityMeasure d N a mass) (f := F)
+      (h₁ := ENNReal.inv_ne_zero.mpr (gaussianDensityNormConst_ne_top (d := d) (N := N) a mass ha hmass))
+      (h₂ := ENNReal.inv_ne_top.mpr (gaussianDensityNormConst_ne_zero (d := d) (N := N) a mass ha hmass))
+    exact hEquiv.mp (by simpa [normalizedGaussianDensityMeasure] using hNorm)
+  have hflt : ∀ᵐ φ ∂(volume : Measure (FinLatticeField d N)),
+      gaussianDensityWeight d N a mass φ < (⊤ : ENNReal) :=
+    Filter.Eventually.of_forall (fun _ => by simp [gaussianDensityWeight])
+  have hMul : Integrable
+      (fun φ : FinLatticeField d N => (gaussianDensityWeight d N a mass φ).toReal • F φ) volume := by
+    exact (integrable_withDensity_iff_integrable_smul'
+      (μ := volume) (f := gaussianDensityWeight d N a mass)
+      (hf := gaussianDensityWeight_measurable (d := d) (N := N) a mass)
+      (hflt := hflt)).mp (by simpa [gaussianDensityMeasure] using hWD)
+  exact hMul.congr <| Filter.Eventually.of_forall <| fun φ => by
+    simp [smul_eq_mul, gaussianDensityWeight_toReal (d := d) (N := N) a mass φ, mul_comm]
 
-This follows from the density bridge: μ has density ρ/Z with respect to
-Lebesgue, so `∫|F|dμ = ∫|F|ρ/Z dλ < ∞` implies `∫|F|ρ dλ = Z · ∫|F|dμ < ∞`. -/
-axiom integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+/-- **Integrability transfer** from Gaussian measure to weighted Lebesgue. -/
+theorem integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (F : FinLatticeField d N → ℝ)
     (hFm : Measurable F)
     (hF : Integrable (fun ω => F (fun x => ω (finLatticeDelta d N x)))
            (latticeGaussianMeasure d N a mass ha hmass)) :
-    Integrable (fun φ => F φ * gaussianDensity d N a mass φ)
+    Integrable (fun φ => F φ * gaussianDensity d N a mass φ) := by
+  have hField : Integrable F (latticeGaussianFieldLaw d N a mass ha hmass) := by
+    rw [latticeGaussianFieldLaw]
+    exact (integrable_map_measure hFm.aestronglyMeasurable
+      (measurable_evalMap (d := d) (N := N)).aemeasurable).mpr (by simpa [evalMap] using hF)
+  exact integrable_mul_gaussianDensity_of_fieldLaw (d := d) (N := N) a mass ha hmass F hField
+
+theorem integrable_normalizedGaussianDensityMeasure_iff (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) (F : FinLatticeField d N → ℝ) :
+    Integrable F (latticeGaussianFieldLaw d N a mass ha hmass) ↔
+      Integrable F (normalizedGaussianDensityMeasure d N a mass) := by
+  constructor
+  · intro hF
+    simpa [latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure (d := d) (N := N)
+      a mass ha hmass] using hF
+  · intro hF
+    simpa [latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure (d := d) (N := N)
+      a mass ha hmass] using hF
+
+theorem integral_latticeGaussianFieldLaw_eq_integral_normalizedGaussianDensityMeasure
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ) :
+    ∫ φ, F φ ∂(latticeGaussianFieldLaw d N a mass ha hmass) =
+      ∫ φ, F φ ∂(normalizedGaussianDensityMeasure d N a mass) := by
+  simp [latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure (d := d) (N := N)
+    a mass ha hmass]
+
+theorem latticeGaussianMeasure_density_integral_of_fieldLaw (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ)
+    (hFm : Measurable F)
+    (_hFρi : Integrable (fun φ => F φ * gaussianDensity d N a mass φ)) :
+    ∫ ω, F (evalMap d N ω) ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    (∫ φ, F φ * gaussianDensity d N a mass φ) /
+    (∫ φ, gaussianDensity d N a mass φ) := by
+  calc
+    ∫ ω, F (evalMap d N ω) ∂(latticeGaussianMeasure d N a mass ha hmass)
+        = ∫ φ, F φ ∂(latticeGaussianFieldLaw d N a mass ha hmass) := by
+            symm
+            rw [latticeGaussianFieldLaw]
+            simpa [Function.comp] using
+              (integral_map (μ := latticeGaussianMeasure d N a mass ha hmass)
+                (measurable_evalMap (d := d) (N := N)).aemeasurable hFm.aestronglyMeasurable)
+    _ = (∫ φ, F φ * gaussianDensity d N a mass φ) /
+          (∫ φ, gaussianDensity d N a mass φ) :=
+      latticeGaussianFieldLaw_density_integral (d := d) (N := N) a mass ha hmass F
+
+/-- **Density bridge**: expectation under `latticeGaussianMeasure` equals the
+normalized weighted Lebesgue integral with density `gaussianDensity`. -/
+theorem latticeGaussianMeasure_density_integral (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ)
+    (hFm : Measurable F)
+    (hFρi : Integrable (fun φ => F φ * gaussianDensity d N a mass φ)) :
+    ∫ ω, F (fun x => ω (finLatticeDelta d N x))
+      ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    (∫ φ, F φ * gaussianDensity d N a mass φ) /
+    (∫ φ, gaussianDensity d N a mass φ) := by
+  simpa [evalMap] using
+    (latticeGaussianMeasure_density_integral_of_fieldLaw (d := d) (N := N) a mass ha hmass F hFm hFρi)
+
+theorem integrable_mul_gaussianDensity_of_comp_eval (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ)
+    (hFm : Measurable F)
+    (hF : Integrable (fun ω => F (evalMap d N ω))
+           (latticeGaussianMeasure d N a mass ha hmass)) :
+    Integrable (fun φ => F φ * gaussianDensity d N a mass φ) := by
+  have hField : Integrable F (latticeGaussianFieldLaw d N a mass ha hmass) := by
+    rw [latticeGaussianFieldLaw]
+    exact (integrable_map_measure hFm.aestronglyMeasurable
+      (measurable_evalMap (d := d) (N := N)).aemeasurable).mpr hF
+  exact integrable_mul_gaussianDensity_of_fieldLaw (d := d) (N := N) a mass ha hmass F hField
 
 end GaussianField

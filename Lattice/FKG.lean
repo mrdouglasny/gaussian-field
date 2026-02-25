@@ -2166,22 +2166,6 @@ theorem gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
           Real.norm_of_nonneg (Finset.prod_nonneg fun x _ => le_of_lt (Real.exp_pos _))]
       exact hpw φ)
 
-/-- The Gaussian integral is strictly positive: `∫ exp(-½⟨φ,Qφ⟩) dφ > 0`.
-Follows from: gaussianDensity is continuous, everywhere positive, and integrable.
-Uses `integral_pos_of_integrable_nonneg_nonzero` with `IsOpenPosMeasure volume`. -/
-theorem gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
-    0 < ∫ φ, gaussianDensity d N a mass φ := by
-  apply integral_pos_of_integrable_nonneg_nonzero (x := 0)
-  · -- Continuous: exp ∘ (const * finite sum of continuous terms)
-    unfold gaussianDensity
-    exact Real.continuous_exp.comp (continuous_const.mul
-      (continuous_finset_sum _ fun x _ =>
-        (continuous_apply x).mul
-          ((continuous_apply x).comp (massOperator d N a mass).continuous)))
-  · exact gaussianDensity_integrable d N a mass ha hmass
-  · exact fun φ => le_of_lt (Real.exp_pos _)
-  · exact ne_of_gt (Real.exp_pos _)
-
 -- Re-export from GaussianField.Density (no longer an axiom)
 #check @GaussianField.integrable_mul_gaussianDensity
 
@@ -2235,28 +2219,31 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
         (fun φ => F' φ * G' φ) (fun x => ω (finLatticeDelta d N x))) μ :=
     hFGi.congr (by filter_upwards with ω; simp only [Pi.mul_apply, hF_eq, hG_eq])
   have hF'ρi : Integrable (fun φ => F' φ * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass F' hF'm hF'_int
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass F' hF'm hF'_int
   have hG'ρi : Integrable (fun φ => G' φ * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass G' hG'm hG'_int
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass G' hG'm hG'_int
   have hFG'ρi : Integrable (fun φ => F' φ * G' φ * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass
       (fun φ => F' φ * G' φ) (hF'm.mul hG'm) hFG'_int
   -- Step 3: Rewrite each integral using density bridge
   have hI_FG : ∫ ω, F ω * G ω ∂μ = (∫ φ, F' φ * G' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω * G ω ∂μ) =
         ∫ ω, (fun φ => F' φ * G' φ) (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hG_eq])]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hFG'ρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      (fun φ => F' φ * G' φ) (hF'm.mul hG'm) hFG'ρi
   have hI_F : ∫ ω, F ω ∂μ = (∫ φ, F' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω ∂μ) =
         ∫ ω, F' (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; exact hF_eq ω)]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass F' hF'ρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      F' hF'm hF'ρi
   have hI_G : ∫ ω, G ω ∂μ = (∫ φ, G' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, G ω ∂μ) =
         ∫ ω, G' (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; exact hG_eq ω)]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass G' hG'ρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      G' hG'm hG'ρi
   -- Step 4: Apply FKG in unnormalized form, then convert to normalized
   have hρ_pos : 0 < ∫ φ, ρ φ := gaussianDensity_integral_pos d N a mass ha hmass
   have hρm : Measurable ρ := by
@@ -2372,15 +2359,15 @@ theorem fkg_perturbed (a mass : ℝ)
         (fun φ => F' φ * G' φ * Real.exp (-V' φ)) (fun x => ω (finLatticeDelta d N x))) μ :=
     hFGi.congr (by filter_upwards with ω; simp only [hF_eq, hG_eq, hV_eq])
   have hVρi : Integrable (fun φ => Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _ hExpV'm hV'_int
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass _ hExpV'm hV'_int
   have hFVρi : Integrable (fun φ => F' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass _
       (hF'm.mul hExpV'm) hFV'_int
   have hGVρi : Integrable (fun φ => G' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass _
       (hG'm.mul hExpV'm) hGV'_int
   have hFGVρi : Integrable (fun φ => F' φ * G' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _
+    integrable_mul_gaussianDensity_of_comp_eval d N a mass ha hmass _
       ((hF'm.mul hG'm).mul hExpV'm) hFGV'_int
   have hρ'i : Integrable ρ' :=
     hVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
@@ -2397,28 +2384,32 @@ theorem fkg_perturbed (a mass : ℝ)
         ∫ ω, (fun φ => F' φ * G' φ * Real.exp (-V' φ))
           (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hG_eq, hV_eq])]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hFGVρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      (fun φ => F' φ * G' φ * Real.exp (-V' φ)) ((hF'm.mul hG'm).mul hExpV'm) hFGVρi
   have hI_V : ∫ ω, Real.exp (-V ω) ∂μ =
       (∫ φ, Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, Real.exp (-V ω) ∂μ) =
         ∫ ω, (fun φ => Real.exp (-V' φ))
           (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; simp only [hV_eq])]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hVρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      (fun φ => Real.exp (-V' φ)) hExpV'm hVρi
   have hI_FV : ∫ ω, F ω * Real.exp (-V ω) ∂μ =
       (∫ φ, F' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω * Real.exp (-V ω) ∂μ) =
         ∫ ω, (fun φ => F' φ * Real.exp (-V' φ))
           (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; simp only [hF_eq, hV_eq])]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hFVρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      (fun φ => F' φ * Real.exp (-V' φ)) (hF'm.mul hExpV'm) hFVρi
   have hI_GV : ∫ ω, G ω * Real.exp (-V ω) ∂μ =
       (∫ φ, G' φ * Real.exp (-V' φ) * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, G ω * Real.exp (-V ω) ∂μ) =
         ∫ ω, (fun φ => G' φ * Real.exp (-V' φ))
           (fun x => ω (finLatticeDelta d N x)) ∂μ from
       integral_congr_ae (by filter_upwards with ω; simp only [hG_eq, hV_eq])]
-    exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hGVρi
+    exact latticeGaussianMeasure_density_integral_of_fieldLaw d N a mass ha hmass
+      (fun φ => G' φ * Real.exp (-V' φ)) (hG'm.mul hExpV'm) hGVρi
   -- Apply FKG to combined density ρ'
   have hρm : Measurable ρ := by
     simpa [hρ_def] using gaussianDensity_measurable (d := d) (N := N) a mass
