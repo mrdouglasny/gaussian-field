@@ -43,6 +43,7 @@ import GaussianField.NuclearFactorization
 import GaussianField.TargetFactorization
 import GaussianField.Construction
 import GaussianField.Properties
+import GaussianField.Hypercontractive
 import GaussianField.Wick
 
 /-! ### Axiom fallback (inactive)

@@ -256,6 +256,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
 | [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
 | [Wick.lean](GaussianField/Wick.lean) | 1,067 | [Wick's theorem](docs/wick-theorem.md): Gaussian IBP, recursive Wick formula, moment bounds |
+| [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 107 | Nelson's hypercontractive estimate and Gross log-Sobolev inequality |
 
 ### Dependency graph
 
@@ -296,6 +297,8 @@ The core results are fully proved with no custom axioms:
 - `DyninMityaginSpace.toNuclearSpace` — sorry-free (Dynin-Mityagin implies Pietsch)
 - `GaussianField.measure`, `charFun`, moments — sorry-free
 - `gaussian_ibp_general`, `wick_recursive`, `wick_bound`, `odd_moment_vanish` — sorry-free
+
+The `GaussianField/Hypercontractive.lean` module states Nelson's hypercontractive estimate and the Gross log-Sobolev inequality for Gaussian measures as axioms (2 axioms). These are used by pphi2 for tightness of the continuum limit.
 
 The `HeatKernel/` module has proved the Mehler kernel closed form, positivity, semigroup property, Hermite reproducing property, and circle heat kernel properties. Remaining axioms are for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
 
