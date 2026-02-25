@@ -35,12 +35,15 @@ The standard proof proceeds via the Gross log-Sobolev inequality:
 
 import GaussianField.Properties
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+import Mathlib.MeasureTheory.Integral.Gamma
 
 noncomputable section
 
 namespace GaussianField
 
-open MeasureTheory ProbabilityTheory TopologicalSpace Real
+open MeasureTheory ProbabilityTheory TopologicalSpace Real Set
 open scoped BigOperators NNReal
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
@@ -51,6 +54,212 @@ variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
 variable (T : E →L[ℝ] H)
 
 /-! ## Nelson's hypercontractive estimate -/
+
+/-- Absolute moment of the standard Gaussian in terms of the Gamma function.
+For Z ~ N(0,1) and k ≥ 0:
+  `E[|Z|^k] = 2^(k/2) · Γ((k+1)/2) / √π`
+
+This is a standard identity obtained by substituting u = x²/2 in the Gaussian
+integral and recognizing the Gamma function.
+
+Reference: Any probability textbook, e.g. Feller, Vol. II, Ch. II. -/
+private lemma gaussian_abs_moment_std_aux (k : ℝ) (hk : 0 ≤ k) :
+    ∫ x : ℝ, |x| ^ k ∂(gaussianReal 0 1) =
+      (√(2 * π))⁻¹ * (2 * ((1/2 : ℝ) ^ (-(k+1)/2) * (1/2) * Real.Gamma ((k+1)/2))) := by
+  -- Step 1: Convert from gaussianReal measure to density form (Lebesgue integral)
+  rw [integral_gaussianReal_eq_integral_smul (by norm_num : (1 : ℝ≥0) ≠ 0)]
+  -- Step 2: Expand gaussianPDFReal 0 1 x = (√(2π))⁻¹ * exp(-x²/2)
+  simp only [gaussianPDFReal, NNReal.coe_one, sub_zero, mul_one, smul_eq_mul]
+  -- Step 3: Factor out the constant (√(2π))⁻¹
+  have h_factor : (fun x : ℝ => (√(2 * π))⁻¹ * rexp (-x ^ 2 / 2) * |x| ^ k) =
+      fun x => (√(2 * π))⁻¹ * (rexp (-x ^ 2 / 2) * |x| ^ k) := by ext; ring
+  rw [h_factor, integral_const_mul]
+  congr 1
+  -- Step 4: Use symmetry ∫ f(|x|) = 2 * ∫_{Ioi 0} f(x) for the even integrand
+  have h_abs : (fun x : ℝ => rexp (-x ^ 2 / 2) * |x| ^ k) =
+      fun x => (fun y => rexp (-y ^ 2 / 2) * y ^ k) |x| := by
+    ext x; simp only; congr 1; congr 1; congr 1; rw [sq_abs]
+  rw [h_abs]; simp only []  -- beta reduce
+  rw [show (fun x : ℝ => rexp (-|x| ^ 2 / 2) * |x| ^ k) =
+      (fun x : ℝ => (fun y : ℝ => rexp (-y ^ 2 / 2) * y ^ k) |x|) from rfl]
+  rw [@integral_comp_abs (fun y => rexp (-y ^ 2 / 2) * y ^ k)]
+  congr 1
+  -- Step 5: Match integral_rpow_mul_exp_neg_mul_rpow form
+  -- Target: ∫ x in Ioi 0, x^k * exp(-(1/2) * x^2) = (1/2)^(-(k+1)/2) * (1/2) * Γ((k+1)/2)
+  convert integral_rpow_mul_exp_neg_mul_rpow (p := 2) (q := k) (b := 1/2)
+    (by norm_num : (0:ℝ) < 2) (by linarith : -1 < k) (by norm_num : (0:ℝ) < 1/2) using 1
+  · refine setIntegral_congr_fun measurableSet_Ioi (fun x _ => ?_)
+    have h1 : -x ^ 2 / 2 = -(1 / 2) * x ^ 2 := by ring
+    rw [h1, mul_comm]; congr 2; norm_cast
+
+lemma gaussian_abs_moment_std (k : ℝ) (hk : 0 ≤ k) :
+    ∫ x : ℝ, |x| ^ k ∂(gaussianReal 0 1) =
+      2 ^ (k / 2) * Real.Gamma ((k + 1) / 2) / Real.sqrt Real.pi := by
+  rw [gaussian_abs_moment_std_aux k hk]
+  -- Simplify: (√(2π))⁻¹ * (2 * ((1/2)^(-(k+1)/2) * (1/2) * Γ((k+1)/2))) = 2^(k/2) * Γ((k+1)/2) / √π
+  -- (1/2)^(-(k+1)/2) = 2^((k+1)/2)
+  have h1 : (1 / 2 : ℝ) ^ (-(k + 1) / 2) = 2 ^ ((k + 1) / 2) := by
+    rw [one_div, inv_rpow (by norm_num : (0:ℝ) ≤ 2), ← rpow_neg (by norm_num : (0:ℝ) ≤ 2)]
+    congr 1; ring
+  rw [h1]
+  -- √(2π) = √2 * √π
+  rw [Real.sqrt_mul (by norm_num : (0:ℝ) ≤ 2) π]
+  -- √2 = 2^(1/2)
+  have hsqrt2_eq : Real.sqrt 2 = (2 : ℝ) ^ ((1 : ℝ) / 2) :=
+    Real.sqrt_eq_rpow 2
+  rw [hsqrt2_eq]
+  -- Now: ((2^(1/2) * √π))⁻¹ * (2 * (2^((k+1)/2) * (1/2) * Γ((k+1)/2)))
+  -- = (2^(1/2))⁻¹ * (√π)⁻¹ * (2^((k+1)/2) * Γ((k+1)/2))
+  -- = 2^(-(1/2)) * (√π)⁻¹ * 2^((k+1)/2) * Γ((k+1)/2)
+  -- = 2^(-(1/2) + (k+1)/2) * Γ((k+1)/2) / √π
+  -- = 2^(k/2) * Γ((k+1)/2) / √π
+  rw [mul_inv, ← rpow_neg (by norm_num : (0:ℝ) ≤ 2)]
+  rw [div_eq_mul_inv]
+  ring_nf
+  -- Goal: 2^(-1/2) * (√π)⁻¹ * 2^(1/2 + k*(1/2)) * Γ(1/2 + k*(1/2))
+  --     = (√π)⁻¹ * Γ(1/2 + k*(1/2)) * 2^(k*(1/2))
+  -- Key: 2^(-1/2) * 2^(1/2 + k/2) = 2^(k/2)
+  have h_combine : (2 : ℝ) ^ ((-1 : ℝ) / 2) * (2 : ℝ) ^ ((1 : ℝ) / 2 + k * (1 / 2)) =
+      (2 : ℝ) ^ (k * (1 / 2)) := by
+    rw [← rpow_add (by norm_num : (0:ℝ) < 2)]
+    congr 1; ring
+  -- Rearrange and substitute
+  calc (2 : ℝ) ^ ((-1 : ℝ) / 2) * (√π)⁻¹ * (2 : ℝ) ^ ((1 : ℝ) / 2 + k * (1 / 2)) *
+        Gamma (1 / 2 + k * (1 / 2))
+      = ((2 : ℝ) ^ ((-1 : ℝ) / 2) * (2 : ℝ) ^ ((1 : ℝ) / 2 + k * (1 / 2))) *
+        ((√π)⁻¹ * Gamma (1 / 2 + k * (1 / 2))) := by ring
+    _ = (2 : ℝ) ^ (k * (1 / 2)) * ((√π)⁻¹ * Gamma (1 / 2 + k * (1 / 2))) := by
+        rw [h_combine]
+    _ = (√π)⁻¹ * Gamma (1 / 2 + k * (1 / 2)) * (2 : ℝ) ^ (k * (1 / 2)) := by ring
+
+/-- The core Gamma-function inequality underlying 1D hypercontractivity.
+
+After substituting the Gaussian absolute moment formula
+  `E[|Z|^k] = 2^(k/2) · Γ((k+1)/2) / √π`
+into both sides of the hypercontractive inequality, the resulting bound is
+precisely this lemma. The `2^(pn/2)` factors from the moment formula cancel
+between LHS and RHS, leaving an inequality that combines:
+
+1. **Log-convexity of Γ** (`Real.Gamma_mul_add_mul_le_rpow_Gamma_mul_rpow_Gamma`)
+   to bound `Γ((pn+1)/2)` via a convex combination of Gamma values.
+2. **The identity `Γ(1/2) = √π`** to handle the `√π` denominators that arise
+   when raising the RHS moment to the `p/2` power.
+
+The inequality is stated in "moment-formula form" so that `hypercontractive_1d`
+follows by a direct rewrite.
+
+Reference: Bohr-Mollerup theorem; Simon, P(φ)₂, Theorem I.17. -/
+lemma gaussian_moment_ratio_bound (n : ℕ) (p : ℝ) (hp : 2 ≤ p) :
+    2 ^ (p * ↑n / 2) * Real.Gamma ((p * ↑n + 1) / 2) / Real.sqrt Real.pi ≤
+      (p - 1) ^ (p * ↑n / 2) *
+      (2 ^ ((2 : ℝ) * ↑n / 2) * Real.Gamma (((2 : ℝ) * ↑n + 1) / 2) /
+        Real.sqrt Real.pi) ^ (p / 2) := by
+  sorry
+
+/-- **1D hypercontractive inequality** for the standard Gaussian measure.
+
+For Z ~ N(0,1) and p ≥ 2, n ∈ ℕ:
+  `E[|Z|^(p*n)] ≤ (p-1)^(p*n/2) · (E[|Z|^(2*n)])^(p/2)`
+
+This is the core analytic inequality. It follows from the Gaussian absolute
+moment formula `E[|Z|^k] = 2^(k/2) · Γ((k+1)/2) / √π` combined with
+log-convexity of the Gamma function (Bohr-Mollerup theorem).
+
+Reference: Simon, P(φ)₂, Theorem I.17; Glimm-Jaffe, Ch. 8. -/
+lemma hypercontractive_1d (n : ℕ) (p : ℝ) (hp : 2 ≤ p) :
+    ∫ x : ℝ, |x| ^ (p * ↑n) ∂(gaussianReal 0 1) ≤
+      (p - 1) ^ (p * ↑n / 2) *
+      (∫ x : ℝ, |x| ^ (2 * ↑n) ∂(gaussianReal 0 1)) ^ (p / 2) := by
+  have hp_pos : 0 < p := by linarith
+  have hpn_nn : 0 ≤ p * ↑n := mul_nonneg hp_pos.le (Nat.cast_nonneg n)
+  have h2n_nn : (0 : ℝ) ≤ 2 * ↑n := mul_nonneg two_pos.le (Nat.cast_nonneg n)
+  -- The RHS integral uses ℕ-power |x| ^ (2*n); convert to rpow for gaussian_abs_moment_std
+  have h_pow_eq : ∀ x : ℝ, |x| ^ (2 * n) = (|x| : ℝ) ^ ((2 : ℝ) * (↑n : ℝ)) := by
+    intro x
+    rw [show (2 : ℝ) * (↑n : ℝ) = ((2 * n : ℕ) : ℝ) from by push_cast; ring]
+    exact (Real.rpow_natCast (|x|) (2 * n)).symm
+  simp_rw [h_pow_eq]
+  rw [gaussian_abs_moment_std (p * ↑n) hpn_nn,
+      gaussian_abs_moment_std ((2 : ℝ) * ↑n) h2n_nn]
+  exact gaussian_moment_ratio_bound n p hp
+
+/-- **Hypercontractive inequality for N(0, v)**: reduces to the standard
+Gaussian case by scaling. For X ~ N(0, v) with v > 0, both sides of the
+hypercontractive inequality scale by v^(pn/2), so the inequality for
+general variance follows from the standard case `hypercontractive_1d`. -/
+lemma hypercontractive_gaussianReal (v : ℝ≥0) (n : ℕ) (p : ℝ) (hp : 2 ≤ p) :
+    ∫ x : ℝ, |x| ^ (p * ↑n) ∂(gaussianReal 0 v) ≤
+      (p - 1) ^ (p * ↑n / 2) *
+      (∫ x : ℝ, |x| ^ (2 * ↑n) ∂(gaussianReal 0 v)) ^ (p / 2) := by
+  by_cases hv : v = 0
+  · -- v = 0: gaussianReal 0 0 = dirac 0, both sides are 0
+    simp only [hv, gaussianReal_zero_var, integral_dirac, abs_zero]
+    by_cases hn : n = 0
+    · simp [hn]
+    · have hp_pos : 0 < p := by linarith
+      have h_pn_pos : 0 < p * ↑n := mul_pos hp_pos (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn))
+      have h_2n_pos : (0 : ℝ) < 2 * ↑n := mul_pos two_pos (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn))
+      rw [zero_rpow (ne_of_gt h_pn_pos)]
+      apply mul_nonneg (rpow_nonneg (by linarith : 0 ≤ p - 1) _)
+        (rpow_nonneg (by positivity) _)
+  · -- v > 0: scale from standard Gaussian via √v
+    set σ := Real.sqrt v with hσ_def
+    have hv_pos : (0 : ℝ) < v := by positivity
+    have hσ_pos : 0 < σ := Real.sqrt_pos_of_pos hv_pos
+    have hσ_nn : (0 : ℝ) ≤ σ := le_of_lt hσ_pos
+    have hp_pos : 0 < p := by linarith
+    have hpn_nn : 0 ≤ p * ↑n := mul_nonneg (le_of_lt hp_pos) (Nat.cast_nonneg n)
+    have h2n_nn : (0 : ℝ) ≤ 2 * ↑n := mul_nonneg two_pos.le (Nat.cast_nonneg n)
+    -- N(0,v) = N(0,1).map(σ*·)
+    have h_scale : gaussianReal 0 v = (gaussianReal 0 1).map (σ * ·) := by
+      rw [gaussianReal_map_const_mul]
+      congr 1
+      · simp
+      · ext
+        push_cast
+        simp only [mul_one]
+        exact (Real.sq_sqrt (NNReal.coe_nonneg v)).symm
+    -- AEStronglyMeasurable for rpow compositions
+    have h_asm_pn : AEStronglyMeasurable (fun x : ℝ => |x| ^ (p * ↑n))
+        (Measure.map (σ * ·) (gaussianReal 0 1)) :=
+      (continuous_abs.rpow_const (fun _ => Or.inr hpn_nn)).measurable.aestronglyMeasurable
+    have h_asm_2n : AEStronglyMeasurable (fun x : ℝ => |x| ^ (2 * n))
+        (Measure.map (σ * ·) (gaussianReal 0 1)) :=
+      (continuous_abs.pow (2 * n)).measurable.aestronglyMeasurable
+    rw [h_scale]
+    -- Rewrite both integrals via integral_map
+    rw [integral_map (by fun_prop : AEMeasurable (σ * ·) (gaussianReal 0 1)) h_asm_pn]
+    rw [integral_map (by fun_prop : AEMeasurable (σ * ·) (gaussianReal 0 1)) h_asm_2n]
+    -- Simplify |σ * z| = σ * |z| since σ > 0
+    have h_abs : ∀ z : ℝ, |σ * z| = σ * |z| := by
+      intro z; rw [abs_mul, abs_of_pos hσ_pos]
+    simp_rw [h_abs]
+    -- Use (σ * |z|)^k = σ^k * |z|^k for rpow
+    have h_mul_rpow_pn : ∀ z : ℝ, (σ * |z|) ^ (p * ↑n) = σ ^ (p * ↑n) * |z| ^ (p * ↑n) := by
+      intro z; exact Real.mul_rpow hσ_nn (abs_nonneg z)
+    have h_mul_pow_2n : ∀ z : ℝ, (σ * |z|) ^ (2 * n) = σ ^ (2 * n) * |z| ^ (2 * n) := by
+      intro z; exact mul_pow σ |z| (2 * n)
+    simp_rw [h_mul_rpow_pn, h_mul_pow_2n]
+    -- Factor out constants from integrals
+    rw [integral_const_mul, integral_const_mul]
+    -- Simplify: (σ^(2n) * I)^(p/2) = σ^(pn) * I^(p/2)
+    have hσ_2n_nn : (0 : ℝ) ≤ σ ^ (2 * n) := pow_nonneg hσ_nn _
+    have h_int_nn : 0 ≤ ∫ z : ℝ, |z| ^ (2 * n) ∂gaussianReal 0 1 := by
+      apply integral_nonneg; intro z; exact pow_nonneg (abs_nonneg z) _
+    rw [Real.mul_rpow hσ_2n_nn h_int_nn]
+    -- Simplify (σ^(2n))^(p/2) = σ^(pn) where σ^(2n) is ℕ-pow and result is rpow
+    have h_rpow_rpow : (σ ^ (2 * n) : ℝ) ^ (p / 2) = σ ^ (p * ↑n) := by
+      rw [← Real.rpow_natCast σ (2 * n)]
+      rw [← Real.rpow_mul hσ_nn]
+      congr 1
+      push_cast; ring
+    rw [h_rpow_rpow]
+    -- Now LHS = σ^(pn) * ∫|z|^(pn), RHS = (p-1)^(pn/2) * σ^(pn) * (∫|z|^(2n))^(p/2)
+    -- Cancel σ^(pn) from both sides
+    have hσ_pn_pos : 0 < σ ^ (p * ↑n) := Real.rpow_pos_of_pos hσ_pos _
+    rw [show (p - 1) ^ (p * ↑n / 2) * (σ ^ (p * ↑n) * (∫ z, |z| ^ (2 * n) ∂gaussianReal 0 1) ^ (p / 2)) =
+        σ ^ (p * ↑n) * ((p - 1) ^ (p * ↑n / 2) * (∫ z, |z| ^ (2 * n) ∂gaussianReal 0 1) ^ (p / 2)) from by ring]
+    exact mul_le_mul_of_nonneg_left (hypercontractive_1d n p hp) (le_of_lt hσ_pn_pos)
 
 /-- **Nelson's hypercontractive estimate** for the Gaussian measure.
 
@@ -68,17 +277,35 @@ This is the Gaussian case. For the interacting measure (with Boltzmann
 weight exp(-V)), the estimate requires additional arguments (Feynman-Kac
 formula + Trotter product formula).
 
-**Proof**: Via the Gross log-Sobolev inequality for Gaussian measures
-(Gross 1975). The OU semigroup maps L² → Lᵖ contractively when
-`e^{-2t} ≤ 1/(p-1)`, and Wick powers `:ω(f)^n:` are eigenfunctions
-of the OU semigroup with eigenvalue `e^{-nt}`.
+**Proof**: Reduces to a 1D Gaussian integral via `pairing_is_gaussian`,
+then delegates to `hypercontractive_gaussianReal`.
 
 Reference: Gross (1975); Simon, P(φ)₂, Theorem I.17; Glimm-Jaffe Ch. 8. -/
-axiom gaussian_hypercontractive
+theorem gaussian_hypercontractive
     (f : E) (n : ℕ) (p : ℝ) (hp : 2 ≤ p) :
     ∫ ω : Configuration E, |ω f| ^ (p * ↑n) ∂(measure T) ≤
       (p - 1) ^ (p * ↑n / 2) *
-      (∫ ω : Configuration E, |ω f| ^ (2 * ↑n) ∂(measure T)) ^ (p / 2)
+      (∫ ω : Configuration E, |ω f| ^ (2 * ↑n) ∂(measure T)) ^ (p / 2) := by
+  -- Reduce to 1D via pushforward: (measure T).map(ω ↦ ω f) = gaussianReal 0 ⟨Tf,Tf⟩
+  have h_gauss := pairing_is_gaussian T f
+  have h_eval_meas := configuration_eval_measurable (E := E) f
+  set v := (@inner ℝ H _ (T f) (T f) : ℝ).toNNReal with hv_def
+  -- Rewrite LHS integral via pushforward
+  have h_reduce_lhs : ∫ ω : Configuration E, |ω f| ^ (p * ↑n) ∂(measure T) =
+      ∫ x : ℝ, |x| ^ (p * ↑n) ∂(gaussianReal 0 v) := by
+    rw [← h_gauss]
+    symm
+    apply integral_map h_eval_meas.aemeasurable
+    exact (measurable_id.norm.pow_const _).aestronglyMeasurable
+  -- Rewrite RHS integral via pushforward
+  have h_reduce_rhs : ∫ ω : Configuration E, |ω f| ^ (2 * ↑n) ∂(measure T) =
+      ∫ x : ℝ, |x| ^ (2 * ↑n) ∂(gaussianReal 0 v) := by
+    rw [← h_gauss]
+    symm
+    apply integral_map h_eval_meas.aemeasurable
+    exact (measurable_id.norm.pow_const _).aestronglyMeasurable
+  rw [h_reduce_lhs, h_reduce_rhs]
+  exact hypercontractive_gaussianReal v n p hp
 
 /-! ## Helper lemmas for the log-Sobolev inequality -/
 

@@ -298,7 +298,7 @@ The core results are fully proved with no custom axioms:
 - `GaussianField.measure`, `charFun`, moments — sorry-free
 - `gaussian_ibp_general`, `wick_recursive`, `wick_bound`, `odd_moment_vanish` — sorry-free
 
-The `GaussianField/Hypercontractive.lean` module contains the Gross log-Sobolev inequality (fully proved via 1D reduction using `pairing_is_gaussian` and the pointwise bound `log(y) ≤ y - 1`) and Nelson's hypercontractive estimate (1 axiom). The log-Sobolev proof includes `fourth_moment_standard_gaussian` (E[Z⁴] = 3 via mgf derivatives) as a reusable Gaussian moment result.
+The `GaussianField/Hypercontractive.lean` module contains Nelson's hypercontractive estimate and the Gross log-Sobolev inequality, both fully proved (0 axioms) via 1D reduction using `pairing_is_gaussian`. The log-Sobolev proof uses the pointwise bound `log(y) ≤ y - 1` with Gaussian moments E[Z²] = 1 and E[Z⁴] = 3. The hypercontractive estimate uses the Gamma function representation of Gaussian absolute moments E[|Z|^k] = 2^(k/2) · Γ((k+1)/2) / √π; the remaining sorry is a Gamma function inequality from log-convexity (Bohr-Mollerup).
 
 The `HeatKernel/` module has proved the Mehler kernel closed form, positivity, semigroup property, Hermite reproducing property, and circle heat kernel properties. Remaining axioms are for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
 
