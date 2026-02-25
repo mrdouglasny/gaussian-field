@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**17 axioms, 12 sorries**
+**16 axioms, 12 sorries**
 
 *Updated 2026-02-24.*
 
@@ -46,7 +46,9 @@ Proved FKG results (no longer axioms):
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `gaussian_hypercontractive` | GaussianField/Hypercontractive | axiom | Hard | Nelson's hypercontractive estimate: ‖ω(f)^n‖_{Lᵖ} ≤ (p-1)^{n/2} · ‖ω(f)^n‖_{L²}. |
-| `gross_log_sobolev` | GaussianField/Hypercontractive | axiom | Hard | Gross log-Sobolev inequality for Gaussian measures. |
+
+Proved hypercontractive results:
+- `gross_log_sobolev` -- now a theorem (1D reduction via `pairing_is_gaussian` + `log(y) ≤ y-1`)
 
 ### Infrastructure
 
@@ -63,8 +65,8 @@ Proved FKG results (no longer axioms):
 | Lattice/FKG | 9 | 0 |
 | Lattice/SpectralCovariance | 0 | 7 |
 | GaussianField/Density | 0 | 2 |
-| GaussianField/Hypercontractive | 2 | 0 |
-| **Total** | **17** | **12** |
+| GaussianField/Hypercontractive | 1 | 0 |
+| **Total** | **16** | **12** |
 
 ## References
 
