@@ -20,7 +20,7 @@ Gaussian measure and for measures with single-site perturbations.
 - `chebyshev_integral_inequality` — 1D FKG (base case)
 - `algebraic_four_functions` — key algebraic lemma for AD
 - `ahlswede_daykin_one_dim` — 1D continuous Ahlswede-Daykin theorem
-- `ad_marginal_preservation_ae` — AD condition preserved by Fubini marginalization
+- `ahlswede_daykin_ennreal` — n-dimensional AD in `ℝ≥0∞` (everywhere form)
 - `ahlswede_daykin` — n-dimensional Ahlswede-Daykin by Fubini induction
 - `fkg_from_lattice_condition_nonneg` — FKG for nonneg monotone functions (via AD)
 - `fkg_from_lattice_condition` — general FKG via truncation + shift invariance
@@ -43,13 +43,7 @@ Gaussian measure and for measures with single-site perturbations.
 - `integrable_truncation_mul` — integrability of max(F, -n) * ρ
 - `integrable_truncation_prod_mul` — integrability of max(F,-n) * max(G,-n) * ρ
 
-## Sorrys (7 routine steps)
-
-- `ad_marginal_preservation_ae` — a.e. fiber integrability argument (uses
-  `integrable_fiber_ae` + 1D AD on fibers)
-- `ahlswede_daykin` base case — integral over singleton space
-- `fkg_from_lattice_condition` — 3 integrability goals, shift invariance
-  algebra, and limit passage via DCT
+## Sorrys (0)
 
 ## Proved (formerly axioms)
 
@@ -494,6 +488,470 @@ theorem ahlswede_daykin_one_dim
       _ = 2 * ((∫ x, f₃ x) * (∫ x, f₄ x)) := hrhs_eq
   linarith
 
+/-- **1D Ahlswede-Daykin with a.e. assumptions.**
+
+This variant uses a.e. assumptions directly at the three places used in the
+pointwise proof: `(x,y)`, `(y,x)`, and the diagonal terms at `x` and `y`.
+The swapped/diagonal product-space forms are derived from `hAD` and `hdiag`
+using quasi-measure-preserving maps (`swap`, `fst`, `snd`). -/
+theorem ahlswede_daykin_one_dim_ae
+    (f₁ f₂ f₃ f₄ : ℝ → ℝ)
+    (hnn₁ : ∀ x, 0 ≤ f₁ x) (hnn₂ : ∀ x, 0 ≤ f₂ x)
+    (hnn₃ : ∀ x, 0 ≤ f₃ x) (hnn₄ : ∀ x, 0 ≤ f₄ x)
+    (hAD : ∀ᵐ p : ℝ × ℝ, f₁ p.1 * f₂ p.2 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2))
+    (hdiag : ∀ᵐ x : ℝ, f₁ x * f₂ x ≤ f₃ x * f₄ x)
+    (hi₁ : Integrable f₁) (hi₂ : Integrable f₂)
+    (hi₃ : Integrable f₃) (hi₄ : Integrable f₄) :
+    (∫ x, f₁ x) * (∫ x, f₂ x) ≤ (∫ x, f₃ x) * (∫ x, f₄ x) := by
+  have hAD_swap : ∀ᵐ p : ℝ × ℝ, f₁ p.2 * f₂ p.1 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2) := by
+    have hq : Measure.QuasiMeasurePreserving Prod.swap
+        (volume.prod volume) (volume.prod volume) :=
+      (Measure.measurePreserving_swap (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ))).quasiMeasurePreserving
+    have hswapped : ∀ᵐ p : ℝ × ℝ, f₁ (Prod.swap p).1 * f₂ (Prod.swap p).2 ≤
+        f₃ ((Prod.swap p).1 ⊔ (Prod.swap p).2) * f₄ ((Prod.swap p).1 ⊓ (Prod.swap p).2) :=
+      hq.tendsto_ae.eventually hAD
+    simpa [Prod.swap, sup_comm, inf_comm] using hswapped
+  have hdiag_fst : ∀ᵐ p : ℝ × ℝ, f₁ p.1 * f₂ p.1 ≤ f₃ p.1 * f₄ p.1 :=
+    (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
+      (ν := (volume : Measure ℝ))).tendsto_ae.eventually hdiag
+  have hdiag_snd : ∀ᵐ p : ℝ × ℝ, f₁ p.2 * f₂ p.2 ≤ f₃ p.2 * f₄ p.2 :=
+    (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ))
+      (ν := (volume : Measure ℝ))).tendsto_ae.eventually hdiag
+  have hpw_ae : ∀ᵐ p : ℝ × ℝ,
+      f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1 ≤
+        f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
+    filter_upwards [hAD, hAD_swap, hdiag_fst, hdiag_snd] with p hxy hyx hxx hyy
+    have huv_le : (f₁ p.1 * f₂ p.2) * (f₁ p.2 * f₂ p.1) ≤
+        (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) * (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) := by
+      have : (f₁ p.1 * f₂ p.2) * (f₁ p.2 * f₂ p.1) =
+          (f₁ p.1 * f₂ p.1) * (f₁ p.2 * f₂ p.2) := by ring
+      rw [this]
+      have hsupinf : (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) * (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) =
+          (f₃ p.1 * f₄ p.1) * (f₃ p.2 * f₄ p.2) := by
+        by_cases h : p.1 ≤ p.2
+        · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
+        · push_neg at h
+          simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
+      rw [hsupinf]
+      exact mul_le_mul hxx hyy (mul_nonneg (hnn₁ p.2) (hnn₂ p.2))
+        (mul_nonneg (hnn₃ p.1) (hnn₄ p.1))
+    have hab := algebraic_four_functions
+      (mul_nonneg (hnn₁ p.1) (hnn₂ p.2))
+      (mul_nonneg (hnn₁ p.2) (hnn₂ p.1))
+      (mul_nonneg (hnn₃ _) (hnn₄ _))
+      (mul_nonneg (hnn₃ _) (hnn₄ _))
+      hxy hyx huv_le
+    have hPQ : f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2) + f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2) =
+        f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
+      by_cases h : p.1 ≤ p.2
+      · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
+      · push_neg at h
+        simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
+    linarith
+  have hi₁₂ : Integrable (fun p : ℝ × ℝ => f₁ p.1 * f₂ p.2) (volume.prod volume) :=
+    hi₁.mul_prod hi₂
+  have hi₂₁ : Integrable (fun p : ℝ × ℝ => f₁ p.2 * f₂ p.1) (volume.prod volume) :=
+    (hi₂.mul_prod hi₁).congr (ae_of_all _ fun p => by ring)
+  have hi₃₄ : Integrable (fun p : ℝ × ℝ => f₃ p.1 * f₄ p.2) (volume.prod volume) :=
+    hi₃.mul_prod hi₄
+  have hi₄₃ : Integrable (fun p : ℝ × ℝ => f₃ p.2 * f₄ p.1) (volume.prod volume) :=
+    (hi₄.mul_prod hi₃).congr (ae_of_all _ fun p => by ring)
+  have hInt :
+      ∫ p : ℝ × ℝ, (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
+        ≤ ∫ p : ℝ × ℝ, (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume) := by
+    exact integral_mono_ae (hi₁₂.add hi₂₁) (hi₃₄.add hi₄₃) hpw_ae
+  have h12 : ∫ p : ℝ × ℝ, f₁ p.1 * f₂ p.2 ∂(volume.prod volume) =
+      (∫ x, f₁ x) * (∫ x, f₂ x) := integral_prod_mul f₁ f₂
+  have h21 : ∫ p : ℝ × ℝ, f₁ p.2 * f₂ p.1 ∂(volume.prod volume) =
+      (∫ x, f₁ x) * (∫ x, f₂ x) := by
+    rw [show (fun p : ℝ × ℝ => f₁ p.2 * f₂ p.1) =
+        (fun p : ℝ × ℝ => f₂ p.1 * f₁ p.2) from funext fun p => by ring]
+    rw [integral_prod_mul f₂ f₁]; ring
+  have h34 : ∫ p : ℝ × ℝ, f₃ p.1 * f₄ p.2 ∂(volume.prod volume) =
+      (∫ x, f₃ x) * (∫ x, f₄ x) := integral_prod_mul f₃ f₄
+  have h43 : ∫ p : ℝ × ℝ, f₃ p.2 * f₄ p.1 ∂(volume.prod volume) =
+      (∫ x, f₃ x) * (∫ x, f₄ x) := by
+    rw [show (fun p : ℝ × ℝ => f₃ p.2 * f₄ p.1) =
+        (fun p : ℝ × ℝ => f₄ p.1 * f₃ p.2) from funext fun p => by ring]
+    rw [integral_prod_mul f₄ f₃]; ring
+  have hint' : 2 * ((∫ x, f₁ x) * (∫ x, f₂ x)) ≤
+      2 * ((∫ x, f₃ x) * (∫ x, f₄ x)) := by
+    calc 2 * ((∫ x, f₁ x) * (∫ x, f₂ x))
+        = ∫ p : ℝ × ℝ, (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume) := by
+          rw [integral_add hi₁₂ hi₂₁, h12, h21]; ring
+      _ ≤ ∫ p : ℝ × ℝ, (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume) := hInt
+      _ = 2 * ((∫ x, f₃ x) * (∫ x, f₄ x)) := by
+          rw [integral_add hi₃₄ hi₄₃, h34, h43]; ring
+  linarith
+
+/-- **1D Ahlswede-Daykin in `ℝ≥0∞` (a.e. form).**
+
+This version avoids integrability assumptions entirely: it compares nonnegative
+functions via `lintegral`, so all terms are well-defined. -/
+theorem ahlswede_daykin_one_dim_ae_lintegral
+    (f₁ f₂ f₃ f₄ : ℝ → ℝ)
+    (hnn₁ : ∀ x, 0 ≤ f₁ x) (hnn₂ : ∀ x, 0 ≤ f₂ x)
+    (hnn₃ : ∀ x, 0 ≤ f₃ x) (hnn₄ : ∀ x, 0 ≤ f₄ x)
+    (hm₁ : AEMeasurable f₁ volume) (hm₂ : AEMeasurable f₂ volume)
+    (hm₃ : AEMeasurable f₃ volume) (hm₄ : AEMeasurable f₄ volume)
+    (hAD : ∀ᵐ p : ℝ × ℝ, f₁ p.1 * f₂ p.2 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2))
+    (hdiag : ∀ᵐ x : ℝ, f₁ x * f₂ x ≤ f₃ x * f₄ x) :
+    (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) +
+      (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) ≤
+    (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) +
+      (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) := by
+  have hAD_swap : ∀ᵐ p : ℝ × ℝ, f₁ p.2 * f₂ p.1 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2) := by
+    have hq : Measure.QuasiMeasurePreserving Prod.swap
+        (volume.prod volume) (volume.prod volume) :=
+      (Measure.measurePreserving_swap (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ))).quasiMeasurePreserving
+    have hswapped : ∀ᵐ p : ℝ × ℝ, f₁ (Prod.swap p).1 * f₂ (Prod.swap p).2 ≤
+        f₃ ((Prod.swap p).1 ⊔ (Prod.swap p).2) * f₄ ((Prod.swap p).1 ⊓ (Prod.swap p).2) :=
+      hq.tendsto_ae.eventually hAD
+    simpa [Prod.swap, sup_comm, inf_comm] using hswapped
+  have hdiag_fst : ∀ᵐ p : ℝ × ℝ, f₁ p.1 * f₂ p.1 ≤ f₃ p.1 * f₄ p.1 :=
+    (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
+      (ν := (volume : Measure ℝ))).tendsto_ae.eventually hdiag
+  have hdiag_snd : ∀ᵐ p : ℝ × ℝ, f₁ p.2 * f₂ p.2 ≤ f₃ p.2 * f₄ p.2 :=
+    (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ))
+      (ν := (volume : Measure ℝ))).tendsto_ae.eventually hdiag
+  have hpw_ae : ∀ᵐ p : ℝ × ℝ,
+      f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1 ≤
+        f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
+    filter_upwards [hAD, hAD_swap, hdiag_fst, hdiag_snd] with p hxy hyx hxx hyy
+    have huv_le : (f₁ p.1 * f₂ p.2) * (f₁ p.2 * f₂ p.1) ≤
+        (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) * (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) := by
+      have : (f₁ p.1 * f₂ p.2) * (f₁ p.2 * f₂ p.1) =
+          (f₁ p.1 * f₂ p.1) * (f₁ p.2 * f₂ p.2) := by ring
+      rw [this]
+      have hsupinf : (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) * (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) =
+          (f₃ p.1 * f₄ p.1) * (f₃ p.2 * f₄ p.2) := by
+        by_cases h : p.1 ≤ p.2
+        · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
+        · push_neg at h
+          simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
+      rw [hsupinf]
+      exact mul_le_mul hxx hyy (mul_nonneg (hnn₁ p.2) (hnn₂ p.2))
+        (mul_nonneg (hnn₃ p.1) (hnn₄ p.1))
+    have hab := algebraic_four_functions
+      (mul_nonneg (hnn₁ p.1) (hnn₂ p.2))
+      (mul_nonneg (hnn₁ p.2) (hnn₂ p.1))
+      (mul_nonneg (hnn₃ _) (hnn₄ _))
+      (mul_nonneg (hnn₃ _) (hnn₄ _))
+      hxy hyx huv_le
+    have hPQ : f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2) + f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2) =
+        f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
+      by_cases h : p.1 ≤ p.2
+      · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
+      · push_neg at h
+        simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
+    linarith
+  have hpw_ae_en :
+      ∀ᵐ p : ℝ × ℝ,
+        ENNReal.ofReal (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ≤
+          ENNReal.ofReal (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) := by
+    exact hpw_ae.mono (fun _ h => ENNReal.ofReal_le_ofReal h)
+  have hm₁_fst : AEMeasurable (fun p : ℝ × ℝ => f₁ p.1) (volume.prod volume) :=
+    hm₁.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₁_snd : AEMeasurable (fun p : ℝ × ℝ => f₁ p.2) (volume.prod volume) :=
+    hm₁.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₂_fst : AEMeasurable (fun p : ℝ × ℝ => f₂ p.1) (volume.prod volume) :=
+    hm₂.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₂_snd : AEMeasurable (fun p : ℝ × ℝ => f₂ p.2) (volume.prod volume) :=
+    hm₂.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₃_fst : AEMeasurable (fun p : ℝ × ℝ => f₃ p.1) (volume.prod volume) :=
+    hm₃.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₃_snd : AEMeasurable (fun p : ℝ × ℝ => f₃ p.2) (volume.prod volume) :=
+    hm₃.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₄_fst : AEMeasurable (fun p : ℝ × ℝ => f₄ p.1) (volume.prod volume) :=
+    hm₄.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm₄_snd : AEMeasurable (fun p : ℝ × ℝ => f₄ p.2) (volume.prod volume) :=
+    hm₄.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ))
+        (ν := (volume : Measure ℝ)))
+  have hm12 : AEMeasurable (fun p : ℝ × ℝ => ENNReal.ofReal (f₁ p.1 * f₂ p.2))
+      (volume.prod volume) := by
+    exact (hm₁_fst.mul hm₂_snd).ennreal_ofReal
+  have hm21 : AEMeasurable (fun p : ℝ × ℝ => ENNReal.ofReal (f₁ p.2 * f₂ p.1))
+      (volume.prod volume) := by
+    exact (hm₁_snd.mul hm₂_fst).ennreal_ofReal
+  have hm34 : AEMeasurable (fun p : ℝ × ℝ => ENNReal.ofReal (f₃ p.1 * f₄ p.2))
+      (volume.prod volume) := by
+    exact (hm₃_fst.mul hm₄_snd).ennreal_ofReal
+  have hm43 : AEMeasurable (fun p : ℝ × ℝ => ENNReal.ofReal (f₃ p.2 * f₄ p.1))
+      (volume.prod volume) := by
+    exact (hm₃_snd.mul hm₄_fst).ennreal_ofReal
+  have hInt :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
+        ≤ ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume) :=
+    lintegral_mono_ae hpw_ae_en
+  have h12 :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2) ∂(volume.prod volume) =
+        (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2) ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1) * ENNReal.ofReal (f₂ p.2) ∂(volume.prod volume) := by
+              refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
+              intro p
+              simpa using
+                (ENNReal.ofReal_mul (p := f₁ p.1) (q := f₂ p.2) (hnn₁ p.1))
+      _ = (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) := by
+            exact lintegral_prod_mul (hm₁.ennreal_ofReal) (hm₂.ennreal_ofReal)
+  have h21 :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.2 * f₂ p.1) ∂(volume.prod volume) =
+        (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₂ p.1) * ENNReal.ofReal (f₁ p.2) ∂(volume.prod volume) := by
+              refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
+              intro p
+              simpa [mul_comm] using
+                (ENNReal.ofReal_mul (p := f₂ p.1) (q := f₁ p.2) (hnn₂ p.1))
+      _ = (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) := by
+            exact lintegral_prod_mul (hm₂.ennreal_ofReal) (hm₁.ennreal_ofReal)
+      _ = (∫⁻ x, ENNReal.ofReal (f₁ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₂ x) ∂volume) := by
+            rw [mul_comm]
+  have h34 :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2) ∂(volume.prod volume) =
+        (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2) ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1) * ENNReal.ofReal (f₄ p.2) ∂(volume.prod volume) := by
+              refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
+              intro p
+              simpa using
+                (ENNReal.ofReal_mul (p := f₃ p.1) (q := f₄ p.2) (hnn₃ p.1))
+      _ = (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) := by
+            exact lintegral_prod_mul (hm₃.ennreal_ofReal) (hm₄.ennreal_ofReal)
+  have h43 :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.2 * f₄ p.1) ∂(volume.prod volume) =
+        (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.2 * f₄ p.1) ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₄ p.1) * ENNReal.ofReal (f₃ p.2) ∂(volume.prod volume) := by
+              refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
+              intro p
+              simpa [mul_comm] using
+                (ENNReal.ofReal_mul (p := f₄ p.1) (q := f₃ p.2) (hnn₄ p.1))
+      _ = (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) := by
+            exact lintegral_prod_mul (hm₄.ennreal_ofReal) (hm₃.ennreal_ofReal)
+      _ = (∫⁻ x, ENNReal.ofReal (f₃ x) ∂volume) * (∫⁻ x, ENNReal.ofReal (f₄ x) ∂volume) := by
+            rw [mul_comm]
+  have hsum12 :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume) =
+        ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2) ∂(volume.prod volume) +
+        ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.2 * f₂ p.1) ∂(volume.prod volume) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ,
+              (ENNReal.ofReal (f₁ p.1 * f₂ p.2) + ENNReal.ofReal (f₁ p.2 * f₂ p.1))
+              ∂(volume.prod volume) := by
+              refine lintegral_congr_ae ?_
+              refine Filter.Eventually.of_forall ?_
+              intro p
+              simpa using
+                (ENNReal.ofReal_add
+                  (mul_nonneg (hnn₁ p.1) (hnn₂ p.2))
+                  (mul_nonneg (hnn₁ p.2) (hnn₂ p.1)))
+      _ = ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.1 * f₂ p.2) ∂(volume.prod volume) +
+            ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₁ p.2 * f₂ p.1) ∂(volume.prod volume) := by
+              rw [lintegral_add_left' hm12]
+  have hsum34 :
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume) =
+        ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2) ∂(volume.prod volume) +
+        ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.2 * f₄ p.1) ∂(volume.prod volume) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ,
+              (ENNReal.ofReal (f₃ p.1 * f₄ p.2) + ENNReal.ofReal (f₃ p.2 * f₄ p.1))
+              ∂(volume.prod volume) := by
+              refine lintegral_congr_ae ?_
+              refine Filter.Eventually.of_forall ?_
+              intro p
+              simpa using
+                (ENNReal.ofReal_add
+                  (mul_nonneg (hnn₃ p.1) (hnn₄ p.2))
+                  (mul_nonneg (hnn₃ p.2) (hnn₄ p.1)))
+      _ = ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.1 * f₄ p.2) ∂(volume.prod volume) +
+            ∫⁻ p : ℝ × ℝ, ENNReal.ofReal (f₃ p.2 * f₄ p.1) ∂(volume.prod volume) := by
+              rw [lintegral_add_left' hm34]
+  rw [hsum12, hsum34, h12, h21, h34, h43] at hInt
+  exact hInt
+
+/-- Algebraic 4-functions inequality in `ℝ≥0∞`.
+
+If `u ≤ P`, `v ≤ Q`, and `u*v ≤ P*Q`, then `u+v ≤ P+Q`. -/
+lemma algebraic_four_functions_ennreal {u v P Q : ENNReal}
+    (hu : u ≤ P) (hv : v ≤ P) (huv : u * v ≤ P * Q) : u + v ≤ P + Q := by
+  by_cases hPinf : P = ⊤
+  · simpa [hPinf] using (le_top : u + v ≤ ⊤)
+  by_cases hQinf : Q = ⊤
+  · simpa [hQinf] using (le_top : u + v ≤ ⊤)
+  have hPfin : P < ⊤ := by simpa [lt_top_iff_ne_top, hPinf]
+  have hQfin : Q < ⊤ := by simpa [lt_top_iff_ne_top, hQinf]
+  have hu_fin : u < ⊤ := lt_of_le_of_lt hu hPfin
+  have hv_fin : v < ⊤ := lt_of_le_of_lt hv hPfin
+  have huR : u.toReal ≤ P.toReal :=
+    (ENNReal.toReal_le_toReal (ne_of_lt hu_fin) (ne_of_lt hPfin)).2 hu
+  have hvR : v.toReal ≤ P.toReal :=
+    (ENNReal.toReal_le_toReal (ne_of_lt hv_fin) (ne_of_lt hPfin)).2 hv
+  have hPQt : P * Q ≠ ⊤ := ne_of_lt (ENNReal.mul_lt_top hPfin hQfin)
+  have huvt : u * v ≠ ⊤ := by
+    refine ne_of_lt (lt_of_le_of_lt huv ?_)
+    exact ENNReal.mul_lt_top hPfin hQfin
+  have huvR : u.toReal * v.toReal ≤ P.toReal * Q.toReal := by
+    have htmp : (u * v).toReal ≤ (P * Q).toReal :=
+      (ENNReal.toReal_le_toReal huvt hPQt).2 huv
+    simpa [ENNReal.toReal_mul, ne_of_lt hu_fin, ne_of_lt hv_fin, ne_of_lt hPfin, ne_of_lt hQfin]
+      using htmp
+  have hsumR : u.toReal + v.toReal ≤ P.toReal + Q.toReal := by
+    nlinarith [sq_nonneg (u.toReal - v.toReal), huR, hvR, huvR,
+      ENNReal.toReal_nonneg (a := u), ENNReal.toReal_nonneg (a := v),
+      ENNReal.toReal_nonneg (a := P), ENNReal.toReal_nonneg (a := Q)]
+  have huvsum_fin : u + v < ⊤ := ENNReal.add_lt_top.2 ⟨hu_fin, hv_fin⟩
+  have hPQsum_fin : P + Q < ⊤ := ENNReal.add_lt_top.2 ⟨hPfin, hQfin⟩
+  have hsum_toReal : (u + v).toReal ≤ (P + Q).toReal := by
+    simpa [ENNReal.toReal_add, ne_of_lt hu_fin, ne_of_lt hv_fin, ne_of_lt hPfin, ne_of_lt hQfin]
+      using hsumR
+  exact (ENNReal.toReal_le_toReal (ne_of_lt huvsum_fin) (ne_of_lt hPQsum_fin)).1 hsum_toReal
+
+/-- Cancel the duplicated term in `ℝ≥0∞`: from `A+A ≤ B+B`, infer `A ≤ B`. -/
+lemma ennreal_cancel_two {A B : ENNReal} (h : A + A ≤ B + B) : A ≤ B := by
+  by_cases hB : B = ⊤
+  · simpa [hB] using (le_top : A ≤ ⊤)
+  have hB' : B < ⊤ := by simpa [lt_top_iff_ne_top, hB]
+  have hBB : B + B < ⊤ := ENNReal.add_lt_top.2 ⟨hB', hB'⟩
+  have hAA : A + A < ⊤ := lt_of_le_of_lt h hBB
+  have hA : A < ⊤ := by
+    have hle : A ≤ A + A := by simpa using le_add_right (a := A) (b := A)
+    exact lt_of_le_of_lt hle hAA
+  have htr : (A + A).toReal ≤ (B + B).toReal :=
+    (ENNReal.toReal_le_toReal (ne_of_lt hAA) (ne_of_lt hBB)).2 h
+  have htr' : A.toReal + A.toReal ≤ B.toReal + B.toReal := by
+    simpa [ENNReal.toReal_add, ne_of_lt hA, ne_of_lt hB'] using htr
+  have hto : A.toReal ≤ B.toReal := by linarith
+  exact (ENNReal.toReal_le_toReal (ne_of_lt hA) (ne_of_lt hB')).1 hto
+
+/-- 1D Ahlswede-Daykin theorem natively in `ℝ≥0∞`. -/
+theorem ahlswede_daykin_one_dim_ennreal
+    (f₁ f₂ f₃ f₄ : ℝ → ENNReal)
+    (hm₁ : Measurable f₁) (hm₂ : Measurable f₂)
+    (hm₃ : Measurable f₃) (hm₄ : Measurable f₄)
+    (hAD : ∀ x y : ℝ, f₁ x * f₂ y ≤ f₃ (x ⊔ y) * f₄ (x ⊓ y)) :
+    (∫⁻ x, f₁ x) * (∫⁻ x, f₂ x) ≤ (∫⁻ x, f₃ x) * (∫⁻ x, f₄ x) := by
+  have hpw : ∀ p : ℝ × ℝ,
+      f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1 ≤
+        f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
+    intro p
+    have hxy := hAD p.1 p.2
+    have hyx : f₁ p.2 * f₂ p.1 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2) := by
+      simpa [sup_comm, inf_comm] using hAD p.2 p.1
+    have hxx : f₁ p.1 * f₂ p.1 ≤ f₃ p.1 * f₄ p.1 := by simpa using hAD p.1 p.1
+    have hyy : f₁ p.2 * f₂ p.2 ≤ f₃ p.2 * f₄ p.2 := by simpa using hAD p.2 p.2
+    have huv_le : (f₁ p.1 * f₂ p.2) * (f₁ p.2 * f₂ p.1) ≤
+        (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) * (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) := by
+      have : (f₁ p.1 * f₂ p.2) * (f₁ p.2 * f₂ p.1) =
+          (f₁ p.1 * f₂ p.1) * (f₁ p.2 * f₂ p.2) := by ring
+      rw [this]
+      have hsupinf : (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) * (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) =
+          (f₃ p.1 * f₄ p.1) * (f₃ p.2 * f₄ p.2) := by
+        by_cases h : p.1 ≤ p.2
+        · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
+        · push_neg at h
+          simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
+      rw [hsupinf]
+      exact mul_le_mul' hxx hyy
+    have hsum : f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1 ≤
+        (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) +
+        (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) := by
+      exact algebraic_four_functions_ennreal hxy hyx huv_le
+    have hPQ : (f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) +
+        (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) =
+        f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
+      by_cases h : p.1 ≤ p.2
+      · simp [sup_eq_right.mpr h, inf_eq_left.mpr h, add_comm, add_left_comm, add_assoc,
+          mul_comm, mul_left_comm, mul_assoc]
+      · push_neg at h
+        simp [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h), add_comm, add_left_comm,
+          add_assoc, mul_comm, mul_left_comm, mul_assoc]
+    simpa [hPQ] using hsum
+  have hInt :
+      ∫⁻ p : ℝ × ℝ, (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
+        ≤ ∫⁻ p : ℝ × ℝ, (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume) := by
+    exact lintegral_mono (fun p => hpw p)
+  have h12 : ∫⁻ p : ℝ × ℝ, f₁ p.1 * f₂ p.2 ∂(volume.prod volume) =
+      (∫⁻ x, f₁ x) * (∫⁻ x, f₂ x) :=
+    lintegral_prod_mul hm₁.aemeasurable hm₂.aemeasurable
+  have h21 : ∫⁻ p : ℝ × ℝ, f₁ p.2 * f₂ p.1 ∂(volume.prod volume) =
+      (∫⁻ x, f₁ x) * (∫⁻ x, f₂ x) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, f₁ p.2 * f₂ p.1 ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ, f₂ p.1 * f₁ p.2 ∂(volume.prod volume) := by
+              refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
+              intro p
+              simpa [mul_comm]
+      _ = (∫⁻ x, f₂ x) * (∫⁻ x, f₁ x) :=
+            lintegral_prod_mul hm₂.aemeasurable hm₁.aemeasurable
+      _ = (∫⁻ x, f₁ x) * (∫⁻ x, f₂ x) := by rw [mul_comm]
+  have h34 : ∫⁻ p : ℝ × ℝ, f₃ p.1 * f₄ p.2 ∂(volume.prod volume) =
+      (∫⁻ x, f₃ x) * (∫⁻ x, f₄ x) :=
+    lintegral_prod_mul hm₃.aemeasurable hm₄.aemeasurable
+  have h43 : ∫⁻ p : ℝ × ℝ, f₃ p.2 * f₄ p.1 ∂(volume.prod volume) =
+      (∫⁻ x, f₃ x) * (∫⁻ x, f₄ x) := by
+    calc
+      ∫⁻ p : ℝ × ℝ, f₃ p.2 * f₄ p.1 ∂(volume.prod volume)
+          = ∫⁻ p : ℝ × ℝ, f₄ p.1 * f₃ p.2 ∂(volume.prod volume) := by
+              refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
+              intro p
+              simpa [mul_comm]
+      _ = (∫⁻ x, f₄ x) * (∫⁻ x, f₃ x) :=
+            lintegral_prod_mul hm₄.aemeasurable hm₃.aemeasurable
+      _ = (∫⁻ x, f₃ x) * (∫⁻ x, f₄ x) := by rw [mul_comm]
+  have hsum12 :
+      ∫⁻ p : ℝ × ℝ, (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
+        = (∫⁻ p : ℝ × ℝ, f₁ p.1 * f₂ p.2 ∂(volume.prod volume)) +
+          (∫⁻ p : ℝ × ℝ, f₁ p.2 * f₂ p.1 ∂(volume.prod volume)) := by
+    rw [lintegral_add_left']
+    exact (hm₁.aemeasurable.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ)) (ν := (volume : Measure ℝ)))).mul
+      (hm₂.aemeasurable.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ)) (ν := (volume : Measure ℝ))))
+  have hsum34 :
+      ∫⁻ p : ℝ × ℝ, (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume)
+        = (∫⁻ p : ℝ × ℝ, f₃ p.1 * f₄ p.2 ∂(volume.prod volume)) +
+          (∫⁻ p : ℝ × ℝ, f₃ p.2 * f₄ p.1 ∂(volume.prod volume)) := by
+    rw [lintegral_add_left']
+    exact (hm₃.aemeasurable.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ)) (ν := (volume : Measure ℝ)))).mul
+      (hm₄.aemeasurable.comp_quasiMeasurePreserving
+      (Measure.quasiMeasurePreserving_snd (μ := (volume : Measure ℝ)) (ν := (volume : Measure ℝ))))
+  have hdouble :
+      ((∫⁻ x, f₁ x) * (∫⁻ x, f₂ x)) + ((∫⁻ x, f₁ x) * (∫⁻ x, f₂ x)) ≤
+      ((∫⁻ x, f₃ x) * (∫⁻ x, f₄ x)) + ((∫⁻ x, f₃ x) * (∫⁻ x, f₄ x)) := by
+    calc
+      ((∫⁻ x, f₁ x) * (∫⁻ x, f₂ x)) + ((∫⁻ x, f₁ x) * (∫⁻ x, f₂ x))
+          = ∫⁻ p : ℝ × ℝ, (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume) := by
+              rw [hsum12, h12, h21]
+      _ ≤ ∫⁻ p : ℝ × ℝ, (f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1) ∂(volume.prod volume) := hInt
+      _ = ((∫⁻ x, f₃ x) * (∫⁻ x, f₄ x)) + ((∫⁻ x, f₃ x) * (∫⁻ x, f₄ x)) := by
+              rw [hsum34, h34, h43]
+  exact ennreal_cancel_two hdouble
+
 /-! ### Fubini decomposition axioms
 
 Textbook results about Fubini decomposition of integrals over `(ι → ℝ)`.
@@ -565,6 +1023,64 @@ theorem fubini_pi_decomp {ι : Type*} [Fintype ι] [DecidableEq ι]
         f (fun j => if h : j = i then t else x' ⟨j, h⟩) := by
       rfl
 
+/-- Fubini decomposition for `lintegral` over `(ι → ℝ)`. -/
+theorem fubini_pi_decomp_lintegral {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (f : (ι → ℝ) → ENNReal) (hf : Measurable f) (i : ι) :
+    ∫⁻ x, f x = ∫⁻ x' : {j : ι // j ≠ i} → ℝ,
+      (∫⁻ t : ℝ, f (fun j => if h : j = i then t else x' ⟨j, h⟩)) := by
+  classical
+  let p : ι → Prop := fun j => j ≠ i
+  have hK : Unique {j : ι // ¬ p j} := by
+    refine ⟨⟨i, by simp [p]⟩, ?_⟩
+    intro j
+    apply Subtype.ext
+    exact not_not.mp j.property
+  let e : (ι → ℝ) ≃ᵐ ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) :=
+    MeasurableEquiv.piEquivPiSubtypeProd (fun _ : ι => ℝ) p
+  have hmp : MeasurePreserving e volume (volume.prod volume) :=
+    volume_preserving_piEquivPiSubtypeProd (fun _ : ι => ℝ) p
+  calc
+    ∫⁻ x, f x = ∫⁻ y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ), f (e.symm y) := by
+      simpa [Function.comp] using
+        (hmp.symm.lintegral_comp_emb e.symm.measurableEmbedding (f := f)).symm
+    _ = ∫⁻ x' : ({j : ι // p j} → ℝ), ∫⁻ y0 : ({j : ι // ¬ p j} → ℝ), f (e.symm (x', y0)) := by
+      simpa using
+        (lintegral_prod (μ := (volume : Measure ({j : ι // p j} → ℝ)))
+          (ν := (volume : Measure ({j : ι // ¬ p j} → ℝ)))
+          (f := fun y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) => f (e.symm y))
+          ((hf.comp e.symm.measurable).aemeasurable))
+    _ = ∫⁻ x' : ({j : ι // p j} → ℝ), ∫⁻ t : ℝ,
+        f (fun j => if h : j = i then t else x' ⟨j, by simpa [p] using h⟩) := by
+      apply lintegral_congr_ae
+      refine Filter.Eventually.of_forall ?_
+      intro x'
+      letI : Unique {j : ι // ¬ p j} := hK
+      let eu : ({j : ι // ¬ p j} → ℝ) ≃ᵐ ℝ := MeasurableEquiv.piUnique
+        (fun _ : {j : ι // ¬ p j} => ℝ)
+      have hmu : MeasurePreserving eu volume volume := by
+        exact volume_preserving_piUnique (fun _ : {j : ι // ¬ p j} => ℝ)
+      calc
+        (∫⁻ y0 : ({j : ι // ¬ p j} → ℝ), f (e.symm (x', y0))) =
+            ∫⁻ t : ℝ, f (e.symm (x', eu.symm t)) := by
+              simpa [Function.comp] using
+                (hmu.symm.lintegral_comp_emb eu.symm.measurableEmbedding
+                  (f := fun y0 => f (e.symm (x', y0)))).symm
+        _ = ∫⁻ t : ℝ, f (fun j => if h : j = i then t else x' ⟨j, by simpa [p] using h⟩) := by
+              apply lintegral_congr_ae
+              refine Filter.Eventually.of_forall ?_
+              intro t
+              have hpoint : e.symm (x', eu.symm t) =
+                  (fun j => if h : j = i then t else x' ⟨j, by simpa [p] using h⟩) := by
+                ext j
+                by_cases hj : j = i
+                · subst hj
+                  simp [p, e, eu]
+                · simp [p, hj, e, eu]
+              simp [hpoint]
+    _ = ∫⁻ x' : {j : ι // j ≠ i} → ℝ, ∫⁻ t : ℝ,
+        f (fun j => if h : j = i then t else x' ⟨j, h⟩) := by
+      rfl
+
 /-- The marginal (integral over one coordinate) of an integrable nonneg
 function is integrable. -/
 theorem integrable_marginal {ι : Type*} [Fintype ι] [DecidableEq ι]
@@ -616,6 +1132,25 @@ theorem integrable_marginal {ι : Type*} [Fintype ι] [DecidableEq ι]
       · simp [p, hj, e, eu]
     simp [hfun]
   simpa [hinner] using hpoint
+
+/-- Measurability of ENNReal marginals obtained by integrating one coordinate. -/
+theorem measurable_marginal_lintegral {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (f : (ι → ℝ) → ENNReal) (hf : Measurable f) (i : ι) :
+    Measurable (fun x' : {j : ι // j ≠ i} → ℝ =>
+      ∫⁻ t : ℝ, f (fun j => if h : j = i then t else x' ⟨j, h⟩)) := by
+  let g : ({j : ι // j ≠ i} → ℝ) × ℝ → (ι → ℝ) :=
+    fun p j => if h : j = i then p.2 else p.1 ⟨j, h⟩
+  have hg : Measurable g := by
+    refine measurable_pi_iff.2 ?_
+    intro j
+    by_cases hj : j = i
+    · simpa [g, hj] using
+        (measurable_snd : Measurable (fun x : ({k : ι // k ≠ i} → ℝ) × ℝ => x.2))
+    · simpa [g, hj] using
+        (measurable_pi_apply ⟨j, hj⟩).comp
+          (measurable_fst : Measurable (fun x : ({j : ι // j ≠ i} → ℝ) × ℝ => x.1))
+  have hgf : Measurable (fun p => f (g p)) := hf.comp hg
+  simpa [g] using (Measurable.lintegral_prod_right' (f := fun p => f (g p)) hgf)
 
 /-- The fiber function (fixing all but one coordinate) is integrable for a.e.
 value of the remaining coordinates. This is a consequence of Fubini's theorem:
@@ -699,117 +1234,353 @@ lemma inf_dite_eq {ι : Type*} [DecidableEq ι] (i : ι)
   simp only [Pi.inf_apply]
   split <;> simp [Pi.inf_apply]
 
-/-! ### n-dimensional Ahlswede-Daykin by induction -/
+/-- Coordinate split equivalence `(ι → ℝ) ≃ ({j // j ≠ i} → ℝ) × ℝ`. -/
+def insertDecompEquiv {ι : Type*} [Fintype ι] [DecidableEq ι] (i : ι) :
+    (ι → ℝ) ≃ᵐ ({j : ι // j ≠ i} → ℝ) × ℝ := by
+  let p : ι → Prop := fun j => j ≠ i
+  let e : (ι → ℝ) ≃ᵐ ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) :=
+    MeasurableEquiv.piEquivPiSubtypeProd (fun _ : ι => ℝ) p
+  have hK : Unique {j : ι // ¬ p j} := by
+    refine ⟨⟨i, by simp [p]⟩, ?_⟩
+    intro j
+    apply Subtype.ext
+    exact not_not.mp j.property
+  letI : Unique {j : ι // ¬ p j} := hK
+  let eu : ({j : ι // ¬ p j} → ℝ) ≃ᵐ ℝ := MeasurableEquiv.piUnique
+    (fun _ : {j : ι // ¬ p j} => ℝ)
+  exact e.trans (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) eu)
 
-/-- AD condition preserved by marginalization (a.e. version). The 1D AD theorem
-applied to fibers shows that integrating out one coordinate preserves the AD
-condition. Since fiber integrability only holds a.e. (by Fubini), the AD
-condition on marginals holds for a.e. `(x', y')` in the product.
+/-- Fiber-to-marginal AD transfer.
 
-Proof outline: By `integrable_fiber_ae`, for a.e. x' the fiber of each f_k
-at x' is integrable. Since x'⊔y' and x'⊓y' are measurable functions of
-(x', y'), the set of pairs where any of the four fibers (at x', y', x'⊔y',
-x'⊓y') fails to be integrable has product measure zero. For "good" pairs,
-`ahlswede_daykin_one_dim` applies to the four fiber functions, giving the
-marginal AD inequality. -/
-axiom ad_marginal_preservation_ae {ι : Type*} [Fintype ι] [DecidableEq ι]
+If for a.e. pair of outer coordinates `(x', y')` the four one-dimensional fibers
+are integrable and satisfy the a.e. 1D AD hypotheses (including diagonal a.e.
+control), then the marginals satisfy AD a.e. on the outer product space. -/
+theorem ad_marginal_preservation_ae_from_fibers
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
     (f₁ f₂ f₃ f₄ : (ι → ℝ) → ℝ)
     (hnn₁ : ∀ x, 0 ≤ f₁ x) (hnn₂ : ∀ x, 0 ≤ f₂ x)
     (hnn₃ : ∀ x, 0 ≤ f₃ x) (hnn₄ : ∀ x, 0 ≤ f₄ x)
-    (hAD : ∀ᵐ p : (ι → ℝ) × (ι → ℝ),
-      f₁ p.1 * f₂ p.2 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2))
-    (hi₁ : Integrable f₁) (hi₂ : Integrable f₂)
-    (hi₃ : Integrable f₃) (hi₄ : Integrable f₄) (i : ι) :
+    (i : ι)
+    (hFiber :
+      ∀ᵐ p : ({j : ι // j ≠ i} → ℝ) × ({j : ι // j ≠ i} → ℝ),
+        Integrable (fun t : ℝ =>
+          f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩)) ∧
+        Integrable (fun t : ℝ =>
+          f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩)) ∧
+        Integrable (fun t : ℝ =>
+          f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩)) ∧
+        Integrable (fun t : ℝ =>
+          f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩)) ∧
+        (∀ᵐ q : ℝ × ℝ,
+          f₁ (fun j => if h : j = i then q.1 else p.1 ⟨j, h⟩) *
+            f₂ (fun j => if h : j = i then q.2 else p.2 ⟨j, h⟩) ≤
+          f₃ (fun j => if h : j = i then (q.1 ⊔ q.2) else (p.1 ⊔ p.2) ⟨j, h⟩) *
+            f₄ (fun j => if h : j = i then (q.1 ⊓ q.2) else (p.1 ⊓ p.2) ⟨j, h⟩)) ∧
+        (∀ᵐ t : ℝ,
+          f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩) *
+            f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩) ≤
+          f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩) *
+            f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩))
+      ) :
     let marg (f : (ι → ℝ) → ℝ) (x' : {j : ι // j ≠ i} → ℝ) :=
       ∫ t, f (fun j => if h : j = i then t else x' ⟨j, h⟩)
     ∀ᵐ p : ({j : ι // j ≠ i} → ℝ) × ({j : ι // j ≠ i} → ℝ),
-      marg f₁ p.1 * marg f₂ p.2 ≤ marg f₃ (p.1 ⊔ p.2) * marg f₄ (p.1 ⊓ p.2)
+      marg f₁ p.1 * marg f₂ p.2 ≤ marg f₃ (p.1 ⊔ p.2) * marg f₄ (p.1 ⊓ p.2) := by
+  classical
+  dsimp
+  refine hFiber.mono ?_
+  intro p hp
+  rcases hp with ⟨hi₁, hi₂, hi₃, hi₄, hADp, hdiagp⟩
+  simpa using
+    (ahlswede_daykin_one_dim_ae
+      (f₁ := fun t => f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩))
+      (f₂ := fun t => f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩))
+      (f₃ := fun t => f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩))
+      (f₄ := fun t => f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩))
+      (hnn₁ := fun t => hnn₁ _)
+      (hnn₂ := fun t => hnn₂ _)
+      (hnn₃ := fun t => hnn₃ _)
+      (hnn₄ := fun t => hnn₄ _)
+      (hAD := hADp)
+      (hdiag := hdiagp)
+      (hi₁ := hi₁) (hi₂ := hi₂) (hi₃ := hi₃) (hi₄ := hi₄))
 
-/-- **n-dimensional Ahlswede-Daykin theorem.**
-For nonneg integrable f₁, f₂, f₃, f₄ on `(ι → ℝ)` satisfying the AD condition
-`f₁(x)·f₂(y) ≤ f₃(x⊔y)·f₄(x⊓y)` a.e. in the product, we have
-`(∫f₁)(∫f₂) ≤ (∫f₃)(∫f₄)`.
+/-- Fiber-to-marginal AD transfer in `ℝ≥0∞`.
 
-The AD condition is stated a.e. because the Fubini induction produces marginals
-satisfying the AD condition only a.e. (fiber integrability holds a.e. by Fubini).
+This variant only needs fiber-level a.e. AD data plus a.e.-measurability of the
+four 1D fibers; no fiber integrability assumptions are required. -/
+theorem ad_marginal_preservation_ae_from_fibers_lintegral
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (f₁ f₂ f₃ f₄ : (ι → ℝ) → ℝ)
+    (hnn₁ : ∀ x, 0 ≤ f₁ x) (hnn₂ : ∀ x, 0 ≤ f₂ x)
+    (hnn₃ : ∀ x, 0 ≤ f₃ x) (hnn₄ : ∀ x, 0 ≤ f₄ x)
+    (i : ι)
+    (hFiber :
+      ∀ᵐ p : ({j : ι // j ≠ i} → ℝ) × ({j : ι // j ≠ i} → ℝ),
+        AEMeasurable (fun t : ℝ =>
+          f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩)) volume ∧
+        AEMeasurable (fun t : ℝ =>
+          f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩)) volume ∧
+        AEMeasurable (fun t : ℝ =>
+          f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩)) volume ∧
+        AEMeasurable (fun t : ℝ =>
+          f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩)) volume ∧
+        (∀ᵐ q : ℝ × ℝ,
+          f₁ (fun j => if h : j = i then q.1 else p.1 ⟨j, h⟩) *
+            f₂ (fun j => if h : j = i then q.2 else p.2 ⟨j, h⟩) ≤
+          f₃ (fun j => if h : j = i then (q.1 ⊔ q.2) else (p.1 ⊔ p.2) ⟨j, h⟩) *
+            f₄ (fun j => if h : j = i then (q.1 ⊓ q.2) else (p.1 ⊓ p.2) ⟨j, h⟩)) ∧
+        (∀ᵐ t : ℝ,
+          f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩) *
+            f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩) ≤
+          f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩) *
+            f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩))
+      ) :
+    let margL (f : (ι → ℝ) → ℝ) (x' : {j : ι // j ≠ i} → ℝ) :=
+      ∫⁻ t, ENNReal.ofReal (f (fun j => if h : j = i then t else x' ⟨j, h⟩))
+    ∀ᵐ p : ({j : ι // j ≠ i} → ℝ) × ({j : ι // j ≠ i} → ℝ),
+      margL f₁ p.1 * margL f₂ p.2 + margL f₁ p.1 * margL f₂ p.2 ≤
+        margL f₃ (p.1 ⊔ p.2) * margL f₄ (p.1 ⊓ p.2) +
+          margL f₃ (p.1 ⊔ p.2) * margL f₄ (p.1 ⊓ p.2) := by
+  classical
+  dsimp
+  refine hFiber.mono ?_
+  intro p hp
+  rcases hp with ⟨hm₁, hm₂, hm₃, hm₄, hADp, hdiagp⟩
+  simpa using
+    (ahlswede_daykin_one_dim_ae_lintegral
+      (f₁ := fun t => f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩))
+      (f₂ := fun t => f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩))
+      (f₃ := fun t => f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩))
+      (f₄ := fun t => f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩))
+      (hnn₁ := fun t => hnn₁ _)
+      (hnn₂ := fun t => hnn₂ _)
+      (hnn₃ := fun t => hnn₃ _)
+      (hnn₄ := fun t => hnn₄ _)
+      (hm₁ := hm₁) (hm₂ := hm₂) (hm₃ := hm₃) (hm₄ := hm₄)
+      (hAD := hADp)
+      (hdiag := hdiagp))
 
-Proof by induction on `Fintype.card ι` using Fubini + 1D AD on fibers. -/
+/-- Fiber-to-marginal AD transfer using `lintegral` with everywhere AD hypotheses.
+
+This avoids the Fubini null-set transport issue by assuming the AD inequality
+pointwise on the full product space, then applying the 1D `lintegral` AD theorem
+directly to each fixed outer pair of coordinates. -/
+theorem ad_marginal_preservation_lintegral {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (f₁ f₂ f₃ f₄ : (ι → ℝ) → ℝ)
+    (hnn₁ : ∀ x, 0 ≤ f₁ x) (hnn₂ : ∀ x, 0 ≤ f₂ x)
+    (hnn₃ : ∀ x, 0 ≤ f₃ x) (hnn₄ : ∀ x, 0 ≤ f₄ x)
+    (hm₁ : Measurable f₁) (hm₂ : Measurable f₂)
+    (hm₃ : Measurable f₃) (hm₄ : Measurable f₄)
+    (hAD : ∀ p : (ι → ℝ) × (ι → ℝ),
+      f₁ p.1 * f₂ p.2 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2))
+    (i : ι) :
+    let margL (f : (ι → ℝ) → ℝ) (x' : {j : ι // j ≠ i} → ℝ) :=
+      ∫⁻ t, ENNReal.ofReal (f (fun j => if h : j = i then t else x' ⟨j, h⟩))
+    ∀ p : ({j : ι // j ≠ i} → ℝ) × ({j : ι // j ≠ i} → ℝ),
+      margL f₁ p.1 * margL f₂ p.2 + margL f₁ p.1 * margL f₂ p.2 ≤
+        margL f₃ (p.1 ⊔ p.2) * margL f₄ (p.1 ⊓ p.2) +
+          margL f₃ (p.1 ⊔ p.2) * margL f₄ (p.1 ⊓ p.2) := by
+  classical
+  dsimp
+  intro p
+  have hIns (x' : {j : ι // j ≠ i} → ℝ) :
+      Measurable (fun t : ℝ => (fun j => if h : j = i then t else x' ⟨j, h⟩)) := by
+    refine measurable_pi_iff.2 ?_
+    intro j
+    by_cases hj : j = i
+    · subst hj
+      simpa using measurable_id
+    · simp [hj]
+  have hm₁_fib : AEMeasurable (fun t : ℝ => f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩))
+      volume := (hm₁.comp (hIns p.1)).aemeasurable
+  have hm₂_fib : AEMeasurable (fun t : ℝ => f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩))
+      volume := (hm₂.comp (hIns p.2)).aemeasurable
+  have hm₃_fib : AEMeasurable (fun t : ℝ =>
+      f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩)) volume :=
+    (hm₃.comp (hIns (p.1 ⊔ p.2))).aemeasurable
+  have hm₄_fib : AEMeasurable (fun t : ℝ =>
+      f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩)) volume :=
+    (hm₄.comp (hIns (p.1 ⊓ p.2))).aemeasurable
+  exact
+    (ahlswede_daykin_one_dim_ae_lintegral
+      (f₁ := fun t => f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩))
+      (f₂ := fun t => f₂ (fun j => if h : j = i then t else p.2 ⟨j, h⟩))
+      (f₃ := fun t => f₃ (fun j => if h : j = i then t else (p.1 ⊔ p.2) ⟨j, h⟩))
+      (f₄ := fun t => f₄ (fun j => if h : j = i then t else (p.1 ⊓ p.2) ⟨j, h⟩))
+      (hnn₁ := fun t => hnn₁ _)
+      (hnn₂ := fun t => hnn₂ _)
+      (hnn₃ := fun t => hnn₃ _)
+      (hnn₄ := fun t => hnn₄ _)
+      (hm₁ := hm₁_fib)
+      (hm₂ := hm₂_fib)
+      (hm₃ := hm₃_fib)
+      (hm₄ := hm₄_fib)
+      (hAD := Filter.Eventually.of_forall (fun q : ℝ × ℝ => by
+        simpa [sup_dite_eq, inf_dite_eq] using
+          (hAD
+            ((fun j => if h : j = i then q.1 else p.1 ⟨j, h⟩),
+             (fun j => if h : j = i then q.2 else p.2 ⟨j, h⟩)))))
+      (hdiag := Filter.Eventually.of_forall (fun t : ℝ => by
+        simpa [sup_dite_eq, inf_dite_eq] using
+          (hAD
+            ((fun j => if h : j = i then t else p.1 ⟨j, h⟩),
+             (fun j => if h : j = i then t else p.2 ⟨j, h⟩))))))
+
+/-- ENNReal marginal AD preservation with everywhere hypotheses.
+
+This is the clean induction step for ENNReal-valued AD proofs: no a.e. transport
+or fiber integrability conditions are needed. -/
+theorem ad_marginal_preservation_ennreal {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (f₁ f₂ f₃ f₄ : (ι → ℝ) → ENNReal)
+    (hm₁ : Measurable f₁) (hm₂ : Measurable f₂)
+    (hm₃ : Measurable f₃) (hm₄ : Measurable f₄)
+    (hAD : ∀ x y, f₁ x * f₂ y ≤ f₃ (x ⊔ y) * f₄ (x ⊓ y))
+    (i : ι) :
+    let margL (f : (ι → ℝ) → ENNReal) (x' : {j : ι // j ≠ i} → ℝ) :=
+      ∫⁻ t, f (fun j => if h : j = i then t else x' ⟨j, h⟩)
+    ∀ x' y', margL f₁ x' * margL f₂ y' ≤ margL f₃ (x' ⊔ y') * margL f₄ (x' ⊓ y') := by
+  intro margL x' y'
+  let F₁ : ℝ → ENNReal := fun t => f₁ (fun j => if h : j = i then t else x' ⟨j, h⟩)
+  let F₂ : ℝ → ENNReal := fun t => f₂ (fun j => if h : j = i then t else y' ⟨j, h⟩)
+  let F₃ : ℝ → ENNReal := fun t => f₃ (fun j => if h : j = i then t else (x' ⊔ y') ⟨j, h⟩)
+  let F₄ : ℝ → ENNReal := fun t => f₄ (fun j => if h : j = i then t else (x' ⊓ y') ⟨j, h⟩)
+  have hIns (z' : {j : ι // j ≠ i} → ℝ) :
+      Measurable (fun t : ℝ => (fun j => if h : j = i then t else z' ⟨j, h⟩)) := by
+    refine measurable_pi_iff.2 ?_
+    intro j
+    by_cases hj : j = i
+    · subst hj
+      simpa using measurable_id
+    · simp [hj]
+  simpa [F₁, F₂, F₃, F₄] using
+    (ahlswede_daykin_one_dim_ennreal F₁ F₂ F₃ F₄
+      (hm₁.comp (hIns x'))
+      (hm₂.comp (hIns y'))
+      (hm₃.comp (hIns (x' ⊔ y')))
+      (hm₄.comp (hIns (x' ⊓ y')))
+      (fun t s => by
+        simpa [sup_dite_eq, inf_dite_eq] using
+          (hAD
+            (fun j => if h : j = i then t else x' ⟨j, h⟩)
+            (fun j => if h : j = i then s else y' ⟨j, h⟩))))
+
+/-! ### n-dimensional Ahlswede-Daykin by induction -/
+
+/-- n-dimensional Ahlswede-Daykin theorem in `ℝ≥0∞` (everywhere form). -/
+theorem ahlswede_daykin_ennreal : ∀ (n : ℕ) {ι : Type*} [Fintype ι] [DecidableEq ι],
+    Fintype.card ι = n →
+    ∀ (f₁ f₂ f₃ f₄ : (ι → ℝ) → ENNReal),
+    Measurable f₁ → Measurable f₂ →
+    Measurable f₃ → Measurable f₄ →
+    (∀ x y : ι → ℝ, f₁ x * f₂ y ≤ f₃ (x ⊔ y) * f₄ (x ⊓ y)) →
+    (∫⁻ x, f₁ x) * (∫⁻ x, f₂ x) ≤ (∫⁻ x, f₃ x) * (∫⁻ x, f₄ x) := by
+  intro n
+  induction n with
+  | zero =>
+    intro ι _ _ hcard f₁ f₂ f₃ f₄ _ _ _ _ hAD
+    haveI : IsEmpty ι := Fintype.card_eq_zero_iff.mp hcard
+    haveI : Unique (ι → ℝ) := Pi.uniqueOfIsEmpty _
+    let d : ι → ℝ := default
+    have hpt : f₁ d * f₂ d ≤ f₃ d * f₄ d := by
+      simpa using hAD d d
+    have hvol : (volume : Measure (ι → ℝ)) = Measure.dirac d := by
+      calc
+        (volume : Measure (ι → ℝ)) = Measure.pi (fun _ : ι => (volume : Measure ℝ)) := by
+          simpa using (MeasureTheory.volume_pi (ι := ι) (α := fun _ => ℝ))
+        _ = Measure.dirac d := by
+          simpa [d] using
+            (MeasureTheory.Measure.pi_of_empty
+              (μ := fun _ : ι => (volume : Measure ℝ))
+              (x := d))
+    rw [hvol]
+    simpa [d] using hpt
+  | succ n ih =>
+    intro ι inst_fin inst_dec hcard f₁ f₂ f₃ f₄ hm₁ hm₂ hm₃ hm₄ hAD
+    have hne : Nonempty ι := by
+      rw [← Fintype.card_pos_iff, hcard]
+      exact Nat.succ_pos _
+    let i : ι := Classical.choice hne
+    set margL := fun (f : (ι → ℝ) → ENNReal) (x' : {j : ι // j ≠ i} → ℝ) =>
+      ∫⁻ t, f (fun j => if h : j = i then t else x' ⟨j, h⟩) with hmargL_def
+    have hfub : ∀ f : (ι → ℝ) → ENNReal, Measurable f →
+        ∫⁻ x, f x = ∫⁻ x', margL f x' := by
+      intro f hf
+      simpa [hmargL_def] using fubini_pi_decomp_lintegral f hf i
+    rw [hfub f₁ hm₁, hfub f₂ hm₂, hfub f₃ hm₃, hfub f₄ hm₄]
+    have hmarg₁ : Measurable (margL f₁) := by
+      simpa [hmargL_def] using measurable_marginal_lintegral f₁ hm₁ i
+    have hmarg₂ : Measurable (margL f₂) := by
+      simpa [hmargL_def] using measurable_marginal_lintegral f₂ hm₂ i
+    have hmarg₃ : Measurable (margL f₃) := by
+      simpa [hmargL_def] using measurable_marginal_lintegral f₃ hm₃ i
+    have hmarg₄ : Measurable (margL f₄) := by
+      simpa [hmargL_def] using measurable_marginal_lintegral f₄ hm₄ i
+    have hADmarg : ∀ x' y' : ({j : ι // j ≠ i} → ℝ),
+        margL f₁ x' * margL f₂ y' ≤ margL f₃ (x' ⊔ y') * margL f₄ (x' ⊓ y') := by
+      simpa [hmargL_def] using ad_marginal_preservation_ennreal f₁ f₂ f₃ f₄ hm₁ hm₂ hm₃ hm₄ hAD i
+    have hcard' : Fintype.card {j : ι // j ≠ i} = n := by
+      rw [Fintype.card_subtype_compl, Fintype.card_subtype_eq, hcard]
+      simp
+    exact ih hcard' (margL f₁) (margL f₂) (margL f₃) (margL f₄)
+      hmarg₁ hmarg₂ hmarg₃ hmarg₄ hADmarg
+
+/-- Real-valued Ahlswede-Daykin theorem deduced from the ENNReal induction. -/
 theorem ahlswede_daykin : ∀ (n : ℕ) {ι : Type*} [Fintype ι] [DecidableEq ι],
     Fintype.card ι = n →
     ∀ (f₁ f₂ f₃ f₄ : (ι → ℝ) → ℝ),
     (∀ x, 0 ≤ f₁ x) → (∀ x, 0 ≤ f₂ x) →
     (∀ x, 0 ≤ f₃ x) → (∀ x, 0 ≤ f₄ x) →
-    (∀ᵐ p : (ι → ℝ) × (ι → ℝ), f₁ p.1 * f₂ p.2 ≤ f₃ (p.1 ⊔ p.2) * f₄ (p.1 ⊓ p.2)) →
-    Integrable f₁ → Integrable f₂ →
-    Integrable f₃ → Integrable f₄ →
+    Measurable f₁ → Measurable f₂ → Measurable f₃ → Measurable f₄ →
+    (∀ x y : ι → ℝ, f₁ x * f₂ y ≤ f₃ (x ⊔ y) * f₄ (x ⊓ y)) →
+    Integrable f₁ → Integrable f₂ → Integrable f₃ → Integrable f₄ →
     (∫ x, f₁ x) * (∫ x, f₂ x) ≤ (∫ x, f₃ x) * (∫ x, f₄ x) := by
-  intro n
-  induction n with
-  | zero =>
-    intro ι _ _ hcard f₁ f₂ f₃ f₄ hnn₁ hnn₂ hnn₃ hnn₄ hAD _ _ _ _
-    haveI : IsEmpty ι := Fintype.card_eq_zero_iff.mp hcard
-    haveI : Unique (ι → ℝ) := Pi.uniqueOfIsEmpty _
-    simp only [integral_unique, smul_eq_mul]
-    -- Fix the Inhabited instance to match integral_unique's default
-    -- (avoids Pi.instInhabited vs Unique.instInhabited diamond)
-    have hsub : ∀ (a b : ι → ℝ), a = b := fun a b => Subsingleton.elim a b
-    set V := (volume : Measure (ι → ℝ)).real Set.univ with hV_def
-    by_cases hmu : (volume : Measure (ι → ℝ)) = 0
-    · -- volume = 0 ⟹ V = 0 ⟹ both sides are 0
-      have hV : V = 0 := by simp [hV_def, Measure.real, hmu]
-      simp [hV]
-    · -- Extract pointwise inequality from a.e. condition
-      haveI : NeZero (volume : Measure (ι → ℝ)) := ⟨hmu⟩
-      -- Use the Unique default to match integral_unique's output
-      set d := @default (ι → ℝ) Unique.instInhabited with hd_def
-      have had_pt : f₁ d * f₂ d ≤ f₃ d * f₄ d :=
-        Filter.eventually_const.mp
-          (hAD.mono fun p hp => by
-            have h1 : p.1 = d := Subsingleton.elim _ _
-            have h2 : p.2 = d := Subsingleton.elim _ _
-            simp only [h1, h2, sup_idem, inf_idem] at hp
-            exact hp)
-      have h_eq : V * f₃ d * (V * f₄ d) -
-          V * f₁ d * (V * f₂ d) =
-          V ^ 2 * (f₃ d * f₄ d - f₁ d * f₂ d) := by ring
-      have key : 0 ≤ V * f₃ d * (V * f₄ d) -
-          V * f₁ d * (V * f₂ d) := by
-        rw [h_eq]; exact mul_nonneg (sq_nonneg V) (sub_nonneg.mpr had_pt)
-      linarith
-  | succ n ih =>
-    intro ι inst_fin inst_dec hcard f₁ f₂ f₃ f₄ hnn₁ hnn₂ hnn₃ hnn₄ hAD hi₁ hi₂ hi₃ hi₄
-    -- Pick a coordinate i : ι (ι is nonempty since card > 0)
-    have hne : Nonempty ι := by
-      rw [← Fintype.card_pos_iff, hcard]; exact Nat.succ_pos _
-    let i : ι := Classical.choice hne
-    -- Define marginals: marg(f)(x') = ∫ f(insert i t x') dt
-    set marg := fun (f : (ι → ℝ) → ℝ) (x' : {j : ι // j ≠ i} → ℝ) =>
-      ∫ t, f (fun j => if h : j = i then t else x' ⟨j, h⟩) with hmarg_def
-    -- Fubini: ∫ f = ∫ marg(f) for each f_k
-    have hfub : ∀ f : (ι → ℝ) → ℝ, Integrable f →
-        ∫ x, f x = ∫ x', marg f x' := by
-      intro f hf
-      exact fubini_pi_decomp f hf i
-    rw [hfub f₁ hi₁, hfub f₂ hi₂, hfub f₃ hi₃, hfub f₄ hi₄]
-    -- The marginals satisfy the AD condition a.e. (by ad_marginal_preservation_ae)
-    have hmarg_ad := ad_marginal_preservation_ae f₁ f₂ f₃ f₄
-      hnn₁ hnn₂ hnn₃ hnn₄ hAD hi₁ hi₂ hi₃ hi₄ i
-    -- Card of {j // j ≠ i} = n
-    have hcard' : Fintype.card {j : ι // j ≠ i} = n := by
-      rw [Fintype.card_subtype_compl, Fintype.card_subtype_eq, hcard]
-      simp
-    -- Apply IH to the marginals on {j // j ≠ i} → ℝ
-    exact ih hcard'
-      (marg f₁) (marg f₂) (marg f₃) (marg f₄)
-      (fun x' => integral_nonneg (fun t => hnn₁ _))
-      (fun x' => integral_nonneg (fun t => hnn₂ _))
-      (fun x' => integral_nonneg (fun t => hnn₃ _))
-      (fun x' => integral_nonneg (fun t => hnn₄ _))
-      hmarg_ad
-      (integrable_marginal f₁ hi₁ hnn₁ i)
-      (integrable_marginal f₂ hi₂ hnn₂ i)
-      (integrable_marginal f₃ hi₃ hnn₃ i)
-      (integrable_marginal f₄ hi₄ hnn₄ i)
+  intro n ι _ _ hcard f₁ f₂ f₃ f₄ hnn₁ hnn₂ hnn₃ hnn₄ hm₁ hm₂ hm₃ hm₄ hAD hi₁ hi₂ hi₃ hi₄
+  let F₁ : (ι → ℝ) → ENNReal := fun x => ENNReal.ofReal (f₁ x)
+  let F₂ : (ι → ℝ) → ENNReal := fun x => ENNReal.ofReal (f₂ x)
+  let F₃ : (ι → ℝ) → ENNReal := fun x => ENNReal.ofReal (f₃ x)
+  let F₄ : (ι → ℝ) → ENNReal := fun x => ENNReal.ofReal (f₄ x)
+  have hAD_enn : ∀ x y : ι → ℝ, F₁ x * F₂ y ≤ F₃ (x ⊔ y) * F₄ (x ⊓ y) := by
+    intro x y
+    have hxy : f₁ x * f₂ y ≤ f₃ (x ⊔ y) * f₄ (x ⊓ y) := hAD x y
+    calc
+      F₁ x * F₂ y = ENNReal.ofReal (f₁ x * f₂ y) := by
+        simp [F₁, F₂, ENNReal.ofReal_mul, hnn₁ x, hnn₂ y]
+      _ ≤ ENNReal.ofReal (f₃ (x ⊔ y) * f₄ (x ⊓ y)) := ENNReal.ofReal_le_ofReal hxy
+      _ = F₃ (x ⊔ y) * F₄ (x ⊓ y) := by
+        simp [F₃, F₄, ENNReal.ofReal_mul, hnn₃ (x ⊔ y), hnn₄ (x ⊓ y)]
+  have hAD_int :
+      (∫⁻ x, F₁ x) * (∫⁻ x, F₂ x) ≤ (∫⁻ x, F₃ x) * (∫⁻ x, F₄ x) :=
+    ahlswede_daykin_ennreal n hcard F₁ F₂ F₃ F₄
+      (hm₁.ennreal_ofReal) (hm₂.ennreal_ofReal) (hm₃.ennreal_ofReal) (hm₄.ennreal_ofReal) hAD_enn
+  have hI₁ : ENNReal.ofReal (∫ x, f₁ x) = ∫⁻ x, F₁ x := by
+    simpa [F₁] using
+      (ofReal_integral_eq_lintegral_ofReal hi₁ (Filter.Eventually.of_forall hnn₁))
+  have hI₂ : ENNReal.ofReal (∫ x, f₂ x) = ∫⁻ x, F₂ x := by
+    simpa [F₂] using
+      (ofReal_integral_eq_lintegral_ofReal hi₂ (Filter.Eventually.of_forall hnn₂))
+  have hI₃ : ENNReal.ofReal (∫ x, f₃ x) = ∫⁻ x, F₃ x := by
+    simpa [F₃] using
+      (ofReal_integral_eq_lintegral_ofReal hi₃ (Filter.Eventually.of_forall hnn₃))
+  have hI₄ : ENNReal.ofReal (∫ x, f₄ x) = ∫⁻ x, F₄ x := by
+    simpa [F₄] using
+      (ofReal_integral_eq_lintegral_ofReal hi₄ (Filter.Eventually.of_forall hnn₄))
+  have h_mul :
+      ENNReal.ofReal ((∫ x, f₁ x) * (∫ x, f₂ x)) ≤
+        ENNReal.ofReal ((∫ x, f₃ x) * (∫ x, f₄ x)) := by
+    calc
+      ENNReal.ofReal ((∫ x, f₁ x) * (∫ x, f₂ x))
+          = ENNReal.ofReal (∫ x, f₁ x) * ENNReal.ofReal (∫ x, f₂ x) := by
+              rw [ENNReal.ofReal_mul (p := ∫ x, f₁ x) (q := ∫ x, f₂ x)
+                (integral_nonneg hnn₁)]
+      _ = (∫⁻ x, F₁ x) * (∫⁻ x, F₂ x) := by rw [hI₁, hI₂]
+      _ ≤ (∫⁻ x, F₃ x) * (∫⁻ x, F₄ x) := hAD_int
+      _ = ENNReal.ofReal (∫ x, f₃ x) * ENNReal.ofReal (∫ x, f₄ x) := by rw [hI₃, hI₄]
+      _ = ENNReal.ofReal ((∫ x, f₃ x) * (∫ x, f₄ x)) := by
+            rw [ENNReal.ofReal_mul (p := ∫ x, f₃ x) (q := ∫ x, f₄ x)
+              (integral_nonneg hnn₃)]
+  exact (ENNReal.ofReal_le_ofReal_iff
+    (mul_nonneg (integral_nonneg hnn₃) (integral_nonneg hnn₄))).1 h_mul
 
 /-! ### FKG as corollary of Ahlswede-Daykin
 
@@ -824,6 +1595,7 @@ theorem fkg_from_lattice_condition_nonneg {ι : Type*} [Fintype ι] [DecidableEq
     (hρ_lattice : FKGLatticeCondition ρ)
     (F G : (ι → ℝ) → ℝ) (hF : Monotone F) (hG : Monotone G)
     (hF_nn : ∀ x, 0 ≤ F x) (hG_nn : ∀ x, 0 ≤ G x)
+    (hρm : Measurable ρ) (hFm : Measurable F) (hGm : Measurable G)
     (hρi : Integrable ρ)
     (hFρi : Integrable (fun φ => F φ * ρ φ))
     (hGρi : Integrable (fun φ => G φ * ρ φ))
@@ -846,14 +1618,19 @@ theorem fkg_from_lattice_condition_nonneg {ι : Type*} [Fintype ι] [DecidableEq
     have hFG_nn : 0 ≤ F (x ⊔ y) * G (x ⊔ y) :=
       mul_nonneg (le_trans (hF_nn x) hFx) (le_trans (hG_nn y) hGy)
     nlinarith [mul_nonneg (hρ_nn x) (hρ_nn y)]
-  -- Apply AD theorem
   exact ahlswede_daykin (Fintype.card ι) rfl
     (fun φ => F φ * ρ φ) (fun φ => G φ * ρ φ)
     (fun φ => F φ * G φ * ρ φ) ρ
     (fun x => mul_nonneg (hF_nn x) (hρ_nn x))
     (fun x => mul_nonneg (hG_nn x) (hρ_nn x))
     (fun x => mul_nonneg (mul_nonneg (hF_nn x) (hG_nn x)) (hρ_nn x))
-    hρ_nn (Filter.Eventually.of_forall fun p => had p.1 p.2) hFρi hGρi hFGρi hρi
+    hρ_nn
+    (hFm.mul hρm)
+    (hGm.mul hρm)
+    ((hFm.mul hGm).mul hρm)
+    hρm
+    (fun x y => had x y)
+    hFρi hGρi hFGρi hρi
 
 /-! ### Truncation lemmas for general FKG
 
@@ -1025,7 +1802,7 @@ theorem fkg_from_lattice_condition {ι : Type*} [Fintype ι]
     (ρ : (ι → ℝ) → ℝ) (hρ_nn : ∀ x, 0 ≤ ρ x)
     (hρ_lattice : FKGLatticeCondition ρ)
     (F G : (ι → ℝ) → ℝ) (hF : Monotone F) (hG : Monotone G)
-    (hFm : Measurable F) (hGm : Measurable G)
+    (hρm : Measurable ρ) (hFm : Measurable F) (hGm : Measurable G)
     (hρi : Integrable ρ)
     (hFρi : Integrable (fun φ => F φ * ρ φ))
     (hGρi : Integrable (fun φ => G φ * ρ φ))
@@ -1061,8 +1838,12 @@ theorem fkg_from_lattice_condition {ι : Type*} [Fintype ι]
       intro a b hab; simp only [hG'_def, hGn_def]
       linarith [sup_le_sup_right (hG hab) (-(n : ℝ))]
     -- FKG for F', G' (nonneg version)
+    have hF'_meas : Measurable F' := by
+      simpa [hF'_def, hFn_def] using (hFm.sup measurable_const).add measurable_const
+    have hG'_meas : Measurable G' := by
+      simpa [hG'_def, hGn_def] using (hGm.sup measurable_const).add measurable_const
     have h := fkg_from_lattice_condition_nonneg ρ hρ_nn hρ_lattice F' G'
-      hF'_mono hG'_mono hF'_nn hG'_nn hρi
+      hF'_mono hG'_mono hF'_nn hG'_nn hρm hF'_meas hG'_meas hρi
       (by -- Integrable (F'·ρ) = Integrable ((Fn n + n) · ρ)
         have : (fun φ => F' φ * ρ φ) = fun φ => Fn n φ * ρ φ + ↑n * ρ φ :=
           funext fun φ => by simp only [hF'_def]; ring
@@ -1399,6 +2180,14 @@ theorem gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
   · exact fun φ => le_of_lt (Real.exp_pos _)
   · exact ne_of_gt (Real.exp_pos _)
 
+theorem gaussianDensity_measurable (a mass : ℝ) :
+    Measurable (gaussianDensity d N a mass) := by
+  unfold gaussianDensity
+  exact (Real.continuous_exp.comp (continuous_const.mul
+      (continuous_finset_sum _ fun x _ =>
+        (continuous_apply x).mul
+          ((continuous_apply x).comp (massOperator d N a mass).continuous)))).measurable
+
 -- Re-export from GaussianField.Density (no longer an axiom)
 #check @GaussianField.integrable_mul_gaussianDensity
 
@@ -1474,11 +2263,13 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
     exact latticeGaussianMeasure_density_integral d N a mass ha hmass G' hG'ρi
   -- Step 4: Apply FKG in unnormalized form, then convert to normalized
   have hρ_pos : 0 < ∫ φ, ρ φ := gaussianDensity_integral_pos d N a mass ha hmass
+  have hρm : Measurable ρ := by
+    simpa [hρ_def] using gaussianDensity_measurable (d := d) (N := N) a mass
   have hF'm : Measurable F' := hFm.comp (measurable_liftToConfig d N)
   have hG'm : Measurable G' := hGm.comp (measurable_liftToConfig d N)
   have hfkg := fkg_from_lattice_condition ρ (gaussianDensity_nonneg d N a mass)
     (gaussianDensity_fkg_lattice_condition d N a mass ha hmass) F' G'
-    (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG) hF'm hG'm
+    (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG) hρm hF'm hG'm
     (gaussianDensity_integrable d N a mass ha hmass) hF'ρi hG'ρi hFG'ρi
   -- Convert: (∫ F'G'ρ)(∫ ρ) ≥ (∫ F'ρ)(∫ G'ρ) implies (∫ F'G'ρ)/(∫ ρ) ≥ (∫ F'ρ/∫ρ)·(∫ G'ρ/∫ρ)
   rw [hI_FG, hI_F, hI_G, ge_iff_le, div_mul_div_comm]
@@ -1520,6 +2311,7 @@ theorem fkg_perturbed (a mass : ℝ)
         V ω = ∑ x, v x (ω (finLatticeDelta d N x)))
     (hV_integrable : Integrable (fun ω => Real.exp (-V ω))
       (latticeGaussianMeasure d N a mass ha hmass))
+    (hVm : Measurable V)
     (F G : Configuration (FinLatticeField d N) → ℝ)
     (hF : IsFieldMonotone d N F) (hG : IsFieldMonotone d N G)
     (hFm : Measurable F) (hGm : Measurable G)
@@ -1628,8 +2420,14 @@ theorem fkg_perturbed (a mass : ℝ)
   -- Apply FKG to combined density ρ'
   have hF'm : Measurable F' := hFm.comp (measurable_liftToConfig d N)
   have hG'm : Measurable G' := hGm.comp (measurable_liftToConfig d N)
+  have hV'm : Measurable V' := hVm.comp (measurable_liftToConfig d N)
+  have hρm : Measurable ρ := by
+    simpa [hρ_def] using gaussianDensity_measurable (d := d) (N := N) a mass
+  have hρ'm : Measurable ρ' := by
+    simpa [hρ'_def] using hρm.mul ((Real.continuous_exp.measurable.comp hV'm.neg)
+      )
   have hfkg := fkg_from_lattice_condition ρ' hρ'_nn hρ'_fkg F' G'
-    (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG) hF'm hG'm
+    (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG) hρ'm hF'm hG'm
     hρ'i hFρ'i hGρ'i hFGρ'i
   -- hfkg: (∫ F'G'ρ')(∫ ρ') ≥ (∫ F'ρ')(∫ G'ρ')
   -- Equate integrals: ∫ F'ρ' = ∫ F'e^{-V'}ρ, etc.
