@@ -1,7 +1,7 @@
 # FKG Proof Plan — Implementation Status
 
 **Date**: 2026-02-24 (updated)
-**Status**: Core implementation complete. Both main theorems sorry-free. 3 axioms remain (down from 6).
+**Status**: Core implementation complete. Both main theorems sorry-free. 2 axioms remain (down from 6).
 
 ---
 
@@ -30,13 +30,12 @@
 - **`gaussian_fkg_lattice_condition`** — FKG for Gaussian measure (**sorry-free**)
 - **`fkg_perturbed`** — FKG for single-site perturbations (**sorry-free**)
 
-**Axioms (3, down from 6):**
+**Axioms (2, down from 6):**
 
 | # | Axiom | Role | Provability |
 |---|-------|------|-------------|
 | 1 | `fkg_from_lattice_condition` | Core FKG: lattice condition → correlation inequality | Hard (induction + Holley) |
-| 2 | `latticeGaussianMeasure_density_integral` | Density bridge: E_μ[F] = ∫Fρ/∫ρ | Hard (measure theory) |
-| 3 | `integrable_mul_gaussianDensity` | F integrable w.r.t. μ → F·ρ Lebesgue-integrable | Medium (abs. continuity) |
+| 2 | `latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure` | Master density law: field-law pushforward = normalized density measure | Hard (measure theory) |
 
 ---
 
@@ -49,8 +48,9 @@ quadraticForm_submodular_of_nonpos_offDiag [proved]
     ↓
 gaussianDensity_fkg_lattice_condition [proved]
     ↓
-fkg_from_lattice_condition [axiom 1] + density bridge [axiom 2]
-  + integrable_mul_gaussianDensity [axiom 3]
+fkg_from_lattice_condition [axiom 1]
+  + latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure [axiom 2]
+  + derived density bridge + integrability transfer theorems
   + gaussianDensity_integrable [PROVED]
   + gaussianDensity_integral_pos [PROVED]
     ↓
@@ -66,20 +66,13 @@ fkg_perturbed [PROVED — sorry-free]
 
 ## Remaining Work: Axiom Reduction
 
-### Priority 1: Medium axiom
+### Priority 1: Hard axiom
 
-**`integrable_mul_gaussianDensity`** (axiom 3)
-- Follows from density bridge (absolute continuity of Gaussian measure)
-- If the Gaussian measure has density ρ/Z w.r.t. Lebesgue, then
-  Integrable F μ → Integrable (F·ρ) Lebesgue
-- Estimated: ~40 lines (given density bridge)
-
-### Priority 2: Hard axioms
-
-**`latticeGaussianMeasure_density_integral`** (axiom 2)
-- Bridge from pushforward construction to explicit density
-- Requires: Gaussian COV on ℝ^n, Degenne's `multivariateGaussian`, `map_linearMap_addHaar`
-- Estimated: ~200 lines
+**`latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure`** (axiom 2)
+- Master density theorem from which both former density axioms are now derived.
+- Bridge from pushforward construction to explicit normalized density.
+- Requires: characteristic-function computation on both sides + uniqueness.
+- Estimated: ~200-300 lines depending on Fourier-transform reuse.
 
 **`fkg_from_lattice_condition`** (axiom 1)
 - Core FKG theorem (Holley 1974)
