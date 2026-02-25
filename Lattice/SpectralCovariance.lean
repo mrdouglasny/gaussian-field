@@ -126,12 +126,15 @@ def massEigenvectorBasis (a mass : ℝ) :
     OrthonormalBasis (FinLatticeSites d N) ℝ (EuclideanSpace ℝ (FinLatticeSites d N)) :=
   (massMatrixHerm d N a mass).eigenvectorBasis
 
+section
+set_option linter.unusedSectionVars false
 /-- Basis decomposition: any lattice field is a linear combination of deltas. -/
 private lemma field_basis_decomp (φ : FinLatticeField d N) :
     φ = ∑ y : FinLatticeSites d N, φ y • finLatticeDelta d N y := by
   ext x
   simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, finLatticeDelta,
     mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
+end
 
 /-- The mass operator applied to f equals the matrix-vector product.
 
@@ -185,7 +188,7 @@ For `f : FinLatticeField d N`, defines:
 where `{e_m}` is the eigenvector ONB of Q and `λ_m` its eigenvalues.
 Maps into `ell2'` via the Fintype enumeration of lattice sites. -/
 noncomputable def spectralLatticeCovariance (a mass : ℝ)
-    (ha : 0 < a) (hmass : 0 < mass) :
+    (_ha : 0 < a) (_hmass : 0 < mass) :
     FinLatticeField d N →L[ℝ] ell2' := by
   -- Build as a CLM via finite-dimensionality (any linear map is continuous)
   -- The linear map sends f to ∑_k λ_k^{-1/2} ⟪e_k, f⟫ · ℓ²_k
@@ -261,13 +264,13 @@ theorem spectralLatticeCovariance_inner (a mass : ℝ)
       ∑ k : FinLatticeSites d N,
         ((Real.sqrt (lam k))⁻¹ * s k) • lp.single 2 (enum k).val (1 : ℝ) := by
     unfold spectralLatticeCovariance
-    simp [enum, lam, s, mul_assoc, mul_left_comm, mul_comm]
+    simp [enum, lam, s]
   have hg :
       spectralLatticeCovariance d N a mass ha hmass g =
       ∑ k : FinLatticeSites d N,
         ((Real.sqrt (lam k))⁻¹ * t k) • lp.single 2 (enum k).val (1 : ℝ) := by
     unfold spectralLatticeCovariance
-    simp [enum, lam, t, mul_assoc, mul_left_comm, mul_comm]
+    simp [enum, lam, t]
   rw [hf, hg]
   simp [inner_sum, sum_inner, Finset.sum_mul, Finset.mul_sum]
   refine Finset.sum_congr rfl ?_
@@ -288,8 +291,8 @@ theorem spectralLatticeCovariance_inner (a mass : ℝ)
         rw [Finset.sum_eq_single k]
         · have hsingle : inner ℝ (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ))
               (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 1 := by
-              simp [PiLp.inner_apply, lp.single_apply]
-          simpa [inner_smul_left, inner_smul_right, hsingle, mul_assoc, mul_left_comm, mul_comm]
+              simp
+          simp [inner_smul_left, inner_smul_right, mul_assoc, mul_left_comm, mul_comm]
         · intro i hi hik
           have hne : enum i ≠ enum k := by
             intro h; exact hik (enum.injective h)
@@ -304,7 +307,7 @@ theorem spectralLatticeCovariance_inner (a mass : ℝ)
                       (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 0 := by
                   rw [lp.inner_single_left]
                   simp [lp.single_apply, hne_val]
-                simpa [inner_smul_left, inner_smul_right, hsingle0, mul_assoc, mul_left_comm, mul_comm]
+                simp [inner_smul_left, inner_smul_right, hsingle0, mul_comm]
           exact this
         · intro hknot
           exact (hknot (Finset.mem_univ k)).elim)
@@ -327,7 +330,7 @@ theorem spectralLatticeCovariance_inner (a mass : ℝ)
       _ = (lam k)⁻¹ *
             (∑ i, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) i * f i) *
             (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
-              simp [lam, Finset.mul_sum, Finset.sum_mul, mul_assoc, mul_left_comm, mul_comm]
+              simp [lam, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
       _ = (lam k)⁻¹ * s k * t k := by simp [s, t]
   rw [hleft, hrhs]
   have hsq : Real.sqrt (lam k) * Real.sqrt (lam k) = lam k := by
@@ -358,7 +361,7 @@ theorem spectralLatticeCovariance_norm_sq (a mass : ℝ)
 The LHS is the spectral decomposition of `⟨f, Q⁻¹g⟩`; the RHS is its
 site-basis expansion. These are equal by the completeness of the eigenbasis. -/
 theorem spectral_eq_site_bilinear (a mass : ℝ)
-    (ha : 0 < a) (hmass : 0 < mass)
+    (_ha : 0 < a) (_hmass : 0 < mass)
     (f g : FinLatticeField d N) :
     ∑ k : FinLatticeSites d N,
       (massEigenvalues d N a mass k)⁻¹ *
@@ -410,7 +413,7 @@ theorem spectral_eq_site_bilinear (a mass : ℝ)
 /-- The bounded sequence condition for the spectral singular values.
 Needed to show the CLM maps into ℓ². -/
 theorem spectral_singular_values_bounded (a mass : ℝ)
-    (ha : 0 < a) (hmass : 0 < mass) :
+    (_ha : 0 < a) (_hmass : 0 < mass) :
     IsBoundedSeq (fun m =>
       if h : m < Fintype.card (FinLatticeSites d N) then
         Real.sqrt ((massEigenvalues d N a mass

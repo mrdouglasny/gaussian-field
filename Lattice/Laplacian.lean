@@ -204,6 +204,7 @@ Proof: summation by parts gives -a⁻² Σᵢ Σₓ (f(x+eᵢ) - f(x))² ≤ 0. 
 theorem finiteLaplacian_neg_semidefinite (d N : ℕ) [NeZero N] (a : ℝ) (ha : 0 < a)
     (f : FinLatticeField d N) :
     ∑ x, f x * (finiteLaplacian d N a f) x ≤ 0 := by
+  let _ha := ha
   change ∑ x, f x * finiteLaplacianFun d N a f x ≤ 0
   simp only [finiteLaplacianFun]
   simp_rw [update_add_eq, update_sub_eq]
@@ -641,6 +642,7 @@ def latticeEigenvalue (d N : ℕ) [NeZero N] (a mass : ℝ) (m : ℕ) : ℝ :=
 theorem latticeEigenvalue_pos (d N : ℕ) [NeZero N] (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass) (m : ℕ) :
     0 < latticeEigenvalue d N a mass m := by
+  let _ha := ha
   unfold latticeEigenvalue
   split_ifs with h
   · have h1 : (0 : ℝ) ≤ (4 / a ^ 2) *

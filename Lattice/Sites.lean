@@ -43,7 +43,7 @@ def latticeNorm {d : ℕ} (x : Fin d → ℤ) : ℝ :=
   ∑ i : Fin d, |(x i : ℝ)|
 
 theorem latticeNorm_nonneg {d : ℕ} (x : Fin d → ℤ) : 0 ≤ latticeNorm x :=
-  Finset.sum_nonneg fun i _ => abs_nonneg _
+  Finset.sum_nonneg fun _ _ => abs_nonneg _
 
 theorem latticeNorm_zero {d : ℕ} : latticeNorm (fun _ : Fin d => (0 : ℤ)) = 0 := by
   simp [latticeNorm]
