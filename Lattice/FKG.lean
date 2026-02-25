@@ -874,39 +874,152 @@ lemma abs_max_neg_le (a n : ℝ) (hn : 0 ≤ n) : |a ⊔ (-n)| ≤ |a| + n := by
   · rw [sup_eq_right.mpr h]; rw [abs_of_nonpos (by linarith)]; linarith [abs_nonneg a]
   · rw [sup_eq_left.mpr (le_of_lt h)]; linarith [le_abs_self a]
 
+lemma abs_sup_neg_nat_le_abs (a : ℝ) (n : ℕ) : |a ⊔ (-(n : ℝ))| ≤ |a| := by
+  by_cases h : a ≤ (-(n : ℝ))
+  · rw [sup_eq_right.mpr h]
+    have hna : (n : ℝ) ≤ -a := by linarith
+    have hnb : (n : ℝ) ≤ |a| := hna.trans (by simpa using (neg_le_abs a))
+    have hneg : (-(n : ℝ)) ≤ 0 := by
+      exact neg_nonpos.mpr (Nat.cast_nonneg n)
+    simpa [abs_of_nonpos hneg] using hnb
+  · rw [sup_eq_left.mpr (le_of_not_ge h)]
+
 /-- Dominated convergence for the FKG truncation argument. For monotone F,
 `max(F, -n) + n` is nonneg and monotone, and `max(F, -n) → F` pointwise.
 If F·ρ is integrable, then ∫ max(F,-n)·ρ → ∫ F·ρ by DCT. -/
-axiom fkg_truncation_dct {ι : Type*} [Fintype ι]
+theorem fkg_truncation_dct {ι : Type*} [Fintype ι]
     (F : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ)
     (hFm : AEStronglyMeasurable F) (hρm : AEStronglyMeasurable ρ)
     (hFρi : Integrable (fun φ => F φ * ρ φ)) (hρ_nn : ∀ x, 0 ≤ ρ x) :
     Filter.Tendsto (fun n : ℕ => ∫ φ, (F φ ⊔ (-(n : ℝ))) * ρ φ)
-      Filter.atTop (nhds (∫ φ, F φ * ρ φ))
+      Filter.atTop (nhds (∫ φ, F φ * ρ φ)) := by
+  let Fn : ℕ → (ι → ℝ) → ℝ := fun n φ => (F φ ⊔ (-(n : ℝ))) * ρ φ
+  have hFn_meas : ∀ n, AEStronglyMeasurable (Fn n) := by
+    intro n
+    exact (hFm.sup aestronglyMeasurable_const).mul hρm
+  have h_bound : ∀ n, ∀ᵐ φ, ‖Fn n φ‖ ≤ ‖F φ * ρ φ‖ := by
+    intro n
+    refine Filter.Eventually.of_forall ?_
+    intro φ
+    calc
+      ‖Fn n φ‖ = |F φ ⊔ (-(n : ℝ))| * |ρ φ| := by
+        simp [Fn, Real.norm_eq_abs, abs_mul]
+      _ ≤ |F φ| * |ρ φ| := by
+        exact mul_le_mul (abs_sup_neg_nat_le_abs (F φ) n) le_rfl (abs_nonneg _) (abs_nonneg _)
+      _ = ‖F φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul]
+  have h_lim : ∀ᵐ φ, Filter.Tendsto (fun n => Fn n φ) Filter.atTop (nhds (F φ * ρ φ)) := by
+    refine Filter.Eventually.of_forall ?_
+    intro φ
+    have hEq : (fun n : ℕ => Fn n φ) =ᶠ[Filter.atTop] (fun _ => F φ * ρ φ) := by
+      refine Filter.eventually_atTop.2 ?_
+      refine ⟨Nat.ceil (-F φ), ?_⟩
+      intro n hn
+      have hle : (-(n : ℝ)) ≤ F φ := by
+        have h1 : (-F φ) ≤ (n : ℝ) := (Nat.le_ceil (-F φ)).trans (by exact_mod_cast hn)
+        linarith
+      simp [Fn, sup_eq_left.mpr hle]
+    exact Filter.Tendsto.congr' hEq.symm tendsto_const_nhds
+  simpa [Fn] using
+    tendsto_integral_of_dominated_convergence (fun φ => ‖F φ * ρ φ‖)
+      hFn_meas hFρi.norm h_bound h_lim
 
 /-- DCT for the product F·G truncated. -/
-axiom fkg_truncation_dct_prod {ι : Type*} [Fintype ι]
+theorem fkg_truncation_dct_prod {ι : Type*} [Fintype ι]
     (F G : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ)
     (hFm : AEStronglyMeasurable F) (hGm : AEStronglyMeasurable G)
     (hρm : AEStronglyMeasurable ρ)
     (hFGρi : Integrable (fun φ => F φ * G φ * ρ φ)) (hρ_nn : ∀ x, 0 ≤ ρ x) :
     Filter.Tendsto
       (fun n : ℕ => ∫ φ, (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ)
-      Filter.atTop (nhds (∫ φ, F φ * G φ * ρ φ))
+      Filter.atTop (nhds (∫ φ, F φ * G φ * ρ φ)) := by
+  let Fn : ℕ → (ι → ℝ) → ℝ := fun n φ =>
+    (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ
+  have hFn_meas : ∀ n, AEStronglyMeasurable (Fn n) := by
+    intro n
+    exact ((hFm.sup aestronglyMeasurable_const).mul
+      (hGm.sup aestronglyMeasurable_const)).mul hρm
+  have h_bound : ∀ n, ∀ᵐ φ, ‖Fn n φ‖ ≤ ‖F φ * G φ * ρ φ‖ := by
+    intro n
+    refine Filter.Eventually.of_forall ?_
+    intro φ
+    calc
+      ‖Fn n φ‖ = |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| * |ρ φ| := by
+        simp [Fn, Real.norm_eq_abs, abs_mul, mul_assoc]
+      _ ≤ |F φ| * |G φ| * |ρ φ| := by
+        have hfg : |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| ≤ |F φ| * |G φ| := by
+          exact mul_le_mul
+            (abs_sup_neg_nat_le_abs (F φ) n)
+            (abs_sup_neg_nat_le_abs (G φ) n)
+            (abs_nonneg _)
+            (abs_nonneg _)
+        exact mul_le_mul hfg le_rfl (abs_nonneg _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+      _ = ‖F φ * G φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul, mul_assoc]
+  have h_lim : ∀ᵐ φ, Filter.Tendsto (fun n => Fn n φ) Filter.atTop (nhds (F φ * G φ * ρ φ)) := by
+    refine Filter.Eventually.of_forall ?_
+    intro φ
+    have hEqF : (fun n : ℕ => F φ ⊔ (-(n : ℝ))) =ᶠ[Filter.atTop] (fun _ => F φ) := by
+      refine Filter.eventually_atTop.2 ?_
+      refine ⟨Nat.ceil (-F φ), ?_⟩
+      intro n hn
+      have hle : (-(n : ℝ)) ≤ F φ := by
+        have h1 : (-F φ) ≤ (n : ℝ) := (Nat.le_ceil (-F φ)).trans (by exact_mod_cast hn)
+        linarith
+      simp [sup_eq_left.mpr hle]
+    have hEqG : (fun n : ℕ => G φ ⊔ (-(n : ℝ))) =ᶠ[Filter.atTop] (fun _ => G φ) := by
+      refine Filter.eventually_atTop.2 ?_
+      refine ⟨Nat.ceil (-G φ), ?_⟩
+      intro n hn
+      have hle : (-(n : ℝ)) ≤ G φ := by
+        have h1 : (-G φ) ≤ (n : ℝ) := (Nat.le_ceil (-G φ)).trans (by exact_mod_cast hn)
+        linarith
+      simp [sup_eq_left.mpr hle]
+    have hEq : (fun n : ℕ => Fn n φ) =ᶠ[Filter.atTop] (fun _ => F φ * G φ * ρ φ) := by
+      filter_upwards [hEqF, hEqG] with n hF hG
+      simp [Fn, hF, hG, mul_assoc]
+    exact Filter.Tendsto.congr' hEq.symm tendsto_const_nhds
+  simpa [Fn] using
+    tendsto_integral_of_dominated_convergence (fun φ => ‖F φ * G φ * ρ φ‖)
+      hFn_meas hFGρi.norm h_bound h_lim
 
 /-- Integrability of truncated functions. -/
-axiom integrable_truncation_mul {ι : Type*} [Fintype ι]
+theorem integrable_truncation_mul {ι : Type*} [Fintype ι]
     (F : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ) (n : ℕ)
     (hFm : AEStronglyMeasurable F) (hρm : AEStronglyMeasurable ρ)
     (hFρi : Integrable (fun φ => F φ * ρ φ)) :
-    Integrable (fun φ => (F φ ⊔ (-(n : ℝ))) * ρ φ)
+    Integrable (fun φ => (F φ ⊔ (-(n : ℝ))) * ρ φ) := by
+  refine hFρi.norm.mono' ((hFm.sup aestronglyMeasurable_const).mul hρm) ?_
+  refine Filter.Eventually.of_forall ?_
+  intro φ
+  calc
+    ‖(F φ ⊔ (-(n : ℝ))) * ρ φ‖ = |F φ ⊔ (-(n : ℝ))| * |ρ φ| := by
+      simp [Real.norm_eq_abs, abs_mul]
+    _ ≤ |F φ| * |ρ φ| := by
+      exact mul_le_mul (abs_sup_neg_nat_le_abs (F φ) n) le_rfl (abs_nonneg _) (abs_nonneg _)
+    _ = ‖F φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul]
 
-axiom integrable_truncation_prod_mul {ι : Type*} [Fintype ι]
+theorem integrable_truncation_prod_mul {ι : Type*} [Fintype ι]
     (F G : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ) (n : ℕ)
     (hFm : AEStronglyMeasurable F) (hGm : AEStronglyMeasurable G)
     (hρm : AEStronglyMeasurable ρ)
     (hFGρi : Integrable (fun φ => F φ * G φ * ρ φ)) :
-    Integrable (fun φ => (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ)
+    Integrable (fun φ => (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ) := by
+  refine hFGρi.norm.mono'
+    (((hFm.sup aestronglyMeasurable_const).mul (hGm.sup aestronglyMeasurable_const)).mul hρm) ?_
+  refine Filter.Eventually.of_forall ?_
+  intro φ
+  calc
+    ‖(F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ‖
+        = |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| * |ρ φ| := by
+            simp [Real.norm_eq_abs, abs_mul, mul_assoc]
+    _ ≤ |F φ| * |G φ| * |ρ φ| := by
+      have hfg : |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| ≤ |F φ| * |G φ| := by
+        exact mul_le_mul
+          (abs_sup_neg_nat_le_abs (F φ) n)
+          (abs_sup_neg_nat_le_abs (G φ) n)
+          (abs_nonneg _)
+          (abs_nonneg _)
+      exact mul_le_mul hfg le_rfl (abs_nonneg _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+    _ = ‖F φ * G φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul, mul_assoc]
 
 theorem fkg_from_lattice_condition {ι : Type*} [Fintype ι]
     (ρ : (ι → ℝ) → ℝ) (hρ_nn : ∀ x, 0 ≤ ρ x)
@@ -1102,8 +1215,16 @@ private lemma config_eq_liftToConfig (ω : Configuration (FinLatticeField d N)) 
 /-- `liftToConfig` is measurable (continuous linear map between finite-dim spaces).
 The map φ ↦ (f ↦ ∑ x, f(x) * φ(x)) is continuous in φ (each component is a
 finite sum of continuous functions), hence measurable. -/
-private axiom measurable_liftToConfig :
-    Measurable (liftToConfig (d := d) (N := N))
+private theorem measurable_liftToConfig :
+    Measurable (liftToConfig (d := d) (N := N)) := by
+  refine configuration_measurable_of_eval_measurable
+    (g := liftToConfig (d := d) (N := N)) ?_
+  intro ψ
+  -- ψ-evaluation is a finite sum of measurable coordinate projections.
+  change Measurable
+    (fun φ' : FinLatticeField d N => ∑ x : FinLatticeSites d N, ψ x * φ' x)
+  exact Finset.measurable_sum (Finset.univ : Finset (FinLatticeSites d N))
+    (fun x _ => measurable_const.mul (measurable_pi_apply x))
 
 /-- `IsFieldMonotone` implies `Monotone` for the lifted function. -/
 private lemma isFieldMonotone_lift {F : Configuration (FinLatticeField d N) → ℝ}

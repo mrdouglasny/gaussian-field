@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**17 axioms, 0 sorries**
+**10 axioms, 0 sorries**
 
 *Updated 2026-02-25.*
 
@@ -16,6 +16,7 @@ projects (pphi2, OSforGFF-dimensions).
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
+| `ad_marginal_preservation_ae` | Lattice/FKG | axiom | Medium | Ahlswede-Daykin marginal preservation (counting-measure AE version). |
 | `fkg_from_lattice_condition` | Lattice/FKG | theorem | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
 | `integrable_mul_gaussianDensity` | GaussianField/Density | axiom | Medium | Integrability transfer from Gaussian measure to weighted Lebesgue integral. |
 | `latticeGaussianMeasure_density_integral` | GaussianField/Density | axiom | Medium | Gaussian measure density integral formula. |
@@ -24,6 +25,10 @@ Proved FKG results (no longer axioms):
 - `gaussian_fkg_lattice_condition` -- now a theorem
 - `fkg_perturbed` -- now a theorem
 - `fkg_lattice_gaussian` -- derived from `gaussian_fkg_lattice_condition`
+- `fkg_truncation_dct` -- now a theorem
+- `fkg_truncation_dct_prod` -- now a theorem
+- `integrable_truncation_mul` -- now a theorem
+- `integrable_truncation_prod_mul` -- now a theorem
 
 ### Infinite lattice (not needed by pphi2)
 
@@ -39,9 +44,9 @@ Proved FKG results (no longer axioms):
 |------|------|------|-----------|-------------|
 | `mehlerKernel_eq_series` | HeatKernel/PositionKernel | axiom | Hard | Mehler's formula. |
 | `circleHeatKernel_pos` | HeatKernel/PositionKernel | axiom | Hard | Requires Poisson summation. |
-| `cylinderEval_summable` | HeatKernel/PositionKernel | axiom | Medium | Convergence of eigenfunction expansion. |
-| `integral_norm_tsum_le_tsum_integral_norm` | HeatKernel/PositionKernel | axiom | Medium | Dominated-convergence corollary: integral norm of series ≤ series of integral norms. |
-| `integrable_tsum_of_summable_integral_norm` | HeatKernel/PositionKernel | axiom | Medium | Dominated-convergence corollary: summable integral norms imply integrable pointwise tsum. |
+| `cylinderEval_summable` | HeatKernel/PositionKernel | theorem | Medium | Convergence of eigenfunction expansion. |
+| `integral_norm_tsum_le_tsum_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: integral norm of series ≤ series of integral norms. |
+| `integrable_tsum_of_summable_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: summable integral norms imply integrable pointwise tsum. |
 
 ### Hypercontractive estimates
 
@@ -63,14 +68,14 @@ Proved hypercontractive results (derived using the axiom above):
 
 | File | Axioms | Sorries |
 |------|--------|---------|
-| HeatKernel/PositionKernel | 5 | 0 |
+| HeatKernel/PositionKernel | 2 | 0 |
 | Lattice/RapidDecayLattice | 3 | 0 |
-| Lattice/FKG | 5 | 0 |
+| Lattice/FKG | 1 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 2 | 0 |
 | GaussianField/Hypercontractive | 1 | 0 |
 | GaussianField | 1 | 0 |
-| **Total** | **17** | **0** |
+| **Total** | **10** | **0** |
 
 ## References
 

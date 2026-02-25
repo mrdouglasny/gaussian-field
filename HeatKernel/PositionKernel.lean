@@ -24,6 +24,7 @@ import HeatKernel.Axioms
 import SmoothCircle.Basic
 import SchwartzNuclear.HermiteFunctions
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
 
 noncomputable section
 
@@ -1053,33 +1054,191 @@ noncomputable def cylinderEval (L : ℝ) [Fact (0 < L)]
     hermiteFunction (m.unpair).2 x
 
 /-- The eigenfunction expansion converges for cylinder test functions. -/
-axiom cylinderEval_summable (L : ℝ) [Fact (0 < L)]
+theorem cylinderEval_summable (L : ℝ) [Fact (0 < L)]
     (f : NuclearTensorProduct (SmoothMap_Circle L ℝ) (SchwartzMap ℝ ℝ))
     (θ x : ℝ) :
     Summable fun (m : ℕ) => DyninMityaginSpace.coeff m f *
       fourierBasisFun (L := L) (m.unpair).1 θ *
-      hermiteFunction (m.unpair).2 x
+      hermiteFunction (m.unpair).2 x := by
+  obtain ⟨C_h, s_h, hC_h, _, hbound_h⟩ := hermiteFunction_sup_bound
+  set M_f := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
+  set p_h : ℕ := Nat.ceil s_h
+  have hp_h : s_h ≤ (p_h : ℝ) := Nat.le_ceil _
+  obtain ⟨C_d, hC_d, s_d, hdecay⟩ := DyninMityaginSpace.coeff_decay (E :=
+    NuclearTensorProduct (SmoothMap_Circle L ℝ) (SchwartzMap ℝ ℝ)) (p_h + 2)
+  set D : ℝ := C_d * (s_d.sup DyninMityaginSpace.p) f
+  have h_abs_sum : Summable (fun m : ℕ =>
+      |DyninMityaginSpace.coeff m f *
+        fourierBasisFun (L := L) (m.unpair).1 θ *
+        hermiteFunction (m.unpair).2 x|) := by
+    apply Summable.of_nonneg_of_le (fun _ => abs_nonneg _)
+    · intro m
+      have h1k_le : (1 + (m.unpair).2 : ℝ) ^ s_h ≤ (1 + (m : ℝ)) ^ p_h := by
+        calc (1 + (m.unpair).2 : ℝ) ^ s_h
+            ≤ (1 + (m : ℝ)) ^ s_h := by
+              exact Real.rpow_le_rpow (by positivity)
+                (by exact_mod_cast
+                  (by linarith [Nat.unpair_right_le m] : 1 + (m.unpair).2 ≤ 1 + m))
+                (by linarith [Nat.le_ceil s_h])
+          _ ≤ (1 + (m : ℝ)) ^ p_h := by
+              rw [← Real.rpow_natCast]
+              have hbase : (1 : ℝ) ≤ 1 + (m : ℝ) := by
+                nlinarith [Nat.cast_nonneg (α := ℝ) m]
+              exact Real.rpow_le_rpow_of_exponent_le hbase hp_h
+      have h_decay' : |DyninMityaginSpace.coeff m f| * (1 + (m : ℝ)) ^ (p_h + 2) ≤ D := by
+        simpa [D] using (hdecay f m)
+      have h1m_sq_pos : (0 : ℝ) < (1 + (m : ℝ)) ^ 2 := by positivity
+      have h_coeff : |DyninMityaginSpace.coeff m f| ≤ D / (1 + (m : ℝ)) ^ (p_h + 2) := by
+        have hden_pos : (0 : ℝ) < (1 + (m : ℝ)) ^ (p_h + 2) := by positivity
+        exact (le_div_iff₀ hden_pos).2 h_decay'
+      have h_hf :
+          |hermiteFunction (m.unpair).2 x| ≤ C_h * (1 + (m : ℝ)) ^ p_h := by
+        exact (hbound_h _ _).trans (by gcongr)
+      calc |DyninMityaginSpace.coeff m f *
+            fourierBasisFun (L := L) (m.unpair).1 θ *
+            hermiteFunction (m.unpair).2 x|
+          = |DyninMityaginSpace.coeff m f| *
+            |fourierBasisFun (L := L) (m.unpair).1 θ| *
+            |hermiteFunction (m.unpair).2 x| := by
+              rw [abs_mul, abs_mul]
+        _ ≤ |DyninMityaginSpace.coeff m f| * M_f *
+              (C_h * (1 + (m : ℝ)) ^ p_h) := by
+              have hM_nonneg : 0 ≤ M_f := le_max_of_le_right (Real.sqrt_nonneg _)
+              have hfbf : |fourierBasisFun (L := L) (m.unpair).1 θ| ≤ M_f :=
+                fourierBasisFun_abs_le _ _
+              have h_step1 :
+                  |DyninMityaginSpace.coeff m f| *
+                      |fourierBasisFun (L := L) (m.unpair).1 θ| *
+                      |hermiteFunction (m.unpair).2 x|
+                    ≤ |DyninMityaginSpace.coeff m f| * M_f *
+                      |hermiteFunction (m.unpair).2 x| := by
+                exact mul_le_mul_of_nonneg_right
+                  (mul_le_mul_of_nonneg_left hfbf (abs_nonneg _))
+                  (abs_nonneg _)
+              exact h_step1.trans
+                (mul_le_mul_of_nonneg_left h_hf
+                  (mul_nonneg (abs_nonneg _) hM_nonneg))
+        _ ≤ D * M_f * C_h / (1 + (m : ℝ)) ^ 2 := by
+              have hM_nonneg : 0 ≤ M_f := le_max_of_le_right (Real.sqrt_nonneg _)
+              have h_coeff_poly :
+                  |DyninMityaginSpace.coeff m f| * (C_h * (1 + (m : ℝ)) ^ p_h)
+                    ≤ D * C_h / (1 + (m : ℝ)) ^ 2 := by
+                rw [le_div_iff₀ h1m_sq_pos]
+                calc
+                  |DyninMityaginSpace.coeff m f| * (C_h * (1 + (m : ℝ)) ^ p_h) * (1 + (m : ℝ)) ^ 2
+                      = (|DyninMityaginSpace.coeff m f| * (1 + (m : ℝ)) ^ (p_h + 2)) * C_h := by
+                          rw [pow_add]
+                          ring
+                  _ ≤ D * C_h := by
+                      exact mul_le_mul_of_nonneg_right h_decay' (le_of_lt hC_h)
+              calc
+                |DyninMityaginSpace.coeff m f| * M_f * (C_h * (1 + (m : ℝ)) ^ p_h)
+                    = M_f * (|DyninMityaginSpace.coeff m f| * (C_h * (1 + (m : ℝ)) ^ p_h)) := by ring
+                _ ≤ M_f * (D * C_h / (1 + (m : ℝ)) ^ 2) :=
+                    mul_le_mul_of_nonneg_left h_coeff_poly hM_nonneg
+                _ = D * M_f * C_h / (1 + (m : ℝ)) ^ 2 := by ring
+    · exact ((summable_nat_add_iff 1).mpr
+        (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+      |>.congr (fun m => by push_cast; ring_nf)).mul_left _
+  have h_norm_sum : Summable (fun m : ℕ =>
+      ‖DyninMityaginSpace.coeff m f *
+        fourierBasisFun (L := L) (m.unpair).1 θ *
+        hermiteFunction (m.unpair).2 x‖) := by
+    simpa [Real.norm_eq_abs] using h_abs_sum
+  exact h_norm_sum.of_norm
 
 /-! ### General integration lemmas (to prove later)
 
 These are standard dominated-convergence corollaries used below as
 measure-theoretic infrastructure. -/
 
-private axiom integral_norm_tsum_le_tsum_integral_norm
+private theorem integrable_tsum_of_summable_integral_norm
     {α E : Type*} [MeasurableSpace α]
-    [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure α)
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] (μ : Measure α)
     (F : ℕ → α → E)
     (hF_int : ∀ j, Integrable (F j) μ)
     (hF_sum : Summable (fun j => ∫ a, ‖F j a‖ ∂μ)) :
-    ∫ a, ‖∑' j, F j a‖ ∂μ ≤ ∑' j, ∫ a, ‖F j a‖ ∂μ
+    Integrable (fun a => ∑' j, F j a) μ := by
+  have hf'' : ∀ i, AEMeasurable (fun a => ‖F i a‖ₑ) μ :=
+    fun i => (hF_int i).aestronglyMeasurable.enorm
+  have hsum_ne_top : (∑' i, ∫⁻ a, ‖F i a‖ₑ ∂μ) ≠ ⊤ := by
+    have hlin_j : ∀ i, ∫⁻ a, ‖F i a‖ₑ ∂μ = ENNReal.ofReal (∫ a, ‖F i a‖ ∂μ) :=
+      fun i => (ofReal_integral_norm_eq_lintegral_enorm (hF_int i)).symm
+    rw [funext hlin_j]
+    exact ENNReal.ofReal_tsum_of_nonneg
+      (fun j => integral_nonneg (fun a => norm_nonneg _)) hF_sum ▸
+      ENNReal.ofReal_ne_top
+  have hhh : ∀ᵐ a : α ∂μ, Summable fun n => (‖F n a‖₊ : ℝ) := by
+    rw [← lintegral_tsum hf''] at hsum_ne_top
+    refine (ae_lt_top' (AEMeasurable.ennreal_tsum hf'') hsum_ne_top).mono ?_
+    intro x hx
+    rw [← ENNReal.tsum_coe_ne_top_iff_summable_coe]
+    exact hx.ne
+  have hmeas_n0 : ∀ n, AEStronglyMeasurable ((Finset.range n).sum F) μ := by
+    intro n
+    exact Finset.aestronglyMeasurable_sum (Finset.range n)
+      (fun j _ => (hF_int j).aestronglyMeasurable)
+  have hmeas_n : ∀ n, AEStronglyMeasurable
+      (fun a => Finset.sum (Finset.range n) (fun j => F j a)) μ := by
+    intro n
+    have hEq : ((Finset.range n).sum F) =ᶠ[ae μ]
+        (fun a => Finset.sum (Finset.range n) (fun j => F j a)) :=
+      Filter.Eventually.of_forall (fun a => by simp)
+    exact (aestronglyMeasurable_congr hEq).1 (hmeas_n0 n)
+  have h_lim : ∀ᵐ a ∂μ,
+      Filter.Tendsto (fun n => Finset.sum (Finset.range n) (fun j => F j a))
+        Filter.atTop (nhds (∑' j, F j a)) := by
+    refine hhh.mono ?_
+    intro a ha
+    have ha' : Summable (fun n => ‖F n a‖) := by simpa using ha
+    have haF : Summable (fun n => F n a) := ha'.of_norm
+    simpa using haF.hasSum.tendsto_sum_nat
+  have hmeas : AEStronglyMeasurable (fun a => ∑' j, F j a) μ :=
+    aestronglyMeasurable_of_tendsto_ae Filter.atTop hmeas_n h_lim
+  have hfinite : (∫⁻ a, ‖(∑' j, F j a)‖ₑ ∂μ) < ⊤ := by
+    have hlin_left :
+        ∫⁻ a, ‖(∑' j, F j a)‖ₑ ∂μ ≤ ∫⁻ a, ∑' j, ‖F j a‖ₑ ∂μ := by
+      refine lintegral_mono_ae ?_
+      exact Filter.Eventually.of_forall (fun a => enorm_tsum_le_tsum_enorm)
+    have hlin_right : ∫⁻ a, ∑' j, ‖F j a‖ₑ ∂μ < ⊤ := by
+      rw [lintegral_tsum hf'']
+      exact lt_top_iff_ne_top.2 hsum_ne_top
+    exact lt_of_le_of_lt hlin_left hlin_right
+  exact ⟨hmeas, (hasFiniteIntegral_iff_enorm).2 hfinite⟩
 
-private axiom integrable_tsum_of_summable_integral_norm
+private theorem integral_norm_tsum_le_tsum_integral_norm
     {α E : Type*} [MeasurableSpace α]
-    [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure α)
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] (μ : Measure α)
     (F : ℕ → α → E)
     (hF_int : ∀ j, Integrable (F j) μ)
     (hF_sum : Summable (fun j => ∫ a, ‖F j a‖ ∂μ)) :
-    Integrable (fun a => ∑' j, F j a) μ
+    ∫ a, ‖∑' j, F j a‖ ∂μ ≤ ∑' j, ∫ a, ‖F j a‖ ∂μ := by
+  have htsum_int : Integrable (fun a => ∑' j, F j a) μ :=
+    integrable_tsum_of_summable_integral_norm μ F hF_int hF_sum
+  have hlin_left :
+      ∫⁻ a, ‖∑' j, F j a‖ₑ ∂μ ≤ ∫⁻ a, ∑' j, ‖F j a‖ₑ ∂μ := by
+    refine lintegral_mono_ae ?_
+    exact Filter.Eventually.of_forall (fun a => enorm_tsum_le_tsum_enorm)
+  have hlin_right :
+      ∫⁻ a, ∑' j, ‖F j a‖ₑ ∂μ = ENNReal.ofReal (∑' j, ∫ a, ‖F j a‖ ∂μ) := by
+    have hlin_j : ∀ j, ∫⁻ a, ‖F j a‖ₑ ∂μ = ENNReal.ofReal (∫ a, ‖F j a‖ ∂μ) :=
+      fun j => (ofReal_integral_norm_eq_lintegral_enorm (hF_int j)).symm
+    rw [lintegral_tsum]
+    · simp_rw [hlin_j]
+      exact (ENNReal.ofReal_tsum_of_nonneg
+        (fun j => integral_nonneg (fun a => norm_nonneg _)) hF_sum).symm
+    · intro j
+      exact (hF_int j).aestronglyMeasurable.enorm
+  have h_ofReal : ENNReal.ofReal (∫ a, ‖∑' j, F j a‖ ∂μ) ≤
+      ENNReal.ofReal (∑' j, ∫ a, ‖F j a‖ ∂μ) := by
+    calc
+      ENNReal.ofReal (∫ a, ‖∑' j, F j a‖ ∂μ)
+          = ∫⁻ a, ‖∑' j, F j a‖ₑ ∂μ :=
+            ofReal_integral_norm_eq_lintegral_enorm htsum_int
+      _ ≤ ∫⁻ a, ∑' j, ‖F j a‖ₑ ∂μ := hlin_left
+      _ = ENNReal.ofReal (∑' j, ∫ a, ‖F j a‖ ∂μ) := hlin_right
+  exact (ENNReal.ofReal_le_ofReal_iff
+    (by exact tsum_nonneg (fun j => integral_nonneg (fun a => norm_nonneg _)))).1 h_ofReal
 
 set_option maxHeartbeats 800000 in
 /-- Uniform bound on `∫ |K_osc(x,x',t) * φ_k(x')| dx'` in k.
