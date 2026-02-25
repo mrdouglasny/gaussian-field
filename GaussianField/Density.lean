@@ -58,6 +58,14 @@ def evalMap :
     Configuration (FinLatticeField d N) → FinLatticeField d N :=
   fun ω x => ω (finLatticeDelta d N x)
 
+theorem gaussianDensity_measurable (a mass : ℝ) :
+    Measurable (gaussianDensity d N a mass) := by
+  unfold gaussianDensity
+  exact (Real.continuous_exp.comp (continuous_const.mul
+      (continuous_finset_sum _ fun x _ =>
+        (continuous_apply x).mul
+          ((continuous_apply x).comp (massOperator d N a mass).continuous)))).measurable
+
 /-! ## Density bridge
 
 The core result: the lattice Gaussian measure's expectations can be computed
@@ -111,6 +119,7 @@ This follows from the density bridge: μ has density ρ/Z with respect to
 Lebesgue, so `∫|F|dμ = ∫|F|ρ/Z dλ < ∞` implies `∫|F|ρ dλ = Z · ∫|F|dμ < ∞`. -/
 axiom integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (F : FinLatticeField d N → ℝ)
+    (hFm : Measurable F)
     (hF : Integrable (fun ω => F (fun x => ω (finLatticeDelta d N x)))
            (latticeGaussianMeasure d N a mass ha hmass)) :
     Integrable (fun φ => F φ * gaussianDensity d N a mass φ)

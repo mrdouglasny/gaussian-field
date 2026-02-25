@@ -2182,14 +2182,6 @@ theorem gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
   · exact fun φ => le_of_lt (Real.exp_pos _)
   · exact ne_of_gt (Real.exp_pos _)
 
-theorem gaussianDensity_measurable (a mass : ℝ) :
-    Measurable (gaussianDensity d N a mass) := by
-  unfold gaussianDensity
-  exact (Real.continuous_exp.comp (continuous_const.mul
-      (continuous_finset_sum _ fun x _ =>
-        (continuous_apply x).mul
-          ((continuous_apply x).comp (massOperator d N a mass).continuous)))).measurable
-
 -- Re-export from GaussianField.Density (no longer an axiom)
 #check @GaussianField.integrable_mul_gaussianDensity
 
@@ -2221,6 +2213,8 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
   set G' := fun φ : FinLatticeField d N => G (liftToConfig d N φ) with hG'_def
   set ρ := gaussianDensity d N a mass with hρ_def
   set μ := latticeGaussianMeasure d N a mass ha hmass with hμ_def
+  have hF'm : Measurable F' := hFm.comp (measurable_liftToConfig d N)
+  have hG'm : Measurable G' := hGm.comp (measurable_liftToConfig d N)
   -- Step 1: Rewrite F(ω) = F'(field values of ω) using config_eq_liftToConfig
   have hF_eq : ∀ ω, F ω = F' (fun x => ω (finLatticeDelta d N x)) :=
     fun ω => congr_arg F (config_eq_liftToConfig d N ω)
@@ -2241,12 +2235,12 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
         (fun φ => F' φ * G' φ) (fun x => ω (finLatticeDelta d N x))) μ :=
     hFGi.congr (by filter_upwards with ω; simp only [Pi.mul_apply, hF_eq, hG_eq])
   have hF'ρi : Integrable (fun φ => F' φ * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass F' hF'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass F' hF'm hF'_int
   have hG'ρi : Integrable (fun φ => G' φ * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass G' hG'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass G' hG'm hG'_int
   have hFG'ρi : Integrable (fun φ => F' φ * G' φ * ρ φ) :=
     integrable_mul_gaussianDensity d N a mass ha hmass
-      (fun φ => F' φ * G' φ) hFG'_int
+      (fun φ => F' φ * G' φ) (hF'm.mul hG'm) hFG'_int
   -- Step 3: Rewrite each integral using density bridge
   have hI_FG : ∫ ω, F ω * G ω ∂μ = (∫ φ, F' φ * G' φ * ρ φ) / (∫ φ, ρ φ) := by
     rw [show (∫ ω, F ω * G ω ∂μ) =
@@ -2267,8 +2261,6 @@ theorem gaussian_fkg_lattice_condition (a mass : ℝ)
   have hρ_pos : 0 < ∫ φ, ρ φ := gaussianDensity_integral_pos d N a mass ha hmass
   have hρm : Measurable ρ := by
     simpa [hρ_def] using gaussianDensity_measurable (d := d) (N := N) a mass
-  have hF'm : Measurable F' := hFm.comp (measurable_liftToConfig d N)
-  have hG'm : Measurable G' := hGm.comp (measurable_liftToConfig d N)
   have hfkg := fkg_from_lattice_condition ρ (gaussianDensity_nonneg d N a mass)
     (gaussianDensity_fkg_lattice_condition d N a mass ha hmass) F' G'
     (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG) hρm hF'm hG'm
@@ -2332,6 +2324,11 @@ theorem fkg_perturbed (a mass : ℝ)
   set G' := fun φ : FinLatticeField d N => G (liftToConfig d N φ) with hG'_def
   set V' := fun φ : FinLatticeField d N => V (liftToConfig d N φ) with hV'_def
   set ρ := gaussianDensity d N a mass with hρ_def
+  have hF'm : Measurable F' := hFm.comp (measurable_liftToConfig d N)
+  have hG'm : Measurable G' := hGm.comp (measurable_liftToConfig d N)
+  have hV'm : Measurable V' := hVm.comp (measurable_liftToConfig d N)
+  have hExpV'm : Measurable (fun φ : FinLatticeField d N => Real.exp (-V' φ)) :=
+    Real.continuous_exp.measurable.comp hV'm.neg
   -- V' is single-site (transfer from hV_single_site via liftToConfig)
   obtain ⟨v, hv⟩ := hV_single_site
   have hV'_single : IsSingleSite V' := by
@@ -2375,13 +2372,16 @@ theorem fkg_perturbed (a mass : ℝ)
         (fun φ => F' φ * G' φ * Real.exp (-V' φ)) (fun x => ω (finLatticeDelta d N x))) μ :=
     hFGi.congr (by filter_upwards with ω; simp only [hF_eq, hG_eq, hV_eq])
   have hVρi : Integrable (fun φ => Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _ hV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _ hExpV'm hV'_int
   have hFVρi : Integrable (fun φ => F' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _ hFV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _
+      (hF'm.mul hExpV'm) hFV'_int
   have hGVρi : Integrable (fun φ => G' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _ hGV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _
+      (hG'm.mul hExpV'm) hGV'_int
   have hFGVρi : Integrable (fun φ => F' φ * G' φ * Real.exp (-V' φ) * ρ φ) :=
-    integrable_mul_gaussianDensity d N a mass ha hmass _ hFGV'_int
+    integrable_mul_gaussianDensity d N a mass ha hmass _
+      ((hF'm.mul hG'm).mul hExpV'm) hFGV'_int
   have hρ'i : Integrable ρ' :=
     hVρi.congr (ae_of_all _ (fun φ => by simp only [hρ'_def]; ring))
   have hFρ'i : Integrable (fun φ => F' φ * ρ' φ) :=
@@ -2420,9 +2420,6 @@ theorem fkg_perturbed (a mass : ℝ)
       integral_congr_ae (by filter_upwards with ω; simp only [hG_eq, hV_eq])]
     exact latticeGaussianMeasure_density_integral d N a mass ha hmass _ hGVρi
   -- Apply FKG to combined density ρ'
-  have hF'm : Measurable F' := hFm.comp (measurable_liftToConfig d N)
-  have hG'm : Measurable G' := hGm.comp (measurable_liftToConfig d N)
-  have hV'm : Measurable V' := hVm.comp (measurable_liftToConfig d N)
   have hρm : Measurable ρ := by
     simpa [hρ_def] using gaussianDensity_measurable (d := d) (N := N) a mass
   have hρ'm : Measurable ρ' := by

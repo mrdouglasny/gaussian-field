@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**10 axioms, 0 sorries**
+**9 axioms, 0 sorries**
 
 *Updated 2026-02-25.*
 
@@ -16,12 +16,27 @@ projects (pphi2, OSforGFF-dimensions).
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `ad_marginal_preservation_ae` | Lattice/FKG | axiom | Medium | Ahlswede-Daykin marginal preservation (counting-measure AE version). |
 | `fkg_from_lattice_condition` | Lattice/FKG | theorem | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
 | `integrable_mul_gaussianDensity` | GaussianField/Density | axiom | Medium | Integrability transfer from Gaussian measure to weighted Lebesgue integral. |
 | `latticeGaussianMeasure_density_integral` | GaussianField/Density | axiom | Medium | Gaussian measure density integral formula. |
 
+Density rewrite progress (P0 master theorem path):
+- Added `evalMap` measurability and `latticeGaussianFieldLaw` wrapper in
+  `GaussianField/Density.lean`.
+- Added transport lemmas between `latticeGaussianFieldLaw` and composition with
+  `evalMap` (`Integrable.comp_evalMap_latticeGaussianFieldLaw`,
+  `Integrable.of_comp_evalMap_latticeGaussianFieldLaw`,
+  `integral_latticeGaussianFieldLaw`).
+- Added normalization scaffolding for density measure:
+  `gaussianDensityWeight_measurable`, `gaussianDensityNormConst_eq_lintegral`,
+  `gaussianDensityNormConst_ne_top`, `gaussianDensityNormConst_eq_ofReal_integral`.
+- `latticeGaussianFieldLaw_density_integral` now factors through the field-law
+  notation, preparing replacement of the two axioms by a single measure-equality
+  theorem.
+
 Proved FKG results (no longer axioms):
+- `ahlswede_daykin_ennreal` -- theorem (ENNReal n-dimensional induction)
+- `ahlswede_daykin` -- theorem (Real wrapper via ENNReal bridge)
 - `gaussian_fkg_lattice_condition` -- now a theorem
 - `fkg_perturbed` -- now a theorem
 - `fkg_lattice_gaussian` -- derived from `gaussian_fkg_lattice_condition`
@@ -29,6 +44,8 @@ Proved FKG results (no longer axioms):
 - `fkg_truncation_dct_prod` -- now a theorem
 - `integrable_truncation_mul` -- now a theorem
 - `integrable_truncation_prod_mul` -- now a theorem
+- `ad_marginal_preservation_ennreal` -- theorem (fiber-to-marginal AD in ENNReal)
+- removed axiomized AD transport path from `Lattice/FKG`
 
 ### Infinite lattice (not needed by pphi2)
 
@@ -70,12 +87,12 @@ Proved hypercontractive results (derived using the axiom above):
 |------|--------|---------|
 | HeatKernel/PositionKernel | 2 | 0 |
 | Lattice/RapidDecayLattice | 3 | 0 |
-| Lattice/FKG | 1 | 0 |
+| Lattice/FKG | 0 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 2 | 0 |
 | GaussianField/Hypercontractive | 1 | 0 |
 | GaussianField | 1 | 0 |
-| **Total** | **10** | **0** |
+| **Total** | **9** | **0** |
 
 ## References
 
