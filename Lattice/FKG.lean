@@ -799,11 +799,11 @@ If `u ≤ P`, `v ≤ Q`, and `u*v ≤ P*Q`, then `u+v ≤ P+Q`. -/
 lemma algebraic_four_functions_ennreal {u v P Q : ENNReal}
     (hu : u ≤ P) (hv : v ≤ P) (huv : u * v ≤ P * Q) : u + v ≤ P + Q := by
   by_cases hPinf : P = ⊤
-  · simpa [hPinf] using (le_top : u + v ≤ ⊤)
+  · simp [hPinf]
   by_cases hQinf : Q = ⊤
-  · simpa [hQinf] using (le_top : u + v ≤ ⊤)
-  have hPfin : P < ⊤ := by simpa [lt_top_iff_ne_top, hPinf]
-  have hQfin : Q < ⊤ := by simpa [lt_top_iff_ne_top, hQinf]
+  · simp [hQinf]
+  have hPfin : P < ⊤ := by simp [lt_top_iff_ne_top, hPinf]
+  have hQfin : Q < ⊤ := by simp [lt_top_iff_ne_top, hQinf]
   have hu_fin : u < ⊤ := lt_of_le_of_lt hu hPfin
   have hv_fin : v < ⊤ := lt_of_le_of_lt hv hPfin
   have huR : u.toReal ≤ P.toReal :=
@@ -833,12 +833,12 @@ lemma algebraic_four_functions_ennreal {u v P Q : ENNReal}
 /-- Cancel the duplicated term in `ℝ≥0∞`: from `A+A ≤ B+B`, infer `A ≤ B`. -/
 lemma ennreal_cancel_two {A B : ENNReal} (h : A + A ≤ B + B) : A ≤ B := by
   by_cases hB : B = ⊤
-  · simpa [hB] using (le_top : A ≤ ⊤)
-  have hB' : B < ⊤ := by simpa [lt_top_iff_ne_top, hB]
+  · simp [hB]
+  have hB' : B < ⊤ := by simp [lt_top_iff_ne_top, hB]
   have hBB : B + B < ⊤ := ENNReal.add_lt_top.2 ⟨hB', hB'⟩
   have hAA : A + A < ⊤ := lt_of_le_of_lt h hBB
   have hA : A < ⊤ := by
-    have hle : A ≤ A + A := by simpa using le_add_right (a := A) (b := A)
+    have hle : A ≤ A + A := by simp
     exact lt_of_le_of_lt hle hAA
   have htr : (A + A).toReal ≤ (B + B).toReal :=
     (ENNReal.toReal_le_toReal (ne_of_lt hAA) (ne_of_lt hBB)).2 h
@@ -884,11 +884,9 @@ theorem ahlswede_daykin_one_dim_ennreal
         (f₃ (p.1 ⊓ p.2) * f₄ (p.1 ⊔ p.2)) =
         f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
       by_cases h : p.1 ≤ p.2
-      · simp [sup_eq_right.mpr h, inf_eq_left.mpr h, add_comm, add_left_comm, add_assoc,
-          mul_comm, mul_left_comm, mul_assoc]
+      · simp [sup_eq_right.mpr h, inf_eq_left.mpr h, add_comm]
       · push_neg at h
-        simp [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h), add_comm, add_left_comm,
-          add_assoc, mul_comm, mul_left_comm, mul_assoc]
+        simp [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
     simpa [hPQ] using hsum
   have hInt :
       ∫⁻ p : ℝ × ℝ, (f₁ p.1 * f₂ p.2 + f₁ p.2 * f₂ p.1) ∂(volume.prod volume)
@@ -904,7 +902,7 @@ theorem ahlswede_daykin_one_dim_ennreal
           = ∫⁻ p : ℝ × ℝ, f₂ p.1 * f₁ p.2 ∂(volume.prod volume) := by
               refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
               intro p
-              simpa [mul_comm]
+              simp [mul_comm]
       _ = (∫⁻ x, f₂ x) * (∫⁻ x, f₁ x) :=
             lintegral_prod_mul hm₂.aemeasurable hm₁.aemeasurable
       _ = (∫⁻ x, f₁ x) * (∫⁻ x, f₂ x) := by rw [mul_comm]
@@ -918,7 +916,7 @@ theorem ahlswede_daykin_one_dim_ennreal
           = ∫⁻ p : ℝ × ℝ, f₄ p.1 * f₃ p.2 ∂(volume.prod volume) := by
               refine lintegral_congr_ae (Filter.Eventually.of_forall ?_)
               intro p
-              simpa [mul_comm]
+              simp [mul_comm]
       _ = (∫⁻ x, f₄ x) * (∫⁻ x, f₃ x) :=
             lintegral_prod_mul hm₄.aemeasurable hm₃.aemeasurable
       _ = (∫⁻ x, f₃ x) * (∫⁻ x, f₄ x) := by rw [mul_comm]
@@ -1221,8 +1219,10 @@ lemma sup_dite_eq {ι : Type*} [DecidableEq ι] (i : ι)
     (fun j => if h : j = i then s else y' ⟨j, h⟩) =
     (fun j => if h : j = i then (t ⊔ s) else (x' ⊔ y') ⟨j, h⟩) := by
   ext j
-  simp only [Pi.sup_apply]
-  split <;> simp [Pi.sup_apply]
+  by_cases hj : j = i
+  · subst hj
+    simp
+  · simp [hj]
 
 /-- Componentwise inf commutes with coordinate insertion. -/
 lemma inf_dite_eq {ι : Type*} [DecidableEq ι] (i : ι)
@@ -1231,8 +1231,10 @@ lemma inf_dite_eq {ι : Type*} [DecidableEq ι] (i : ι)
     (fun j => if h : j = i then s else y' ⟨j, h⟩) =
     (fun j => if h : j = i then (t ⊓ s) else (x' ⊓ y') ⟨j, h⟩) := by
   ext j
-  simp only [Pi.inf_apply]
-  split <;> simp [Pi.inf_apply]
+  by_cases hj : j = i
+  · subst hj
+    simp
+  · simp [hj]
 
 /-- Coordinate split equivalence `(ι → ℝ) ≃ ({j // j ≠ i} → ℝ) × ℝ`. -/
 def insertDecompEquiv {ι : Type*} [Fintype ι] [DecidableEq ι] (i : ι) :
@@ -1545,10 +1547,10 @@ theorem ahlswede_daykin : ∀ (n : ℕ) {ι : Type*} [Fintype ι] [DecidableEq �
     have hxy : f₁ x * f₂ y ≤ f₃ (x ⊔ y) * f₄ (x ⊓ y) := hAD x y
     calc
       F₁ x * F₂ y = ENNReal.ofReal (f₁ x * f₂ y) := by
-        simp [F₁, F₂, ENNReal.ofReal_mul, hnn₁ x, hnn₂ y]
+        simp [F₁, F₂, ENNReal.ofReal_mul, hnn₁ x]
       _ ≤ ENNReal.ofReal (f₃ (x ⊔ y) * f₄ (x ⊓ y)) := ENNReal.ofReal_le_ofReal hxy
       _ = F₃ (x ⊔ y) * F₄ (x ⊓ y) := by
-        simp [F₃, F₄, ENNReal.ofReal_mul, hnn₃ (x ⊔ y), hnn₄ (x ⊓ y)]
+        simp [F₃, F₄, ENNReal.ofReal_mul, hnn₃ (x ⊔ y)]
   have hAD_int :
       (∫⁻ x, F₁ x) * (∫⁻ x, F₂ x) ≤ (∫⁻ x, F₃ x) * (∫⁻ x, F₄ x) :=
     ahlswede_daykin_ennreal n hcard F₁ F₂ F₃ F₄
@@ -1640,7 +1642,7 @@ a nonneg monotone function. Apply `fkg_from_lattice_condition_nonneg`, then
 take n → ∞ by dominated convergence. -/
 
 /-- Truncation of a monotone function: `max(F, -(n:ℝ))` is monotone. -/
-lemma monotone_max_neg (F : (ι → ℝ) → ℝ) (hF : Monotone F) (n : ℝ) :
+lemma monotone_max_neg {ι : Type*} (F : (ι → ℝ) → ℝ) (hF : Monotone F) (n : ℝ) :
     Monotone (fun x => F x ⊔ (-n)) :=
   fun _ _ hle => sup_le_sup_right (hF hle) _
 
@@ -1667,7 +1669,7 @@ If F·ρ is integrable, then ∫ max(F,-n)·ρ → ∫ F·ρ by DCT. -/
 theorem fkg_truncation_dct {ι : Type*} [Fintype ι]
     (F : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ)
     (hFm : AEStronglyMeasurable F) (hρm : AEStronglyMeasurable ρ)
-    (hFρi : Integrable (fun φ => F φ * ρ φ)) (hρ_nn : ∀ x, 0 ≤ ρ x) :
+    (hFρi : Integrable (fun φ => F φ * ρ φ)) (_hρ_nn : ∀ x, 0 ≤ ρ x) :
     Filter.Tendsto (fun n : ℕ => ∫ φ, (F φ ⊔ (-(n : ℝ))) * ρ φ)
       Filter.atTop (nhds (∫ φ, F φ * ρ φ)) := by
   let Fn : ℕ → (ι → ℝ) → ℝ := fun n φ => (F φ ⊔ (-(n : ℝ))) * ρ φ
@@ -1680,10 +1682,10 @@ theorem fkg_truncation_dct {ι : Type*} [Fintype ι]
     intro φ
     calc
       ‖Fn n φ‖ = |F φ ⊔ (-(n : ℝ))| * |ρ φ| := by
-        simp [Fn, Real.norm_eq_abs, abs_mul]
+        simp [Fn, Real.norm_eq_abs]
       _ ≤ |F φ| * |ρ φ| := by
         exact mul_le_mul (abs_sup_neg_nat_le_abs (F φ) n) le_rfl (abs_nonneg _) (abs_nonneg _)
-      _ = ‖F φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul]
+      _ = ‖F φ * ρ φ‖ := by simp [Real.norm_eq_abs]
   have h_lim : ∀ᵐ φ, Filter.Tendsto (fun n => Fn n φ) Filter.atTop (nhds (F φ * ρ φ)) := by
     refine Filter.Eventually.of_forall ?_
     intro φ
@@ -1705,7 +1707,7 @@ theorem fkg_truncation_dct_prod {ι : Type*} [Fintype ι]
     (F G : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ)
     (hFm : AEStronglyMeasurable F) (hGm : AEStronglyMeasurable G)
     (hρm : AEStronglyMeasurable ρ)
-    (hFGρi : Integrable (fun φ => F φ * G φ * ρ φ)) (hρ_nn : ∀ x, 0 ≤ ρ x) :
+    (hFGρi : Integrable (fun φ => F φ * G φ * ρ φ)) (_hρ_nn : ∀ x, 0 ≤ ρ x) :
     Filter.Tendsto
       (fun n : ℕ => ∫ φ, (F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ)
       Filter.atTop (nhds (∫ φ, F φ * G φ * ρ φ)) := by
@@ -1721,7 +1723,7 @@ theorem fkg_truncation_dct_prod {ι : Type*} [Fintype ι]
     intro φ
     calc
       ‖Fn n φ‖ = |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| * |ρ φ| := by
-        simp [Fn, Real.norm_eq_abs, abs_mul, mul_assoc]
+        simp [Fn, Real.norm_eq_abs, mul_assoc]
       _ ≤ |F φ| * |G φ| * |ρ φ| := by
         have hfg : |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| ≤ |F φ| * |G φ| := by
           exact mul_le_mul
@@ -1730,7 +1732,7 @@ theorem fkg_truncation_dct_prod {ι : Type*} [Fintype ι]
             (abs_nonneg _)
             (abs_nonneg _)
         exact mul_le_mul hfg le_rfl (abs_nonneg _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
-      _ = ‖F φ * G φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul, mul_assoc]
+      _ = ‖F φ * G φ * ρ φ‖ := by simp [Real.norm_eq_abs, mul_assoc]
   have h_lim : ∀ᵐ φ, Filter.Tendsto (fun n => Fn n φ) Filter.atTop (nhds (F φ * G φ * ρ φ)) := by
     refine Filter.Eventually.of_forall ?_
     intro φ
@@ -1769,10 +1771,10 @@ theorem integrable_truncation_mul {ι : Type*} [Fintype ι]
   intro φ
   calc
     ‖(F φ ⊔ (-(n : ℝ))) * ρ φ‖ = |F φ ⊔ (-(n : ℝ))| * |ρ φ| := by
-      simp [Real.norm_eq_abs, abs_mul]
+      simp [Real.norm_eq_abs]
     _ ≤ |F φ| * |ρ φ| := by
       exact mul_le_mul (abs_sup_neg_nat_le_abs (F φ) n) le_rfl (abs_nonneg _) (abs_nonneg _)
-    _ = ‖F φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul]
+    _ = ‖F φ * ρ φ‖ := by simp [Real.norm_eq_abs]
 
 theorem integrable_truncation_prod_mul {ι : Type*} [Fintype ι]
     (F G : (ι → ℝ) → ℝ) (ρ : (ι → ℝ) → ℝ) (n : ℕ)
@@ -1787,7 +1789,7 @@ theorem integrable_truncation_prod_mul {ι : Type*} [Fintype ι]
   calc
     ‖(F φ ⊔ (-(n : ℝ))) * (G φ ⊔ (-(n : ℝ))) * ρ φ‖
         = |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| * |ρ φ| := by
-            simp [Real.norm_eq_abs, abs_mul, mul_assoc]
+            simp [Real.norm_eq_abs, mul_assoc]
     _ ≤ |F φ| * |G φ| * |ρ φ| := by
       have hfg : |F φ ⊔ (-(n : ℝ))| * |G φ ⊔ (-(n : ℝ))| ≤ |F φ| * |G φ| := by
         exact mul_le_mul
@@ -1796,7 +1798,7 @@ theorem integrable_truncation_prod_mul {ι : Type*} [Fintype ι]
           (abs_nonneg _)
           (abs_nonneg _)
       exact mul_le_mul hfg le_rfl (abs_nonneg _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
-    _ = ‖F φ * G φ * ρ φ‖ := by simp [Real.norm_eq_abs, abs_mul, mul_assoc]
+    _ = ‖F φ * G φ * ρ φ‖ := by simp [Real.norm_eq_abs, mul_assoc]
 
 theorem fkg_from_lattice_condition {ι : Type*} [Fintype ι]
     (ρ : (ι → ℝ) → ℝ) (hρ_nn : ∀ x, 0 ≤ ρ x)
