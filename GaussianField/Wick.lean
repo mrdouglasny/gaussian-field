@@ -453,10 +453,10 @@ private lemma weighted_poly_exp_bound_integrable (f₀ : E) (n : ℕ) (f : Fin n
     -- RHS = (∏ i : Fin n, ω(f_all(succ(castSucc i)))) * ω(f_all(succ(last n)))
     congr 1
     · apply Finset.prod_congr rfl; intro i _
-      simp only [f_all, Fin.val_succ, Fin.coe_castSucc, Nat.add_sub_cancel,
+      simp only [Fin.val_succ, Fin.val_castSucc, Nat.add_sub_cancel,
         show i.val + 1 ≠ 0 from by omega, dite_false,
         show i.val + 1 ≤ n from by omega, dite_true]
-    · simp [f_all, Fin.val_last]
+    · simp [Fin.val_last]
   simp_rw [hprod]
   exact (product_integrable T (n + 2) f_all).norm
 

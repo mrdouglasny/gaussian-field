@@ -2690,7 +2690,7 @@ theorem hermiteFunctionNd_unpair (d : ℕ) (n : ℕ)
     conv_lhs => rw [h_alpha]
     -- succFunEquiv.symm (β, k) at castSucc j: this is β j
     simp only [Fin.succFunEquiv, Equiv.symm_trans_apply, Equiv.prodCongrRight_symm,
-      Equiv.prodCongrRight_apply, Equiv.funUnique_symm_apply]
+      Equiv.prodCongrRight_apply]
     -- Goal should now involve Fin.appendEquiv or Fin.append with castAdd
     rw [show Fin.castSucc j = Fin.castAdd 1 j from rfl]
     simp [Fin.append_left]
