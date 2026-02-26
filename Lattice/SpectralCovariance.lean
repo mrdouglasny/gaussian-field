@@ -606,6 +606,33 @@ theorem gaussianDensity_eq_exp_spectral (a mass : ℝ)
   unfold gaussianDensity
   rw [massOperator_quadratic_eq_spectral (d := d) (N := N) a mass φ]
 
+/-- Coefficient extraction after reconstructing from eigenbasis coordinates. -/
+theorem massEigenbasis_coeff_reprSymm (a mass : ℝ)
+    (v : EuclideanSpace ℝ (FinLatticeSites d N)) (k : FinLatticeSites d N) :
+    (∑ x : FinLatticeSites d N,
+      (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+        ((massEigenvectorBasis d N a mass).repr.symm v) x) = v k := by
+  have hrepr := OrthonormalBasis.repr_apply_apply
+    (b := massEigenvectorBasis d N a mass)
+    (v := (massEigenvectorBasis d N a mass).repr.symm v) (i := k)
+  have hleft :
+      ((massEigenvectorBasis d N a mass).repr
+        ((massEigenvectorBasis d N a mass).repr.symm v)).ofLp k = v k := by
+    simpa using congrArg (fun w => w k) (LinearEquiv.apply_symm_apply
+      (massEigenvectorBasis d N a mass).repr v)
+  have hright :
+      inner ℝ (massEigenvectorBasis d N a mass k)
+        ((massEigenvectorBasis d N a mass).repr.symm v) =
+      (∑ x : FinLatticeSites d N,
+        (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+          ((massEigenvectorBasis d N a mass).repr.symm v) x) := by
+    simp [EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
+    refine Finset.sum_congr rfl ?_
+    intro x hx
+    ring
+  rw [hright] at hrepr
+  exact (hleft.symm.trans hrepr).symm
+
 /-- The Gaussian density is non-negative. -/
 theorem gaussianDensity_nonneg (a mass : ℝ) (φ : FinLatticeField d N) :
     0 ≤ gaussianDensity d N a mass φ :=
