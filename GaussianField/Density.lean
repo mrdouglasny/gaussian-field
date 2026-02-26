@@ -153,6 +153,29 @@ theorem measurable_sitePairing (f : FinLatticeField d N) :
   simpa using
     (continuous_finset_sum _ (fun x _ => continuous_const.mul (continuous_apply x))).measurable
 
+/-- Site pairing expanded in the mass-eigenvector basis coordinates. -/
+theorem sitePairing_eq_massEigenbasis_sum (a mass : ℝ)
+    (f φ : FinLatticeField d N) :
+    (∑ x : FinLatticeSites d N, f x * φ x) =
+      ∑ k : FinLatticeSites d N,
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) := by
+  symm
+  exact massEigenbasis_sum_mul_sum_eq_site_inner (d := d) (N := N) a mass f φ
+
+/-- Spectral form of `gaussianDensity`. -/
+theorem gaussianDensity_eq_exp_massEigenbasis (a mass : ℝ)
+    (φ : FinLatticeField d N) :
+    gaussianDensity d N a mass φ =
+      Real.exp (-(1 / 2 : ℝ) *
+        ∑ k : FinLatticeSites d N,
+          massEigenvalues d N a mass k *
+            (∑ x : FinLatticeSites d N,
+            (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) ^ 2) := by
+  simpa using gaussianDensity_eq_exp_spectral (d := d) (N := N) a mass φ
+
 /-- Adapts `pairing_is_gaussian` to the finite field-law measure:
 the pushforward by coordinate pairing is a 1D Gaussian. -/
 theorem latticeGaussianFieldLaw_pairing_is_gaussian

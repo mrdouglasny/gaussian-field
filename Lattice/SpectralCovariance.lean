@@ -153,6 +153,152 @@ theorem massOperator_eq_matrix_mulVec (a mass : ℝ)
   unfold massOperatorEntry
   ring
 
+/-- In eigenbasis coefficients, the mass operator acts by scalar multiplication
+by the corresponding eigenvalue. -/
+theorem massOperator_eigenCoeff_eq_eigenvalues_mul_eigenCoeff (a mass : ℝ)
+    (f : FinLatticeField d N) (k : FinLatticeSites d N) :
+    (∑ x : FinLatticeSites d N,
+        (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+          (massOperator d N a mass f) x) =
+      massEigenvalues d N a mass k *
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) := by
+  have hswap := massOperator_selfAdjoint d N a mass
+    (massEigenvectorBasis d N a mass k) f
+  have hright :
+      ∑ x : FinLatticeSites d N,
+          (massOperator d N a mass (massEigenvectorBasis d N a mass k)) x * f x =
+        massEigenvalues d N a mass k *
+          (∑ x : FinLatticeSites d N,
+            (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) := by
+    have hmul :
+        massOperator d N a mass (massEigenvectorBasis d N a mass k) =
+          massEigenvalues d N a mass k • (massEigenvectorBasis d N a mass k) := by
+      ext x
+      rw [massOperator_eq_matrix_mulVec (d := d) (N := N) a mass
+        (massEigenvectorBasis d N a mass k) x]
+      simpa [massEigenvalues, massEigenvectorBasis] using
+        congrFun (Matrix.IsHermitian.mulVec_eigenvectorBasis
+          (hA := massOperatorMatrix_isHermitian d N a mass) k) x
+    rw [hmul]
+    calc
+      ∑ x : FinLatticeSites d N,
+          (massEigenvalues d N a mass k *
+            (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) * f x
+          = ∑ x : FinLatticeSites d N,
+              massEigenvalues d N a mass k *
+                ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) := by
+              refine Finset.sum_congr rfl ?_
+              intro x hx
+              ring
+      _ = massEigenvalues d N a mass k *
+            (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) := by
+            rw [Finset.mul_sum]
+  rw [hright] at hswap
+  exact hswap
+
+/-- Parseval identity in the mass-operator eigenbasis, written in site
+coordinates. -/
+theorem massEigenbasis_sum_mul_sum_eq_site_inner (a mass : ℝ)
+    (f g : FinLatticeField d N) :
+    (∑ k : FinLatticeSites d N,
+      (∑ x : FinLatticeSites d N,
+        (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+      (∑ x : FinLatticeSites d N,
+        (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x)) =
+      ∑ x : FinLatticeSites d N, f x * g x := by
+  let uf : EuclideanSpace ℝ (FinLatticeSites d N) :=
+    (EuclideanSpace.equiv (FinLatticeSites d N) ℝ).symm f
+  let ug : EuclideanSpace ℝ (FinLatticeSites d N) :=
+    (EuclideanSpace.equiv (FinLatticeSites d N) ℝ).symm g
+  have hparseval :=
+    OrthonormalBasis.sum_inner_mul_inner (massEigenvectorBasis d N a mass) uf ug
+  have hcoeff_left : ∀ k : FinLatticeSites d N,
+      inner ℝ uf (massEigenvectorBasis d N a mass k) =
+        ∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x := by
+    intro k
+    simp [uf, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
+  have hcoeff_right : ∀ k : FinLatticeSites d N,
+      inner ℝ (massEigenvectorBasis d N a mass k) ug =
+        ∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x := by
+    intro k
+    simp [ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
+    refine Finset.sum_congr rfl ?_
+    intro x hx
+    ring
+  have hinner :
+      inner ℝ uf ug = ∑ x : FinLatticeSites d N, f x * g x := by
+    simp [uf, ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
+    refine Finset.sum_congr rfl ?_
+    intro x hx
+    ring
+  calc
+    (∑ k : FinLatticeSites d N,
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x))
+        = ∑ k : FinLatticeSites d N,
+            inner ℝ uf (massEigenvectorBasis d N a mass k) *
+              inner ℝ (massEigenvectorBasis d N a mass k) ug := by
+              refine Finset.sum_congr rfl ?_
+              intro k hk
+              rw [hcoeff_left, hcoeff_right]
+    _ = inner ℝ uf ug := hparseval
+    _ = ∑ x : FinLatticeSites d N, f x * g x := hinner
+
+/-- Spectral decomposition of the quadratic form of `massOperator`:
+`∑ x, f x * (Q f) x = ∑ k, λ_k * c_k(f)^2`. -/
+theorem massOperator_quadratic_eq_spectral (a mass : ℝ)
+    (f : FinLatticeField d N) :
+    (∑ x : FinLatticeSites d N, f x * (massOperator d N a mass f) x) =
+      ∑ k : FinLatticeSites d N,
+        massEigenvalues d N a mass k *
+          (∑ x : FinLatticeSites d N,
+            (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) ^ 2 := by
+  have hparseval :=
+    massEigenbasis_sum_mul_sum_eq_site_inner (d := d) (N := N) a mass f (massOperator d N a mass f)
+  have hcoeff :
+      ∀ k : FinLatticeSites d N,
+        (∑ x : FinLatticeSites d N,
+            (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+              (massOperator d N a mass f) x) =
+          massEigenvalues d N a mass k *
+            (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) := by
+    intro k
+    exact massOperator_eigenCoeff_eq_eigenvalues_mul_eigenCoeff
+      (d := d) (N := N) a mass f k
+  calc
+    (∑ x : FinLatticeSites d N, f x * (massOperator d N a mass f) x)
+        = ∑ k : FinLatticeSites d N,
+            (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+            (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+                (massOperator d N a mass f) x) := by
+            symm
+            exact hparseval
+    _ = ∑ k : FinLatticeSites d N,
+          (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+            (massEigenvalues d N a mass k *
+              (∑ x : FinLatticeSites d N,
+                (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x)) := by
+          refine Finset.sum_congr rfl ?_
+          intro k hk
+          rw [hcoeff k]
+    _ = ∑ k : FinLatticeSites d N,
+          massEigenvalues d N a mass k *
+            (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) ^ 2 := by
+          refine Finset.sum_congr rfl ?_
+          intro k hk
+          ring
+
 /-- Eigenvalues of the mass operator are strictly positive.
 
 Proof: Q is positive definite. For eigenvector e_k with eigenvalue λ_k:
@@ -447,6 +593,18 @@ def gaussianDensity (a mass : ℝ)
     (φ : FinLatticeField d N) : ℝ :=
   Real.exp (-(1/2) * ∑ x : FinLatticeSites d N,
     φ x * (massOperator d N a mass φ) x)
+
+/-- Spectral form of the Gaussian density exponent. -/
+theorem gaussianDensity_eq_exp_spectral (a mass : ℝ)
+    (φ : FinLatticeField d N) :
+    gaussianDensity d N a mass φ =
+      Real.exp (-(1 / 2 : ℝ) *
+        ∑ k : FinLatticeSites d N,
+          massEigenvalues d N a mass k *
+            (∑ x : FinLatticeSites d N,
+              (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) ^ 2) := by
+  unfold gaussianDensity
+  rw [massOperator_quadratic_eq_spectral (d := d) (N := N) a mass φ]
 
 /-- The Gaussian density is non-negative. -/
 theorem gaussianDensity_nonneg (a mass : ℝ) (φ : FinLatticeField d N) :
