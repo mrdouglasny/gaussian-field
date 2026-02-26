@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**6 axioms, 0 sorries**
+**5 axioms, 0 sorries**
 
-*Updated 2026-02-25.*
+*Updated 2026-02-26.*
 
 ## Axiom inventory
 
@@ -17,7 +17,7 @@ projects (pphi2, OSforGFF-dimensions).
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `fkg_from_lattice_condition` | Lattice/FKG | theorem | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
-| `latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure` | GaussianField/Density | axiom | Hard | Master density theorem: field-law pushforward equals normalized density measure. |
+| `latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure` | GaussianField/Density | theorem | Hard | Master density theorem: field-law pushforward equals normalized density measure. |
 
 Density rewrite progress (P0 master theorem path):
 - Added `evalMap` measurability and `latticeGaussianFieldLaw` wrapper in
@@ -30,8 +30,8 @@ Density rewrite progress (P0 master theorem path):
   `gaussianDensityWeight_measurable`, `gaussianDensityNormConst_eq_lintegral`,
   `gaussianDensityNormConst_ne_top`, `gaussianDensityNormConst_eq_ofReal_integral`.
 - Replaced density axioms `latticeGaussianMeasure_density_integral` and
-  `integrable_mul_gaussianDensity` with theorem proofs derived from the master
-  density-law axiom. The old names remain as theorems for compatibility.
+  `integrable_mul_gaussianDensity` with theorem proofs derived from the proved
+  master density law. The old names remain as theorems for compatibility.
 
 Proved FKG results (no longer axioms):
 - `ahlswede_daykin_ennreal` -- theorem (ENNReal n-dimensional induction)
@@ -91,9 +91,9 @@ Proved hypercontractive results (axiom-free):
 | Lattice/RapidDecayLattice | 3 | 0 |
 | Lattice/FKG | 0 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
-| GaussianField/Density | 1 | 0 |
-| GaussianField/Hypercontractive | 1 | 0 |
-| **Total** | **7** | **0** |
+| GaussianField/Density | 0 | 0 |
+| GaussianField/Hypercontractive | 0 | 0 |
+| **Total** | **5** | **0** |
 
 ## References
 
