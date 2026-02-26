@@ -1,9 +1,8 @@
 #!/bin/bash
-# Count axioms and sorries in pphi2 and gaussian-field
+# Count axioms and sorries in gaussian-field
 # Usage: ./scripts/count_axioms.sh
 
-PPHI2_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-GF_DIR="$PPHI2_DIR/../gaussian-field"
+GF_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -68,11 +67,4 @@ count_in_dir() {
     printf "%-50s %8d %8d\n" "TOTAL" "$total_axioms" "$total_sorries"
 }
 
-count_in_dir "$PPHI2_DIR" "pphi2" "Pphi2"
-
-if [ -d "$GF_DIR" ]; then
-    count_in_dir "$GF_DIR" "gaussian-field" "GaussianField" "HeatKernel" "Lattice" "SchwartzNuclear"
-else
-    echo ""
-    echo -e "${RED}gaussian-field not found at $GF_DIR${NC}"
-fi
+count_in_dir "$GF_DIR" "gaussian-field" "GaussianField" "HeatKernel" "Lattice" "SchwartzNuclear"
