@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**5 axioms, 0 sorries**
+**2 axioms, 0 sorries**
 
 *Updated 2026-02-26.*
 
@@ -50,9 +50,9 @@ Proved FKG results (no longer axioms):
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `latticeEnum_norm_bound` | Lattice/RapidDecayLattice | axiom | Hard | ‖enum^{-1}(m)‖ <= C*m^{1/d}. (requires `d ≥ 1`) |
-| `latticeEnum_index_bound` | Lattice/RapidDecayLattice | axiom | Hard | enum(x) <= C*(1+‖x‖)^d. (requires `d ≥ 1`) |
-| `latticeRapidDecayEquiv` | Lattice/RapidDecayLattice | axiom | Hard | CLE to RapidDecaySeq (enumeration branch excludes `d=0`). |
+| `latticeEnum_norm_bound` | Lattice/RapidDecayLattice | theorem | Hard | Polynomial inverse bound: ‖enum^{-1}(m)‖ <= C*(1+m)^p (proved by induction on pairing depth). |
+| `latticeEnum_index_bound` | Lattice/RapidDecayLattice | theorem | Hard | Polynomial forward bound: enum(x) <= C*(1+‖x‖)^q (proved by induction on pairing depth). |
+| `latticeRapidDecayEquiv` | Lattice/RapidDecayLattice | theorem | Hard | CLE to RapidDecaySeq (proved using polynomial reindexing bounds; enumeration branch excludes `d=0`). |
 
 ### Heat kernel (cylinder QFT, not used by lattice approach)
 
@@ -88,12 +88,12 @@ Proved hypercontractive results (axiom-free):
 | File | Axioms | Sorries |
 |------|--------|---------|
 | HeatKernel/PositionKernel | 2 | 0 |
-| Lattice/RapidDecayLattice | 3 | 0 |
+| Lattice/RapidDecayLattice | 0 | 0 |
 | Lattice/FKG | 0 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 0 | 0 |
 | GaussianField/Hypercontractive | 0 | 0 |
-| **Total** | **5** | **0** |
+| **Total** | **2** | **0** |
 
 ## References
 

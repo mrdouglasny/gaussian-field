@@ -1,7 +1,7 @@
 # Gaussian-Field Axiom Proof Plans
 
 **Generated**: 2026-02-25 via Gemini deep think review
-**Total**: 5 axioms (current), 0 sorries
+**Total**: 2 axioms (current), 0 sorries
 
 ## Priority Order
 
@@ -208,27 +208,21 @@ with the existing charFun proof in `GaussianField/Properties.lean`.
 
 #### 13-14. `latticeEnum_norm_bound` / `latticeEnum_index_bound` (RapidDecayLattice.lean:208,213)
 
-**Statement**: Lattice point enumeration: `‖x_k‖ = Theta(k^{1/d})` and `k(x) = O(‖x‖^d)`.
+**Status**: Completed.
 
-**Plan**:
-1. Prove lattice point counting: `N(R) = #{x in Z^d : ‖x‖ <= R} = Theta(R^d)`
-2. Upper bound: unit cubes at lattice points fit in ball of radius `R + sqrt(d)/2`
-3. Lower bound: cubes at points with `‖x‖ <= R - sqrt(d)/2` fit inside ball of radius `R`
-4. Invert: `k ~ N(‖x_k‖) ~ ‖x_k‖^d`, so `‖x_k‖ ~ k^{1/d}`
-
-**Blocker**: No lattice-point counting library in Mathlib
+Both polynomial bounds are now proved by induction on pairing depth using:
+- `Nat.unpair` monotonicity for inverse growth.
+- `Nat.pair_lt_max_add_one_sq` plus explicit `ℤ ↔ ℕ` growth bounds for forward growth.
 
 ---
 
-#### 15. `latticeRapidDecayEquiv` (RapidDecayLattice.lean:269)
+#### 15. `latticeRapidDecayEquiv` (RapidDecayLattice.lean)
 
-**Statement**: Rapid decay on Z^d: `sup ‖x‖^m |f(x)| < infinity` iff `sum ‖x‖^m |f(x)| < infinity`.
+**Status**: Completed.
 
-**Plan**:
-- **(=> direction)**: From `‖x‖^{m+d+1} |f(x)| <= C`, get `‖x‖^m |f(x)| <= C/‖x‖^{d+1}`. Then `sum 1/‖x‖^{d+1}` converges by integral test (compare with `integral r^{-2} dr` in polar coords).
-- **(<= direction)**: Convergent series => terms bounded => sup finite.
-
-**Blocker**: Multi-dimensional integral test
+Proof now implemented as a constructive continuous linear equivalence using
+`latticeEnum` reindexing plus the two polynomial bound theorems
+`latticeEnum_norm_bound` and `latticeEnum_index_bound`.
 
 ---
 

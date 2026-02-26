@@ -299,11 +299,12 @@ The core results are fully proved with no custom axioms:
 - `GaussianField.measure`, `charFun`, moments — sorry-free
 - `gaussian_ibp_general`, `wick_recursive`, `wick_bound`, `odd_moment_vanish` — sorry-free
 
-The `GaussianField/Hypercontractive.lean` module contains Nelson's hypercontractive estimate and the Gross log-Sobolev inequality, both fully proved (0 axioms) via 1D reduction using `pairing_is_gaussian`. The log-Sobolev proof uses the pointwise bound `log(y) ≤ y - 1` with Gaussian moments E[Z²] = 1 and E[Z⁴] = 3. The hypercontractive estimate uses the Gamma function representation of Gaussian absolute moments E[|Z|^k] = 2^(k/2) · Γ((k+1)/2) / √π; the remaining sorry is a Gamma function inequality from log-convexity (Bohr-Mollerup).
+The hypercontractive and log-Sobolev development is now fully theorem-backed (`GaussianField/HypercontractiveNat.lean`, `GaussianField/Hypercontractive.lean`) with no remaining axioms or sorries in that path.
 
-The `HeatKernel/` module has proved the Mehler kernel closed form, positivity, semigroup property, Hermite reproducing property, and circle heat kernel properties. Remaining axioms are for `spectralCLM` and `qft_singular_values_bounded` — these are consequences of proved theorems (`nuclear_ell2_embedding_from_decay`) and will be replaced by proofs when the heat kernel library is complete.
+The lattice/FKG pipeline is also theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
 
-The `Lattice/FKG.lean` module proves the FKG inequality for lattice Gaussian measures and single-site perturbations via the Continuous Ahlswede-Daykin (Four Functions) theorem. The core mathematical content is proved (0 sorrys): 1D AD, algebraic four-functions lemma, n-dim AD by induction on coordinates, and FKG as corollary. The density bridge (`GaussianField/Density.lean`) connecting the abstract Gaussian measure to the explicit density `exp(-½⟨φ,Qφ⟩)` is now proved via the spectral theorem for the mass operator (`Lattice/SpectralCovariance.lean`). Remaining project axioms are currently 5 total, all in `Lattice/RapidDecayLattice.lean` (3) and `HeatKernel/PositionKernel.lean` (2).
+Current project status is **2 axioms, 0 sorries**, both in `HeatKernel/PositionKernel.lean`:
+`mehlerKernel_eq_series` and `circleHeatKernel_pos`.
 
 ## Further documentation
 
