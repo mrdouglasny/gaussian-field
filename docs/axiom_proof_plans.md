@@ -267,17 +267,16 @@ Need either:
 
 ---
 
-#### 18. `gaussian_moment_ratio_bound` (Hypercontractive.lean:152)
+#### 18. `gaussian_moment_ratio_bound` — **ELIMINATED**
 
-**Statement**: Gamma function inequality encoding 1D hypercontractivity.
+**Former location**: Hypercontractive.lean:152
 
-**Plan**:
-1. Prove log-convexity of `k -> log E[|X|^k]` for Gaussian X
-2. Differentiate `log integral |x|^k rho(x) dx` twice w.r.t. k
-3. Second derivative >= 0 by Cauchy-Schwarz for measure `|x|^k rho dx`
-4. Convexity gives the desired inequality
-
-**Blocker**: Differentiation under integral sign formalization. Advanced real analysis.
+**Resolution**: Proved for even integer p = 2m via double-factorial combinatorics
+in `GaussianField/HypercontractiveNat.lean`. The axiom and its Gamma-based
+consumers have been removed from `Hypercontractive.lean`. The full chain
+(`hypercontractive_1d`, `hypercontractive_gaussianReal`, `gaussian_hypercontractive`)
+now lives in `HypercontractiveNat.lean` with additional hypotheses
+`(m : ℕ) (hm : 1 ≤ m) (hp_eq : p = 2 * ↑m)`.
 
 ---
 

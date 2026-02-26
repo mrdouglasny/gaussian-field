@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF-dimensions).
 
-**8 axioms, 0 sorries**
+**6 axioms, 0 sorries**
 
 *Updated 2026-02-25.*
 
@@ -68,17 +68,20 @@ Proved FKG results (no longer axioms):
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `gaussian_moment_ratio_bound` | GaussianField/Hypercontractive | axiom | Hard | Core Gamma-function inequality used in 1D hypercontractivity. |
+| `gaussian_moment_ratio_bound` | *(removed)* | ~~axiom~~ | Hard | **Eliminated**: proved via double-factorial combinatorics in `HypercontractiveNat.lean`. |
 
-Proved hypercontractive results (derived using the axiom above):
-- `gaussian_hypercontractive` -- theorem
-- `gross_log_sobolev` -- theorem
+Proved hypercontractive results (axiom-free):
+- `hypercontractive_1d_even` -- theorem (direct combinatorial proof for even p)
+- `hypercontractive_1d` -- theorem (rpow wrapper, even p)
+- `hypercontractive_gaussianReal` -- theorem (variance scaling)
+- `gaussian_hypercontractive` -- theorem (infinite-dimensional pushforward)
+- `gross_log_sobolev` -- theorem (independent of the above chain)
 
-### Infrastructure
+### Infrastructure (inactive, for testing only)
 
 | Item | File | Type | Description |
 |------|------|------|-------------|
-| `schwartz_dyninMityaginSpace_axiom` | GaussianField | axiom | Schwartz space is a Dynin-Mityagin space (nuclear Frechet). |
+| `schwartz_dyninMityaginSpace_axiom` | GaussianField | commented out | Axiom fallback for Schwartz ≅ Dynin-Mityagin space; the proven instance via `SchwartzNuclear.HermiteTensorProduct` is used instead. Available to swap in for faster build/testing. |
 
 ### Summary by file
 
@@ -90,8 +93,7 @@ Proved hypercontractive results (derived using the axiom above):
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 1 | 0 |
 | GaussianField/Hypercontractive | 1 | 0 |
-| GaussianField | 1 | 0 |
-| **Total** | **8** | **0** |
+| **Total** | **7** | **0** |
 
 ## References
 

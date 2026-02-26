@@ -256,7 +256,8 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
 | [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
 | [Wick.lean](GaussianField/Wick.lean) | 1,067 | [Wick's theorem](docs/wick-theorem.md): Gaussian IBP, recursive Wick formula, moment bounds |
-| [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 107 | Nelson's hypercontractive estimate and Gross log-Sobolev inequality |
+| [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 441 | Gaussian moments, [Gross log-Sobolev inequality](docs/gross-log-sobolev.md) |
+| [HypercontractiveNat.lean](GaussianField/HypercontractiveNat.lean) | 329 | [Nelson's hypercontractive estimate](docs/gaussian-moment-ratio-proof.md) for even integer p via double-factorial combinatorics |
 
 ### Dependency graph
 
