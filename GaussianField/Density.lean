@@ -45,6 +45,38 @@ noncomputable section
 namespace GaussianField
 
 open MeasureTheory
+open ProbabilityTheory
+
+section TextbookFiniteDimensionalGaussian
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-- Generic finite-dimensional quadratic Gaussian density. -/
+def quadraticGaussianDensity
+    (Q : (ι → ℝ) →L[ℝ] (ι → ℝ)) (φ : ι → ℝ) : ℝ :=
+  Real.exp (-(1 / 2 : ℝ) * ∑ x : ι, φ x * (Q φ) x)
+
+/-- Generic finite-dimensional (unnormalized) quadratic Gaussian measure. -/
+def quadraticGaussianMeasure
+    (Q : (ι → ℝ) →L[ℝ] (ι → ℝ)) : Measure (ι → ℝ) :=
+  volume.withDensity (fun φ => ENNReal.ofReal (quadraticGaussianDensity Q φ))
+
+/-- Generic finite-dimensional normalized quadratic Gaussian measure. -/
+def normalizedQuadraticGaussianMeasure
+    (Q : (ι → ℝ) →L[ℝ] (ι → ℝ)) : Measure (ι → ℝ) :=
+  ((quadraticGaussianMeasure Q) Set.univ)⁻¹ • quadraticGaussianMeasure Q
+
+/-- Textbook axiom: finite-dimensional Gaussian Fourier transform for normalized
+quadratic densities. -/
+axiom normalizedQuadraticGaussianMeasure_linearFourier
+    (Q : (ι → ℝ) →L[ℝ] (ι → ℝ))
+    (T : (ι → ℝ) →L[ℝ] ell2')
+    (f : ι → ℝ) :
+    ∫ φ : (ι → ℝ), Complex.exp (Complex.I * ↑(∑ x : ι, f x * φ x))
+      ∂(normalizedQuadraticGaussianMeasure Q) =
+    Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _ (T f) (T f)))
+
+end TextbookFiniteDimensionalGaussian
 
 variable (d N : ℕ) [NeZero N]
 
@@ -66,6 +98,27 @@ theorem measurable_evalMap :
   simpa [evalMap] using
     (configuration_eval_measurable (E := FinLatticeField d N)
       (finLatticeDelta d N x))
+
+/-- Basis decomposition in the finite field space:
+`φ = ∑ x, φ(x) • δ_x`. -/
+theorem field_basis_decomposition_density (φ : FinLatticeField d N) :
+    φ = ∑ y : FinLatticeSites d N, φ y • finLatticeDelta d N y := by
+  ext x
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, finLatticeDelta,
+    mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
+
+/-- Pairing with a configuration can be rewritten in site coordinates. -/
+theorem config_apply_eq_sum_delta (ω : Configuration (FinLatticeField d N))
+    (f : FinLatticeField d N) :
+    ω f = ∑ x : FinLatticeSites d N, f x * ω (finLatticeDelta d N x) := by
+  conv_lhs => rw [field_basis_decomposition_density (d := d) (N := N) f]
+  simp [map_sum, map_smul, smul_eq_mul]
+
+/-- The coordinate pairing `∑ x, f(x) φ(x)` equals `ω(f)` after `evalMap`. -/
+theorem config_apply_eq_sum_evalMap (ω : Configuration (FinLatticeField d N))
+    (f : FinLatticeField d N) :
+    ω f = ∑ x : FinLatticeSites d N, f x * (evalMap d N ω) x := by
+  simpa [evalMap] using config_apply_eq_sum_delta (d := d) (N := N) ω f
 
 theorem gaussianDensity_measurable (a mass : ℝ) :
     Measurable (gaussianDensity d N a mass) := by
@@ -93,6 +146,78 @@ def latticeGaussianFieldLaw (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     Measure (FinLatticeField d N) :=
   (latticeGaussianMeasure d N a mass ha hmass).map (evalMap d N)
 
+/-- The coordinate pairing map on field configurations is measurable. -/
+theorem measurable_sitePairing (f : FinLatticeField d N) :
+    Measurable (fun φ : FinLatticeField d N =>
+      ∑ x : FinLatticeSites d N, f x * φ x) := by
+  simpa using
+    (continuous_finset_sum _ (fun x _ => continuous_const.mul (continuous_apply x))).measurable
+
+/-- Adapts `pairing_is_gaussian` to the finite field-law measure:
+the pushforward by coordinate pairing is a 1D Gaussian. -/
+theorem latticeGaussianFieldLaw_pairing_is_gaussian
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f : FinLatticeField d N) :
+    ((latticeGaussianFieldLaw d N a mass ha hmass).map
+      (fun φ : FinLatticeField d N => ∑ x : FinLatticeSites d N, f x * φ x)) =
+      gaussianReal 0
+        (@inner ℝ ell2' _
+          (latticeCovariance d N a mass ha hmass f)
+          (latticeCovariance d N a mass ha hmass f)).toNNReal := by
+  rw [latticeGaussianFieldLaw]
+  have hmap :
+      Measure.map (fun φ : FinLatticeField d N =>
+          ∑ x : FinLatticeSites d N, f x * φ x)
+      (Measure.map (evalMap d N) (latticeGaussianMeasure d N a mass ha hmass)) =
+      Measure.map (fun ω : Configuration (FinLatticeField d N) =>
+          ∑ x : FinLatticeSites d N, f x * (evalMap d N ω) x)
+        (latticeGaussianMeasure d N a mass ha hmass) := by
+    simpa [Function.comp] using
+      (Measure.map_map
+        (g := fun φ : FinLatticeField d N => ∑ x : FinLatticeSites d N, f x * φ x)
+        (f := evalMap d N)
+        (μ := latticeGaussianMeasure d N a mass ha hmass)
+        (measurable_sitePairing (d := d) (N := N) f)
+        (measurable_evalMap (d := d) (N := N)))
+  rw [hmap]
+  have hcoord :
+      (fun ω : Configuration (FinLatticeField d N) =>
+        ∑ x : FinLatticeSites d N, f x * (evalMap d N ω) x) =
+      (fun ω : Configuration (FinLatticeField d N) => ω f) := by
+    funext ω
+    exact (config_apply_eq_sum_evalMap (d := d) (N := N) ω f).symm
+  rw [hcoord]
+  simpa using GaussianField.pairing_is_gaussian
+    (latticeCovariance d N a mass ha hmass) f
+
+/-- Fourier identity for the finite-dimensional field law, expressed in site
+coordinates. This is the pushforward-side characteristic-function formula. -/
+theorem latticeGaussianFieldLaw_fourier (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f : FinLatticeField d N) :
+    ∫ φ : FinLatticeField d N,
+      Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+        ∂(latticeGaussianFieldLaw d N a mass ha hmass) =
+    Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _
+      (latticeCovariance d N a mass ha hmass f)
+      (latticeCovariance d N a mass ha hmass f))) := by
+  rw [latticeGaussianFieldLaw]
+  have hmeas :
+      AEStronglyMeasurable
+        (fun φ : FinLatticeField d N =>
+          Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)))
+        ((latticeGaussianMeasure d N a mass ha hmass).map (evalMap d N)) := by
+    refine (Complex.continuous_exp.comp ?_).aestronglyMeasurable
+    refine (continuous_const.mul (Complex.continuous_ofReal.comp ?_))
+    refine continuous_finset_sum _ (fun x _ => ?_)
+    exact (continuous_const.mul (continuous_apply x))
+  rw [integral_map (measurable_evalMap (d := d) (N := N)).aemeasurable hmeas]
+  have hcoord : ∀ ω : Configuration (FinLatticeField d N),
+      (∑ x : FinLatticeSites d N, f x * (evalMap d N ω) x) = ω f := by
+    intro ω
+    simpa using (config_apply_eq_sum_evalMap (d := d) (N := N) ω f).symm
+  simp_rw [hcoord]
+  exact GaussianField.charFun (latticeCovariance d N a mass ha hmass) f
+
 /-! ## Density bridge
 
 The core result: the lattice Gaussian measure's expectations can be computed
@@ -117,13 +242,128 @@ Both measures have the same characteristic function, hence are equal.
 **Step 4**: The density bridge and integrability transfer follow
 from the measure equality. -/
 
-/-- Stage-2 master theorem target: identify the finite-dimensional field law with
-the normalized Gaussian density measure. Existing density theorems will be
-rewired to derive from this statement in subsequent stages. -/
-axiom latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
+/-- The project normalized density measure is the generic normalized quadratic
+Gaussian measure for `Q = massOperator`. -/
+theorem normalizedGaussianDensityMeasure_eq_normalizedQuadraticGaussianMeasure
+    (a mass : ℝ) :
+    normalizedGaussianDensityMeasure d N a mass =
+      normalizedQuadraticGaussianMeasure (Q := massOperator d N a mass) := by
+  rfl
+
+/-- Fourier identity for the project normalized density measure, derived from
+the generic textbook axiom. -/
+theorem normalizedGaussianDensityMeasure_linearFourier
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f : FinLatticeField d N) :
+    ∫ φ : FinLatticeField d N,
+      Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+        ∂(normalizedGaussianDensityMeasure d N a mass) =
+    Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _
+      (latticeCovariance d N a mass ha hmass f)
+      (latticeCovariance d N a mass ha hmass f))) := by
+  rw [normalizedGaussianDensityMeasure_eq_normalizedQuadraticGaussianMeasure (d := d) (N := N) a mass]
+  simpa using normalizedQuadraticGaussianMeasure_linearFourier
+    (Q := massOperator d N a mass)
+    (T := latticeCovariance d N a mass ha hmass)
+    f
+
+/-- Site-coordinate representative of a dual functional. -/
+def strongDualToField
+    (L : StrongDual ℝ (FinLatticeField d N)) : FinLatticeField d N :=
+  fun x => L (finLatticeDelta d N x)
+
+/-- Any dual functional on the finite field space equals its site-coordinate pairing. -/
+theorem strongDual_apply_eq_site_sum
+    (L : StrongDual ℝ (FinLatticeField d N))
+    (φ : FinLatticeField d N) :
+    L φ = ∑ x : FinLatticeSites d N, strongDualToField (d := d) (N := N) L x * φ x := by
+  conv_lhs => rw [field_basis_decomposition_density (d := d) (N := N) φ]
+  simp [strongDualToField, map_sum, map_smul, smul_eq_mul, mul_comm]
+
+/-- `charFunDual` rewritten in site coordinates. -/
+theorem charFunDual_eq_site_integral
+    (μ : Measure (FinLatticeField d N))
+    (L : StrongDual ℝ (FinLatticeField d N)) :
+    MeasureTheory.charFunDual μ L =
+      ∫ φ : FinLatticeField d N,
+        Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N,
+          strongDualToField (d := d) (N := N) L x * φ x)) ∂μ := by
+  rw [MeasureTheory.charFunDual_eq_charFun_map_one]
+  rw [MeasureTheory.charFun_apply_real]
+  have hmeas :
+      AEStronglyMeasurable (fun x : ℝ => Complex.exp (↑(1 : ℝ) * ↑x * Complex.I))
+        (μ.map L) := by
+    refine (Complex.continuous_exp.comp ?_).aestronglyMeasurable
+    exact ((continuous_const.mul Complex.continuous_ofReal).mul continuous_const)
+  rw [integral_map L.continuous.measurable.aemeasurable hmeas]
+  refine integral_congr_ae <| Filter.Eventually.of_forall ?_
+  intro φ
+  change Complex.exp (↑(1 : ℝ) * ↑(L φ) * Complex.I) =
+    Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N,
+      strongDualToField (d := d) (N := N) L x * φ x))
+  rw [strongDual_apply_eq_site_sum (d := d) (N := N) L φ]
+  simpa [mul_comm, mul_left_comm, mul_assoc]
+
+/-- Characteristic-function identity between normalized density and field law. -/
+theorem normalizedGaussianDensityMeasure_charFunDual_eq_latticeGaussianFieldLaw
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    MeasureTheory.charFunDual (normalizedGaussianDensityMeasure d N a mass) =
+      MeasureTheory.charFunDual (latticeGaussianFieldLaw d N a mass ha hmass) := by
+  ext L
+  rw [charFunDual_eq_site_integral (d := d) (N := N)
+      (μ := normalizedGaussianDensityMeasure d N a mass) L]
+  rw [charFunDual_eq_site_integral (d := d) (N := N)
+      (μ := latticeGaussianFieldLaw d N a mass ha hmass) L]
+  let f : FinLatticeField d N := strongDualToField (d := d) (N := N) L
+  calc
+    ∫ φ : FinLatticeField d N,
+        Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+          ∂(normalizedGaussianDensityMeasure d N a mass)
+      = Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _
+          (latticeCovariance d N a mass ha hmass f)
+          (latticeCovariance d N a mass ha hmass f))) := by
+          exact normalizedGaussianDensityMeasure_linearFourier (d := d) (N := N)
+            a mass ha hmass f
+    _ = ∫ φ : FinLatticeField d N,
+          Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+            ∂(latticeGaussianFieldLaw d N a mass ha hmass) := by
+          symm
+          exact latticeGaussianFieldLaw_fourier (d := d) (N := N) a mass ha hmass f
+
+/-- The normalized density measure is finite. -/
+theorem normalizedGaussianDensityMeasure_isFinite
+    (a mass : ℝ) :
+    MeasureTheory.IsFiniteMeasure (normalizedGaussianDensityMeasure d N a mass) := by
+  refine ⟨?_⟩
+  let z : ENNReal := (gaussianDensityMeasure d N a mass) Set.univ
+  have hz :
+      (normalizedGaussianDensityMeasure d N a mass) Set.univ = z⁻¹ * z := by
+    simp [normalizedGaussianDensityMeasure, gaussianDensityNormConst, z]
+  rw [hz]
+  by_cases h0 : z = 0
+  · simp [h0]
+  · by_cases htop : z = ⊤
+    · simp [htop]
+    · simpa [ENNReal.inv_mul_cancel h0 htop]
+
+/-- Stage-2 master theorem (derived from `charFunDual` equality + finiteness). -/
+theorem latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     latticeGaussianFieldLaw d N a mass ha hmass =
-      normalizedGaussianDensityMeasure d N a mass
+      normalizedGaussianDensityMeasure d N a mass := by
+  letI : MeasureTheory.IsFiniteMeasure
+      (normalizedGaussianDensityMeasure d N a mass) :=
+    normalizedGaussianDensityMeasure_isFinite (d := d) (N := N) a mass
+  letI : MeasureTheory.IsFiniteMeasure
+      (latticeGaussianFieldLaw d N a mass ha hmass) := by
+    letI : MeasureTheory.IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
+      rw [latticeGaussianFieldLaw]
+      exact Measure.isProbabilityMeasure_map
+        (measurable_evalMap (d := d) (N := N)).aemeasurable
+    infer_instance
+  exact MeasureTheory.Measure.ext_of_charFunDual <|
+    (normalizedGaussianDensityMeasure_charFunDual_eq_latticeGaussianFieldLaw
+      (d := d) (N := N) a mass ha hmass).symm
 
 theorem gaussianDensityWeight_measurable (a mass : ℝ) :
     Measurable (gaussianDensityWeight d N a mass) := by
