@@ -633,6 +633,68 @@ theorem massEigenbasis_coeff_reprSymm (a mass : ℝ)
   rw [hright] at hrepr
   exact (hleft.symm.trans hrepr).symm
 
+/-- Quadratic spectral sum is unchanged under reconstructing from eigenbasis
+coordinates. -/
+theorem massEigenbasis_quadratic_sum_reprSymm (a mass : ℝ)
+    (v : EuclideanSpace ℝ (FinLatticeSites d N)) :
+    (∑ k : FinLatticeSites d N,
+      massEigenvalues d N a mass k *
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+            ((massEigenvectorBasis d N a mass).repr.symm v) x) ^ 2) =
+    ∑ k : FinLatticeSites d N, massEigenvalues d N a mass k * (v k) ^ 2 := by
+  refine Finset.sum_congr rfl ?_
+  intro k hk
+  rw [massEigenbasis_coeff_reprSymm (d := d) (N := N) a mass v k]
+
+/-- Linear spectral sum is unchanged under reconstructing from eigenbasis
+coordinates. -/
+theorem massEigenbasis_linear_sum_reprSymm (a mass : ℝ)
+    (c : FinLatticeField d N)
+    (v : EuclideanSpace ℝ (FinLatticeSites d N)) :
+    (∑ k : FinLatticeSites d N, c k *
+      (∑ x : FinLatticeSites d N,
+        (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+          ((massEigenvectorBasis d N a mass).repr.symm v) x)) =
+    ∑ k : FinLatticeSites d N, c k * v k := by
+  refine Finset.sum_congr rfl ?_
+  intro k hk
+  rw [massEigenbasis_coeff_reprSymm (d := d) (N := N) a mass v k]
+
+/-- `ofLp` version of `massEigenbasis_coeff_reprSymm`. -/
+theorem massEigenbasis_coeff_reprSymm_ofLp (a mass : ℝ)
+    (v : EuclideanSpace ℝ (FinLatticeSites d N)) (k : FinLatticeSites d N) :
+    (∑ x : FinLatticeSites d N,
+      (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+        ((massEigenvectorBasis d N a mass).repr.symm v).ofLp x) = v.ofLp k := by
+  simpa using massEigenbasis_coeff_reprSymm (d := d) (N := N) a mass v k
+
+/-- `ofLp` version of `massEigenbasis_quadratic_sum_reprSymm`. -/
+theorem massEigenbasis_quadratic_sum_reprSymm_ofLp (a mass : ℝ)
+    (v : EuclideanSpace ℝ (FinLatticeSites d N)) :
+    (∑ k : FinLatticeSites d N,
+      massEigenvalues d N a mass k *
+        (∑ x : FinLatticeSites d N,
+          (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+            ((massEigenvectorBasis d N a mass).repr.symm v).ofLp x) ^ 2) =
+    ∑ k : FinLatticeSites d N, massEigenvalues d N a mass k * (v.ofLp k) ^ 2 := by
+  refine Finset.sum_congr rfl ?_
+  intro k hk
+  rw [massEigenbasis_coeff_reprSymm_ofLp (d := d) (N := N) a mass v k]
+
+/-- `ofLp` version of `massEigenbasis_linear_sum_reprSymm`. -/
+theorem massEigenbasis_linear_sum_reprSymm_ofLp (a mass : ℝ)
+    (c : FinLatticeField d N)
+    (v : EuclideanSpace ℝ (FinLatticeSites d N)) :
+    (∑ k : FinLatticeSites d N, c k *
+      (∑ x : FinLatticeSites d N,
+        (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+          ((massEigenvectorBasis d N a mass).repr.symm v).ofLp x)) =
+    ∑ k : FinLatticeSites d N, c k * v.ofLp k := by
+  refine Finset.sum_congr rfl ?_
+  intro k hk
+  rw [massEigenbasis_coeff_reprSymm_ofLp (d := d) (N := N) a mass v k]
+
 /-- The Gaussian density is non-negative. -/
 theorem gaussianDensity_nonneg (a mass : ℝ) (φ : FinLatticeField d N) :
     0 ≤ gaussianDensity d N a mass φ :=
