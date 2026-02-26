@@ -89,27 +89,9 @@ theorem massOperatorMatrix_isHermitian (a mass : ℝ) :
     (massOperatorMatrix d N a mass).IsHermitian := by
   rw [Matrix.IsHermitian]
   ext i j
-  simp only [conjTranspose_apply, star_trivial]
-  -- Need: massOperatorEntry j i = massOperatorEntry i j
-  -- Use self-adjointness with f = δ_j, g = δ_i
   have h := massOperator_selfAdjoint d N a mass
     (finLatticeDelta d N j) (finLatticeDelta d N i)
-  -- LHS: ∑ x, δ_j(x) * (Q δ_i)(x) = (Q δ_i)(j) = massOperatorEntry j i
-  have lhs_eq : ∑ x, (finLatticeDelta d N j) x * (massOperator d N a mass (finLatticeDelta d N i)) x =
-      massOperatorEntry d N a mass j i := by
-    simp only [finLatticeDelta, ite_mul, one_mul, zero_mul,
-      Finset.sum_ite_eq', Finset.mem_univ, ite_true, massOperatorEntry]
-  -- RHS: ∑ x, (Q δ_j)(x) * δ_i(x) = (Q δ_j)(i) = massOperatorEntry i j
-  have rhs_eq : ∑ x, (massOperator d N a mass (finLatticeDelta d N j)) x * (finLatticeDelta d N i) x =
-      massOperatorEntry d N a mass i j := by
-    simp only [finLatticeDelta, mul_ite, mul_one, mul_zero,
-      Finset.sum_ite_eq', Finset.mem_univ, ite_true, massOperatorEntry]
-  rw [lhs_eq, rhs_eq] at h
-  -- h : massOperatorEntry j i = massOperatorEntry i j
-  -- goal : massOperatorMatrix j i = massOperatorMatrix i j
-  show massOperatorMatrix d N a mass j i = massOperatorMatrix d N a mass i j
-  simp only [massOperatorMatrix]
-  exact h
+  simpa [Matrix.conjTranspose, massOperatorMatrix, massOperatorEntry, finLatticeDelta] using h
 
 /-! ## Eigenvectors and eigenvalues -/
 
@@ -225,16 +207,10 @@ theorem massEigenbasis_sum_mul_sum_eq_site_inner (a mass : ℝ)
         ∑ x : FinLatticeSites d N,
           (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x := by
     intro k
-    simp [ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
-    refine Finset.sum_congr rfl ?_
-    intro x hx
-    ring
+    simp [ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, mul_comm]
   have hinner :
       inner ℝ uf ug = ∑ x : FinLatticeSites d N, f x * g x := by
-    simp [uf, ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
-    refine Finset.sum_congr rfl ?_
-    intro x hx
-    ring
+    simp [uf, ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, mul_comm]
   calc
     (∑ k : FinLatticeSites d N,
         (∑ x : FinLatticeSites d N,

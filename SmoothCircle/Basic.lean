@@ -450,12 +450,12 @@ private theorem setIntegral_Icc_eq_intervalIntegral (f : ℝ → ℝ) (a b : ℝ
 
 -- Integral of cos(2πkx/L) over [0, L] is 0 for k ≥ 1
 private theorem sin_two_pi_mul_nat (k : ℕ) : Real.sin (2 * Real.pi * k) = 0 := by
-  have : (2 : ℝ) * Real.pi * k = ↑k * (2 * Real.pi) := by ring
-  rw [this, ← sub_zero (↑k * (2 * Real.pi)), Real.sin_nat_mul_two_pi_sub, Real.sin_zero, neg_zero]
+  simpa [mul_assoc, mul_left_comm, mul_comm] using
+    (Real.sin_nat_mul_two_pi_sub (x := (0 : ℝ)) k)
 
 private theorem cos_two_pi_mul_nat (k : ℕ) : Real.cos (2 * Real.pi * k) = 1 := by
-  have : (2 : ℝ) * Real.pi * k = ↑k * (2 * Real.pi) := by ring
-  rw [this, ← sub_zero (↑k * (2 * Real.pi)), Real.cos_nat_mul_two_pi_sub, Real.cos_zero]
+  simpa [mul_assoc, mul_left_comm, mul_comm] using
+    (Real.cos_nat_mul_two_pi k)
 
 private theorem integral_cos_period (k : ℕ) (hk : 0 < k) :
     ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) = 0 := by
@@ -486,8 +486,9 @@ private theorem integral_sin_period (k : ℕ) (hk : 0 < k) :
 
 -- Helper: integral of cos/sin over [0, L] with integer frequency is 0
 -- For general integer n ≠ 0, ∫₀ᴸ cos(2πnx/L) = 0 and ∫₀ᴸ sin(2πnx/L) = 0
-private theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
-    ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * n * x / L) = 0 := by
+private theorem integral_period_change_var_int (n : ℤ) (hn : n ≠ 0) (f : ℝ → ℝ) :
+    ∫ x in (0 : ℝ)..L, f (2 * Real.pi * n * x / L) =
+      (2 * Real.pi * n / L)⁻¹ * ∫ x in (0 : ℝ)..(2 * Real.pi * n), f x := by
   set c := 2 * Real.pi * n / L
   have hc : c ≠ 0 := by
     simp only [c, ne_eq, div_eq_zero_iff]; push_neg
@@ -496,35 +497,28 @@ private theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
   have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑n * x / L = c * x := fun x => by
     simp only [c]; ring
   simp_rw [h_rw]
-  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero]
   have hcL : c * L = 2 * Real.pi * n := by
     simp only [c]; field_simp; exact div_self (ne_of_gt hL.out)
-  rw [hcL, integral_cos]
+  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero, hcL]
+  simp [smul_eq_mul]
+
+private theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
+    ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * n * x / L) = 0 := by
+  rw [integral_period_change_var_int (L := L) n hn Real.cos, integral_cos]
   -- sin(2πn) = 0 for integer n
   have h1 : Real.sin (2 * Real.pi * ↑n) = 0 := by
-    rw [show (2 : ℝ) * Real.pi * ↑n = ↑(2 * n) * Real.pi from by push_cast; ring]
-    exact Real.sin_int_mul_pi _
-  rw [h1, Real.sin_zero, sub_self, smul_zero]
+    simpa [mul_assoc, mul_left_comm, mul_comm] using
+      (Real.sin_int_mul_two_pi_sub (x := (0 : ℝ)) n)
+  rw [h1, Real.sin_zero, sub_self, mul_zero]
 
 private theorem integral_sin_int_period (n : ℤ) (hn : n ≠ 0) :
     ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * n * x / L) = 0 := by
-  set c := 2 * Real.pi * n / L
-  have hc : c ≠ 0 := by
-    simp only [c, ne_eq, div_eq_zero_iff]; push_neg
-    exact ⟨mul_ne_zero (mul_ne_zero two_ne_zero (ne_of_gt Real.pi_pos)) (Int.cast_ne_zero.mpr hn),
-      ne_of_gt hL.out⟩
-  have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑n * x / L = c * x := fun x => by
-    simp only [c]; ring
-  simp_rw [h_rw]
-  rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero]
-  have hcL : c * L = 2 * Real.pi * n := by
-    simp only [c]; field_simp; exact div_self (ne_of_gt hL.out)
-  rw [hcL, integral_sin]
+  rw [integral_period_change_var_int (L := L) n hn Real.sin, integral_sin]
   -- cos(2πn) = 1 for integer n, so cos(0) - cos(2πn) = 1 - 1 = 0
   have h1 : Real.cos (2 * Real.pi * ↑n) = 1 := by
-    rw [show (2 : ℝ) * Real.pi * ↑n = ↑n * (2 * Real.pi) from by ring,
-      ← sub_zero (↑n * (2 * Real.pi)), Real.cos_int_mul_two_pi_sub, Real.cos_zero]
-  rw [Real.cos_zero, h1, sub_self, smul_zero]
+    simpa [mul_assoc, mul_left_comm, mul_comm] using
+      (Real.cos_int_mul_two_pi n)
+  rw [Real.cos_zero, h1, sub_self, mul_zero]
 
 -- Integral of cos(2πkx/L)·cos(2πℓx/L) over [0, L]
 private theorem integral_cos_cos (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
@@ -817,7 +811,7 @@ theorem sobolevSeminorm_fourierBasis_le (k : ℕ) :
     by_cases hm : m % 2 = 0
     · -- cos case
       have hfun : fourierBasisFun (L := L) (m + 1) = fun x => Real.sqrt (2 / L) * Real.cos (c * x) := by
-        ext y; simp only [fourierBasisFun, hm, ite_true]; congr 1; simp only [hc_def, ω]; ring
+        ext y; simp only [fourierBasisFun, hm, ite_true]; congr 1; simp only [hc_def, ω]; ring_nf
       rw [hfun]
       calc ‖iteratedDeriv k (fun x => Real.sqrt (2 / L) * Real.cos (c * x)) x‖
           ≤ Real.sqrt (2 / L) * |c| ^ k := norm_iteratedDeriv_cos_mul _ c k x hM
@@ -829,7 +823,7 @@ theorem sobolevSeminorm_fourierBasis_le (k : ℕ) :
             mul_le_mul_of_nonneg_right (le_max_right _ _) (pow_nonneg (by positivity) _)
     · -- sin case
       have hfun : fourierBasisFun (L := L) (m + 1) = fun x => Real.sqrt (2 / L) * Real.sin (c * x) := by
-        ext y; simp only [fourierBasisFun, hm, ite_false]; congr 1; simp only [hc_def, ω]; ring
+        ext y; simp only [fourierBasisFun, hm, ite_false]; congr 1; simp only [hc_def, ω]; ring_nf
       rw [hfun]
       calc ‖iteratedDeriv k (fun x => Real.sqrt (2 / L) * Real.sin (c * x)) x‖
           ≤ Real.sqrt (2 / L) * |c| ^ k := norm_iteratedDeriv_sin_mul _ c k x hM

@@ -395,8 +395,11 @@ noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
 
 /-- The Cantor pairing function is bounded by a quadratic. -/
 theorem nat_pair_bound (n m : ℕ) : Nat.pair n m ≤ (n + m + 1) ^ 2 := by
-  unfold Nat.pair
-  split <;> nlinarith
+  have hpair : Nat.pair n m ≤ (max n m + 1) ^ 2 :=
+    Nat.le_of_lt (Nat.pair_lt_max_add_one_sq n m)
+  have hmax : max n m + 1 ≤ n + m + 1 := by
+    exact Nat.succ_le_succ (max_le (Nat.le_add_right n m) (Nat.le_add_left m n))
+  exact hpair.trans (Nat.pow_le_pow_left hmax 2)
 
 /-- Converse bound: each component of `Nat.unpair` is bounded by the pair index. -/
 theorem nat_unpair_le (p : ℕ) : (Nat.unpair p).1 ≤ p ∧ (Nat.unpair p).2 ≤ p :=
