@@ -4,9 +4,9 @@
 
 The gaussian-field library provides Gaussian free field theory on nuclear spaces,
 lattice field theory infrastructure, and the FKG inequality for use by downstream
-projects (pphi2, OSforGFF-dimensions).
+projects (pphi2, OSforGFF).
 
-**2 axioms, 0 sorries**
+**4 axioms, 0 sorries**
 
 *Updated 2026-02-26.*
 
@@ -64,6 +64,13 @@ Proved FKG results (no longer axioms):
 | `integral_norm_tsum_le_tsum_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: integral norm of series ≤ series of integral norms. |
 | `integrable_tsum_of_summable_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: summable integral norms imply integrable pointwise tsum. |
 
+### Configuration topology (used by pphi2 continuum limit)
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `configuration_polishSpace` | GaussianField/ConfigurationTopology | axiom | Medium | `S'(R^d) = Configuration (ContinuumTestFunction d)` is Polish. |
+| `configuration_borelSpace` | GaussianField/ConfigurationTopology | axiom | Medium | Borel structure on `S'(R^d)` in the project model. |
+
 ### Hypercontractive estimates
 
 | Item | File | Type | Difficulty | Description |
@@ -88,12 +95,13 @@ Proved hypercontractive results (axiom-free):
 | File | Axioms | Sorries |
 |------|--------|---------|
 | HeatKernel/PositionKernel | 2 | 0 |
+| GaussianField/ConfigurationTopology | 2 | 0 |
 | Lattice/RapidDecayLattice | 0 | 0 |
 | Lattice/FKG | 0 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 0 | 0 |
 | GaussianField/Hypercontractive | 0 | 0 |
-| **Total** | **2** | **0** |
+| **Total** | **4** | **0** |
 
 ## References
 
