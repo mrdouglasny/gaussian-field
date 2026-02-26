@@ -289,6 +289,9 @@ This library provides the concrete functional analysis infrastructure for:
 
 - **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
 
+- **OSforGFF imports** — files under `OSforGFF*` directories in this workspace are imported snapshots from the separate
+  **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** project.
+
 ## Proof status
 
 The core results are fully proved with no custom axioms:
