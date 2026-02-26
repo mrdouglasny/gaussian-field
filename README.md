@@ -306,10 +306,9 @@ The hypercontractive and log-Sobolev development is now fully theorem-backed (`G
 
 The lattice/FKG pipeline is also theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
 
-Current project status is **4 axioms, 0 sorries**:
-- `HeatKernel/PositionKernel.lean`: `mehlerKernel_eq_series`, `circleHeatKernel_pos`
-- `GaussianField/ConfigurationTopology.lean`: `configuration_polishSpace`,
-  `configuration_borelSpace` (used by `pphi2` continuum-limit infrastructure)
+Current project status is **2 axioms, 0 sorries**, both in
+`HeatKernel/PositionKernel.lean`:
+`mehlerKernel_eq_series` and `circleHeatKernel_pos`.
 
 ## Further documentation
 
