@@ -112,16 +112,6 @@ theorem integral_cexp_neg_half_sum_mul_sq_add_linear
           simp [Complex.I_sq]
           ring_nf
 
-/-- Textbook axiom: finite-dimensional Gaussian Fourier transform for normalized
-quadratic densities. -/
-axiom normalizedQuadraticGaussianMeasure_linearFourier
-    (Q : (ι → ℝ) →L[ℝ] (ι → ℝ))
-    (T : (ι → ℝ) →L[ℝ] ell2')
-    (f : ι → ℝ) :
-    ∫ φ : (ι → ℝ), Complex.exp (Complex.I * ↑(∑ x : ι, f x * φ x))
-      ∂(normalizedQuadraticGaussianMeasure Q) =
-    Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _ (T f) (T f)))
-
 end TextbookFiniteDimensionalGaussian
 
 variable (d N : ℕ) [NeZero N]
@@ -428,11 +418,288 @@ theorem normalizedGaussianDensityMeasure_linearFourier
     Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _
       (latticeCovariance d N a mass ha hmass f)
       (latticeCovariance d N a mass ha hmass f))) := by
-  rw [normalizedGaussianDensityMeasure_eq_normalizedQuadraticGaussianMeasure (d := d) (N := N) a mass]
-  simpa using normalizedQuadraticGaussianMeasure_linearFourier
-    (Q := massOperator d N a mass)
-    (T := latticeCovariance d N a mass ha hmass)
-    f
+  let c : FinLatticeSites d N → ℝ := fun k =>
+    ∑ x : FinLatticeSites d N,
+      (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x
+  let base : FinLatticeSites d N → ℂ := fun k =>
+    (2 * Real.pi / massEigenvalues d N a mass k) ^ (1 / 2 : ℂ)
+  let expTerm : FinLatticeSites d N → ℂ := fun k =>
+    Complex.exp (-(1 / 2 : ℂ) * ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ)))
+  have hnum :
+      (∫ φ : FinLatticeField d N,
+        Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) *
+          gaussianDensity d N a mass φ) =
+      ∏ k : FinLatticeSites d N, base k * expTerm k := by
+    have hpoint :
+        ∀ φ : FinLatticeField d N,
+          Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) *
+            gaussianDensity d N a mass φ =
+          Complex.exp (-(1 / 2 : ℂ) *
+              ∑ k : FinLatticeSites d N,
+                (massEigenvalues d N a mass k : ℂ) *
+                  (↑(∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) : ℂ) ^ 2
+            + Complex.I * ↑(∑ k : FinLatticeSites d N, c k *
+                (∑ x : FinLatticeSites d N,
+                  (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x))) := by
+      intro φ
+      have hpair :
+          (∑ x : FinLatticeSites d N, f x * φ x) =
+            ∑ k : FinLatticeSites d N, c k *
+              (∑ x : FinLatticeSites d N,
+                (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) := by
+        simpa [c] using sitePairing_eq_massEigenbasis_sum (d := d) (N := N) a mass f φ
+      have hρ :
+          gaussianDensity d N a mass φ =
+            Real.exp (-(1 / 2 : ℝ) *
+              ∑ k : FinLatticeSites d N,
+                massEigenvalues d N a mass k *
+                  (∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) ^ 2) := by
+        simpa using gaussianDensity_eq_exp_massEigenbasis (d := d) (N := N) a mass φ
+      rw [hpair, hρ]
+      have hExp :
+          (Complex.exp
+            (-(1 / 2 : ℂ) *
+              ∑ k : FinLatticeSites d N,
+                (massEigenvalues d N a mass k : ℂ) *
+                  (↑(∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) : ℂ) ^ 2)) =
+            (Real.exp (-(1 / 2 : ℝ) *
+              ∑ k : FinLatticeSites d N,
+                massEigenvalues d N a mass k *
+                  (∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) ^ 2) : ℂ) := by
+        simp
+      rw [← hExp]
+      rw [← Complex.exp_add]
+      ring
+    calc
+      (∫ φ : FinLatticeField d N,
+        Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) *
+          gaussianDensity d N a mass φ)
+          =
+        ∫ φ : FinLatticeField d N,
+          Complex.exp (-(1 / 2 : ℂ) *
+              ∑ k : FinLatticeSites d N,
+                (massEigenvalues d N a mass k : ℂ) *
+                  (↑(∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) : ℂ) ^ 2
+            + Complex.I * ↑(∑ k : FinLatticeSites d N, c k *
+                (∑ x : FinLatticeSites d N,
+                  (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x))) := by
+            refine integral_congr_ae <| Filter.Eventually.of_forall hpoint
+      _ = ∏ k : FinLatticeSites d N, base k * expTerm k := by
+            simpa [base, expTerm] using
+              integral_massEigenbasis_cexp (d := d) (N := N) a mass ha hmass c
+  have hdenC :
+      (∫ φ : FinLatticeField d N, (gaussianDensity d N a mass φ : ℂ)) =
+      ∏ k : FinLatticeSites d N, base k := by
+    have hpoint0 :
+        ∀ φ : FinLatticeField d N,
+          (gaussianDensity d N a mass φ : ℂ) =
+            Complex.exp (-(1 / 2 : ℂ) *
+              ∑ k : FinLatticeSites d N,
+                (massEigenvalues d N a mass k : ℂ) *
+                  (↑(∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) : ℂ) ^ 2) := by
+      intro φ
+      have hρ :
+          gaussianDensity d N a mass φ =
+            Real.exp (-(1 / 2 : ℝ) *
+              ∑ k : FinLatticeSites d N,
+                massEigenvalues d N a mass k *
+                  (∑ x : FinLatticeSites d N,
+                    (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) ^ 2) := by
+        simpa using gaussianDensity_eq_exp_massEigenbasis (d := d) (N := N) a mass φ
+      rw [hρ]
+      simp
+    calc
+      (∫ φ : FinLatticeField d N, (gaussianDensity d N a mass φ : ℂ))
+          =
+        ∫ φ : FinLatticeField d N,
+          Complex.exp (-(1 / 2 : ℂ) *
+            ∑ k : FinLatticeSites d N,
+              (massEigenvalues d N a mass k : ℂ) *
+                (↑(∑ x : FinLatticeSites d N,
+                  (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * φ x) : ℂ) ^ 2) := by
+            refine integral_congr_ae <| Filter.Eventually.of_forall hpoint0
+      _ = ∏ k : FinLatticeSites d N, base k := by
+            simpa [base] using integral_massEigenbasis_cexp (d := d) (N := N) a mass ha hmass
+              (fun _ => (0 : ℝ))
+  have hbase_ne_zero : (∏ k : FinLatticeSites d N, base k) ≠ 0 := by
+    refine (Finset.prod_ne_zero_iff).2 ?_
+    intro k hk
+    have hlamk : 0 < massEigenvalues d N a mass k :=
+      massOperatorMatrix_eigenvalues_pos (d := d) (N := N) a mass ha hmass k
+    have hbaseArg : (2 * Real.pi / massEigenvalues d N a mass k : ℂ) ≠ 0 := by
+      apply div_ne_zero
+      · exact_mod_cast (show (2 * Real.pi : ℝ) ≠ 0 by positivity)
+      · exact_mod_cast (ne_of_gt hlamk)
+    have hhalf : (1 / 2 : ℂ) ≠ 0 := by norm_num
+    exact (Complex.cpow_ne_zero_iff_of_exponent_ne_zero hhalf).2 hbaseArg
+  have hIntC : Integrable (fun φ : FinLatticeField d N => (gaussianDensity d N a mass φ : ℂ)) := by
+    by_contra hnot
+    have hz : (∫ φ : FinLatticeField d N, (gaussianDensity d N a mass φ : ℂ)) = 0 := by
+      exact integral_undef hnot
+    exact hbase_ne_zero (by simpa [hdenC] using hz)
+  have hIntR : Integrable (gaussianDensity d N a mass) := by
+    simpa using hIntC.re
+  have hnormConst :
+      gaussianDensityNormConst d N a mass =
+        ENNReal.ofReal (∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ) := by
+    simp [gaussianDensityNormConst, gaussianDensityMeasure]
+    symm
+    exact ofReal_integral_eq_lintegral_ofReal hIntR
+      (Filter.Eventually.of_forall (gaussianDensity_nonneg (d := d) (N := N) a mass))
+  have hJcast' :
+      (∫ φ : FinLatticeField d N, (gaussianDensity d N a mass φ : ℂ)) =
+        ∏ k : FinLatticeSites d N, base k := hdenC
+  have hJ_ne_zero :
+      (∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ) ≠ 0 := by
+    intro h0
+    have hIntCastZero :
+        (∫ φ : FinLatticeField d N, (gaussianDensity d N a mass φ : ℂ)) = 0 := by
+      simpa [h0] using (integral_complex_ofReal
+        (f := fun φ : FinLatticeField d N => gaussianDensity d N a mass φ)
+        (μ := (volume : Measure (FinLatticeField d N))))
+    have hprod0 : (∏ k : FinLatticeSites d N, base k) = 0 := by
+      calc
+        (∏ k : FinLatticeSites d N, base k)
+            = ∫ φ : FinLatticeField d N, (gaussianDensity d N a mass φ : ℂ) := hJcast'.symm
+        _ = 0 := hIntCastZero
+    exact hbase_ne_zero hprod0
+  have hInv :
+      ((gaussianDensityNormConst d N a mass)⁻¹).toReal =
+        (∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ)⁻¹ := by
+    rw [hnormConst]
+    have hnn : 0 ≤ ∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ :=
+      integral_nonneg (fun φ => gaussianDensity_nonneg (d := d) (N := N) a mass φ)
+    simp [ENNReal.toReal_inv, hnn]
+  have h_withDensity :
+      (∫ φ : FinLatticeField d N,
+        Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+          ∂(gaussianDensityMeasure d N a mass)) =
+      ∫ φ : FinLatticeField d N,
+        (gaussianDensityWeight d N a mass φ).toReal •
+          Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) := by
+    have hflt : ∀ᵐ φ ∂(volume : Measure (FinLatticeField d N)),
+        gaussianDensityWeight d N a mass φ < (⊤ : ENNReal) :=
+      Filter.Eventually.of_forall (fun _ => by simp [gaussianDensityWeight])
+    simpa [gaussianDensityMeasure] using
+      (integral_withDensity_eq_integral_toReal_smul
+        (μ := volume) (f := gaussianDensityWeight d N a mass)
+        (f_meas := by
+          simpa [gaussianDensityWeight] using
+            (gaussianDensity_measurable (d := d) (N := N) a mass).ennreal_ofReal)
+        (hf_lt_top := hflt)
+        (g := fun φ : FinLatticeField d N =>
+          Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))))
+  have hprod_split :
+      (∏ k : FinLatticeSites d N, base k * expTerm k) =
+        (∏ k : FinLatticeSites d N, base k) *
+          (∏ k : FinLatticeSites d N, expTerm k) := by
+    simpa using (Finset.prod_mul_distrib :
+      (∏ x : FinLatticeSites d N, base x * expTerm x) =
+        (∏ x : FinLatticeSites d N, base x) * (∏ x : FinLatticeSites d N, expTerm x))
+  have hExpProd :
+      (∏ k : FinLatticeSites d N, expTerm k) =
+        Complex.exp (-(1 / 2 : ℂ) *
+          ∑ k : FinLatticeSites d N,
+            ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ))) := by
+    rw [← Complex.exp_sum]
+    have hsum :
+        (∑ k : FinLatticeSites d N,
+          (-(1 / 2 : ℂ)) *
+            ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ))) =
+        (-(1 / 2 : ℂ)) *
+          (∑ k : FinLatticeSites d N,
+            ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ))) := by
+      simp [Finset.mul_sum]
+    simpa [expTerm] using congrArg Complex.exp hsum
+  have hnorm_spec :
+      (@inner ℝ ell2' _
+        (latticeCovariance d N a mass ha hmass f)
+        (latticeCovariance d N a mass ha hmass f)) =
+      ∑ k : FinLatticeSites d N,
+        (massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2 := by
+    simpa [latticeCovariance, c] using
+      spectralLatticeCovariance_norm_sq (d := d) (N := N) a mass ha hmass f
+  have hnorm_cast :
+      (↑(@inner ℝ ell2' _
+        (latticeCovariance d N a mass ha hmass f)
+        (latticeCovariance d N a mass ha hmass f)) : ℂ) =
+      ∑ k : FinLatticeSites d N,
+        ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ)) := by
+    calc
+      (↑(@inner ℝ ell2' _
+        (latticeCovariance d N a mass ha hmass f)
+        (latticeCovariance d N a mass ha hmass f)) : ℂ)
+          = ↑(∑ k : FinLatticeSites d N,
+              (massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2) := by
+              rw [hnorm_spec]
+      _ = ∑ k : FinLatticeSites d N,
+            (((massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2 : ℝ) : ℂ) := by
+            simp
+      _ = ∑ k : FinLatticeSites d N,
+            ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ)) := by
+            refine Finset.sum_congr rfl ?_
+            intro k hk
+            have hlamk : (massEigenvalues d N a mass k : ℂ) ≠ 0 := by
+              exact_mod_cast (ne_of_gt (massOperatorMatrix_eigenvalues_pos (d := d) (N := N) a mass ha hmass k))
+            calc
+              (((massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2 : ℝ) : ℂ)
+                  = (c k : ℂ) ^ 2 * (massEigenvalues d N a mass k : ℂ)⁻¹ := by
+                      norm_num [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+              _ = ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ)) := by
+                    simp [div_eq_mul_inv, hlamk]
+  calc
+    ∫ φ : FinLatticeField d N,
+        Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+          ∂(normalizedGaussianDensityMeasure d N a mass)
+        = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+            ∫ φ : FinLatticeField d N,
+              Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
+                ∂(gaussianDensityMeasure d N a mass) := by
+            simp [normalizedGaussianDensityMeasure, integral_smul_measure]
+    _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+          ∫ φ : FinLatticeField d N,
+            (gaussianDensityWeight d N a mass φ).toReal •
+              Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) := by
+            rw [h_withDensity]
+    _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+          (∫ φ : FinLatticeField d N,
+            Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) *
+              gaussianDensity d N a mass φ) := by
+            congr 1
+            refine integral_congr_ae <| Filter.Eventually.of_forall ?_
+            intro φ
+            simp [gaussianDensityWeight, smul_eq_mul, gaussianDensity_nonneg (d := d) (N := N) a mass φ,
+              mul_comm]
+    _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
+          (∏ k : FinLatticeSites d N, base k * expTerm k) := by rw [hnum]
+    _ = (((∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ)⁻¹ : ℝ) : ℂ) *
+          (∏ k : FinLatticeSites d N, base k * expTerm k) := by
+            simp [hInv]
+    _ = (((∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ)⁻¹ : ℝ) : ℂ) *
+          ((∏ k : FinLatticeSites d N, base k) *
+            (∏ k : FinLatticeSites d N, expTerm k)) := by rw [hprod_split]
+    _ = (∏ k : FinLatticeSites d N, expTerm k) := by
+          rw [← hJcast']
+          rw [integral_complex_ofReal]
+          set J : ℝ := ∫ φ : FinLatticeField d N, gaussianDensity d N a mass φ
+          have hJ0 : J ≠ 0 := by simpa [J] using hJ_ne_zero
+          have hcancel : (((J⁻¹ : ℝ) : ℂ) * (J : ℂ)) = 1 := by
+            exact_mod_cast (inv_mul_cancel₀ hJ0)
+          rw [← mul_assoc, hcancel, one_mul]
+    _ = Complex.exp (-(1 / 2 : ℂ) *
+          ∑ k : FinLatticeSites d N,
+            ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ))) := by
+          rw [hExpProd]
+    _ = Complex.exp (-(1 / 2 : ℂ) * ↑(@inner ℝ ell2' _
+          (latticeCovariance d N a mass ha hmass f)
+          (latticeCovariance d N a mass ha hmass f))) := by
+          rw [hnorm_cast]
 
 /-- Site-coordinate representative of a dual functional. -/
 def strongDualToField
