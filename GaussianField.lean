@@ -45,6 +45,7 @@ import GaussianField.Construction
 import GaussianField.Properties
 import GaussianField.Hypercontractive
 import GaussianField.Wick
+import GaussianField.ConfigurationTopology
 
 /-! ### Axiom fallback (inactive)
 
