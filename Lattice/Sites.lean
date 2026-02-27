@@ -31,7 +31,7 @@ namespace GaussianField
 /-! ## Site types -/
 
 /-- Finite lattice sites: the discrete torus (ℤ/Nℤ)^d with periodic BC. -/
-abbrev FinLatticeSites (d : ℕ) (N : ℕ) := Fin d → Fin N
+abbrev FinLatticeSites (d : ℕ) (N : ℕ) := Fin d → ZMod N
 
 /-- Infinite lattice sites: ℤ^d. -/
 abbrev InfLatticeSites (d : ℕ) := Fin d → ℤ
@@ -105,8 +105,8 @@ def neighbors (d : ℕ) (x : Fin d → ℤ) : Finset (Fin d → ℤ) :=
 
 /-- Nearest neighbors on the finite lattice with periodic BC.
     Addition is modulo N in each coordinate. -/
-def neighborsFinite (d N : ℕ) [NeZero N] (x : Fin d → Fin N) :
-    Finset (Fin d → Fin N) :=
+def neighborsFinite (d N : ℕ) [NeZero N] (x : FinLatticeSites d N) :
+    Finset (FinLatticeSites d N) :=
   Finset.univ.biUnion fun i =>
     {fun j => if j = i then x j + 1 else x j,
      fun j => if j = i then x j - 1 else x j}

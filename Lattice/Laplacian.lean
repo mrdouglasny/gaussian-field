@@ -85,13 +85,13 @@ noncomputable def finiteLaplacian (d N : ℕ) [NeZero N] (a : ℝ) :
 /-- The finite Laplacian is self-adjoint (symmetric matrix).
 Proof: exchange of summation indices using periodicity. -/
 private lemma update_add_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
-    (i : Fin d) (c : Fin N) :
+    (i : Fin d) (c : ZMod N) :
     (fun j => if j = i then x j + c else x j) = x + Pi.single i c := by
   ext j; simp only [Pi.add_apply, Pi.single_apply]
   split_ifs with h <;> simp [h]
 
 private lemma update_sub_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
-    (i : Fin d) (c : Fin N) :
+    (i : Fin d) (c : ZMod N) :
     (fun j => if j = i then x j - c else x j) = x - Pi.single i c := by
   ext j; simp only [Pi.sub_apply, Pi.single_apply]
   split_ifs with h <;> simp [h]
@@ -113,30 +113,30 @@ private lemma sum_mul_shift_bwd {d N : ℕ} [NeZero N]
 /-- Helper: The Laplacian inner product for a single direction, after expanding. -/
 private lemma laplacian_direction_eq {d N : ℕ} [NeZero N]
     (f g : FinLatticeField d N) (i : Fin d) (a : ℝ) :
-    ∑ x, f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : Fin N)) +
-      g (x - Pi.single i (1 : Fin N))) - 2 * g x)) =
-    ∑ x, a⁻¹ ^ 2 * ((f (x + Pi.single i (1 : Fin N)) +
-      f (x - Pi.single i (1 : Fin N))) - 2 * f x) * g x := by
+    ∑ x, f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : ZMod N)) +
+      g (x - Pi.single i (1 : ZMod N))) - 2 * g x)) =
+    ∑ x, a⁻¹ ^ 2 * ((f (x + Pi.single i (1 : ZMod N)) +
+      f (x - Pi.single i (1 : ZMod N))) - 2 * f x) * g x := by
   -- Expand both sides into three terms
   have lhs_expand : ∀ x : FinLatticeSites d N,
-      f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : Fin N)) +
-        g (x - Pi.single i (1 : Fin N))) - 2 * g x)) =
+      f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : ZMod N)) +
+        g (x - Pi.single i (1 : ZMod N))) - 2 * g x)) =
       a⁻¹ ^ 2 * (f x * g (x + Pi.single i 1)) +
       a⁻¹ ^ 2 * (f x * g (x - Pi.single i 1)) +
       a⁻¹ ^ 2 * (-(2 : ℝ) * (f x * g x)) := by intro; ring
   have rhs_expand : ∀ x : FinLatticeSites d N,
-      a⁻¹ ^ 2 * ((f (x + Pi.single i (1 : Fin N)) +
-        f (x - Pi.single i (1 : Fin N))) - 2 * f x) * g x =
+      a⁻¹ ^ 2 * ((f (x + Pi.single i (1 : ZMod N)) +
+        f (x - Pi.single i (1 : ZMod N))) - 2 * f x) * g x =
       a⁻¹ ^ 2 * (f (x + Pi.single i 1) * g x) +
       a⁻¹ ^ 2 * (f (x - Pi.single i 1) * g x) +
       a⁻¹ ^ 2 * (-(2 : ℝ) * (f x * g x)) := by intro; ring
   simp_rw [lhs_expand, rhs_expand, Finset.sum_add_distrib, ← Finset.mul_sum]
   -- Diagonal terms match. Reindex the shift terms.
-  have h1 : ∑ x, f x * g (x + Pi.single i (1 : Fin N)) =
-      ∑ x, f (x - Pi.single i (1 : Fin N)) * g x :=
+  have h1 : ∑ x, f x * g (x + Pi.single i (1 : ZMod N)) =
+      ∑ x, f (x - Pi.single i (1 : ZMod N)) * g x :=
     sum_mul_shift_fwd f g _
-  have h2 : ∑ x, f x * g (x - Pi.single i (1 : Fin N)) =
-      ∑ x, f (x + Pi.single i (1 : Fin N)) * g x :=
+  have h2 : ∑ x, f x * g (x - Pi.single i (1 : ZMod N)) =
+      ∑ x, f (x + Pi.single i (1 : ZMod N)) * g x :=
     sum_mul_shift_bwd f g _
   rw [h1, h2]; ring
 
@@ -166,7 +166,7 @@ private lemma direction_sum_eq_neg_sq {d N : ℕ} [NeZero N]
     -(∑ x : FinLatticeSites d N, (f (x + Pi.single i 1) - f x) ^ 2) := by
   have reindex_sq : ∑ x : FinLatticeSites d N, f (x + Pi.single i 1) ^ 2 =
       ∑ x : FinLatticeSites d N, f x ^ 2 :=
-    Fintype.sum_equiv (Equiv.addRight (Pi.single i (1 : Fin N)))
+    Fintype.sum_equiv (Equiv.addRight (Pi.single i (1 : ZMod N)))
       (fun x => f (x + Pi.single i 1) ^ 2) (fun x => f x ^ 2)
       (fun x => by simp)
   have shift_bwd : ∑ x : FinLatticeSites d N, f x * f (x - Pi.single i 1) =
@@ -628,13 +628,13 @@ theorem massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
 /-! ## Eigenvalues -/
 
 /-- Eigenvalue of `-Δ_a + m²` on the finite torus.
-Mode index `m : ℕ` decodes to multi-index `k ∈ (Fin N)^d` via Fintype
+Mode index `m : ℕ` decodes to multi-index `k ∈ (ZMod N)^d` via Fintype
 enumeration. The eigenvalue is:
   `(4/a²) Σᵢ sin²(πkᵢ/N) + mass²` -/
 def latticeEigenvalue (d N : ℕ) [NeZero N] (a mass : ℝ) (m : ℕ) : ℝ :=
   if h : m < Fintype.card (FinLatticeSites d N) then
     let k := (Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩
-    (4 / a ^ 2) * ∑ i : Fin d, sin (π * (k i : ℝ) / N) ^ 2 + mass ^ 2
+    (4 / a ^ 2) * ∑ i : Fin d, sin (π * (ZMod.val (k i) : ℝ) / N) ^ 2 + mass ^ 2
   else
     mass ^ 2  -- default for out-of-range indices
 
@@ -646,7 +646,7 @@ theorem latticeEigenvalue_pos (d N : ℕ) [NeZero N] (a mass : ℝ)
   unfold latticeEigenvalue
   split_ifs with h
   · have h1 : (0 : ℝ) ≤ (4 / a ^ 2) *
-        ∑ i : Fin d, sin (π * ↑((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i) / ↑N) ^ 2 := by
+        ∑ i : Fin d, sin (π * ↑(ZMod.val ((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i)) / ↑N) ^ 2 := by
       apply mul_nonneg (div_nonneg (by norm_num) (sq_nonneg _))
       exact Finset.sum_nonneg fun _ _ => sq_nonneg _
     linarith [sq_pos_of_pos hmass]

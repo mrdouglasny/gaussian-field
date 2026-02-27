@@ -63,7 +63,7 @@ theorem lattice_singular_values_bounded (a mass : ℝ)
   have hev_ge : mass ^ 2 ≤ latticeEigenvalue d N a mass m := by
     unfold latticeEigenvalue; split_ifs with h
     · have : 0 ≤ 4 / a ^ 2 * ∑ i : Fin d,
-          Real.sin (Real.pi * ↑((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i) / ↑N) ^ 2 :=
+          Real.sin (Real.pi * ↑(ZMod.val ((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i)) / ↑N) ^ 2 :=
         mul_nonneg (div_nonneg (by norm_num) (sq_nonneg a))
           (Finset.sum_nonneg (fun _ _ => sq_nonneg _))
       linarith
