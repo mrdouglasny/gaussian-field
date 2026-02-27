@@ -219,9 +219,16 @@ Lattice site types, discrete Laplacian, lattice Gaussian measures, and the FKG
 inequality. Used by [pphi2](https://github.com/mrdouglasny/pphi2) for the
 Glimm-Jaffe/Nelson construction.
 
+`FinLatticeSites d N` is defined as `Fin d → ZMod N`, using Mathlib's canonical
+quotient ring `ZMod N` for the discrete torus `(ℤ/Nℤ)^d`. This enables
+embedding into the continuous torus `(ℝ/pℤ)^d` via `ZMod.toAddCircle`,
+multi-scale refinement via `ZMod.castHom`, and interoperability with
+AddCircle-based lattice frameworks (Tanimoto).
+
 | File | Contents |
 |------|----------|
-| [Lattice/Sites.lean](Lattice/Sites.lean) | `FinLatticeSites d N`, `InfLatticeSites d`, `latticeNorm`, neighbors |
+| [Lattice/Sites.lean](Lattice/Sites.lean) | `FinLatticeSites d N := Fin d → ZMod N`, `InfLatticeSites d`, `latticeNorm`, neighbors |
+| [Lattice/TorusEmbedding.lean](Lattice/TorusEmbedding.lean) | `ContinuousTorus d p`, `siteToTorus : FinLatticeSites d N →+ ContinuousTorus d p` (with Yoh Tanimoto) |
 | [Lattice/FiniteField.lean](Lattice/FiniteField.lean) | `FinLatticeField d N`, `DyninMityaginSpace` and `HasPointEval` instances |
 | [Lattice/RapidDecayLattice.lean](Lattice/RapidDecayLattice.lean) | `RapidDecayLattice d` (rapidly decaying functions on ℤ^d), seminorms, topology |
 | [Lattice/Laplacian.lean](Lattice/Laplacian.lean) | `finiteLaplacian`, `infiniteLaplacian`, `massOperator`, eigenvalue formulas |
@@ -330,7 +337,7 @@ Current project status is **2 axioms, 0 sorries**, both in
 - **New instances**: $C^\infty(S^1)$ is fully proved; remaining targets: $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
 - **Vector-valued generalization**: Generalize `SmoothMap_Circle L ℝ` and `SchwartzMap D ℝ` to vector-valued codomains $F$ (the `F` parameter in `SmoothMap_Circle` is a placeholder for this), with nuclearity via $C^\infty(M, \mathbb{R}^n) \cong C^\infty(M, \mathbb{R})^n \cong s(\mathbb{N})$; long-term, refactor to `ContMDiffMap (AddCircle L) F` once Mathlib gains manifold structure on `AddCircle`
 - **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
-- **Lattice-continuum limits**: Formalize convergence via characteristic functionals (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
+- **Lattice-continuum limits**: Formalize convergence via characteristic functionals, building on the `siteToTorus` embedding (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
 - **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
 - **Support theorems / Besov regularity**: The `pairing_memLp` result (Fernique-type $L^p$ bounds) is the first step toward showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate $s, p, q$
 - **$\sigma$-algebra coincidence**: For separable nuclear Fréchet spaces, the cylindrical and Borel $\sigma$-algebras on the dual coincide
@@ -345,9 +352,9 @@ lake build Test  # end-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C�
 
 Requires Lean 4 v4.28.0 and Mathlib (fetched automatically by Lake).
 
-## Author
+## Authors
 
-Michael R. Douglas
+Michael R. Douglas, with contributions from Yoh Tanimoto (torus embedding framework)
 
 ## License
 
