@@ -64,6 +64,18 @@ Proved FKG results (no longer axioms):
 | `integral_norm_tsum_le_tsum_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: integral norm of series ≤ series of integral norms. |
 | `integrable_tsum_of_summable_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: summable integral norms imply integrable pointwise tsum. |
 
+Definite textbook axiom statements currently in code:
+- `mehlerKernel_eq_series` (for every `t > 0`, `x₁`, `x₂`):
+  `mehlerKernel t x₁ x₂ = ∑' k, exp (-(t * (2 * k + 1))) * ψ_k(x₁) * ψ_k(x₂)`.
+- `circleHeatKernel_pos` (for every `L > 0`, `t > 0`, `θ₁`, `θ₂`):
+  `0 < circleHeatKernel L t θ₁ θ₂`.
+
+Planned elimination path (mathlib-first, no project-specific shortcuts):
+- Prove `mehlerKernel_eq_series` from the harmonic-oscillator semigroup spectral theorem
+  and Hermite eigenbasis expansion.
+- Prove `circleHeatKernel_pos` via Poisson summation / Jacobi theta representation of the
+  periodic heat kernel as a sum of positive Gaussians.
+
 ### Hypercontractive estimates
 
 | Item | File | Type | Difficulty | Description |

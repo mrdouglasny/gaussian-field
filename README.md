@@ -310,6 +310,12 @@ Current project status is **2 axioms, 0 sorries**, both in
 `HeatKernel/PositionKernel.lean`:
 `mehlerKernel_eq_series` and `circleHeatKernel_pos`.
 
+These are already stated as definite textbook claims (not placeholders):
+- Mehler expansion for the harmonic-oscillator heat kernel (`t > 0`).
+- Strict positivity of the circle heat kernel (`L > 0`, `t > 0`).
+The remaining plan is to replace both with Mathlib-backed proofs (Hermite spectral
+expansion + Poisson summation/Jacobi theta positivity).
+
 ## Further documentation
 
 - [DyninMityaginSpace typeclass](docs/dynin-mityagin-typeclass.md) — typeclass definition, design decisions, how to construct instances, which spaces are nuclear

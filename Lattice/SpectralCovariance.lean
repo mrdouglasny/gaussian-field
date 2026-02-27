@@ -594,8 +594,8 @@ theorem massEigenbasis_coeff_reprSymm (a mass : ℝ)
   have hleft :
       ((massEigenvectorBasis d N a mass).repr
         ((massEigenvectorBasis d N a mass).repr.symm v)).ofLp k = v k := by
-    simpa using congrArg (fun w => w k) (LinearEquiv.apply_symm_apply
-      (massEigenvectorBasis d N a mass).repr v)
+    exact congrArg (fun w => w k)
+      ((massEigenvectorBasis d N a mass).repr.apply_symm_apply v)
   have hright :
       inner ℝ (massEigenvectorBasis d N a mass k)
         ((massEigenvectorBasis d N a mass).repr.symm v) =

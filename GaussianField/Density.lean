@@ -76,6 +76,7 @@ theorem integral_cexp_neg_half_sum_mul_sq_add_linear
         Complex.I * ↑(∑ i, c i * v i))) =
     (∏ i, (2 * Real.pi / lam i) ^ (1 / 2 : ℂ) *
       Complex.exp (-(1 / 2 : ℂ) * ((c i : ℂ) ^ 2 / (lam i : ℂ)))) := by
+  let _ := (inferInstance : DecidableEq ι)
   rw [← (PiLp.volume_preserving_toLp ι).integral_comp
     (MeasurableEquiv.toLp 2 (ι → ℝ)).measurableEmbedding]
   have hleft :
@@ -87,8 +88,7 @@ theorem integral_cexp_neg_half_sum_mul_sq_add_linear
           ∑ i, (Complex.I * (c i : ℂ)) * x i)) := by
     refine integral_congr_ae <| Filter.Eventually.of_forall ?_
     intro x
-    simp [Finset.sum_mul, Finset.mul_sum, sub_eq_add_neg, add_assoc, add_left_comm, add_comm,
-      mul_assoc, mul_left_comm, mul_comm, div_eq_mul_inv]
+    simp [Finset.mul_sum, add_comm, mul_assoc, mul_left_comm, mul_comm, div_eq_mul_inv]
   rw [hleft]
   calc
     (∫ x : (ι → ℝ),
@@ -652,7 +652,7 @@ theorem normalizedGaussianDensityMeasure_linearFourier
                   = (c k : ℂ) ^ 2 * (massEigenvalues d N a mass k : ℂ)⁻¹ := by
                       norm_num [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
               _ = ((c k : ℂ) ^ 2 / (massEigenvalues d N a mass k : ℂ)) := by
-                    simp [div_eq_mul_inv, hlamk]
+                    simp [div_eq_mul_inv]
   calc
     ∫ φ : FinLatticeField d N,
         Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
@@ -674,7 +674,7 @@ theorem normalizedGaussianDensityMeasure_linearFourier
             congr 1
             refine integral_congr_ae <| Filter.Eventually.of_forall ?_
             intro φ
-            simp [gaussianDensityWeight, smul_eq_mul, gaussianDensity_nonneg (d := d) (N := N) a mass φ,
+            simp [gaussianDensityWeight, gaussianDensity_nonneg (d := d) (N := N) a mass φ,
               mul_comm]
     _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
           (∏ k : FinLatticeSites d N, base k * expTerm k) := by rw [hnum]
@@ -736,7 +736,7 @@ theorem charFunDual_eq_site_integral
     Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N,
       strongDualToField (d := d) (N := N) L x * φ x))
   rw [strongDual_apply_eq_site_sum (d := d) (N := N) L φ]
-  simpa [mul_comm, mul_left_comm, mul_assoc]
+  simp [mul_comm]
 
 /-- Characteristic-function identity between normalized density and field law. -/
 theorem normalizedGaussianDensityMeasure_charFunDual_eq_latticeGaussianFieldLaw
@@ -778,7 +778,7 @@ theorem normalizedGaussianDensityMeasure_isFinite
   · simp [h0]
   · by_cases htop : z = ⊤
     · simp [htop]
-    · simpa [ENNReal.inv_mul_cancel h0 htop]
+    · simp [ENNReal.inv_mul_cancel h0 htop]
 
 /-- Stage-2 master theorem (derived from `charFunDual` equality + finiteness). -/
 theorem latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
@@ -819,7 +819,7 @@ theorem latticeGaussianFieldLaw_univ (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
   letI : IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
     rw [latticeGaussianFieldLaw]
     exact Measure.isProbabilityMeasure_map (measurable_evalMap (d := d) (N := N)).aemeasurable
-  simpa using (measure_univ : (latticeGaussianFieldLaw d N a mass ha hmass) Set.univ = 1)
+  exact (measure_univ : (latticeGaussianFieldLaw d N a mass ha hmass) Set.univ = 1)
 
 theorem gaussianDensityNormConst_ne_zero (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     gaussianDensityNormConst d N a mass ≠ 0 := by
@@ -832,7 +832,7 @@ theorem gaussianDensityNormConst_ne_zero (a mass : ℝ) (ha : 0 < a) (hmass : 0 
   have hz : (normalizedGaussianDensityMeasure d N a mass) Set.univ = 0 := by
     simp [normalizedGaussianDensityMeasure, hμ0]
   have hne : (normalizedGaussianDensityMeasure d N a mass) Set.univ ≠ 0 := by
-    simpa [hnorm_univ]
+    simp [hnorm_univ]
   exact hne hz
 
 theorem gaussianDensityNormConst_ne_top (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
@@ -844,7 +844,7 @@ theorem gaussianDensityNormConst_ne_top (a mass : ℝ) (ha : 0 < a) (hmass : 0 <
   have hz : (normalizedGaussianDensityMeasure d N a mass) Set.univ = 0 := by
     simp [normalizedGaussianDensityMeasure, htop]
   have hne : (normalizedGaussianDensityMeasure d N a mass) Set.univ ≠ 0 := by
-    simpa [hnorm_univ]
+    simp [hnorm_univ]
   exact hne hz
 
 theorem integrable_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
@@ -856,7 +856,7 @@ theorem integrable_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
     exact Measure.isProbabilityMeasure_map (measurable_evalMap (d := d) (N := N)).aemeasurable
   have hIntLaw : Integrable (fun _ : FinLatticeField d N => (1 : ℝ))
       (latticeGaussianFieldLaw d N a mass ha hmass) := by
-    simpa using (integrable_const (1 : ℝ))
+    exact (integrable_const (1 : ℝ))
   have hIntNorm : Integrable (fun _ : FinLatticeField d N => (1 : ℝ))
       (normalizedGaussianDensityMeasure d N a mass) := by
     simpa [hEq] using hIntLaw
@@ -914,7 +914,7 @@ theorem latticeGaussianFieldLaw_density_integral (a mass : ℝ)
     Filter.Eventually.of_forall (fun _ => by simp [gaussianDensityWeight])
   calc
     ∫ φ, F φ ∂(latticeGaussianFieldLaw d N a mass ha hmass)
-        = ∫ φ, F φ ∂(normalizedGaussianDensityMeasure d N a mass) := by simpa [hEq]
+        = ∫ φ, F φ ∂(normalizedGaussianDensityMeasure d N a mass) := by simp [hEq]
     _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
           ∫ φ, F φ ∂(gaussianDensityMeasure d N a mass) := by
           simp [normalizedGaussianDensityMeasure, integral_smul_measure]

@@ -184,7 +184,7 @@ theorem hypercontractive_1d_p4 (n : ℕ) :
       (∫ x : ℝ, |x| ^ (2 * n) ∂(gaussianReal 0 1)) ^ 2 := by
   have h := hypercontractive_1d_even 2 n (by norm_num)
   convert h using 2
-  · ring
+  · ring_nf
   · norm_num
 
 /-! ## Full hypercontractive chain for even integer p
@@ -216,7 +216,7 @@ lemma hypercontractive_1d (n : ℕ) (p : ℝ) (hp : 2 ≤ p)
   simp_rw [h_lhs]
   -- Simplify rpow exponents to ℕ casts
   have he1 : (2 : ℝ) * ↑m * ↑n / 2 = ↑(m * n : ℕ) := by push_cast; ring
-  have he2 : (2 : ℝ) * ↑m / 2 = ↑(m : ℕ) := by push_cast; ring
+  have he2 : (2 : ℝ) * ↑m / 2 = ↑(m : ℕ) := by ring_nf
   rw [he1, he2, rpow_natCast, rpow_natCast]
   exact hypercontractive_1d_even m n hm
 
