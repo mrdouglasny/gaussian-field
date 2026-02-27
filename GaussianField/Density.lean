@@ -473,7 +473,7 @@ theorem normalizedGaussianDensityMeasure_linearFourier
         simp
       rw [← hExp]
       rw [← Complex.exp_add]
-      ring
+      ring_nf
     calc
       (∫ φ : FinLatticeField d N,
         Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x)) *

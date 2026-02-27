@@ -2108,8 +2108,7 @@ integrals with the Gaussian density.
 Proved in `GaussianField.Density` via characteristic function matching:
 both measures have charFun `exp(-½ ⟨t, Q⁻¹t⟩)`, so they are equal. -/
 
--- Re-export from GaussianField.Density (no longer an axiom)
-#check @GaussianField.latticeGaussianMeasure_density_integral
+-- latticeGaussianMeasure_density_integral is now proved in GaussianField.Density
 
 /-- The Gaussian density is integrable against Lebesgue measure on `ℝ^{N^d}`.
 
@@ -2166,8 +2165,7 @@ theorem gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
           Real.norm_of_nonneg (Finset.prod_nonneg fun x _ => le_of_lt (Real.exp_pos _))]
       exact hpw φ)
 
--- Re-export from GaussianField.Density (no longer an axiom)
-#check @GaussianField.integrable_mul_gaussianDensity
+-- integrable_mul_gaussianDensity is now proved in GaussianField.Density
 
 /-! ### FKG for the Gaussian measure
 
