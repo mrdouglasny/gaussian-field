@@ -25,3 +25,5 @@ lean_lib «GaussianField» where
 lean_lib «Lattice» where
 
 lean_lib «GaussianFieldAPI» where
+
+lean_lib «Torus» where

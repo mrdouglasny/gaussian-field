@@ -1123,6 +1123,55 @@ theorem lift_pure
 
 end Lift
 
+/-! ### Bilinear evaluation: tensor product of functionals -/
+
+section Eval
+
+variable [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+
+/-- The bilinear multiplication form `(x, y) ↦ x * y` as a bilinear map ℝ →ₗ ℝ →ₗ ℝ. -/
+private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
+  toFun x :=
+    { toFun := fun y => x * y
+      map_add' := fun y₁ y₂ => mul_add x y₁ y₂
+      map_smul' := fun r y => by simp [mul_comm r, mul_assoc] }
+  map_add' x₁ x₂ := by ext y; simp [add_mul]
+  map_smul' r x := by ext y; simp [mul_assoc]
+
+/-- Compose the multiplication bilinear form with CLMs on each factor. -/
+private def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
+    E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] ℝ :=
+  (mulBilin.comp φ₁.toLinearMap).compl₂ φ₂.toLinearMap
+
+@[simp] private theorem compBilin_apply (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
+    (e₁ : E₁) (e₂ : E₂) :
+    compBilin φ₁ φ₂ e₁ e₂ = φ₁ e₁ * φ₂ e₂ := rfl
+
+/-- **Tensor product of continuous linear functionals.**
+
+Given `φ₁ ∈ E₁'` and `φ₂ ∈ E₂'`, the tensor product functional
+`φ₁ ⊗ φ₂ : E₁ ⊗̂ E₂ → ℝ` is defined via the universal property `lift`
+applied to the bilinear form `(e₁, e₂) ↦ φ₁(e₁) · φ₂(e₂)`.
+
+On pure tensors: `evalCLM φ₁ φ₂ (pure e₁ e₂) = φ₁ e₁ * φ₂ e₂`.
+
+The bilinear bound `‖φ₁(e₁) · φ₂(e₂)‖ ≤ C · p₁(e₁) · p₂(e₂)` follows from
+`Seminorm.bound_of_continuous` applied to each functional. -/
+def evalCLM (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
+    NuclearTensorProduct E₁ E₂ →L[ℝ] ℝ :=
+  sorry
+
+/-- `evalCLM` on pure tensors gives the product of evaluations. -/
+theorem evalCLM_pure (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
+    (e₁ : E₁) (e₂ : E₂) :
+    evalCLM φ₁ φ₂ (pure e₁ e₂) = φ₁ e₁ * φ₂ e₂ :=
+  sorry
+
+end Eval
+
 end NuclearTensorProduct
 
 end GaussianField
