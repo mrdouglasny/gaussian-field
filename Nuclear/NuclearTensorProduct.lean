@@ -1138,15 +1138,18 @@ private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
     { toFun := fun y => x * y
       map_add' := fun y₁ y₂ => mul_add x y₁ y₂
       map_smul' := fun r y => by simp [mul_comm r, mul_assoc] }
-  map_add' x₁ x₂ := by ext y; simp [add_mul]
-  map_smul' r x := by ext y; simp [mul_assoc]
+  map_add' x₁ x₂ := by ext; simp [add_mul]
+  map_smul' r x := by ext; simp [mul_assoc]
 
 /-- Compose the multiplication bilinear form with CLMs on each factor. -/
 private def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
     E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] ℝ :=
   (mulBilin.comp φ₁.toLinearMap).compl₂ φ₂.toLinearMap
 
-@[simp] private theorem compBilin_apply (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
+@[simp] private theorem compBilin_apply
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
     (e₁ : E₁) (e₂ : E₂) :
     compBilin φ₁ φ₂ e₁ e₂ = φ₁ e₁ * φ₂ e₂ := rfl
 
@@ -1191,7 +1194,11 @@ def evalCLM (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
           (s₂.sup DyninMityaginSpace.p) e₂ := by ring)
 
 /-- `evalCLM` on pure tensors gives the product of evaluations. -/
-theorem evalCLM_pure (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
+theorem evalCLM_pure {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
     (e₁ : E₁) (e₂ : E₂) :
     evalCLM φ₁ φ₂ (pure e₁ e₂) = φ₁ e₁ * φ₂ e₂ := by
   unfold evalCLM
