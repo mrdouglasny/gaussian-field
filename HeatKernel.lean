@@ -8,4 +8,5 @@ Currently provides axiom-based API; will be replaced by proofs.
 -/
 
 import HeatKernel.Axioms
+import HeatKernel.Bilinear
 import HeatKernel.PositionKernel
