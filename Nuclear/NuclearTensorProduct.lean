@@ -1161,14 +1161,42 @@ On pure tensors: `evalCLM φ₁ φ₂ (pure e₁ e₂) = φ₁ e₁ * φ₂ e₂
 The bilinear bound `‖φ₁(e₁) · φ₂(e₂)‖ ≤ C · p₁(e₁) · p₂(e₂)` follows from
 `Seminorm.bound_of_continuous` applied to each functional. -/
 def evalCLM (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
-    NuclearTensorProduct E₁ E₂ →L[ℝ] ℝ :=
-  sorry
+    NuclearTensorProduct E₁ E₂ →L[ℝ] ℝ := by
+  classical
+  -- Extract seminorm bounds for each functional via Classical.choice
+  have hq₁ : Continuous ((normSeminorm ℝ ℝ).comp φ₁.toLinearMap) :=
+    continuous_norm.comp φ₁.continuous
+  have hq₂ : Continuous ((normSeminorm ℝ ℝ).comp φ₂.toLinearMap) :=
+    continuous_norm.comp φ₂.continuous
+  choose s₁ C₁ hC₁ne hle₁ using Seminorm.bound_of_continuous
+    (DyninMityaginSpace.h_with (E := E₁))
+    ((normSeminorm ℝ ℝ).comp φ₁.toLinearMap) hq₁
+  choose s₂ C₂ hC₂ne hle₂ using Seminorm.bound_of_continuous
+    (DyninMityaginSpace.h_with (E := E₂))
+    ((normSeminorm ℝ ℝ).comp φ₂.toLinearMap) hq₂
+  -- The bilinear bound: ‖φ₁ e₁ * φ₂ e₂‖ ≤ (C₁ * C₂) * (s₁.sup p) e₁ * (s₂.sup p) e₂
+  have hC_pos : (0 : ℝ) < C₁ * C₂ := by positivity
+  exact lift (compBilin φ₁ φ₂) hC_pos (fun e₁ e₂ => by
+    simp only [compBilin_apply]
+    rw [Real.norm_eq_abs, abs_mul]
+    have h₁ : |φ₁ e₁| ≤ C₁ * (s₁.sup DyninMityaginSpace.p) e₁ := by
+      have := hle₁ e₁; simp [Seminorm.comp_apply, NNReal.smul_def] at this; exact this
+    have h₂ : |φ₂ e₂| ≤ C₂ * (s₂.sup DyninMityaginSpace.p) e₂ := by
+      have := hle₂ e₂; simp [Seminorm.comp_apply, NNReal.smul_def] at this; exact this
+    calc |φ₁ e₁| * |φ₂ e₂|
+        ≤ (↑C₁ * (s₁.sup DyninMityaginSpace.p) e₁) *
+          (↑C₂ * (s₂.sup DyninMityaginSpace.p) e₂) :=
+          mul_le_mul h₁ h₂ (abs_nonneg _) (by positivity)
+      _ = ↑C₁ * ↑C₂ * (s₁.sup DyninMityaginSpace.p) e₁ *
+          (s₂.sup DyninMityaginSpace.p) e₂ := by ring)
 
 /-- `evalCLM` on pure tensors gives the product of evaluations. -/
 theorem evalCLM_pure (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
     (e₁ : E₁) (e₂ : E₂) :
-    evalCLM φ₁ φ₂ (pure e₁ e₂) = φ₁ e₁ * φ₂ e₂ :=
-  sorry
+    evalCLM φ₁ φ₂ (pure e₁ e₂) = φ₁ e₁ * φ₂ e₂ := by
+  unfold evalCLM
+  rw [lift_pure]
+  simp [compBilin_apply]
 
 end Eval
 

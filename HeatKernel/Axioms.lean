@@ -23,6 +23,7 @@ required (1+m)^{-2} decay for the embedding theorem.
 -/
 
 import GaussianField.Construction
+import SmoothCircle.Basic
 
 noncomputable section
 
@@ -169,18 +170,19 @@ theorem IsBoundedSeq.const_mul (c : ℝ) {σ : ℕ → ℝ} (hσ : IsBoundedSeq 
 
 /-- Eigenvalue of -Δ + m² on the product basis of S¹_L × ℝ.
     Mode m decodes via Cantor pairing to (n, k) where:
-    - n indexes Fourier modes on S¹_L: eigenvalue (2πn/L)²
+    - n indexes Fourier basis functions on S¹_L with frequency fourierFreq(n):
+      eigenvalue (2π·fourierFreq(n)/L)²
     - k indexes Hermite modes on ℝ: eigenvalue (2k+1)
-    Total: (2πn/L)² + (2k+1) + mass² -/
+    Total: (2π·fourierFreq(n)/L)² + (2k+1) + mass² -/
 noncomputable def qftEigenvalue (L mass : ℝ) (m : ℕ) : ℝ :=
   let nk := m.unpair
-  (2 * Real.pi * nk.1 / L) ^ 2 + (2 * ↑nk.2 + 1) + mass ^ 2
+  (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq nk.1) / L) ^ 2 + (2 * ↑nk.2 + 1) + mass ^ 2
 
 /-- Eigenvalues are strictly positive when mass > 0. -/
 theorem qftEigenvalue_pos {L : ℝ} (_hL : 0 < L) (mass : ℝ) (hmass : 0 < mass) (m : ℕ) :
     0 < qftEigenvalue L mass m := by
   unfold qftEigenvalue
-  have h1 : (0 : ℝ) ≤ (2 * Real.pi * (m.unpair).1 / L) ^ 2 := sq_nonneg _
+  have h1 : (0 : ℝ) ≤ (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2 := sq_nonneg _
   have h2 : (0 : ℝ) < 2 * ↑(m.unpair).2 + 1 := by positivity
   have h3 : (0 : ℝ) < mass ^ 2 := by positivity
   linarith
@@ -214,17 +216,17 @@ theorem heatSingularValue_le_one {L : ℝ} (hL : 0 < L) (mass : ℝ) (hmass : 0 
   · exact le_of_lt (qftEigenvalue_pos hL mass hmass m)
 
 /-- The heat-regularized singular values factorize:
-    e^{-sλ(n,k)/2} = e^{-sm²/2} · e^{-s(2πn/L)²/2} · e^{-s(2k+1)/2} -/
+    e^{-sλ(n,k)/2} = e^{-sm²/2} · e^{-s(2π·fourierFreq(n)/L)²/2} · e^{-s(2k+1)/2} -/
 theorem heatSingularValue_factors (L mass s : ℝ) (m : ℕ) :
     heatSingularValue L mass s m =
       Real.exp (-(s / 2) * mass ^ 2) *
-      Real.exp (-(s / 2) * (2 * Real.pi * (m.unpair).1 / L) ^ 2) *
+      Real.exp (-(s / 2) * (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2) *
       Real.exp (-(s / 2) * (2 * ↑(m.unpair).2 + 1)) := by
   unfold heatSingularValue qftEigenvalue
-  rw [show -(s / 2) * ((2 * Real.pi * ↑(Nat.unpair m).1 / L) ^ 2 +
+  rw [show -(s / 2) * ((2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq (Nat.unpair m).1) / L) ^ 2 +
       (2 * ↑(Nat.unpair m).2 + 1) + mass ^ 2) =
     (-(s / 2) * mass ^ 2) +
-    (-(s / 2) * (2 * Real.pi * ↑(Nat.unpair m).1 / L) ^ 2) +
+    (-(s / 2) * (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq (Nat.unpair m).1) / L) ^ 2) +
     (-(s / 2) * (2 * ↑(Nat.unpair m).2 + 1)) by ring]
   rw [Real.exp_add, Real.exp_add]
 
@@ -241,7 +243,7 @@ theorem qft_singular_values_bounded (L mass : ℝ) (hL : 0 < L) (hmass : 0 < mas
   -- Eigenvalue ≥ mass²
   have hev_ge : mass ^ 2 ≤ qftEigenvalue L mass m := by
     unfold qftEigenvalue
-    have h1 : (0 : ℝ) ≤ (2 * Real.pi * ↑(Nat.unpair m).1 / L) ^ 2 := sq_nonneg _
+    have h1 : (0 : ℝ) ≤ (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq (Nat.unpair m).1) / L) ^ 2 := sq_nonneg _
     have h2 : (0 : ℝ) < 2 * ↑(Nat.unpair m).2 + 1 := by positivity
     linarith
   -- σ_m ≤ (mass²)^{-1/2} = mass⁻¹

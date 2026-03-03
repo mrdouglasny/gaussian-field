@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**2 axioms, 0 sorries**
+**4 axioms, 0 sorries**
 
-*Updated 2026-02-26.*
+*Updated 2026-03-03.*
 
 ## Axiom inventory
 
@@ -59,22 +59,45 @@ Proved FKG results (no longer axioms):
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `mehlerKernel_eq_series` | HeatKernel/PositionKernel | axiom | Hard | Mehler's formula. |
-| `circleHeatKernel_pos` | HeatKernel/PositionKernel | axiom | Hard | Requires Poisson summation. |
-| `cylinderEval_summable` | HeatKernel/PositionKernel | theorem | Medium | Convergence of eigenfunction expansion. |
-| `integral_norm_tsum_le_tsum_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: integral norm of series ≤ series of integral norms. |
-| `integrable_tsum_of_summable_integral_norm` | HeatKernel/PositionKernel | theorem | Medium | Dominated-convergence corollary: summable integral norms imply integrable pointwise tsum. |
 
-Definite textbook axiom statements currently in code:
-- `mehlerKernel_eq_series` (for every `t > 0`, `x₁`, `x₂`):
-  `mehlerKernel t x₁ x₂ = ∑' k, exp (-(t * (2 * k + 1))) * ψ_k(x₁) * ψ_k(x₂)`.
-- `circleHeatKernel_pos` (for every `L > 0`, `t > 0`, `θ₁`, `θ₂`):
-  `0 < circleHeatKernel L t θ₁ θ₂`.
+Proved heat kernel results (no longer axioms):
+- `circleHeatKernel_pos` -- **proved** (via `HurwitzZeta.cosKernel` + Poisson summation / functional equation). The circleHeatKernel eigenvalue bug (index vs frequency mismatch) was fixed: now uses `fourierFreq n` for the Laplacian eigenvalue.
+- `cylinderEval_summable` -- theorem
+- `integral_norm_tsum_le_tsum_integral_norm` -- theorem
+- `integrable_tsum_of_summable_integral_norm` -- theorem
 
-Planned elimination path (mathlib-first, no project-specific shortcuts):
-- Prove `mehlerKernel_eq_series` from the harmonic-oscillator semigroup spectral theorem
-  and Hermite eigenbasis expansion.
-- Prove `circleHeatKernel_pos` via Poisson summation / Jacobi theta representation of the
-  periodic heat kernel as a sum of positive Gaussians.
+Remaining axiom:
+- `mehlerKernel_eq_series`: Mehler's formula (Hermite eigenfunction expansion of harmonic oscillator heat kernel). Requires Hermite polynomial generating function, not in Mathlib.
+
+### Torus embedding (continuum limit infrastructure)
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `configuration_torus_polish` | Torus/Restriction | axiom | Hard | PolishSpace for weak-* dual of nuclear Fréchet space. |
+| `configuration_torus_borelSpace` | Torus/Restriction | axiom | Moderate | Cylindrical σ-algebra = Borel σ-algebra for nuclear Fréchet dual. |
+
+Proved torus results:
+- `evalCLM` -- **proved** (tensor product of continuous linear functionals via `lift` + `Seminorm.bound_of_continuous`)
+- `evalCLM_pure` -- **proved** (via `lift_pure`)
+- `circleRestriction` -- CLM sampling smooth periodic functions at lattice points
+- `evalTorusAtSite` -- evaluation of torus test function at lattice site
+- `torusEmbedCLM` -- embedding of lattice fields into Configuration space
+
+Elimination analysis for Polish/Borel axioms:
+- The naive approach (reformulate as `ℕ → ℝ` via Fourier coefficients) does NOT work:
+  the dual of `RapidDecaySeq` is the space of polynomial-growth sequences, which is
+  F_σ (not closed) in `ℕ → ℝ` and is NOT Polish with the subspace topology (it is
+  meager in itself, violating Baire's theorem for completely metrizable spaces).
+- The weak-* topology on s' IS Polish (standard result: Gel'fand-Vilenkin Vol. 4,
+  Schaefer III§7/IV§9), but proving this requires nuclear Fréchet space theory not
+  in Mathlib: metrizability of weak-* dual via Montel property + nuclear compactness,
+  Banach-Steinhaus for Fréchet spaces (`WithSeminorms.banach_steinhaus` exists but
+  the nuclear-specific ingredients do not). Estimated effort: 500-1000+ LOC.
+- BorelSpace (cylindrical = Borel) requires second-countability of the weak-* topology,
+  which is part of the same nuclear space theory.
+- **Decision**: keep as axioms. Used in pphi2 `TorusContinuumLimit/` for Prokhorov's
+  theorem. The mathematical justification is solid; the Lean infrastructure gap is
+  in Mathlib's nuclear space library, not in our project.
 
 ### Hypercontractive estimates
 
@@ -99,13 +122,15 @@ Proved hypercontractive results (axiom-free):
 
 | File | Axioms | Sorries |
 |------|--------|---------|
-| HeatKernel/PositionKernel | 2 | 0 |
+| HeatKernel/PositionKernel | 1 | 0 |
+| Torus/Restriction | 2 | 0 |
 | Lattice/RapidDecayLattice | 0 | 0 |
 | Lattice/FKG | 0 | 0 |
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 0 | 0 |
 | GaussianField/Hypercontractive | 0 | 0 |
-| **Total** | **2** | **0** |
+| Nuclear/NuclearTensorProduct | 0 | 0 |
+| **Total** | **3 (+1 skipped)** | **0** |
 
 ## References
 

@@ -27,6 +27,7 @@ which is the key property enabling Prokhorov's theorem.
 -/
 
 import SmoothCircle.Restriction
+import SmoothCircle.Nuclear
 import Nuclear.NuclearTensorProduct
 import GaussianField.Construction
 

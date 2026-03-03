@@ -25,6 +25,7 @@ import SmoothCircle.Basic
 import SchwartzNuclear.HermiteFunctions
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
+import Mathlib.NumberTheory.LSeries.HurwitzZetaEven
 
 noncomputable section
 
@@ -522,17 +523,49 @@ theorem mehlerKernel_semigroup (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
 
 /-! ## Circle heat kernel -/
 
+/-- Key inequality: `4 * (fourierFreq n)² ≥ n` for all n.
+    Since fourierFreq 0 = 0 and fourierFreq (n+1) = n/2 + 1, the frequency is at least 1
+    for n ≥ 1, and grows like n/2. The bound 4·(fourierFreq n)² ≥ n follows because
+    (n/2 + 1)² ≥ (n+1)/4 for all n. -/
+private lemma fourierFreq_sq_bound (n : ℕ) :
+    (↑n : ℝ) ≤ 4 * (↑(SmoothMap_Circle.fourierFreq n) : ℝ) ^ 2 := by
+  rcases n with _ | n
+  · -- n = 0: 0 ≤ 0
+    simp [SmoothMap_Circle.fourierFreq]
+  · -- n = k+1: fourierFreq(k+1) = k/2 + 1
+    simp only [SmoothMap_Circle.fourierFreq]
+    -- We need: ↑(n + 1) ≤ 4 * ↑(n / 2 + 1) ^ 2 (in ℝ)
+    -- Key fact: n / 2 + 1 ≥ (n + 1) / 2 (nat div) ≥ (n + 1) / 2 (real, rounded down)
+    -- In ℕ: 2 * (n / 2 + 1) = 2 * (n/2) + 2 ≥ n + 1 (since 2*(n/2) ≥ n - 1)
+    -- So ↑(n/2 + 1) ≥ (↑n + 1) / 2 in ℝ
+    -- Then 4 * ↑(n/2+1)^2 ≥ 4 * ((↑n+1)/2)^2 = (↑n+1)^2 ≥ ↑n + 1
+    have h_nat : n + 1 ≤ (n / 2 + 1) * 2 := by omega
+    have h_real : ((↑n : ℝ) + 1) / 2 ≤ (↑(n / 2 + 1) : ℝ) := by
+      rw [div_le_iff₀ (two_pos)]
+      exact_mod_cast h_nat
+    have h_ge_one : (1 : ℝ) ≤ ↑n + 1 := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
+    have h_cast : (↑(n + 1) : ℝ) = ↑n + 1 := by push_cast; ring
+    nlinarith [sq_nonneg ((↑(n / 2 + 1) : ℝ) - (↑n + 1) / 2), sq_nonneg ((↑n : ℝ))]
+
+/-- Geometric decay bound for circle heat kernel coefficients:
+    `exp(-c * (fourierFreq n)²) ≤ exp(-c/4)^n` for c > 0. -/
+private lemma circleHeatKernel_geometric_bound {c : ℝ} (hc : 0 < c) (n : ℕ) :
+    -(c * (↑(SmoothMap_Circle.fourierFreq n) : ℝ) ^ 2) ≤ -(c / 4 * ↑n) := by
+  have hff := fourierFreq_sq_bound n
+  nlinarith
+
 /-- Heat kernel on S¹_L, defined as eigenfunction expansion:
-    K_circle(θ₁, θ₂, t) = Σ_n e^{-t(2πn/L)²} ψ_n(θ₁) ψ_n(θ₂). -/
+    K_circle(θ₁, θ₂, t) = Σ_n e^{-t(2π·f(n)/L)²} ψ_n(θ₁) ψ_n(θ₂)
+    where f(n) = SmoothMap_Circle.fourierFreq(n) is the frequency of basis function n. -/
 noncomputable def circleHeatKernel (L : ℝ) [Fact (0 < L)]
     (t θ₁ θ₂ : ℝ) : ℝ :=
-  ∑' (n : ℕ), exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+  ∑' (n : ℕ), exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
     fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
 
 /-- The circle heat kernel series converges absolutely for t > 0. -/
 theorem circleHeatKernel_summable (L : ℝ) [hL : Fact (0 < L)]
     (t : ℝ) (ht : 0 < t) (θ₁ θ₂ : ℝ) :
-    Summable fun (n : ℕ) => exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+    Summable fun (n : ℕ) => exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
       fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂ := by
   -- Bound: |fourierBasisFun n x| ≤ M for all n, x
   set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
@@ -540,50 +573,38 @@ theorem circleHeatKernel_summable (L : ℝ) [hL : Fact (0 < L)]
   -- Set r = exp(-t*(2π/L)²) < 1
   set c := t * (2 * π / L) ^ 2 with hc_def
   have hc_pos : 0 < c := mul_pos ht (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
-  set r := exp (-c)
+  set r := exp (-(c / 4))
   have hr_pos : 0 < r := exp_pos _
   have hr_lt_one : r < 1 := Real.exp_lt_one_iff.mpr (by linarith)
-  -- Key inequality: t * (2πn/L)² = c * n², and n² ≥ n for n : ℕ
-  have h_exp_le : ∀ n : ℕ, exp (-(t * (2 * π * ↑n / L) ^ 2)) ≤ r ^ n := by
+  have h_exp_le : ∀ n : ℕ, exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) ≤ r ^ n := by
     intro n
-    rw [show r ^ n = exp (-c) ^ n from rfl, ← Real.exp_nat_mul,
-      show ↑n * -c = -(c * ↑n) from by ring]
+    rw [show r ^ n = exp (-(c / 4)) ^ n from rfl, ← Real.exp_nat_mul,
+      show ↑n * -(c / 4) = -(c / 4 * ↑n) from by ring]
     apply Real.exp_le_exp.mpr
-    -- Need: -(t * (2πn/L)²) ≤ -(c * n), i.e., c * n ≤ t * (2πn/L)²
-    -- t * (2πn/L)² = t * (2π/L)² * n² = c * n²
-    have h_eq : t * (2 * π * ↑n / L) ^ 2 = c * (↑n) ^ 2 := by
+    have h_eq : t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 = c * (↑(SmoothMap_Circle.fourierFreq n)) ^ 2 := by
       simp only [hc_def]; ring
     rw [h_eq]
-    -- -(c * n²) ≤ -(c * n) ⟸ c * n ≤ c * n² ⟸ n ≤ n² (since c > 0)
-    -- n ≤ n² for n : ℕ: either n = 0 (trivial) or n ≥ 1 so n * 1 ≤ n * n
-    have hn_sq : (↑n : ℝ) ≤ (↑n) ^ 2 := by
-      rcases n with _ | n
-      · simp
-      · have h1 : (1 : ℝ) ≤ ↑(n + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
-        calc (↑(n + 1) : ℝ) = ↑(n + 1) * 1 := (mul_one _).symm
-          _ ≤ ↑(n + 1) * ↑(n + 1) := by apply mul_le_mul_of_nonneg_left h1; positivity
-          _ = (↑(n + 1)) ^ 2 := (sq _).symm
-    linarith [mul_le_mul_of_nonneg_left hn_sq hc_pos.le]
+    exact circleHeatKernel_geometric_bound hc_pos n
   -- Comparison: ‖term n‖ ≤ M² · r^n
   have h_geom : Summable (fun n => M ^ 2 * r ^ n) :=
     (summable_geometric_of_lt_one hr_pos.le hr_lt_one).mul_left _
   apply Summable.of_norm_bounded (g := fun n => M ^ 2 * r ^ n) h_geom
   intro n
   rw [Real.norm_eq_abs]
-  have h_exp_nonneg : 0 ≤ exp (-(t * (2 * π * ↑n / L) ^ 2)) := le_of_lt (exp_pos _)
-  calc |exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+  have h_exp_nonneg : 0 ≤ exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) := le_of_lt (exp_pos _)
+  calc |exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
         fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂|
-      ≤ exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+      ≤ exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
         |fourierBasisFun (L := L) n θ₁| * |fourierBasisFun (L := L) n θ₂| := by
         rw [abs_mul, abs_mul, abs_of_nonneg h_exp_nonneg]
-    _ ≤ exp (-(t * (2 * π * ↑n / L) ^ 2)) * M * M := by
+    _ ≤ exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * M * M := by
         apply mul_le_mul
         · exact mul_le_mul_of_nonneg_left
             (SmoothMap_Circle.fourierBasisFun_abs_le n θ₁) h_exp_nonneg
         · exact SmoothMap_Circle.fourierBasisFun_abs_le n θ₂
         · exact abs_nonneg _
         · exact mul_nonneg h_exp_nonneg hM_nonneg
-    _ = M ^ 2 * exp (-(t * (2 * π * ↑n / L) ^ 2)) := by ring
+    _ = M ^ 2 * exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) := by ring
     _ ≤ M ^ 2 * r ^ n := by
         apply mul_le_mul_of_nonneg_left (h_exp_le n) (sq_nonneg _)
 
@@ -594,10 +615,178 @@ theorem circleHeatKernel_symmetric (L : ℝ) [Fact (0 < L)]
   unfold circleHeatKernel
   exact tsum_congr (fun n => by ring)
 
+/-- The even Hurwitz kernel is positive for t > 0 (sum of positive Gaussians). -/
+private theorem evenKernel_pos (a : ℝ) {t : ℝ} (ht : 0 < t) :
+    0 < HurwitzZeta.evenKernel (↑a) t := by
+  rw [← (HurwitzZeta.hasSum_int_evenKernel a ht).tsum_eq]
+  exact Summable.tsum_pos (HurwitzZeta.hasSum_int_evenKernel a ht).summable
+    (fun n => le_of_lt (exp_pos _)) (0 : ℤ) (exp_pos _)
+
+/-- The cosine Hurwitz kernel is positive for s > 0. -/
+private theorem cosKernel_pos (a : ℝ) {s : ℝ} (hs : 0 < s) :
+    0 < HurwitzZeta.cosKernel (↑a) s := by
+  -- Use functional equation: evenKernel a (1/s) = 1/(1/s)^(1/2) * cosKernel a s
+  have h_fe := HurwitzZeta.evenKernel_functional_equation (↑a : UnitAddCircle) (1 / s)
+  rw [one_div_one_div] at h_fe
+  have h_pos_inv : (0 : ℝ) < 1 / s := div_pos one_pos hs
+  have h_evenK_pos : 0 < HurwitzZeta.evenKernel (↑a) (1 / s) := evenKernel_pos a h_pos_inv
+  rw [h_fe] at h_evenK_pos
+  -- h_evenK_pos : 0 < 1 / (1/s)^(1/2) * cosKernel a s
+  have h_coeff_pos : (0 : ℝ) < 1 / (1 / s) ^ ((1 : ℝ) / 2) :=
+    div_pos one_pos (rpow_pos_of_pos h_pos_inv (1 / 2))
+  rcases (mul_pos_iff.mp h_evenK_pos) with ⟨_, hb⟩ | ⟨ha, _⟩
+  · exact hb
+  · exact absurd ha (not_lt.mpr h_coeff_pos.le)
+
+/-- Helper: fourierBasisFun at odd index 2k+1 is the cosine function with frequency k+1. -/
+private lemma fourierBasisFun_odd (k : ℕ) (x : ℝ) :
+    @fourierBasisFun L (2 * k + 1) x =
+    sqrt (2 / L) * cos (2 * π * ↑(k + 1) * x / L) := by
+  show @fourierBasisFun L ((2 * k) + 1) x = _
+  simp [fourierBasisFun, show (2 * k) % 2 = 0 from Nat.mul_mod_right 2 k,
+    show (2 * k) / 2 + 1 = k + 1 from by omega]
+
+/-- Helper: fourierBasisFun at even index 2k+2 is the sine function with frequency k+1. -/
+private lemma fourierBasisFun_even (k : ℕ) (x : ℝ) :
+    @fourierBasisFun L (2 * k + 2) x =
+    sqrt (2 / L) * sin (2 * π * ↑(k + 1) * x / L) := by
+  show @fourierBasisFun L ((2 * k + 1) + 1) x = _
+  simp [fourierBasisFun, show (2 * k + 1) % 2 = 1 from by omega,
+    show (2 * k + 1) / 2 + 1 = k + 1 from by omega]
+
+/-- Helper: fourierFreq at index 2k+1 equals k+1. -/
+private lemma fourierFreq_odd (k : ℕ) :
+    SmoothMap_Circle.fourierFreq (2 * k + 1) = k + 1 := by
+  show SmoothMap_Circle.fourierFreq ((2 * k) + 1) = _
+  simp [SmoothMap_Circle.fourierFreq, show (2 * k) / 2 + 1 = k + 1 from by omega]
+
+/-- Helper: fourierFreq at index 2k+2 equals k+1. -/
+private lemma fourierFreq_even (k : ℕ) :
+    SmoothMap_Circle.fourierFreq (2 * k + 2) = k + 1 := by
+  show SmoothMap_Circle.fourierFreq ((2 * k + 1) + 1) = _
+  simp [SmoothMap_Circle.fourierFreq, show (2 * k + 1) / 2 + 1 = k + 1 from by omega]
+
+/-- Pairing identity: for the circle heat kernel series, the terms at index 2k+1 and 2k+2
+(a cos/sin pair with the same frequency k+1) combine to give
+  (2/L) * exp(-t(2π(k+1)/L)²) * cos(2π(k+1)(θ₁-θ₂)/L). -/
+private lemma circleHeatKernel_pair (L : ℝ) [hL : Fact (0 < L)]
+    (t θ₁ θ₂ : ℝ) (k : ℕ) :
+    let f := fun n => exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
+      fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
+    f (2 * k + 1) + f (2 * k + 2) =
+    (2 / L) * exp (-(t * (2 * π * ↑(k + 1) / L) ^ 2)) *
+      cos (2 * π * ↑(k + 1) * (θ₁ - θ₂) / L) := by
+  intro f
+  -- Rewrite using helper lemmas
+  show f (2 * k + 1) + f (2 * k + 2) = _
+  simp only [f, fourierFreq_odd, fourierFreq_even, fourierBasisFun_odd, fourierBasisFun_even]
+  -- Now we have:
+  -- E * (C*cos(aθ₁)) * (C*cos(aθ₂)) + E * (C*sin(aθ₁)) * (C*sin(aθ₂))
+  -- = E * C² * (cos(aθ₁)cos(aθ₂) + sin(aθ₁)sin(aθ₂))
+  -- = E * C² * cos(a(θ₁-θ₂))
+  set E := exp (-(t * (2 * π * ↑(k + 1) / L) ^ 2))
+  set C := sqrt (2 / L)
+  set α₁ := 2 * π * ↑(k + 1) * θ₁ / L
+  set α₂ := 2 * π * ↑(k + 1) * θ₂ / L
+  have h1 : E * (C * cos α₁) * (C * cos α₂) + E * (C * sin α₁) * (C * sin α₂) =
+      E * (C * C) * (cos α₁ * cos α₂ + sin α₁ * sin α₂) := by ring
+  rw [h1, Real.mul_self_sqrt (div_nonneg (by norm_num) (le_of_lt hL.out)),
+    ← Real.cos_sub α₁ α₂, show α₁ - α₂ = 2 * π * ↑(k + 1) * (θ₁ - θ₂) / L from by
+      simp only [α₁, α₂]; ring]
+  ring
+
+set_option maxHeartbeats 400000 in
+/-- The circle heat kernel equals (1/L) * cosKernel((θ₁-θ₂)/L, 4πt/L²). -/
+private theorem circleHeatKernel_eq_cosKernel (L : ℝ) [hL : Fact (0 < L)]
+    (t θ₁ θ₂ : ℝ) (ht : 0 < t) :
+    circleHeatKernel L t θ₁ θ₂ =
+    (1 / L) * HurwitzZeta.cosKernel (↑((θ₁ - θ₂) / L)) (4 * π * t / L ^ 2) := by
+  -- Set up notation
+  set f : ℕ → ℝ := fun n =>
+    exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
+    fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
+  set a : ℝ := (θ₁ - θ₂) / L
+  set s : ℝ := 4 * π * t / L ^ 2
+  have hs : 0 < s := div_pos (mul_pos (mul_pos (by positivity) pi_pos) ht) (sq_pos_of_pos hL.out)
+  have hL_pos := hL.out
+  have hL_ne : L ≠ 0 := ne_of_gt hL_pos
+  -- Summability
+  have h_summable : Summable f := circleHeatKernel_summable L t ht θ₁ θ₂
+  -- f(0) = 1/L
+  have hf0 : f 0 = 1 / L := by
+    simp only [f, SmoothMap_Circle.fourierFreq, fourierBasisFun]
+    have : (0 : ℝ) ^ 2 = 0 := by norm_num
+    simp only [Nat.cast_zero, mul_zero, zero_div, this, mul_zero, neg_zero, exp_zero, one_mul]
+    rw [show (1 : ℝ) / sqrt L * (1 / sqrt L) = 1 / (sqrt L * sqrt L) from by ring,
+      Real.mul_self_sqrt (le_of_lt hL_pos)]
+  -- Pairing identity
+  have h_pair : ∀ k : ℕ, f (2 * k + 1) + f (2 * k + 2) =
+      (2 / L) * exp (-(t * (2 * π * ↑(k + 1) / L) ^ 2)) *
+      cos (2 * π * ↑(k + 1) * (θ₁ - θ₂) / L) := circleHeatKernel_pair L t θ₁ θ₂
+  -- Exponential reparametrization
+  have h_exp_eq : ∀ k : ℕ,
+      exp (-(t * (2 * π * (↑(k + 1) : ℝ) / L) ^ 2)) = exp (-π * (↑k + 1) ^ 2 * s) := by
+    intro k; congr 1
+    have : (↑(k + 1) : ℝ) = ↑k + 1 := by push_cast; ring
+    rw [this]; simp only [s]; field_simp; ring
+  -- cosKernel expansion
+  have h_cosK := HurwitzZeta.hasSum_nat_cosKernel₀ a hs
+  -- Step 1: LHS = f(0) + ∑' n, f(n+1)
+  have h_lhs : circleHeatKernel L t θ₁ θ₂ = f 0 + ∑' n, f (n + 1) := by
+    unfold circleHeatKernel; exact h_summable.tsum_eq_zero_add
+  -- Step 2: RHS = 1/L + (1/L) * (cosKernel(a,s) - 1)
+  have h_rhs : (1 / L) * HurwitzZeta.cosKernel (↑a) s =
+      1 / L + (1 / L) * (HurwitzZeta.cosKernel (↑a) s - 1) := by ring
+  rw [h_lhs, hf0, h_rhs]
+  -- Suffices to show: ∑' n, f(n+1) = (1/L) * (cosKernel(a,s) - 1)
+  congr 1
+  -- Step 3: ∑' n, f(n+1) = ∑' k, (f(2k+1) + f(2k+2))
+  have h_summable_shifted : Summable (fun n => f (n + 1)) :=
+    h_summable.comp_injective (fun _ _ h => by omega)
+  have h_summable_even : Summable (fun k => f (2 * k + 1)) :=
+    h_summable_shifted.comp_injective (fun _ _ h => by omega)
+  have h_summable_odd : Summable (fun k => f (2 * k + 2)) :=
+    h_summable_shifted.comp_injective (fun _ _ h => by omega)
+  -- Split into even and odd
+  -- Summability for g(n) = f(n+1) at even/odd indices
+  set g : ℕ → ℝ := fun n => f (n + 1) with hg_def
+  have hg_even : Summable (fun k => g (2 * k)) :=
+    h_summable_shifted.comp_injective (fun _ _ h => by omega)
+  have hg_odd : Summable (fun k => g (2 * k + 1)) :=
+    h_summable_shifted.comp_injective (fun _ _ h => by omega)
+  have h_split : ∑' n, f (n + 1) = ∑' k, (f (2 * k + 1) + f (2 * k + 2)) := by
+    -- tsum_even_add_odd: (∑' k, g(2k)) + ∑' k, g(2k+1) = ∑' k, g k
+    -- Summable.tsum_add: ∑' k, (g(2k) + g(2k+1)) = same
+    calc ∑' n, f (n + 1)
+        = ∑' n, g n := by rfl
+      _ = (∑' k, g (2 * k)) + ∑' k, g (2 * k + 1) := (tsum_even_add_odd hg_even hg_odd).symm
+      _ = ∑' k, (g (2 * k) + g (2 * k + 1)) := (Summable.tsum_add hg_even hg_odd).symm
+      _ = ∑' k, (f (2 * k + 1) + f (2 * k + 2)) := by congr 1
+  rw [h_split]
+  -- Step 4: Apply pairing identity: ∑' k, (f(2k+1)+f(2k+2)) = ∑' k, g(k)
+  -- where g(k) = (2/L) cos(2π(k+1)(θ₁-θ₂)/L) exp(-π(k+1)²s)
+  have h_rewrite : ∀ k, f (2 * k + 1) + f (2 * k + 2) =
+      (2 / L) * exp (-π * (↑k + 1) ^ 2 * s) * cos (2 * π * ↑(k + 1) * (θ₁ - θ₂) / L) := by
+    intro k; rw [h_pair k]; congr 1; congr 1; exact h_exp_eq k
+  simp_rw [h_rewrite]
+  -- Step 5: Match with cosKernel expansion
+  -- Rewrite LHS summands as (1/L) * (2 * cos(...) * exp(...))
+  have h_rearrange : ∀ k : ℕ,
+      (2 / L) * exp (-π * (↑k + 1) ^ 2 * s) * cos (2 * π * ↑(k + 1) * (θ₁ - θ₂) / L) =
+      (1 / L) * (2 * cos (2 * π * a * (↑k + 1)) * exp (-π * (↑k + 1) ^ 2 * s)) := by
+    intro k
+    have hcos : 2 * π * ↑(k + 1) * (θ₁ - θ₂) / L = 2 * π * a * (↑k + 1) := by
+      simp only [a]; push_cast; ring
+    rw [hcos]; ring
+  simp_rw [h_rearrange, tsum_mul_left, ← h_cosK.tsum_eq]
+
 /-- The circle heat kernel is positive for t > 0. -/
-axiom circleHeatKernel_pos (L : ℝ) [Fact (0 < L)]
+theorem circleHeatKernel_pos (L : ℝ) [hL : Fact (0 < L)]
     (t : ℝ) (ht : 0 < t) (θ₁ θ₂ : ℝ) :
-    0 < circleHeatKernel L t θ₁ θ₂
+    0 < circleHeatKernel L t θ₁ θ₂ := by
+  rw [circleHeatKernel_eq_cosKernel L t θ₁ θ₂ ht]
+  apply mul_pos (div_pos one_pos hL.out)
+  exact cosKernel_pos _ (div_pos (mul_pos (mul_pos (by positivity) pi_pos) ht) (sq_pos_of_pos hL.out))
 
 /-- The circle heat kernel is L-periodic in the first argument. -/
 theorem circleHeatKernel_periodic₁ (L : ℝ) [Fact (0 < L)]
@@ -619,7 +808,7 @@ theorem circleHeatKernel_reproduces_fourier (L : ℝ) [hL : Fact (0 < L)]
     (t : ℝ) (ht : 0 < t) (n : ℕ) (θ₁ : ℝ) :
     ∫ θ₂ in (0 : ℝ)..L,
       circleHeatKernel L t θ₁ θ₂ * fourierBasisFun (L := L) n θ₂ =
-    exp (-(t * (2 * π * ↑n / L) ^ 2)) * fourierBasisFun (L := L) n θ₁ := by
+    exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * fourierBasisFun (L := L) n θ₁ := by
   -- Strategy: expand circleHeatKernel as series, swap integral and sum,
   -- use Fourier orthogonality to collapse to single term.
   -- Step 1: Convert to set integral on Ioc
@@ -630,28 +819,21 @@ theorem circleHeatKernel_reproduces_fourier (L : ℝ) [hL : Fact (0 < L)]
   have hM_nonneg : 0 ≤ M := le_max_of_le_right (Real.sqrt_nonneg _)
   set c := t * (2 * π / L) ^ 2 with hc_def
   have hc_pos : 0 < c := mul_pos ht (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
-  set r := exp (-c)
+  set r := exp (-(c / 4))
   have hr_pos : 0 < r := exp_pos _
   have hr_lt_one : r < 1 := Real.exp_lt_one_iff.mpr (by linarith)
-  have h_exp_le : ∀ k : ℕ, exp (-(t * (2 * π * ↑k / L) ^ 2)) ≤ r ^ k := by
+  have h_exp_le : ∀ k : ℕ, exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) ≤ r ^ k := by
     intro k
-    rw [show r ^ k = exp (-c) ^ k from rfl, ← Real.exp_nat_mul,
-      show ↑k * -c = -(c * ↑k) from by ring]
+    rw [show r ^ k = exp (-(c / 4)) ^ k from rfl, ← Real.exp_nat_mul,
+      show ↑k * -(c / 4) = -(c / 4 * ↑k) from by ring]
     apply Real.exp_le_exp.mpr
-    have h_eq : t * (2 * π * ↑k / L) ^ 2 = c * (↑k) ^ 2 := by
+    have h_eq : t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2 = c * (↑(SmoothMap_Circle.fourierFreq k)) ^ 2 := by
       simp only [hc_def]; ring
     rw [h_eq]
-    have hn_sq : (↑k : ℝ) ≤ (↑k) ^ 2 := by
-      rcases k with _ | k
-      · simp
-      · have h1 : (1 : ℝ) ≤ ↑(k + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le k)
-        calc (↑(k + 1) : ℝ) = ↑(k + 1) * 1 := (mul_one _).symm
-          _ ≤ ↑(k + 1) * ↑(k + 1) := by apply mul_le_mul_of_nonneg_left h1; positivity
-          _ = (↑(k + 1)) ^ 2 := (sq _).symm
-    linarith [mul_le_mul_of_nonneg_left hn_sq hc_pos.le]
+    exact circleHeatKernel_geometric_bound hc_pos k
   -- Step 3: Set up the summands G k θ₂ = exp(...) * ψ_k(θ₁) * (ψ_k(θ₂) * ψ_n(θ₂))
   set G : ℕ → ℝ → ℝ := fun k θ₂ =>
-    exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
+    exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
       (fourierBasisFun (L := L) k θ₂ * fourierBasisFun (L := L) n θ₂) with hG_def
   -- Rewrite integrand as tsum of G
   have h_eq_tsum : ∀ θ₂,
@@ -671,9 +853,9 @@ theorem circleHeatKernel_reproduces_fourier (L : ℝ) [hL : Fact (0 < L)]
   have hG_sum : Summable (fun k => ∫ θ₂, ‖G k θ₂‖ ∂μ) := by
     have h_bound : ∀ k θ₂, ‖G k θ₂‖ ≤ M ^ 2 * M * r ^ k := by
       intro k θ₂; simp only [hG_def, Real.norm_eq_abs]
-      calc |exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
+      calc |exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
             (fourierBasisFun (L := L) k θ₂ * fourierBasisFun (L := L) n θ₂)|
-          = exp (-(t * (2 * π * ↑k / L) ^ 2)) * |fourierBasisFun (L := L) k θ₁| *
+          = exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * |fourierBasisFun (L := L) k θ₁| *
             (|fourierBasisFun (L := L) k θ₂| * |fourierBasisFun (L := L) n θ₂|) := by
             rw [abs_mul, abs_mul, abs_of_nonneg (le_of_lt (exp_pos _)), abs_mul]
         _ ≤ r ^ k * M * (M * M) := by
@@ -703,7 +885,7 @@ theorem circleHeatKernel_reproduces_fourier (L : ℝ) [hL : Fact (0 < L)]
   -- Step 7: Evaluate each integral using Fourier orthogonality
   -- ∫ ψ_k * ψ_n = δ_{kn} (convert set integral Ioc -> Icc)
   have h_ortho : ∀ k, ∫ θ₂, G k θ₂ ∂μ =
-      exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
+      exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
         (if k = n then 1 else 0) := by
     intro k; simp only [hG_def]
     rw [integral_const_mul]
@@ -721,7 +903,7 @@ theorem circleHeatKernel_reproduces_fourier (L : ℝ) [hL : Fact (0 < L)]
   simp_rw [h_ortho]
   -- Step 8: Sum collapses via tsum_eq_single
   have h_zero : ∀ k, k ≠ n →
-      exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
+      exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₁ *
         (if k = n then 1 else 0) = 0 := by
     intro k hk; simp [hk]
   rw [tsum_eq_single n h_zero, if_pos rfl, mul_one]
@@ -745,25 +927,18 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
   set c_s := s * (2 * π / L) ^ 2 with hc_s_def
   have hc_s_pos : 0 < c_s :=
     mul_pos hs (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
-  set r_s := exp (-c_s)
+  set r_s := exp (-(c_s / 4))
   have hr_s_pos : 0 < r_s := exp_pos _
   have hr_s_lt_one : r_s < 1 := Real.exp_lt_one_iff.mpr (by linarith)
-  have h_exp_le_s : ∀ n : ℕ, exp (-(s * (2 * π * ↑n / L) ^ 2)) ≤ r_s ^ n := by
+  have h_exp_le_s : ∀ n : ℕ, exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) ≤ r_s ^ n := by
     intro n
-    rw [show r_s ^ n = exp (-c_s) ^ n from rfl, ← Real.exp_nat_mul,
-      show ↑n * -c_s = -(c_s * ↑n) from by ring]
+    rw [show r_s ^ n = exp (-(c_s / 4)) ^ n from rfl, ← Real.exp_nat_mul,
+      show ↑n * -(c_s / 4) = -(c_s / 4 * ↑n) from by ring]
     apply Real.exp_le_exp.mpr
-    have h_eq : s * (2 * π * ↑n / L) ^ 2 = c_s * (↑n) ^ 2 := by
+    have h_eq : s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 = c_s * (↑(SmoothMap_Circle.fourierFreq n)) ^ 2 := by
       simp only [hc_s_def]; ring
     rw [h_eq]
-    have hn_sq : (↑n : ℝ) ≤ (↑n) ^ 2 := by
-      rcases n with _ | n
-      · simp
-      · have h1 : (1 : ℝ) ≤ ↑(n + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
-        calc (↑(n + 1) : ℝ) = ↑(n + 1) * 1 := (mul_one _).symm
-          _ ≤ ↑(n + 1) * ↑(n + 1) := by apply mul_le_mul_of_nonneg_left h1; positivity
-          _ = (↑(n + 1)) ^ 2 := (sq _).symm
-    linarith [mul_le_mul_of_nonneg_left hn_sq hc_s_pos.le]
+    exact circleHeatKernel_geometric_bound hc_s_pos n
   -- Continuity of θ ↦ circleHeatKernel L s θ₁ θ via continuous_tsum
   have h_cont_kernel : Continuous (fun θ => circleHeatKernel L s θ₁ θ) := by
     unfold circleHeatKernel
@@ -773,7 +948,7 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
     · exact (summable_geometric_of_lt_one hr_s_pos.le hr_s_lt_one).mul_left (M ^ 2)
     · intro n θ
       rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_nonneg (le_of_lt (exp_pos _))]
-      calc exp (-(s * (2 * π * ↑n / L) ^ 2)) * |fourierBasisFun (L := L) n θ₁| *
+      calc exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * |fourierBasisFun (L := L) n θ₁| *
             |fourierBasisFun (L := L) n θ|
           ≤ r_s ^ n * M * M := by
             apply mul_le_mul
@@ -785,7 +960,7 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
         _ = M ^ 2 * r_s ^ n := by ring
   -- Step 1: Expand the second kernel as a series
   set G : ℕ → ℝ → ℝ := fun k θ =>
-    exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
+    exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
       (circleHeatKernel L s θ₁ θ * fourierBasisFun (L := L) k θ) with hG_def
   have h_eq_tsum : ∀ θ,
       circleHeatKernel L s θ₁ θ * circleHeatKernel L t θ θ₂ = ∑' k, G k θ := by
@@ -796,7 +971,7 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
     -- Strategy: unfold cHK_t on LHS, use tsum_mul_left, then ring per summand
     set cHK_s := circleHeatKernel L s θ₁ θ
     have h_cHK_t : circleHeatKernel L t θ θ₂ = ∑' k,
-        exp (-(t * (2 * π * ↑k / L) ^ 2)) *
+        exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) *
           fourierBasisFun (L := L) k θ * fourierBasisFun (L := L) k θ₂ := rfl
     rw [h_cHK_t, ← tsum_mul_left]
     refine tsum_congr (fun k => ?_)
@@ -806,34 +981,27 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
   have hG_int : ∀ k, Integrable (G k) μ := by
     intro k; simp only [hG_def]
     exact ((h_cont_kernel.mul (fourierBasisFun_smooth k).continuous).const_smul
-      (exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₂)
+      (exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₂)
       ).continuousOn.integrableOn_compact isCompact_Icc |>.mono_set Set.Ioc_subset_Icc_self
   -- Step 3: Summability of ∫ ‖G k‖
   set c_t := t * (2 * π / L) ^ 2 with hc_t_def
   have hc_t_pos : 0 < c_t :=
     mul_pos ht (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
-  set r_t := exp (-c_t)
+  set r_t := exp (-(c_t / 4))
   have hr_t_pos : 0 < r_t := exp_pos _
   have hr_t_lt_one : r_t < 1 := Real.exp_lt_one_iff.mpr (by linarith)
-  have h_exp_le_t : ∀ k : ℕ, exp (-(t * (2 * π * ↑k / L) ^ 2)) ≤ r_t ^ k := by
+  have h_exp_le_t : ∀ k : ℕ, exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) ≤ r_t ^ k := by
     intro k
-    rw [show r_t ^ k = exp (-c_t) ^ k from rfl, ← Real.exp_nat_mul,
-      show ↑k * -c_t = -(c_t * ↑k) from by ring]
+    rw [show r_t ^ k = exp (-(c_t / 4)) ^ k from rfl, ← Real.exp_nat_mul,
+      show ↑k * -(c_t / 4) = -(c_t / 4 * ↑k) from by ring]
     apply Real.exp_le_exp.mpr
-    have h_eq : t * (2 * π * ↑k / L) ^ 2 = c_t * (↑k) ^ 2 := by
+    have h_eq : t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2 = c_t * (↑(SmoothMap_Circle.fourierFreq k)) ^ 2 := by
       simp only [hc_t_def]; ring
     rw [h_eq]
-    have hn_sq : (↑k : ℝ) ≤ (↑k) ^ 2 := by
-      rcases k with _ | k
-      · simp
-      · have h1 : (1 : ℝ) ≤ ↑(k + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le k)
-        calc (↑(k + 1) : ℝ) = ↑(k + 1) * 1 := (mul_one _).symm
-          _ ≤ ↑(k + 1) * ↑(k + 1) := by apply mul_le_mul_of_nonneg_left h1; positivity
-          _ = (↑(k + 1)) ^ 2 := (sq _).symm
-    linarith [mul_le_mul_of_nonneg_left hn_sq hc_t_pos.le]
+    exact circleHeatKernel_geometric_bound hc_t_pos k
   -- Pointwise bound on circleHeatKernel values via norm_tsum_le_tsum_norm
   have h_kernel_norm_summable : ∀ θ,
-      Summable (fun n => ‖exp (-(s * (2 * π * ↑n / L) ^ 2)) *
+      Summable (fun n => ‖exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
         fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ‖) :=
     fun θ => (circleHeatKernel_summable L s hs θ₁ θ).norm
   have h_M2_geom_summable : Summable (fun n => M ^ 2 * r_s ^ n) :=
@@ -844,19 +1012,19 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
     refine ⟨Bval,
       tsum_nonneg (fun n => mul_nonneg (sq_nonneg _) (pow_nonneg hr_s_pos.le n)), ?_⟩
     intro θ; unfold circleHeatKernel
-    calc |∑' n, exp (-(s * (2 * π * ↑n / L) ^ 2)) *
+    calc |∑' n, exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
           fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ|
-        = ‖∑' n, exp (-(s * (2 * π * ↑n / L) ^ 2)) *
+        = ‖∑' n, exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
           fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ‖ :=
           (Real.norm_eq_abs _).symm
-      _ ≤ ∑' n, ‖exp (-(s * (2 * π * ↑n / L) ^ 2)) *
+      _ ≤ ∑' n, ‖exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
           fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ‖ :=
           norm_tsum_le_tsum_norm (h_kernel_norm_summable θ)
       _ ≤ Bval := by
           apply (h_kernel_norm_summable θ).tsum_le_tsum _ h_M2_geom_summable
           intro n
           rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_nonneg (le_of_lt (exp_pos _))]
-          calc exp (-(s * (2 * π * ↑n / L) ^ 2)) * |fourierBasisFun (L := L) n θ₁| *
+          calc exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * |fourierBasisFun (L := L) n θ₁| *
                 |fourierBasisFun (L := L) n θ|
               ≤ r_s ^ n * M * M := by
                 apply mul_le_mul
@@ -871,13 +1039,13 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
     have h_bound : ∀ k θ, ‖G k θ‖ ≤ M * B * M * r_t ^ k := by
       intro k θ; simp only [hG_def]
       rw [Real.norm_eq_abs]
-      calc |exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
+      calc |exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
             (circleHeatKernel L s θ₁ θ * fourierBasisFun (L := L) k θ)|
-          = |exp (-(t * (2 * π * ↑k / L) ^ 2))| * |fourierBasisFun (L := L) k θ₂| *
+          = |exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2))| * |fourierBasisFun (L := L) k θ₂| *
             (|circleHeatKernel L s θ₁ θ| * |fourierBasisFun (L := L) k θ|) := by
             rw [abs_mul, abs_mul, abs_mul]
         _ ≤ r_t ^ k * M * (B * M) := by
-            have h_exp_nonneg : 0 ≤ exp (-(t * (2 * π * ↑k / L) ^ 2)) :=
+            have h_exp_nonneg : 0 ≤ exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) :=
               le_of_lt (exp_pos _)
             rw [abs_of_nonneg h_exp_nonneg]
             gcongr
@@ -907,8 +1075,8 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
   -- After swap, goal: ∑' k, ∫ θ, G k θ ∂μ = circleHeatKernel L (s + t) θ₁ θ₂
   -- Convert from set integral back to interval integral for the reproducing lemma
   have h_repro : ∀ k, ∫ θ, G k θ ∂μ =
-      exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
-      (exp (-(s * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₁) := by
+      exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
+      (exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₁) := by
     intro k
     simp only [hG_def]
     rw [integral_const_mul]
@@ -918,13 +1086,13 @@ theorem circleHeatKernel_semigroup (L : ℝ) [hL : Fact (0 < L)]
   simp_rw [h_repro]
   -- Step 6: Combine exponentials and match against circleHeatKernel definition
   rw [show circleHeatKernel L (s + t) θ₁ θ₂ =
-    ∑' k, exp (-((s + t) * (2 * π * ↑k / L) ^ 2)) *
+    ∑' k, exp (-((s + t) * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) *
       fourierBasisFun (L := L) k θ₁ * fourierBasisFun (L := L) k θ₂
     from rfl]
   congr 1; funext k
-  rw [show exp (-(t * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
-    (exp (-(s * (2 * π * ↑k / L) ^ 2)) * fourierBasisFun (L := L) k θ₁) =
-    exp (-(s * (2 * π * ↑k / L) ^ 2)) * exp (-(t * (2 * π * ↑k / L) ^ 2)) *
+  rw [show exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₂ *
+    (exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * fourierBasisFun (L := L) k θ₁) =
+    exp (-(s * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) * exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq k) / L) ^ 2)) *
     fourierBasisFun (L := L) k θ₁ * fourierBasisFun (L := L) k θ₂ from by ring]
   congr 1; congr 1
   rw [← Real.exp_add]
@@ -961,7 +1129,7 @@ theorem cylinderHeatKernel_eq_series (L : ℝ) [hL : Fact (0 < L)]
   -- Now LHS = exp(-m²t) * (∑' n, circle_n) * (∑' k, mehler_k)
   -- Step 2: Name the two summand functions
   set F : ℕ → ℝ := fun n =>
-    exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+    exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
       fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
   set G : ℕ → ℝ := fun k =>
     exp (-(t * (2 * ↑k + 1))) * hermiteFunction k x₁ * hermiteFunction k x₂
@@ -985,21 +1153,21 @@ theorem cylinderHeatKernel_eq_series (L : ℝ) [hL : Fact (0 < L)]
   congr 1; funext m
   simp only [F, G]
   -- Step 8: Factor the exponentials
-  -- exp(-m²t) * exp(-t(2πn/L)²) * exp(-t(2k+1)) = exp(-t * qftEigenvalue L mass m)
+  -- exp(-m²t) * exp(-t(2π·fourierFreq(n)/L)²) * exp(-t(2k+1)) = exp(-t * qftEigenvalue L mass m)
   have h_exp_eq : exp (-(mass ^ 2 * t)) *
-      exp (-(t * (2 * π * ↑(Nat.unpair m).1 / L) ^ 2)) *
+      exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (Nat.unpair m).1) / L) ^ 2)) *
       exp (-(t * (2 * ↑(Nat.unpair m).2 + 1))) =
       exp (-(t * qftEigenvalue L mass m)) := by
     rw [← Real.exp_add, ← Real.exp_add]
-    congr 1
-    unfold qftEigenvalue; ring
+    unfold qftEigenvalue
+    congr 1; ring
   -- Step 9: Rearrange products and substitute the exponential identity
   calc exp (-(mass ^ 2 * t)) *
-    (exp (-(t * (2 * π * ↑(Nat.unpair m).1 / L) ^ 2)) *
+    (exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (Nat.unpair m).1) / L) ^ 2)) *
       fourierBasisFun (Nat.unpair m).1 θ₁ * fourierBasisFun (Nat.unpair m).1 θ₂ *
       (exp (-(t * (2 * ↑(Nat.unpair m).2 + 1))) *
         hermiteFunction (Nat.unpair m).2 x₁ * hermiteFunction (Nat.unpair m).2 x₂))
-    = (exp (-(mass ^ 2 * t)) * exp (-(t * (2 * π * ↑(Nat.unpair m).1 / L) ^ 2)) *
+    = (exp (-(mass ^ 2 * t)) * exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (Nat.unpair m).1) / L) ^ 2)) *
         exp (-(t * (2 * ↑(Nat.unpair m).2 + 1)))) *
       (fourierBasisFun (Nat.unpair m).1 θ₁ * hermiteFunction (Nat.unpair m).2 x₁) *
       (fourierBasisFun (Nat.unpair m).1 θ₂ *
@@ -1518,11 +1686,11 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
   -- ═══════════════════════════════════════════════════════════════════════════
   -- Step 4: Evaluate the outer θ'-integral for each term
   -- ═══════════════════════════════════════════════════════════════════════════
-  -- ∫ θ' in 0..L, K_circle(θ,θ',t) * ψ_n(θ') = exp(-t(2πn/L)²) * ψ_n(θ)
+  -- ∫ θ' in 0..L, K_circle(θ,θ',t) * ψ_n(θ') = exp(-t(2π·f(n)/L)²) * ψ_n(θ)
   have h_circle_repro : ∀ n : ℕ,
       ∫ θ' in (0 : ℝ)..L, circleHeatKernel L t θ θ' *
         fourierBasisFun (L := L) n θ' =
-      exp (-(t * (2 * π * ↑n / L) ^ 2)) * fourierBasisFun (L := L) n θ :=
+      exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * fourierBasisFun (L := L) n θ :=
     fun n => circleHeatKernel_reproduces_fourier L t ht n θ
   -- ═══════════════════════════════════════════════════════════════════════════
   -- Step 5: Compute the double integral of each G m by factoring
@@ -1542,7 +1710,7 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
   have h_double_integral : ∀ m,
       ∫ θ' in (0 : ℝ)..L, ∫ x', G m θ' x' =
       DyninMityaginSpace.coeff m f *
-        (exp (-(t * (2 * π * ↑(m.unpair).1 / L) ^ 2)) *
+        (exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2)) *
           fourierBasisFun (L := L) (m.unpair).1 θ) *
         (exp (-(t * (2 * ↑(m.unpair).2 + 1))) * hermiteFunction (m.unpair).2 x) := by
     intro m
@@ -1789,30 +1957,23 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
         have hM_nonneg : 0 ≤ M := le_max_of_le_right (Real.sqrt_nonneg _)
         set c := t * (2 * π / L) ^ 2
         have hc_pos : 0 < c := mul_pos ht (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
-        set r := exp (-c)
+        set r := exp (-(c / 4))
         have hr_pos : 0 < r := exp_pos _
         have hr_lt_one : r < 1 := Real.exp_lt_one_iff.mpr (by linarith)
-        have h_exp_le : ∀ n : ℕ, exp (-(t * (2 * π * ↑n / L) ^ 2)) ≤ r ^ n := by
+        have h_exp_le : ∀ n : ℕ, exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) ≤ r ^ n := by
           intro n
-          rw [show r ^ n = exp (-c) ^ n from rfl, ← Real.exp_nat_mul,
-            show ↑n * -c = -(c * ↑n) from by ring]
+          rw [show r ^ n = exp (-(c / 4)) ^ n from rfl, ← Real.exp_nat_mul,
+            show ↑n * -(c / 4) = -(c / 4 * ↑n) from by ring]
           apply Real.exp_le_exp.mpr
-          have h_eq : t * (2 * π * ↑n / L) ^ 2 = c * (↑n) ^ 2 := by simp only [c]; ring
+          have h_eq : t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 = c * (↑(SmoothMap_Circle.fourierFreq n)) ^ 2 := by simp only [c]; ring
           rw [h_eq]
-          have hn_sq : (↑n : ℝ) ≤ (↑n) ^ 2 := by
-            rcases n with _ | n
-            · simp
-            · have h1 : (1 : ℝ) ≤ ↑(n + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
-              calc (↑(n + 1) : ℝ) = ↑(n + 1) * 1 := (mul_one _).symm
-                _ ≤ ↑(n + 1) * ↑(n + 1) := by apply mul_le_mul_of_nonneg_left h1; positivity
-                _ = (↑(n + 1)) ^ 2 := (sq _).symm
-          linarith [mul_le_mul_of_nonneg_left hn_sq hc_pos.le]
+          exact circleHeatKernel_geometric_bound hc_pos n
         apply continuous_tsum
         · intro n; exact continuous_const.mul (fourierBasisFun_smooth (L := L) n).continuous
         · exact (summable_geometric_of_lt_one hr_pos.le hr_lt_one).mul_left (M ^ 2)
         · intro n θ'
           rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_nonneg (le_of_lt (exp_pos _))]
-          calc exp (-(t * (2 * π * ↑n / L) ^ 2)) * |fourierBasisFun (L := L) n θ| *
+          calc exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * |fourierBasisFun (L := L) n θ| *
                 |fourierBasisFun (L := L) n θ'|
               ≤ r ^ n * M * M := by
                 apply mul_le_mul
@@ -1840,30 +2001,26 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
     -- Bound |K_circle| using its tsum
     set c_K := t * (2 * π / L) ^ 2
     have hc_K_pos : 0 < c_K := mul_pos ht (sq_pos_of_pos (div_pos (mul_pos two_pos pi_pos) hL.out))
-    set r_K := exp (-c_K)
+    set r_K := exp (-(c_K / 4))
     have hr_K_pos : 0 < r_K := exp_pos _
     have hr_K_lt : r_K < 1 := Real.exp_lt_one_iff.mpr (by linarith)
-    have h_exp_le_K : ∀ n : ℕ, exp (-(t * (2 * π * ↑n / L) ^ 2)) ≤ r_K ^ n := by
+    have h_exp_le_K : ∀ n : ℕ, exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) ≤ r_K ^ n := by
       intro n
-      rw [show r_K ^ n = exp (-c_K) ^ n from rfl, ← Real.exp_nat_mul,
-        show ↑n * -c_K = -(c_K * ↑n) from by ring]
+      rw [show r_K ^ n = exp (-(c_K / 4)) ^ n from rfl, ← Real.exp_nat_mul,
+        show ↑n * -(c_K / 4) = -(c_K / 4 * ↑n) from by ring]
       apply Real.exp_le_exp.mpr
-      have h_eq : t * (2 * π * ↑n / L) ^ 2 = c_K * (↑n) ^ 2 := by simp only [c_K]; ring
+      have h_eq : t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 = c_K * (↑(SmoothMap_Circle.fourierFreq n)) ^ 2 := by simp only [c_K]; ring
       rw [h_eq]
-      have hn_sq : (↑n : ℝ) ≤ (↑n) ^ 2 := by
-        rcases n with _ | n; · simp
-        · have h1 : (1 : ℝ) ≤ ↑(n + 1) := by exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
-          nlinarith [h1]
-      linarith [mul_le_mul_of_nonneg_left hn_sq hc_K_pos.le]
+      exact circleHeatKernel_geometric_bound hc_K_pos n
     set B_K := ∑' n, M_f ^ 2 * r_K ^ n
     have hB_K_nn : 0 ≤ B_K :=
       tsum_nonneg (fun n => mul_nonneg (sq_nonneg _) (pow_nonneg hr_K_pos.le n))
     have h_K_bound : ∀ θ'', |circleHeatKernel L t θ θ''| ≤ B_K := by
       intro θ''
       unfold circleHeatKernel
-      calc |∑' n, exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+      calc |∑' n, exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
             fourierBasisFun (L := L) n θ * fourierBasisFun (L := L) n θ''|
-          ≤ ∑' n, |exp (-(t * (2 * π * ↑n / L) ^ 2)) *
+          ≤ ∑' n, |exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
             fourierBasisFun (L := L) n θ * fourierBasisFun (L := L) n θ''| :=
             norm_tsum_le_tsum_norm ((circleHeatKernel_summable L t ht θ θ'').norm)
         _ ≤ B_K := by
@@ -1871,7 +2028,7 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
               ((summable_geometric_of_lt_one hr_K_pos.le hr_K_lt).mul_left _)
             intro n
             rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_nonneg (le_of_lt (exp_pos _))]
-            calc exp (-(t * (2 * π * ↑n / L) ^ 2)) * |fourierBasisFun (L := L) n θ| *
+            calc exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) * |fourierBasisFun (L := L) n θ| *
                   |fourierBasisFun (L := L) n θ''|
                 ≤ r_K ^ n * M_f * M_f := by
                   apply mul_le_mul
@@ -1977,7 +2134,7 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
         (circleHeatKernel L t θ θ' * fourierBasisFun (L := L) (m.unpair).1 θ') ∂μ =
       DyninMityaginSpace.coeff m f *
         exp (-(t * (2 * ↑(m.unpair).2 + 1))) * hermiteFunction (m.unpair).2 x *
-        (exp (-(t * (2 * π * ↑(m.unpair).1 / L) ^ 2)) *
+        (exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2)) *
           fourierBasisFun (L := L) (m.unpair).1 θ) := by
     intro m
     rw [integral_const_mul]
@@ -1990,23 +2147,23 @@ theorem cylinderHeatKernel_reproduces (L : ℝ) [hL : Fact (0 < L)]
   rw [← tsum_mul_left]
   -- Match term by term
   congr 1; funext m
-  -- Combine exponentials: exp(-m²t) * exp(-t(2πn/L)²) * exp(-t(2k+1)) = exp(-t * λ_m)
+  -- Combine exponentials: exp(-m²t) * exp(-t(2π·f(n)/L)²) * exp(-t(2k+1)) = exp(-t * λ_m)
   have h_exp_eq : exp (-(mass ^ 2 * t)) *
       (exp (-(t * (2 * ↑(m.unpair).2 + 1))) *
-       exp (-(t * (2 * π * ↑(m.unpair).1 / L) ^ 2))) =
+       exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2))) =
       exp (-(t * qftEigenvalue L mass m)) := by
     rw [← Real.exp_add, ← Real.exp_add]
-    congr 1
-    unfold qftEigenvalue; ring
+    unfold qftEigenvalue
+    congr 1; ring
   -- Rearrange and substitute
   calc exp (-(mass ^ 2 * t)) *
     (DyninMityaginSpace.coeff m f *
       exp (-(t * (2 * ↑(m.unpair).2 + 1))) * hermiteFunction (m.unpair).2 x *
-      (exp (-(t * (2 * π * ↑(m.unpair).1 / L) ^ 2)) *
+      (exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2)) *
         fourierBasisFun (L := L) (m.unpair).1 θ))
     = (exp (-(mass ^ 2 * t)) *
         (exp (-(t * (2 * ↑(m.unpair).2 + 1))) *
-         exp (-(t * (2 * π * ↑(m.unpair).1 / L) ^ 2)))) *
+         exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq (m.unpair).1) / L) ^ 2)))) *
       DyninMityaginSpace.coeff m f *
       fourierBasisFun (L := L) (m.unpair).1 θ *
       hermiteFunction (m.unpair).2 x := by ring
