@@ -115,6 +115,16 @@ omit [Fact (0 < L)] in
 @[simp] theorem circleSpacing_eq (N : ℕ) [NeZero N] :
     circleSpacing L N = L / N := rfl
 
+/-! ## Duality with geometric embedding
+
+The circle restriction is dual to the geometric torus embedding:
+- `circlePoint L N k` gives the real coordinate `(ZMod.val k) * L / N`
+- `ZMod.toScaledAddCircle L N hL k` gives the same value modulo L in `AddCircle L`
+
+The torus embedding `torusEmbedCLM` (from `Torus/Evaluation.lean`) maps lattice
+fields to configurations, while `circleRestriction` samples test functions at
+lattice points. These are transposes: `⟨ι_N(φ), f⟩ = ⟨φ, r_N(f)⟩`. -/
+
 /-! ## Riemann sum convergence -/
 
 /-- The ℓ² norm squared of r_N f equals (L/N) times the Riemann sum of f². -/
