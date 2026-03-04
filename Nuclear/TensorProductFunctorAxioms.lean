@@ -14,6 +14,8 @@ tensor product, preserving composition and identity.
 - `nuclearTensorProduct_swapCLM` — swap factors
 - `nuclearTensorProduct_mapCLM_comp` — functoriality: `(T₁∘S₁) ⊗ (T₂∘S₂) = (T₁⊗T₂) ∘ (S₁⊗S₂)`
 - `nuclearTensorProduct_mapCLM_id` — identity: `id ⊗ id = id`
+- `nuclearTensorProduct_mapCLM_pure` — action on pure tensors
+- `nuclearTensorProduct_swapCLM_pure` — swap on pure tensors
 
 ## Mathematical background
 
@@ -102,6 +104,41 @@ axiom nuclearTensorProduct_mapCLM_id
       (ContinuousLinearMap.id ℝ E₁)
       (ContinuousLinearMap.id ℝ E₂) =
     ContinuousLinearMap.id ℝ (NuclearTensorProduct E₁ E₂)
+
+/-! ## Pure tensor specifications -/
+
+/-- **`mapCLM` acts on pure tensors by applying each factor.**
+
+  `(T₁ ⊗ T₂)(pure e₁ e₂) = pure (T₁ e₁) (T₂ e₂)`
+
+This is the defining property of the tensor product of linear maps
+on elementary tensors.
+
+Reference: Trèves, *Topological Vector Spaces*, Ch. 50, Theorem 50.1. -/
+axiom nuclearTensorProduct_mapCLM_pure
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) (e₁ : E₁) (e₂ : E₂) :
+    nuclearTensorProduct_mapCLM T₁ T₂ (NuclearTensorProduct.pure e₁ e₂) =
+    NuclearTensorProduct.pure (T₁ e₁) (T₂ e₂)
+
+/-- **`swapCLM` swaps the factors of a pure tensor.**
+
+  `swap(pure e₁ e₂) = pure e₂ e₁`
+
+This is the defining property of the symmetric braiding on elementary tensors.
+
+Reference: Trèves, *Topological Vector Spaces*, Ch. 43, §43.5. -/
+axiom nuclearTensorProduct_swapCLM_pure
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (e₁ : E₁) (e₂ : E₂) :
+    nuclearTensorProduct_swapCLM (NuclearTensorProduct.pure e₁ e₂) =
+    NuclearTensorProduct.pure e₂ e₁
 
 end GaussianField
 
