@@ -37,6 +37,7 @@ only through the Green's function. This ensures:
 
 import Nuclear.NuclearTensorProduct
 import Mathlib.Analysis.Normed.Group.Tannery
+import Mathlib.Analysis.Normed.Group.FunctionSeries
 import Mathlib.Analysis.LocallyConvex.SeparatingDual
 
 noncomputable section
@@ -360,6 +361,109 @@ theorem greenFunctionBilinear_le [HasLaplacianEigenvalues E]
           ring
   · exact greenFunctionBilinear_summable mass hmass f f
   · exact Summable.mul_left _ (l2InnerProduct_summable f f)
+
+/-! ## Continuity of Green's function on diagonal -/
+
+/-- **Continuity of `f ↦ G_mass(f, f)` on the diagonal.**
+
+The Green's function `G_mass(f, f) = Σ_m (coeff_m f)² / (μ_m + mass²)` is continuous
+as a function of `f`. The proof shows that the partial sums converge locally
+uniformly:
+
+- `coeff_decay` at `k = 1` gives `|coeff_m f| ≤ C · q(f) / (1+m)` for a
+  continuous seminorm `q`.
+- Each term satisfies `|term_m(f)| ≤ C² · q(f)² / ((1+m)² · mass²)`.
+- On the seminorm ball `{f | q(f) < R}`, this is bounded by the
+  `m`-independent summable sequence `C² R² / ((1+m)² · mass²)`.
+- By the Weierstrass M-test (`tendstoUniformlyOn_tsum`), partial sums converge
+  uniformly on each such ball.
+- Since these balls cover `E`, convergence is locally uniform
+  (`tendstoLocallyUniformly_of_forall_exists_nhds`).
+- A locally uniform limit of continuous functions is continuous
+  (`TendstoLocallyUniformly.continuous`). -/
+theorem greenFunctionBilinear_continuous_diag [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) :
+    Continuous (fun f : E => greenFunctionBilinear mass hmass f f) := by
+  -- Step 0: Setup — get coeff_decay bound and continuous seminorm
+  obtain ⟨C, hC, s, hbound⟩ := DyninMityaginSpace.coeff_decay (E := E) 1
+  set q : Seminorm ℝ E := s.sup DyninMityaginSpace.p with hq_def
+  have hq_cont : Continuous q := by
+    -- sup of continuous seminorms is continuous: sup ≤ sum, and sum is continuous
+    refine Seminorm.continuous_of_le ?_ (Seminorm.finset_sup_le_sum _ _)
+    -- Need: Continuous ⇑(∑ i ∈ s, DyninMityaginSpace.p i)
+    show Continuous (fun x : E => (∑ i ∈ s, DyninMityaginSpace.p (E := E) i : Seminorm ℝ E) x)
+    have : (fun x : E => (∑ i ∈ s, DyninMityaginSpace.p (E := E) i : Seminorm ℝ E) x) =
+        (fun x : E => ∑ i ∈ s, DyninMityaginSpace.p (E := E) i x) := by
+      ext x
+      change (Seminorm.coeFnAddMonoidHom ℝ E) (∑ i ∈ s, DyninMityaginSpace.p i) x =
+        ∑ i ∈ s, DyninMityaginSpace.p i x
+      rw [map_sum]; simp [Seminorm.coeFnAddMonoidHom]
+    rw [this]
+    exact continuous_finset_sum _ fun i _ => DyninMityaginSpace.h_with.continuous_seminorm i
+  have hmass_sq_pos : (0 : ℝ) < mass ^ 2 := sq_pos_of_pos hmass
+  -- Summability of 1/(1+m)^2
+  have h1sq : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
+    have := (summable_nat_add_iff 1).mpr
+      (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+    exact this.congr (fun m => by push_cast; ring_nf)
+  -- Step 1: Show locally uniform convergence of partial sums
+  apply TendstoLocallyUniformly.continuous (F := fun (t : Finset ℕ) (f : E) =>
+    ∑ m ∈ t, greenTerm (E := E) mass f f m)
+  · -- Locally uniform convergence
+    apply tendstoLocallyUniformly_of_forall_exists_nhds
+    intro f₀
+    set R := q f₀ + 1 with hR_def
+    have hR_pos : (0 : ℝ) < R := by positivity
+    -- The neighborhood: {f | q(f) < R}
+    refine ⟨{f : E | q f < R}, ?_, ?_⟩
+    · -- {f | q(f) < R} ∈ nhds f₀
+      exact hq_cont.isOpen_preimage _ isOpen_Iio |>.mem_nhds (by linarith : q f₀ < R)
+    · -- TendstoUniformlyOn on this set
+      set bound := fun m : ℕ => C ^ 2 * R ^ 2 / (mass ^ 2) * (1 / ((m : ℝ) + 1) ^ 2)
+      apply tendstoUniformlyOn_tsum (u := bound)
+      · -- Summability of the bound
+        exact (h1sq.mul_left (C ^ 2 * R ^ 2 / mass ^ 2))
+      · -- Pointwise bound: ‖greenTerm mass f f m‖ ≤ bound m for f in the neighborhood
+        intro m f (hf : q f < R)
+        show ‖greenTerm (E := E) mass f f m‖ ≤ bound m
+        simp only [greenTerm, Real.norm_eq_abs]
+        -- The term is nonneg (square over positive), so abs = value
+        have hden_pos : 0 < HasLaplacianEigenvalues.eigenvalue (E := E) m + mass ^ 2 :=
+          by linarith [HasLaplacianEigenvalues.eigenvalue_nonneg (E := E) m]
+        rw [abs_of_nonneg (div_nonneg (mul_self_nonneg _) (le_of_lt hden_pos))]
+        -- Bound: (coeff m f)² / denom ≤ (coeff m f)² / mass²
+        have hcoeff_bound : |DyninMityaginSpace.coeff m f| ≤ C * q f / (1 + (m : ℝ)) := by
+          have h1m : (0 : ℝ) < 1 + (m : ℝ) := by positivity
+          rw [le_div_iff₀ h1m]
+          have := hbound f m; simp only [pow_one] at this; exact this
+        calc DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f /
+              (HasLaplacianEigenvalues.eigenvalue (E := E) m + mass ^ 2)
+            ≤ DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f / mass ^ 2 := by
+              apply div_le_div_of_nonneg_left (mul_self_nonneg _) hmass_sq_pos
+              exact le_add_of_nonneg_left (HasLaplacianEigenvalues.eigenvalue_nonneg (E := E) m)
+          _ = |DyninMityaginSpace.coeff m f| ^ 2 / mass ^ 2 := by
+              rw [sq_abs]; ring_nf
+          _ ≤ (C * q f / (1 + (m : ℝ))) ^ 2 / mass ^ 2 := by
+              apply div_le_div_of_nonneg_right _ (le_of_lt hmass_sq_pos)
+              exact pow_le_pow_left₀ (abs_nonneg _) hcoeff_bound 2
+          _ ≤ (C * R / (1 + (m : ℝ))) ^ 2 / mass ^ 2 := by
+              apply div_le_div_of_nonneg_right _ (le_of_lt hmass_sq_pos)
+              exact pow_le_pow_left₀ (by positivity)
+                (div_le_div_of_nonneg_right
+                  (mul_le_mul_of_nonneg_left (le_of_lt hf) (le_of_lt hC))
+                  (by positivity : (0 : ℝ) ≤ 1 + (m : ℝ))) 2
+          _ = bound m := by
+              simp only [bound]; field_simp; ring
+  · -- Step 2: Partial sums are continuous (they are finite sums of continuous functions)
+    apply Filter.Frequently.of_forall
+    intro t
+    apply continuous_finset_sum
+    intro m _
+    show Continuous (fun f : E => greenTerm (E := E) mass f f m)
+    simp only [greenTerm]
+    apply Continuous.div_const
+    exact Continuous.mul (DyninMityaginSpace.coeff m).continuous
+      (DyninMityaginSpace.coeff m).continuous
 
 /-! ## Tensor product eigenvalues -/
 
