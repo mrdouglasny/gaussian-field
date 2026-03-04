@@ -18,7 +18,7 @@ import SchwartzNuclear.HermiteTensorProduct
 
 noncomputable section
 
-open GaussianField
+open GaussianField TopologicalSpace
 
 namespace GaussianField
 
@@ -59,5 +59,42 @@ noncomputable instance schwartz_dyninMityaginSpace_euclidean (d : ℕ) :
     (fun (kl : ℕ × ℕ) => SchwartzMap.seminorm ℝ kl.1 kl.2)
     (schwartz_withSeminorms ℝ (EuclideanSpace ℝ (Fin (d + 1))) ℝ)
     (schwartzRapidDecayEquivNd d)
+
+/-! ## Separability
+
+`RapidDecaySeq` is separable because the basis vectors `basisVec m` span a dense subspace
+(by `hasSum_basisVec`). Schwartz space inherits separability via the CLE
+`schwartzRapidDecayEquiv`. -/
+
+/-- `RapidDecaySeq` is separable: the countable set `{basisVec m | m ∈ ℕ}` spans a dense
+    subspace (every element is the limit of finite linear combinations by `hasSum_basisVec`). -/
+instance rapidDecaySeq_separableSpace : SeparableSpace RapidDecaySeq := by
+  rw [← TopologicalSpace.isSeparable_univ_iff]
+  have h_dense : (Submodule.span ℝ (Set.range RapidDecaySeq.basisVec)).topologicalClosure = ⊤ := by
+    rw [eq_top_iff]
+    intro a _
+    exact mem_closure_of_tendsto (RapidDecaySeq.hasSum_basisVec a).tendsto_sum_nat
+      (Filter.Eventually.of_forall fun s =>
+        Submodule.sum_mem _ fun m _ =>
+          Submodule.smul_mem _ _ (Submodule.subset_span ⟨m, rfl⟩))
+  have h1 := (Set.countable_range RapidDecaySeq.basisVec).isSeparable.span (R := ℝ)
+  have h2 := h1.closure
+  have h3 : closure (↑(Submodule.span ℝ (Set.range RapidDecaySeq.basisVec)) :
+      Set RapidDecaySeq) = Set.univ := by
+    rw [← Submodule.topologicalClosure_coe, h_dense]; rfl
+  rwa [h3] at h2
+
+/-- **Schwartz space is separable.**
+
+    Proved via the topological isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`:
+    since `RapidDecaySeq` is separable (countable Hermite basis spans a dense subspace),
+    and a CLE is a homeomorphism, Schwartz space is separable. -/
+instance schwartz_separableSpace [Nontrivial D] :
+    SeparableSpace (SchwartzMap D ℝ) := by
+  rw [← TopologicalSpace.isSeparable_univ_iff]
+  have h_range : Set.range (schwartzRapidDecayEquiv D).symm = Set.univ :=
+    Function.Surjective.range_eq (schwartzRapidDecayEquiv D).symm.surjective
+  rw [← h_range]
+  exact isSeparable_range (schwartzRapidDecayEquiv D).symm.continuous
 
 end GaussianField
