@@ -466,6 +466,101 @@ theorem greenFunctionBilinear_continuous_diag [HasLaplacianEigenvalues E]
     exact Continuous.mul (DyninMityaginSpace.coeff m).continuous
       (DyninMityaginSpace.coeff m).continuous
 
+/-! ## Bilinearity of Green's function -/
+
+/-- **Green's function is symmetric.** `G_mass(f, g) = G_mass(g, f)` -/
+theorem greenFunctionBilinear_symm [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f g : E) :
+    greenFunctionBilinear mass hmass f g = greenFunctionBilinear mass hmass g f := by
+  unfold greenFunctionBilinear greenTerm
+  congr 1; ext m; ring
+
+/-- **Green's function is additive in the first argument.** -/
+theorem greenFunctionBilinear_add_left [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f₁ f₂ g : E) :
+    greenFunctionBilinear mass hmass (f₁ + f₂) g =
+      greenFunctionBilinear mass hmass f₁ g + greenFunctionBilinear mass hmass f₂ g := by
+  unfold greenFunctionBilinear
+  rw [← Summable.tsum_add (greenFunctionBilinear_summable mass hmass f₁ g)
+    (greenFunctionBilinear_summable mass hmass f₂ g)]
+  congr 1; ext m
+  simp only [greenTerm, map_add]; ring
+
+/-- **Green's function is ℝ-homogeneous in the first argument.** -/
+theorem greenFunctionBilinear_smul_left [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (c : ℝ) (f g : E) :
+    greenFunctionBilinear mass hmass (c • f) g =
+      c * greenFunctionBilinear mass hmass f g := by
+  unfold greenFunctionBilinear
+  rw [← tsum_mul_left]
+  congr 1; ext m
+  simp only [greenTerm, map_smul, smul_eq_mul]; ring
+
+/-- **Green's function is additive in the second argument.** -/
+theorem greenFunctionBilinear_add_right [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f g₁ g₂ : E) :
+    greenFunctionBilinear mass hmass f (g₁ + g₂) =
+      greenFunctionBilinear mass hmass f g₁ + greenFunctionBilinear mass hmass f g₂ := by
+  rw [greenFunctionBilinear_symm, greenFunctionBilinear_add_left,
+    greenFunctionBilinear_symm mass hmass g₁, greenFunctionBilinear_symm mass hmass g₂]
+
+/-- **Green's function is ℝ-homogeneous in the second argument.** -/
+theorem greenFunctionBilinear_smul_right [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f : E) (c : ℝ) (g : E) :
+    greenFunctionBilinear mass hmass f (c • g) =
+      c * greenFunctionBilinear mass hmass f g := by
+  rw [greenFunctionBilinear_symm, greenFunctionBilinear_smul_left,
+    greenFunctionBilinear_symm]
+
+/-- **Green's function negation in first argument.** -/
+theorem greenFunctionBilinear_neg_left [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f g : E) :
+    greenFunctionBilinear mass hmass (-f) g = -greenFunctionBilinear mass hmass f g := by
+  rw [show -f = (-1 : ℝ) • f from (neg_one_smul ℝ f).symm,
+    greenFunctionBilinear_smul_left]; ring
+
+/-- **Green's function subtraction in first argument.** -/
+theorem greenFunctionBilinear_sub_left [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f₁ f₂ g : E) :
+    greenFunctionBilinear mass hmass (f₁ - f₂) g =
+      greenFunctionBilinear mass hmass f₁ g - greenFunctionBilinear mass hmass f₂ g := by
+  rw [sub_eq_add_neg, greenFunctionBilinear_add_left,
+    greenFunctionBilinear_neg_left, sub_eq_add_neg]
+
+/-- **Green's function at zero.** -/
+theorem greenFunctionBilinear_zero_left [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (g : E) :
+    greenFunctionBilinear mass hmass 0 g = 0 := by
+  have := greenFunctionBilinear_smul_left mass hmass (0 : ℝ) (0 : E) g
+  simp at this; exact this
+
+/-- **Green's function distributes over finite sums in the first argument.** -/
+theorem greenFunctionBilinear_finset_sum_left {ι : Type*} [DecidableEq ι]
+    [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (s : Finset ι)
+    (a : ι → ℝ) (f : ι → E) (g : E) :
+    greenFunctionBilinear mass hmass (∑ i ∈ s, a i • f i) g =
+      ∑ i ∈ s, a i * greenFunctionBilinear mass hmass (f i) g := by
+  induction s using Finset.induction with
+  | empty => simp [greenFunctionBilinear_zero_left]
+  | @insert a s ha ih =>
+    rw [Finset.sum_insert ha, greenFunctionBilinear_add_left,
+        greenFunctionBilinear_smul_left, ih, Finset.sum_insert ha]
+
+/-- **Green's function distributes over finite sums in both arguments.** -/
+theorem greenFunctionBilinear_finset_sum [HasLaplacianEigenvalues E]
+    {ι₁ ι₂ : Type*} [DecidableEq ι₁] [DecidableEq ι₂]
+    (mass : ℝ) (hmass : 0 < mass) (s₁ : Finset ι₁) (s₂ : Finset ι₂)
+    (a : ι₁ → ℝ) (b : ι₂ → ℝ) (f : ι₁ → E) (g : ι₂ → E) :
+    greenFunctionBilinear mass hmass (∑ i ∈ s₁, a i • f i) (∑ j ∈ s₂, b j • g j) =
+      ∑ i ∈ s₁, ∑ j ∈ s₂, a i * b j * greenFunctionBilinear mass hmass (f i) (g j) := by
+  rw [greenFunctionBilinear_finset_sum_left]
+  congr 1; ext i
+  rw [greenFunctionBilinear_symm, greenFunctionBilinear_finset_sum_left]
+  rw [Finset.mul_sum]
+  congr 1; ext j
+  rw [greenFunctionBilinear_symm]; ring
+
 /-! ## Tensor product eigenvalues -/
 
 variable {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁]
