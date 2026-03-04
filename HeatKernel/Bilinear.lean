@@ -39,6 +39,7 @@ import Nuclear.NuclearTensorProduct
 import Mathlib.Analysis.Normed.Group.Tannery
 import Mathlib.Analysis.Normed.Group.FunctionSeries
 import Mathlib.Analysis.LocallyConvex.SeparatingDual
+import Mathlib.Analysis.Normed.Ring.InfiniteSum
 
 noncomputable section
 
@@ -491,6 +492,59 @@ instance tensorProductHasLaplacianEigenvalues
 
 /-! ## Heat kernel factorization -/
 
+/-- Summability of the heat kernel series for `0 ≤ t` (extending `heatKernelBilinear_summable`
+to include `t = 0`). -/
+private theorem heatKernelTerm_summable_nonneg [HasLaplacianEigenvalues E]
+    (t : ℝ) (ht : 0 ≤ t) (f g : E) :
+    Summable (heatKernelTerm (E := E) t f g) := by
+  rcases eq_or_lt_of_le ht with rfl | hpos
+  · -- t = 0: heatKernelTerm 0 f g m = 1 * c_f(m) * c_g(m) = l2Term f g m
+    exact (l2InnerProduct_summable f g).congr (fun m => by
+      simp only [heatKernelTerm, l2Term, neg_zero, zero_mul, Real.exp_zero, one_mul])
+  · exact heatKernelBilinear_summable t hpos f g
+
+/-- The m-th heat kernel term for the tensor product factors as a product
+of individual terms. -/
+private theorem heatKernelTerm_tensorProduct
+    [HasLaplacianEigenvalues E₁] [HasLaplacianEigenvalues E₂]
+    (t : ℝ) (f₁ g₁ : E₁) (f₂ g₂ : E₂) (m : ℕ) :
+    heatKernelTerm (E := NuclearTensorProduct E₁ E₂) t
+      (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) m =
+    heatKernelTerm (E := E₁) t f₁ g₁ (Nat.unpair m).1 *
+      heatKernelTerm (E := E₂) t f₂ g₂ (Nat.unpair m).2 := by
+  set i := (Nat.unpair m).1
+  set j := (Nat.unpair m).2
+  set μ₁ := HasLaplacianEigenvalues.eigenvalue (E := E₁) i
+  set μ₂ := HasLaplacianEigenvalues.eigenvalue (E := E₂) j
+  set c₁f := DyninMityaginSpace.coeff i f₁
+  set c₁g := DyninMityaginSpace.coeff i g₁
+  set c₂f := DyninMityaginSpace.coeff j f₂
+  set c₂g := DyninMityaginSpace.coeff j g₂
+  -- LHS: heatKernelTerm for NTP unfolds to:
+  --   exp(-t * (μ₁ + μ₂)) * coeff_NTP(m, pure f₁ f₂) * coeff_NTP(m, pure g₁ g₂)
+  -- The NTP eigenvalue is μ₁ + μ₂ (from tensorProductHasLaplacianEigenvalues).
+  -- The NTP coeff is .val access (from NTP.dyninMityaginSpace = rapidDecay_dyninMityaginSpace,
+  -- where coeff := coeffCLM, and coeffCLM m x = x.val m).
+  -- pure_val says (pure f₁ f₂).val m = c₁f * c₂f (and similarly for g).
+  -- RHS: (exp(-t*μ₁) * c₁f * c₁g) * (exp(-t*μ₂) * c₂f * c₂g)
+  -- The key algebraic step: exp(-t*(μ₁+μ₂)) = exp(-t*μ₁) * exp(-t*μ₂)
+  have h_eq : heatKernelTerm (E := NuclearTensorProduct E₁ E₂) t
+      (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) m =
+      Real.exp (-t * (μ₁ + μ₂)) * (c₁f * c₂f) * (c₁g * c₂g) := by
+    simp only [heatKernelTerm, tensorProductHasLaplacianEigenvalues]
+    rfl
+  rw [h_eq]
+  simp only [heatKernelTerm]
+  rw [show -t * (μ₁ + μ₂) = (-t * μ₁) + (-t * μ₂) from by ring, Real.exp_add]
+  ring
+
+/-- Norm-summability of heat kernel terms for `0 ≤ t`. -/
+private theorem heatKernelTerm_summable_norm [HasLaplacianEigenvalues E]
+    (t : ℝ) (ht : 0 ≤ t) (f g : E) :
+    Summable (fun m => ‖heatKernelTerm (E := E) t f g m‖) :=
+  (heatKernelTerm_summable_nonneg t ht f g).abs.congr
+    (fun _ => (Real.norm_eq_abs _).symm)
+
 /-- **Heat kernel is multiplicative under tensor product.**
 
   `K_t^{E₁⊗E₂}(f₁⊗f₂, g₁⊗g₂) = K_t^{E₁}(f₁,g₁) · K_t^{E₂}(f₂,g₂)`
@@ -508,6 +562,64 @@ theorem heatKernelBilinear_tensorProduct
       (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) =
     heatKernelBilinear (E := E₁) t f₁ g₁ *
       heatKernelBilinear (E := E₂) t f₂ g₂ := by
-  sorry
+  -- Abbreviations
+  set a := heatKernelTerm (E := E₁) t f₁ g₁
+  set b := heatKernelTerm (E := E₂) t f₂ g₂
+  unfold heatKernelBilinear
+  -- Step 1: Rewrite each term using the factorization
+  conv_lhs => arg 1; ext m; rw [heatKernelTerm_tensorProduct t f₁ g₁ f₂ g₂ m]
+  -- Step 2: Reindex from ℕ to ℕ × ℕ via Cantor pairing
+  -- Nat.pairEquiv_symm_apply : ⇑Nat.pairEquiv.symm = Nat.unpair
+  simp_rw [show Nat.unpair = ⇑Nat.pairEquiv.symm from Nat.pairEquiv_symm_apply.symm]
+  rw [Nat.pairEquiv.symm.tsum_eq (fun p : ℕ × ℕ => a p.1 * b p.2)]
+  -- Step 3: Factor the double sum ∑' (i,j), a_i * b_j = (∑' i, a_i) * (∑' j, b_j)
+  -- For 0 ≤ t, both factors are norm-summable.
+  -- For t < 0, we case-split on summability and handle each case.
+  by_cases ht : 0 ≤ t
+  · exact (tsum_mul_tsum_of_summable_norm
+      (heatKernelTerm_summable_norm t ht f₁ g₁)
+      (heatKernelTerm_summable_norm t ht f₂ g₂)).symm
+  · -- t < 0: case split on summability of each factor
+    push_neg at ht
+    by_cases h1 : Summable a <;> by_cases h2 : Summable b
+    · -- Both summable
+      have h1n : Summable (fun m => ‖a m‖) :=
+        h1.abs.congr (fun m => (Real.norm_eq_abs _).symm)
+      have h2n : Summable (fun m => ‖b m‖) :=
+        h2.abs.congr (fun m => (Real.norm_eq_abs _).symm)
+      exact (h1.tsum_mul_tsum h2 (summable_mul_of_summable_norm h1n h2n)).symm
+    · -- a summable, b not: RHS = tsum_a * 0 = 0
+      rw [tsum_eq_zero_of_not_summable h2, mul_zero]
+      -- LHS: product series not summable (or identically zero), so tsum = 0
+      by_cases ha : ∀ i, a i = 0
+      · -- All a_i = 0 → product terms all 0 → tsum = 0
+        simp only [show ∀ p : ℕ × ℕ, a p.1 * b p.2 = 0 from
+          fun p => by rw [ha p.1, zero_mul], tsum_zero]
+      · -- ∃ nonzero a_{i₀} → product summable would imply b summable → contradiction
+        push_neg at ha; obtain ⟨i₀, hi₀⟩ := ha
+        exact tsum_eq_zero_of_not_summable (fun hprod =>
+          h2 ((summable_mul_left_iff hi₀).mp (hprod.prod_factor i₀)))
+    · -- a not summable, b summable: RHS = 0 * tsum_b = 0
+      rw [tsum_eq_zero_of_not_summable h1, zero_mul]
+      by_cases hb : ∀ j, b j = 0
+      · simp only [show ∀ p : ℕ × ℕ, a p.1 * b p.2 = 0 from
+          fun p => by rw [hb p.2, mul_zero], tsum_zero]
+      · push_neg at hb; obtain ⟨j₀, hj₀⟩ := hb
+        apply tsum_eq_zero_of_not_summable
+        intro hprod
+        -- Fix second index j₀: use prod_symm then prod_factor
+        -- prod_symm swaps (i,j) ↦ (j,i), then prod_factor fixes first to j₀
+        exact h1 ((summable_mul_right_iff hj₀).mp
+          ((hprod.prod_symm.prod_factor j₀).congr (fun _ => rfl)))
+    · -- Neither summable: RHS = 0 * 0 = 0
+      rw [tsum_eq_zero_of_not_summable h1, zero_mul]
+      by_cases hb : ∀ j, b j = 0
+      · simp only [show ∀ p : ℕ × ℕ, a p.1 * b p.2 = 0 from
+          fun p => by rw [hb p.2, mul_zero], tsum_zero]
+      · push_neg at hb; obtain ⟨j₀, hj₀⟩ := hb
+        apply tsum_eq_zero_of_not_summable
+        intro hprod
+        exact h1 ((summable_mul_right_iff hj₀).mp
+          ((hprod.prod_symm.prod_factor j₀).congr (fun _ => rfl)))
 
 end GaussianField
