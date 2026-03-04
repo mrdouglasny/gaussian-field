@@ -28,7 +28,7 @@ The construction realizes a **rigged Hilbert space** (Gel'fand triple):
 
 $$E \hookrightarrow H_T \hookrightarrow E'$$
 
-where $H_T$ is the **Cameron-Martin space** — the completion of $E$ under the inner product $\langle f, g \rangle_T = \langle T(f), T(g) \rangle_H = C(f,g)$. The measure $\mu$ is supported on $E'$ but concentrated (in the sense of regularity) on distributions with specific Sobolev/Besov regularity determined by $T$.
+where $H_T$ is the **Cameron-Martin space** — the completion of $E$ under the inner product $\langle f, g \rangle_T = \langle T(f), T(g) \rangle_H = C(f,g)$ (formalized as `cameronMartinInner T`). The **support theorem** (`gaussian_support_iff`) characterizes *where* the measure lives: $\mu$ is supported on configurations with finite basis norm ($\sum_n |\omega(e_n)|^2 < \infty$) if and only if $T$ is Hilbert-Schmidt (`IsHilbertSchmidt T`).
 
 This triple is the functional-analytic core of:
 - **Constructive QFT**: the Osterwalder-Schrader and Wightman frameworks, where $\mu$ is the Euclidean path integral measure
@@ -63,6 +63,8 @@ The user provides:
 | `wick_recursive` | integral identity | Recursive Wick formula for $n$-point functions |
 | `wick_bound` | norm bound | $\|\mathbb{E}[\prod_i\omega(g_i)\,e^{i\omega(h)}]\| \le \prod_i\|Tg_i\|$ |
 | `odd_moment_vanish` | integral = 0 | Odd moments vanish: $\mathbb{E}[\prod_i\omega(g_i)] = 0$ when $n$ is odd |
+| `cameronMartinInner T f g` | `ℝ` | Cameron-Martin inner product $\langle f, g \rangle_0 = C(f,g)$ |
+| `cameronMartinNormSq T f` | `ℝ` | Cameron-Martin norm squared $\|f\|_0^2 = \|T(f)\|^2$ |
 | `IsHilbertSchmidt T` | `Prop` | $\sum_n \|T(e_n)\|^2 < \infty$ (Hilbert-Schmidt condition) |
 | `gaussian_support_iff` | iff | $T$ is HS $\iff$ $\sum_n |\omega(e_n)|^2 < \infty$ a.s. |
 | `support_of_hilbertSchmidt` | `∀ᵐ` | HS $\Rightarrow$ a.e. finite basis norm |
@@ -267,6 +269,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
 | [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
 | [Wick.lean](GaussianField/Wick.lean) | 1,067 | [Wick's theorem](docs/wick-theorem.md): Gaussian IBP, recursive Wick formula, moment bounds |
+| [Support.lean](GaussianField/Support.lean) | 256 | Hilbert-Schmidt condition, Cameron-Martin defs, support theorem |
 | [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 441 | Gaussian moments, [Gross log-Sobolev inequality](docs/gross-log-sobolev.md) |
 | [HypercontractiveNat.lean](GaussianField/HypercontractiveNat.lean) | 329 | [Nelson's hypercontractive estimate](docs/gaussian-moment-ratio-proof.md) for even integer p via double-factorial combinatorics |
 
@@ -346,7 +349,7 @@ expected-norm-equals-HS-norm identity are fully proved.
 - **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
 - **Lattice-continuum limits**: Formalize convergence via characteristic functionals, building on the `siteToTorus` embedding (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
 - **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
-- **Support theorems / Besov regularity**: The `pairing_memLp` result (Fernique-type $L^p$ bounds) is the first step toward showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate $s, p, q$
+- **Besov regularity**: The support theorem (`gaussian_support_iff`) shows a.s. finite basis norm when $T$ is HS. The next step is showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate Besov indices
 - **$\sigma$-algebra coincidence**: For separable nuclear Fréchet spaces, the cylindrical and Borel $\sigma$-algebras on the dual coincide
 
 ## Building
