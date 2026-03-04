@@ -212,6 +212,7 @@ constructing covariance operators on product spaces.
 | File | Lines | Contents |
 |------|------:|----------|
 | [HeatKernel/Axioms.lean](HeatKernel/Axioms.lean) | 264 | `spectralCLM`, `qftEigenvalue`, `qftSingularValue`, boundedness |
+| [HeatKernel/Bilinear.lean](HeatKernel/Bilinear.lean) | 410 | Heat kernel bilinear form `K_t`, Green's function `G_mass`, L² convergence, positivity |
 | [HeatKernel/PositionKernel.lean](HeatKernel/PositionKernel.lean) | 1,843 | Position-space heat kernels: Mehler kernel, circle heat kernel, proved axioms |
 
 `spectralCLM σ hσ : E →L[ℝ] ℓ²` maps `f ↦ (σ_m · coeff_m(f))_m` for any bounded
@@ -320,12 +321,15 @@ The hypercontractive and log-Sobolev development is now fully theorem-backed (`G
 
 The lattice/FKG pipeline is also theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
 
-Current project status is **2 axioms, 0 sorries**:
+Current project status is **2 axioms, 1 sorry** (core path):
 - `mehlerKernel_eq_series` in `HeatKernel/PositionKernel.lean` — Mehler's formula
 - `not_supported_of_not_hilbertSchmidt` in `GaussianField/Support.lean` — converse of support theorem (requires Kolmogorov's three-series theorem)
+- `heatKernelBilinear_tensorProduct` in `HeatKernel/Bilinear.lean` — heat kernel factors under tensor product (requires Fubini for tsum)
 
 The forward direction of the support theorem (HS ⟹ a.e. summable) and the
-expected-norm-equals-HS-norm identity are fully proved.
+expected-norm-equals-HS-norm identity are fully proved. The heat kernel bilinear
+form has 5 of 6 properties proved, including L² convergence via dominated
+convergence and positive-definiteness of the Green's function via Hahn-Banach.
 
 ## Further documentation
 
