@@ -846,14 +846,42 @@ For `|a| = 1`, `|aᵏ| = 1`, so `|(f(a·+b))^(k)(x)| = |f^(k)(ax+b)|`.
 The sup over one period of `|f^(k)(ax+b)|` equals the sup of `|f^(k)|`
 over one period, since the affine map permutes the period.
 
-This single axiom covers both reflection (`a = -1, b = 0`) and
-translation (`a = 1, b = -v`), as well as any future circle isometry. -/
+This covers both reflection (`a = -1, b = 0`) and
+translation (`a = 1, b = -v`), as well as any future circle isometry.
+
+Proof: by the chain rule (`iteratedDeriv_comp_const_mul`, `iteratedDeriv_comp_add_const`),
+`(f(a·+b))^(k)(x) = aᵏ f^(k)(a·x+b)`. Since `|a| = 1`, `|aᵏ| = 1`,
+and `norm_iteratedDeriv_le_sobolevSeminorm'` gives the bound by periodicity. -/
 open SmoothMap_Circle in
-axiom sobolevSeminorm_affine_precomp_le
+theorem sobolevSeminorm_affine_precomp_le
     (a b : ℝ) (ha : |a| = 1) (k : ℕ)
     (f : SmoothMap_Circle L ℝ)
     (g : SmoothMap_Circle L ℝ)
     (hg : ∀ x, g x = f (a * x + b)) :
-    sobolevSeminorm k g ≤ sobolevSeminorm k f
+    sobolevSeminorm k g ≤ sobolevSeminorm k f := by
+  -- sobolevSeminorm k g = sSup {‖D^k g(x)‖ : x ∈ [0,L]}
+  -- Show each ‖D^k g(x)‖ ≤ sobolevSeminorm k f, then take sup
+  apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
+  rintro _ ⟨x, _, rfl⟩
+  -- Step 1: g = f ∘ (a*·+b) pointwise, so same iterated derivative
+  have hg_eq : (↑g : ℝ → ℝ) = fun x => (f : ℝ → ℝ) (a * x + b) := funext hg
+  simp only [hg_eq]
+  -- Step 2: Chain rule for iterated derivatives
+  -- Decompose f(a*x+b) = h(a*x) where h(y) = f(y+b)
+  have hfb_k : ContDiff ℝ k (fun y : ℝ => (f : ℝ → ℝ) (y + b)) :=
+    (f.smooth.of_le (by exact_mod_cast le_top)).comp (contDiff_id.add contDiff_const)
+  -- D^k (x ↦ f(a*x+b)) x = a^k * D^k (y ↦ f(y+b)) (a*x)
+  have h_chain : iteratedDeriv k (fun x : ℝ => (f : ℝ → ℝ) (a * x + b)) x =
+      a ^ k * iteratedDeriv k (fun y : ℝ => (f : ℝ → ℝ) (y + b)) (a * x) :=
+    congr_fun (iteratedDeriv_comp_const_mul hfb_k a) x
+  -- D^k (y ↦ f(y+b)) (a*x) = D^k f (a*x+b)
+  have h_shift : iteratedDeriv k (fun y : ℝ => (f : ℝ → ℝ) (y + b)) (a * x) =
+      iteratedDeriv k (↑f) (a * x + b) :=
+    congr_fun (iteratedDeriv_comp_add_const k (↑f) b) (a * x)
+  rw [h_chain, h_shift, norm_mul]
+  -- |a^k| = 1 since |a| = 1
+  rw [Real.norm_eq_abs, abs_pow, ha, one_pow, one_mul]
+  -- ‖D^k f(a*x+b)‖ ≤ sobolevSeminorm k f by periodicity
+  exact norm_iteratedDeriv_le_sobolevSeminorm' f k (a * x + b)
 
 end GaussianField
