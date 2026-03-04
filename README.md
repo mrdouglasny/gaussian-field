@@ -63,6 +63,10 @@ The user provides:
 | `wick_recursive` | integral identity | Recursive Wick formula for $n$-point functions |
 | `wick_bound` | norm bound | $\|\mathbb{E}[\prod_i\omega(g_i)\,e^{i\omega(h)}]\| \le \prod_i\|Tg_i\|$ |
 | `odd_moment_vanish` | integral = 0 | Odd moments vanish: $\mathbb{E}[\prod_i\omega(g_i)] = 0$ when $n$ is odd |
+| `IsHilbertSchmidt T` | `Prop` | $\sum_n \|T(e_n)\|^2 < \infty$ (Hilbert-Schmidt condition) |
+| `gaussian_support_iff` | iff | $T$ is HS $\iff$ $\sum_n |\omega(e_n)|^2 < \infty$ a.s. |
+| `support_of_hilbertSchmidt` | `∀ᵐ` | HS $\Rightarrow$ a.e. finite basis norm |
+| `expected_norm_sq_eq_hs` | integral identity | $\mathbb{E}[\sum_n |\omega(e_n)|^2] = \sum_n \|T(e_n)\|^2$ |
 
 ### Design notes
 
@@ -313,15 +317,12 @@ The hypercontractive and log-Sobolev development is now fully theorem-backed (`G
 
 The lattice/FKG pipeline is also theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
 
-Current project status is **2 axioms, 0 sorries**, both in
-`HeatKernel/PositionKernel.lean`:
-`mehlerKernel_eq_series` and `circleHeatKernel_pos`.
+Current project status is **2 axioms, 0 sorries**:
+- `mehlerKernel_eq_series` in `HeatKernel/PositionKernel.lean` — Mehler's formula
+- `not_supported_of_not_hilbertSchmidt` in `GaussianField/Support.lean` — converse of support theorem (requires Kolmogorov's three-series theorem)
 
-These are already stated as definite textbook claims (not placeholders):
-- Mehler expansion for the harmonic-oscillator heat kernel (`t > 0`).
-- Strict positivity of the circle heat kernel (`L > 0`, `t > 0`).
-The remaining plan is to replace both with Mathlib-backed proofs (Hermite spectral
-expansion + Poisson summation/Jacobi theta positivity).
+The forward direction of the support theorem (HS ⟹ a.e. summable) and the
+expected-norm-equals-HS-norm identity are fully proved.
 
 ## Further documentation
 

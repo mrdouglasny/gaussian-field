@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**4 axioms, 0 sorries**
+**5 axioms, 0 sorries**
 
 *Updated 2026-03-03.*
 
@@ -99,6 +99,17 @@ Elimination analysis for Polish/Borel axioms:
   theorem. The mathematical justification is solid; the Lean infrastructure gap is
   in Mathlib's nuclear space library, not in our project.
 
+### Support theorem
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `not_supported_of_not_hilbertSchmidt` | GaussianField/Support | axiom | Hard | Converse direction: non-HS implies a.s. divergence of basis norm. Requires Kolmogorov's three-series theorem (not in Mathlib). |
+
+Proved support results:
+- `expected_norm_sq_eq_hs` — theorem: E[Σₙ|ω(eₙ)|²] = Σₙ ‖T(eₙ)‖² via integral_tsum
+- `support_of_hilbertSchmidt` — theorem: HS ⟹ a.e. summable (forward direction via ae_lt_top)
+- `gaussian_support_iff` — theorem: HS ↔ a.e. summable (bundled iff)
+
 ### Hypercontractive estimates
 
 | Item | File | Type | Difficulty | Description |
@@ -129,8 +140,9 @@ Proved hypercontractive results (axiom-free):
 | Lattice/SpectralCovariance | 0 | 0 |
 | GaussianField/Density | 0 | 0 |
 | GaussianField/Hypercontractive | 0 | 0 |
+| GaussianField/Support | 1 | 0 |
 | Nuclear/NuclearTensorProduct | 0 | 0 |
-| **Total** | **3 (+1 skipped)** | **0** |
+| **Total** | **4 (+1 skipped)** | **0** |
 
 ## References
 
