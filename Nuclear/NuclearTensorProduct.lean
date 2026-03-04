@@ -277,6 +277,28 @@ theorem rapidDecay_expansion (φ : RapidDecaySeq →L[ℝ] ℝ) (a : RapidDecayS
     convert h using 1; ext m; simp [map_smul, smul_eq_mul]
   exact h'.tsum_eq.symm
 
+/-- `RapidDecaySeq` is T1: if `a ≠ 0`, the 0-th seminorm `∑ |a_m| > 0`. -/
+instance rapidDecay_t1Space : T1Space RapidDecaySeq :=
+  rapidDecay_withSeminorms.T1_of_separating fun a ha => by
+    refine ⟨0, ?_⟩
+    -- rapidDecaySeminorm 0 a = ∑' m, |a.val m| * 1 = ∑' m, |a.val m|
+    intro h
+    apply ha
+    -- h : rapidDecaySeminorm 0 a = 0, i.e., ∑' m, |a.val m| * 1 = 0
+    have h' : ∑' m, |a.val m| = 0 := by
+      have := h; simp only [rapidDecaySeminorm, pow_zero, mul_one] at this; exact this
+    -- Each |a.val m| = 0 since nonneg terms sum to 0
+    have hcomp : ∀ m, a.val m = 0 := by
+      intro m
+      have hle : |a.val m| ≤ 0 := by
+        calc |a.val m| = |a.val m| * (1 + (m : ℝ)) ^ 0 := by simp [pow_zero]
+          _ ≤ ∑' n, |a.val n| * (1 + (n : ℝ)) ^ 0 :=
+              (a.rapid_decay 0).le_tsum m
+                (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j 0))
+          _ = 0 := by simp [pow_zero, mul_one, h']
+      exact abs_eq_zero.mp (le_antisymm hle (abs_nonneg _))
+    ext m; exact hcomp m
+
 instance rapidDecay_dyninMityaginSpace : DyninMityaginSpace RapidDecaySeq where
   ι := ℕ
   p := rapidDecaySeminorm
@@ -337,6 +359,7 @@ noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
     (equiv : E ≃L[ℝ] RapidDecaySeq) : DyninMityaginSpace E where
+  toT1Space := t1Space_of_injective_of_continuous equiv.injective equiv.continuous
   ι := ι
   p := p
   h_with := hp

@@ -41,7 +41,7 @@ spaces — the Hilbert-space form is recovered as `expansion_H`. -/
 class DyninMityaginSpace (E : Type*)
     [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E]
-    [ContinuousSMul ℝ E] where
+    [ContinuousSMul ℝ E] extends T1Space E where
   ι : Type
   p : ι → Seminorm ℝ E
   h_with : WithSeminorms p
