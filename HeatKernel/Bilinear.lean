@@ -61,11 +61,67 @@ class HasLaplacianEigenvalues (E : Type*)
   eigenvalue : ℕ → ℝ
   eigenvalue_nonneg : ∀ m, 0 ≤ eigenvalue m
 
-/-! ## Heat kernel bilinear form -/
+/-! ## L² inner product -/
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E]
   [ContinuousSMul ℝ E] [DyninMityaginSpace E]
+
+/-- Helper: the m-th term of the L² inner product series. -/
+private def l2Term (f g : E) (m : ℕ) : ℝ :=
+  DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g
+
+/-- **L² inner product via Schauder coefficients.**
+
+  `⟨f, g⟩_{L²} = Σ_m coeff_m(f) · coeff_m(g)`
+
+This is the Parseval identity for the orthonormal Schauder basis. -/
+def l2InnerProduct (f g : E) : ℝ :=
+  ∑' m, l2Term f g m
+
+/-- Summability of the L² inner product series. -/
+theorem l2InnerProduct_summable (f g : E) :
+    Summable (l2Term f g) := by
+  -- Use coeff_decay at exponent 2 for f and g to bound |c_m(f) * c_m(g)| ≤ const/(1+m)^4
+  obtain ⟨Cf, hCf, sf, hdf⟩ := DyninMityaginSpace.coeff_decay (E := E) 2
+  obtain ⟨Cg, hCg, sg, hdg⟩ := DyninMityaginSpace.coeff_decay (E := E) 2
+  set Bf := Cf * (sf.sup DyninMityaginSpace.p) f
+  set Bg := Cg * (sg.sup DyninMityaginSpace.p) g
+  -- Summability of 1/(m+1)^2
+  have h1sq : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
+    have := (summable_nat_add_iff 1).mpr
+      (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+    exact this.congr (fun m => by push_cast; ring_nf)
+  -- Bound: ‖l2Term f g m‖ ≤ Bf * Bg / (1+m)^4
+  set bound : ℕ → ℝ := fun m => Bf * Bg * (1 / ((m : ℝ) + 1) ^ 2) ^ 2
+  have hbound_summable : Summable bound := by
+    apply Summable.of_nonneg_of_le (fun m => by positivity : ∀ m, 0 ≤ bound m)
+    · intro m
+      show bound m ≤ Bf * Bg * (1 / ((m : ℝ) + 1) ^ 2)
+      have h1 : (1 : ℝ) / ((m : ℝ) + 1) ^ 2 ≤ 1 := by
+        rw [div_le_one (by positivity)]
+        exact one_le_pow₀ (by positivity : (1 : ℝ) ≤ (m : ℝ) + 1)
+      show Bf * Bg * (1 / ((m : ℝ) + 1) ^ 2) ^ 2 ≤ Bf * Bg * (1 / ((m : ℝ) + 1) ^ 2)
+      apply mul_le_mul_of_nonneg_left _ (by positivity)
+      calc (1 / ((m : ℝ) + 1) ^ 2) ^ 2
+          = (1 / ((m : ℝ) + 1) ^ 2) * (1 / ((m : ℝ) + 1) ^ 2) := sq _
+        _ ≤ 1 * (1 / ((m : ℝ) + 1) ^ 2) :=
+            mul_le_mul_of_nonneg_right h1 (by positivity)
+        _ = 1 / ((m : ℝ) + 1) ^ 2 := one_mul _
+    · exact h1sq.mul_left (Bf * Bg)
+  exact Summable.of_norm_bounded bound hbound_summable (fun m => by
+    show ‖l2Term f g m‖ ≤ bound m
+    simp only [l2Term, bound, Real.norm_eq_abs, abs_mul]
+    have hf_bound : |DyninMityaginSpace.coeff m f| ≤ Bf / (1 + (m : ℝ)) ^ 2 := by
+      rw [le_div_iff₀ (by positivity)]; exact hdf f m
+    have hg_bound : |DyninMityaginSpace.coeff m g| ≤ Bg / (1 + (m : ℝ)) ^ 2 := by
+      rw [le_div_iff₀ (by positivity)]; exact hdg g m
+    calc |DyninMityaginSpace.coeff m f| * |DyninMityaginSpace.coeff m g|
+        ≤ (Bf / (1 + (m : ℝ)) ^ 2) * (Bg / (1 + (m : ℝ)) ^ 2) :=
+          mul_le_mul hf_bound hg_bound (abs_nonneg _) (by positivity)
+      _ = Bf * Bg * (1 / ((m : ℝ) + 1) ^ 2) ^ 2 := by field_simp; ring)
+
+/-! ## Heat kernel bilinear form -/
 
 /-- Helper: the m-th term of the heat kernel series. -/
 private def heatKernelTerm [HasLaplacianEigenvalues E] (t : ℝ) (f g : E) (m : ℕ) : ℝ :=
@@ -86,26 +142,19 @@ def heatKernelBilinear [HasLaplacianEigenvalues E] (t : ℝ)
 theorem heatKernelBilinear_summable [HasLaplacianEigenvalues E]
     (t : ℝ) (ht : 0 < t) (f g : E) :
     Summable (heatKernelTerm (E := E) t f g) := by
-  sorry
-
-/-! ## L² inner product -/
-
-/-- Helper: the m-th term of the L² inner product series. -/
-private def l2Term (f g : E) (m : ℕ) : ℝ :=
-  DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g
-
-/-- **L² inner product via Schauder coefficients.**
-
-  `⟨f, g⟩_{L²} = Σ_m coeff_m(f) · coeff_m(g)`
-
-This is the Parseval identity for the orthonormal Schauder basis. -/
-def l2InnerProduct (f g : E) : ℝ :=
-  ∑' m, l2Term f g m
-
-/-- Summability of the L² inner product series. -/
-theorem l2InnerProduct_summable (f g : E) :
-    Summable (l2Term f g) := by
-  sorry
+  -- Bound: |e^{-tμ_m} c_m(f) c_m(g)| ≤ |c_m(f) c_m(g)| since e^{-tμ_m} ∈ [0,1]
+  apply (l2InnerProduct_summable f g).of_norm_bounded_eventually
+  apply Filter.Eventually.of_forall
+  intro m
+  simp only [heatKernelTerm, l2Term, Real.norm_eq_abs]
+  rw [show Real.exp (-t * HasLaplacianEigenvalues.eigenvalue (E := E) m) *
+    DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g =
+    Real.exp (-t * HasLaplacianEigenvalues.eigenvalue (E := E) m) *
+    (DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g) from by ring]
+  rw [abs_mul]
+  apply mul_le_of_le_one_left (abs_nonneg _)
+  rw [abs_of_pos (Real.exp_pos _)]
+  exact Real.exp_le_one_of_nonpos (by nlinarith [HasLaplacianEigenvalues.eigenvalue_nonneg (E := E) m])
 
 /-! ## Heat kernel properties -/
 

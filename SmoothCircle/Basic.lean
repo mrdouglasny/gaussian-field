@@ -836,4 +836,24 @@ theorem sobolevSeminorm_fourierBasis_le (k : ℕ) :
 
 end SmoothMap_Circle
 
+/-! ## Sobolev seminorm bound for affine precomposition
+
+The key analysis fact: precomposition by an affine isometry `x ↦ ax + b`
+with `|a| = 1` preserves each Sobolev sup-seminorm `p_k(f) = sup |f^(k)(x)|`.
+
+Proof sketch: by the chain rule, `(f(a·+b))^(k)(x) = aᵏ · f^(k)(ax+b)`.
+For `|a| = 1`, `|aᵏ| = 1`, so `|(f(a·+b))^(k)(x)| = |f^(k)(ax+b)|`.
+The sup over one period of `|f^(k)(ax+b)|` equals the sup of `|f^(k)|`
+over one period, since the affine map permutes the period.
+
+This single axiom covers both reflection (`a = -1, b = 0`) and
+translation (`a = 1, b = -v`), as well as any future circle isometry. -/
+open SmoothMap_Circle in
+axiom sobolevSeminorm_affine_precomp_le
+    (a b : ℝ) (ha : |a| = 1) (k : ℕ)
+    (f : SmoothMap_Circle L ℝ)
+    (g : SmoothMap_Circle L ℝ)
+    (hg : ∀ x, g x = f (a * x + b)) :
+    sobolevSeminorm k g ≤ sobolevSeminorm k f
+
 end GaussianField

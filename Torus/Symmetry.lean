@@ -46,6 +46,7 @@ because CLMs on DyninMityaginSpace have polynomial growth on the basis.
 
 import Torus.Restriction
 import GaussianField.Construction
+import Nuclear.TensorProductFunctorAxioms
 
 noncomputable section
 
@@ -75,7 +76,26 @@ def circleReflection : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ w
       map_smul' := fun r f => by ext x; exact smul_apply r f (-x) }
   cont := by
     -- Continuity: reflection preserves all Sobolev sup norms
-    sorry
+    -- The toLinearMap defined above
+    set lm : SmoothMap_Circle L ℝ →ₗ[ℝ] SmoothMap_Circle L ℝ :=
+      { toFun := fun f =>
+          { toFun := fun x => f (-x)
+            periodic' := fun x => by
+              show f (-(x + L)) = f (-x)
+              rw [show -(x + L) = -x - L from by ring]
+              exact f.periodic'.neg (-x)
+            smooth' := f.smooth'.comp contDiff_neg }
+        map_add' := fun f g => by ext x; exact add_apply f g (-x)
+        map_smul' := fun r f => by ext x; exact smul_apply r f (-x) }
+    change Continuous lm
+    apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms smoothCircle_withSeminorms
+    intro k
+    refine ⟨{k}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
+    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def,
+      NNReal.coe_mk, one_smul]
+    -- Goal: sobolevSeminorm k (reflected f) ≤ sobolevSeminorm k f
+    exact sobolevSeminorm_affine_precomp_le (-1) 0 (by norm_num) k f _
+      (fun x => by simp [lm, neg_mul])
 
 /-- Translation of a smooth periodic function: `(T_v f)(x) = f(x - v)`. -/
 def circleTranslation (v : ℝ) :
@@ -93,7 +113,24 @@ def circleTranslation (v : ℝ) :
       map_smul' := fun r f => by ext x; exact smul_apply r f (x - v) }
   cont := by
     -- Continuity: translation preserves all Sobolev sup norms
-    sorry
+    set lm : SmoothMap_Circle L ℝ →ₗ[ℝ] SmoothMap_Circle L ℝ :=
+      { toFun := fun f =>
+          { toFun := fun x => f (x - v)
+            periodic' := fun x => by
+              change f (x + L - v) = f (x - v)
+              rw [show x + L - v = (x - v) + L from by ring]
+              exact f.periodic' (x - v)
+            smooth' := f.smooth'.comp (contDiff_id.sub contDiff_const) }
+        map_add' := fun f g => by ext x; exact add_apply f g (x - v)
+        map_smul' := fun r f => by ext x; exact smul_apply r f (x - v) }
+    change Continuous lm
+    apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms smoothCircle_withSeminorms
+    intro k
+    refine ⟨{k}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
+    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def,
+      NNReal.coe_mk, one_smul]
+    exact sobolevSeminorm_affine_precomp_le 1 (-v) (by norm_num) k f _
+      (fun x => by show f (x - v) = f (1 * x + -v); ring_nf)
 
 /-- Reflection is an involution: Θ² = id. -/
 theorem circleReflection_involution :
@@ -114,42 +151,6 @@ theorem circleTranslation_add (u v : ℝ) :
     circleTranslation L (u + v) := by
   ext f x
   simp [circleTranslation, sub_sub, add_comm u v]
-
-/-! ## Nuclear tensor product lifting axioms
-
-CLMs on nuclear Fréchet spaces lift to the completed projective tensor product
-(Trèves, Ch. 50). In our Dynin-Mityagin representation, CLMs have polynomial
-growth on basis coefficients, which preserves rapid decay. -/
-
-/-- **Tensor product of CLMs on nuclear spaces.**
-
-Given CLMs `T₁ : E₁ →L[ℝ] E₁` and `T₂ : E₂ →L[ℝ] E₂`, their tensor product
-`T₁ ⊗ T₂` acts as a CLM on `NuclearTensorProduct E₁ E₂`.
-
-On elementary tensors: `(T₁ ⊗ T₂)(f₁ ⊗ f₂) = T₁(f₁) ⊗ T₂(f₂)`.
-
-Reference: Trèves, *Topological Vector Spaces*, Ch. 50, Theorem 50.1. -/
-axiom nuclearTensorProduct_mapCLM
-    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
-    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
-    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
-    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
-    (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) :
-    NuclearTensorProduct E₁ E₂ →L[ℝ] NuclearTensorProduct E₁ E₂
-
-/-- **Swap factors in a nuclear tensor product.**
-
-The canonical isomorphism `E₁ ⊗̂ E₂ ≅ E₂ ⊗̂ E₁` as a CLM.
-
-On elementary tensors: `swap(f₁ ⊗ f₂) = f₂ ⊗ f₁`.
-
-Reference: Trèves, *Topological Vector Spaces*, Ch. 43, §43.5. -/
-axiom nuclearTensorProduct_swapCLM
-    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
-    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
-    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
-    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂] :
-    NuclearTensorProduct E₁ E₂ →L[ℝ] NuclearTensorProduct E₂ E₁
 
 /-! ## Torus-level symmetry actions -/
 
@@ -184,7 +185,11 @@ def torusSwap :
 theorem torusTimeReflection_involution :
     (torusTimeReflection L).comp (torusTimeReflection L) =
     ContinuousLinearMap.id ℝ _ := by
-  sorry -- Follows from circleReflection_involution + tensor product functoriality
+  -- Θ = mapCLM(reflection, id), so Θ² = mapCLM(reflection², id²) = mapCLM(id, id) = id
+  unfold torusTimeReflection
+  rw [← nuclearTensorProduct_mapCLM_comp, circleReflection_involution,
+      ContinuousLinearMap.id_comp]
+  exact nuclearTensorProduct_mapCLM_id
 
 /-! ## Configuration-level actions
 
@@ -210,16 +215,26 @@ Since the weak-* topology is initial for such evaluations, the map is
 continuous. -/
 theorem torusConfigReflection_continuous :
     Continuous (torusConfigReflection L) := by
-  sorry -- weak-* continuity of precomposition by CLM
+  apply WeakDual.continuous_of_continuous_eval
+  intro f
+  -- (torusConfigReflection L ω) f = ω (torusTimeReflection L f)
+  exact WeakDual.eval_continuous (torusTimeReflection L f)
 
 /-- Translation on configurations is continuous. -/
 theorem torusConfigTranslation_continuous (v : ℝ × ℝ) :
     Continuous (torusConfigTranslation L v) := by
-  sorry -- weak-* continuity of precomposition by CLM
+  apply WeakDual.continuous_of_continuous_eval
+  intro f
+  exact WeakDual.eval_continuous (torusTranslation L v f)
 
 /-- Time reflection on configurations is an involution. -/
 theorem torusConfigReflection_involution (ω : Configuration (TorusTestFunction L)) :
     torusConfigReflection L (torusConfigReflection L ω) = ω := by
-  sorry -- Follows from torusTimeReflection_involution
+  apply ContinuousLinearMap.ext
+  intro f
+  simp only [torusConfigReflection, ContinuousLinearMap.comp_apply]
+  -- Goal: ω (torusTimeReflection L (torusTimeReflection L f)) = ω f
+  congr 1
+  exact ContinuousLinearMap.ext_iff.mp (torusTimeReflection_involution L) f
 
 end GaussianField
