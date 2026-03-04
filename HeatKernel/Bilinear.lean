@@ -183,6 +183,21 @@ theorem greenFunctionBilinear_eq_heatKernel [HasLaplacianEigenvalues E]
       (HasLaplacianEigenvalues.eigenvalue (E := E) m + mass ^ 2) := by
   rfl
 
+/-- **Green's function is nonneg on the diagonal.**
+
+  `G_mass(f, f) ≥ 0` for all `f`
+
+Each term `coeff_m(f)² / (μ_m + mass²) ≥ 0` since the numerator is a square
+and the denominator is positive (`μ_m ≥ 0`, `mass² > 0`). The tsum of nonneg
+terms is nonneg. -/
+theorem greenFunctionBilinear_nonneg [HasLaplacianEigenvalues E]
+    (mass : ℝ) (hmass : 0 < mass) (f : E) :
+    0 ≤ greenFunctionBilinear mass hmass f f := by
+  apply tsum_nonneg
+  intro m
+  apply div_nonneg (mul_self_nonneg _)
+  linarith [HasLaplacianEigenvalues.eigenvalue_nonneg (E := E) m, sq_pos_of_pos hmass]
+
 /-- **Green's function is positive definite.**
 
   `G_mass(f, f) > 0` for nonzero `f`
