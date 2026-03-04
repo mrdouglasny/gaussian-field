@@ -495,7 +495,7 @@ private def natUnpairEquiv : ℕ ≃ ℕ × ℕ where
   right_inv p := Nat.unpair_pair p.1 p.2
 
 /-- `∑_n 1/(1+n)^2` converges, as a shifted version of `∑ 1/n^2`. -/
-private theorem summable_inv_one_add_sq :
+theorem summable_inv_one_add_sq :
     Summable (fun n : ℕ => ((1 + (n : ℝ)) ^ 2)⁻¹) := by
   -- Reindex: (fun n => ((1 + n)^2)⁻¹) = (fun n => (n^2)⁻¹) ∘ (· + 1)
   have h_eq : (fun n : ℕ => ((1 + (n : ℝ)) ^ 2)⁻¹) =
