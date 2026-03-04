@@ -15,7 +15,6 @@ isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` constructed in
 -/
 
 import SchwartzNuclear.HermiteTensorProduct
-import Nuclear.HilbertNuclear
 
 noncomputable section
 
@@ -97,20 +96,5 @@ instance schwartz_separableSpace [Nontrivial D] :
     Function.Surjective.range_eq (schwartzRapidDecayEquiv D).symm.surjective
   rw [← h_range]
   exact isSeparable_range (schwartzRapidDecayEquiv D).symm.continuous
-
-/-! ## Hilbert-Nuclear Structure
-
-`IsHilbertNuclear (SchwartzMap D ℝ)` is derived by transferring the
-`IsHilbertNuclear RapidDecaySeq` instance along the CLE
-`schwartzRapidDecayEquiv D`. -/
-
-/-- **Schwartz space is Hilbert-nuclear.**
-
-Proved by transferring `IsHilbertNuclear RapidDecaySeq` (which is derived from
-`DyninMityaginSpace` → `NuclearSpace` → `IsNuclear` → `IsHilbertNuclear` via
-bochner's Pietsch bridge) along the CLE `schwartzRapidDecayEquiv D`. -/
-noncomputable instance schwartz_isHilbertNuclear [Nontrivial D] :
-    IsHilbertNuclear (SchwartzMap D ℝ) :=
-  IsHilbertNuclear.of_equiv (schwartzRapidDecayEquiv D)
 
 end GaussianField
