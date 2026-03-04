@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**6 axioms, 0 sorries**
+**6 axioms, 1 sorry**
 
 *Updated 2026-03-03.*
 
@@ -68,6 +68,19 @@ Proved heat kernel results (no longer axioms):
 
 Remaining axiom:
 - `mehlerKernel_eq_series`: Mehler's formula (Hermite eigenfunction expansion of harmonic oscillator heat kernel). Requires Hermite polynomial generating function, not in Mathlib.
+
+Proved heat kernel bilinear form results:
+- `heatKernelBilinear_summable` — summability of heat kernel series for t > 0
+- `heatKernelBilinear_nonneg` — K_t(f,f) ≥ 0
+- `heatKernelBilinear_le_l2` — K_t(f,f) ≤ ⟨f,f⟩_{L²} (proved)
+- `heatKernelBilinear_tendsto_l2` — K_t → L² as t → 0⁺ (dominated convergence, proved)
+- `greenFunctionBilinear_summable` — summability of Green's function series (proved)
+- `greenFunctionBilinear_nonneg` — G(f,f) ≥ 0
+- `greenFunctionBilinear_le` — G(f,f) ≤ (1/mass²)⟨f,f⟩ (proved)
+- `greenFunctionBilinear_pos` — G(f,f) > 0 for f ≠ 0 (proved via Hahn-Banach)
+
+Remaining sorry:
+- `heatKernelBilinear_tensorProduct`: K_t factors under ⊗. Requires Fubini for tsum + coefficient factorization.
 
 ### Torus embedding (continuum limit infrastructure)
 
@@ -136,6 +149,7 @@ Proved hypercontractive results (axiom-free):
 
 | File | Axioms | Sorries |
 |------|--------|---------|
+| HeatKernel/Bilinear | 0 | 1 |
 | HeatKernel/PositionKernel | 1 | 0 |
 | Torus/Restriction | 2 | 0 |
 | Lattice/RapidDecayLattice | 0 | 0 |
@@ -145,7 +159,7 @@ Proved hypercontractive results (axiom-free):
 | GaussianField/Hypercontractive | 0 | 0 |
 | GaussianField/Support | 2 | 0 |
 | Nuclear/NuclearTensorProduct | 0 | 0 |
-| **Total** | **5 (+1 skipped)** | **0** |
+| **Total** | **5 (+1 skipped)** | **1** |
 
 ## References
 
