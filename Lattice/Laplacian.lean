@@ -627,29 +627,46 @@ theorem massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
 
 /-! ## Eigenvalues -/
 
-/-- Eigenvalue of `-Δ_a + m²` on the finite torus.
+/-- Eigenvalue of `-Δ_a` alone (no mass) on the finite torus.
 Mode index `m : ℕ` decodes to multi-index `k ∈ (ZMod N)^d` via Fintype
 enumeration. The eigenvalue is:
-  `(4/a²) Σᵢ sin²(πkᵢ/N) + mass²` -/
-def latticeEigenvalue (d N : ℕ) [NeZero N] (a mass : ℝ) (m : ℕ) : ℝ :=
+  `(4/a²) Σᵢ sin²(πkᵢ/N)`
+
+These are nonneg (the zero mode has eigenvalue 0). Mass is NOT included —
+it enters only through the mass operator and Green's function. This follows
+the mass-separation convention from `HeatKernel/Bilinear.lean`, ensuring
+correct tensor product factorization: `μ_{E₁⊗E₂} = μ_{E₁} + μ_{E₂}`. -/
+def latticeLaplacianEigenvalue (d N : ℕ) [NeZero N] (a : ℝ) (m : ℕ) : ℝ :=
   if h : m < Fintype.card (FinLatticeSites d N) then
     let k := (Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩
-    (4 / a ^ 2) * ∑ i : Fin d, sin (π * (ZMod.val (k i) : ℝ) / N) ^ 2 + mass ^ 2
+    (4 / a ^ 2) * ∑ i : Fin d, sin (π * (ZMod.val (k i) : ℝ) / N) ^ 2
   else
-    mass ^ 2  -- default for out-of-range indices
+    0  -- default for out-of-range indices
+
+/-- Laplacian eigenvalues are nonneg. -/
+theorem latticeLaplacianEigenvalue_nonneg (d N : ℕ) [NeZero N] (a : ℝ) (m : ℕ) :
+    0 ≤ latticeLaplacianEigenvalue d N a m := by
+  unfold latticeLaplacianEigenvalue
+  split_ifs with h
+  · apply mul_nonneg (div_nonneg (by norm_num) (sq_nonneg _))
+    exact Finset.sum_nonneg fun _ _ => sq_nonneg _
+  · exact le_refl _
+
+/-- Eigenvalue of `-Δ_a + m²` on the finite torus.
+Defined as `latticeLaplacianEigenvalue + mass²`. -/
+def latticeEigenvalue (d N : ℕ) [NeZero N] (a mass : ℝ) (m : ℕ) : ℝ :=
+  latticeLaplacianEigenvalue d N a m + mass ^ 2
+
+/-- `latticeEigenvalue` unfolds to the explicit formula with mass. -/
+theorem latticeEigenvalue_eq (d N : ℕ) [NeZero N] (a mass : ℝ) (m : ℕ) :
+    latticeEigenvalue d N a mass m = latticeLaplacianEigenvalue d N a m + mass ^ 2 :=
+  rfl
 
 /-- Eigenvalues are strictly positive when mass > 0. -/
 theorem latticeEigenvalue_pos (d N : ℕ) [NeZero N] (a mass : ℝ)
-    (ha : 0 < a) (hmass : 0 < mass) (m : ℕ) :
+    (_ha : 0 < a) (hmass : 0 < mass) (m : ℕ) :
     0 < latticeEigenvalue d N a mass m := by
-  let _ha := ha
-  unfold latticeEigenvalue
-  split_ifs with h
-  · have h1 : (0 : ℝ) ≤ (4 / a ^ 2) *
-        ∑ i : Fin d, sin (π * ↑(ZMod.val ((Fintype.equivFin (FinLatticeSites d N)).symm ⟨m, h⟩ i)) / ↑N) ^ 2 := by
-      apply mul_nonneg (div_nonneg (by norm_num) (sq_nonneg _))
-      exact Finset.sum_nonneg fun _ _ => sq_nonneg _
-    linarith [sq_pos_of_pos hmass]
-  · exact sq_pos_of_pos hmass
+  rw [latticeEigenvalue_eq]
+  linarith [latticeLaplacianEigenvalue_nonneg d N a m, sq_pos_of_pos hmass]
 
 end GaussianField

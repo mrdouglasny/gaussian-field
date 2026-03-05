@@ -240,6 +240,8 @@ AddCircle-based lattice frameworks (Tanimoto).
 | [Lattice/RapidDecayLattice.lean](Lattice/RapidDecayLattice.lean) | `RapidDecayLattice d` (rapidly decaying functions on ℤ^d), seminorms, topology |
 | [Lattice/Laplacian.lean](Lattice/Laplacian.lean) | `finiteLaplacian`, `infiniteLaplacian`, `massOperator`, eigenvalue formulas |
 | [Lattice/SpectralCovariance.lean](Lattice/SpectralCovariance.lean) | Mass operator spectral decomposition, `spectralLatticeCovariance` CLM, `gaussianDensity` |
+| [Lattice/HeatKernel.lean](Lattice/HeatKernel.lean) | Heat kernel `K_t = exp(-t·(-Δ))`, semigroup, symmetry, commutation |
+| [Lattice/Symmetry.lean](Lattice/Symmetry.lean) | Translation/reflection operators, Toeplitz property, Laplacian/heat kernel commutation |
 | [Lattice/Covariance.lean](Lattice/Covariance.lean) | `latticeCovariance` via spectral theorem, `latticeGaussianMeasure` |
 | [GaussianField/Density.lean](GaussianField/Density.lean) | Density bridge: Gaussian measure ↔ Gaussian density |
 | [Lattice/FKG.lean](Lattice/FKG.lean) | FKG inequality for lattice Gaussian and convexly-perturbed measures |
@@ -321,7 +323,7 @@ The hypercontractive and log-Sobolev development is now fully theorem-backed (`G
 
 The lattice/FKG pipeline is also theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
 
-Current project status is **21 axioms, 0 sorries**:
+Current project status is **22 axioms, 0 sorries**:
 
 | Section | Axioms | Contents |
 |---------|--------|----------|
@@ -330,6 +332,7 @@ Current project status is **21 axioms, 0 sorries**:
 | `HeatKernel/GreenInvariance.lean` | 4 | Green's function invariance (reflection, swap, translation) |
 | `GaussianField/Support.lean` | 2 | Converse support theorem, support Hilbert space existence |
 | `Torus/Restriction.lean` | 2 | Configuration space on torus is Polish and Borel |
+| `GaussianField/Properties.lean` | 1 | Gaussian measure uniqueness via Minlos (`measure_unique_of_charFun`) |
 | `HeatKernel/PositionKernel.lean` | 1 | Mehler's formula (`mehlerKernel_eq_series`) |
 
 ## Further documentation

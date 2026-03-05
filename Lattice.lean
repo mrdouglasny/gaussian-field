@@ -29,5 +29,7 @@ import Lattice.TorusEmbedding
 import Lattice.RapidDecayLattice
 import Lattice.FiniteField
 import Lattice.Laplacian
+import Lattice.HeatKernel
+import Lattice.Symmetry
 import Lattice.Covariance
 import Lattice.FKG
