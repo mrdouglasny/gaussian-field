@@ -82,20 +82,67 @@ axiom greenFunctionBilinear_reflection_pure
 
   `G(f₂⊗f₁, g₂⊗g₁) = G(f₁⊗f₂, g₁⊗g₂)`
 
-Proof strategy: The spectral sum over `m = pair(n₁,n₂)` can be reindexed
+Proof: The spectral sum over `m = pair(n₁,n₂)` is reindexed
 via `(n₁,n₂) ↦ (n₂,n₁)`, i.e., `m ↦ pair(unpair(m).2, unpair(m).1)`.
 The numerator transforms as `c_{n₁}(f₂)·c_{n₂}(f₁) ↦ c_{n₂}(f₁)·c_{n₁}(f₂)`
 (commutative multiplication). The denominator transforms as
 `μ(n₁) + μ(n₂) + m² ↦ μ(n₂) + μ(n₁) + m²` (commutative addition).
 So the reindexed sum equals the original. -/
-axiom greenFunctionBilinear_swap_pure
+theorem greenFunctionBilinear_swap_pure
     (mass : ℝ) (hmass : 0 < mass)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) :
     greenFunctionBilinear mass hmass
       (NuclearTensorProduct.pure f₂ f₁)
       (NuclearTensorProduct.pure g₂ g₁) =
     greenFunctionBilinear mass hmass
-      (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂)
+      (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) := by
+  -- The swap equivalence on ℕ via Cantor pairing: m ↦ pair(unpair(m).2, unpair(m).1)
+  set σ : ℕ ≃ ℕ := Nat.pairEquiv.symm.trans
+    ((Equiv.prodComm ℕ ℕ).trans Nat.pairEquiv) with hσ_def
+  -- Abbreviation for the RHS summand
+  set g := fun m =>
+    DyninMityaginSpace.coeff m (pure f₁ f₂) *
+      DyninMityaginSpace.coeff m (pure g₁ g₂) /
+      (HasLaplacianEigenvalues.eigenvalue
+        (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) m +
+        mass ^ 2)
+  -- Both sides are tsums (greenTerm is private, so unfold via show).
+  show ∑' m, DyninMityaginSpace.coeff m (pure f₂ f₁) *
+        DyninMityaginSpace.coeff m (pure g₂ g₁) /
+        (HasLaplacianEigenvalues.eigenvalue
+          (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) m +
+          mass ^ 2) =
+      ∑' m, g m
+  -- Step 1: Show LHS summand at m equals RHS summand at σ m, pointwise
+  -- Key lemma: σ m simplifies to Nat.pair (Nat.unpair m).2 (Nat.unpair m).1
+  have hσ_apply : ∀ m, σ m = Nat.pair (Nat.unpair m).2 (Nat.unpair m).1 := by
+    intro m
+    simp [hσ_def, Nat.pairEquiv, Equiv.prodComm_apply, Function.uncurry, Prod.swap]
+  -- coeff m (pure e₁ e₂) = (pure e₁ e₂).val m (definitionally)
+  -- pure_val: (pure e₁ e₂).val m = coeff (unpair m).1 e₁ * coeff (unpair m).2 e₂
+  have h_eq : ∀ m, DyninMityaginSpace.coeff m (pure f₂ f₁) *
+      DyninMityaginSpace.coeff m (pure g₂ g₁) /
+      (HasLaplacianEigenvalues.eigenvalue
+        (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) m +
+        mass ^ 2) = g (σ m) := by
+    intro m
+    -- Unfold g, σ, and the NTP eigenvalue
+    simp only [g, hσ_apply, tensorProductHasLaplacianEigenvalues, Nat.unpair_pair]
+    -- coeff for NTP is (·).val, so rewrite using pure_val
+    show (pure f₂ f₁).val m * (pure g₂ g₁).val m /
+        (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).1 +
+         HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).2 +
+         mass ^ 2) =
+      (pure f₁ f₂).val (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1) *
+        (pure g₁ g₂).val (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1) /
+        (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).2 +
+         HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).1 +
+         mass ^ 2)
+    simp only [pure_val, Nat.unpair_pair]
+    ring
+  -- Step 2: Rewrite LHS as ∑' m, g (σ m), then apply Equiv.tsum_eq
+  simp_rw [h_eq]
+  exact Equiv.tsum_eq σ g
 
 /-- **Green's function is invariant under translation on pure tensors.**
 
