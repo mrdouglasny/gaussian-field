@@ -119,4 +119,151 @@ theorem latticeHeatKernelMatrix_commute (a t : ℝ)
   simp only [latticeHeatKernelMatrix]
   exact (hU.smul_right (-t)).exp_right
 
+/-! ## Spectral expansion of the matrix exponential
+
+For a Hermitian matrix M with eigenvector basis ψ_k and eigenvalues μ_k,
+the matrix exponential satisfies:
+  `exp(-t · M) ψ_j = exp(-t · μ_j) · ψ_j`
+and hence the bilinear form:
+  `∑ x, f x · (exp(-tM) g) x = ∑ k, exp(-tμ_k) · c_k(f) · c_k(g)`
+
+These results use Mathlib's abstract eigenvector basis from the spectral theorem
+for Hermitian (real symmetric) matrices. -/
+
+section MatrixExpSpectral
+
+variable {n : Type*} [Fintype n] [DecidableEq n]
+
+/-- Eigenvectors of a Hermitian matrix are eigenvectors of its matrix exponential.
+
+If `M ψ_j = μ_j · ψ_j`, then `exp(-t·M) ψ_j = exp(-t·μ_j) · ψ_j`.
+
+The proof uses:
+- Spectral theorem: `M = U · diagonal(μ) · U*`
+- `exp_units_conj`: `exp(U A U⁻¹) = U exp(A) U⁻¹`
+- `exp_diagonal`: `exp(diagonal v) = diagonal(exp v)` -/
+theorem Matrix.IsHermitian.mulVec_exp_neg_smul
+    {M : Matrix n n ℝ} (hM : M.IsHermitian) (t : ℝ) (j : n) :
+    (NormedSpace.exp ((-t) • M)) *ᵥ ⇑(hM.eigenvectorBasis j) =
+    Real.exp (-t * hM.eigenvalues j) • ⇑(hM.eigenvectorBasis j) := by
+  set U := hM.eigenvectorUnitary
+  have hspec := hM.spectral_theorem
+  simp only [RCLike.ofReal_real_eq_id] at hspec
+  -- -t • M = conjStarAlgAut U (-t • diagonal eigenvalues)
+  have hsmul : (-t) • M =
+      Unitary.conjStarAlgAut ℝ (Matrix n n ℝ) U ((-t) • diagonal (id ∘ hM.eigenvalues)) := by
+    rw [map_smul, ← hspec]
+  -- Key: eigenvector equation M *ᵥ ψ_j = λ_j • ψ_j
+  -- implies (-t•M) *ᵥ ψ_j = (-t*λ_j) • ψ_j
+  -- implies exp(-t•M) *ᵥ ψ_j = exp(-t*λ_j) • ψ_j
+  -- We prove this via spectral decomposition: M = U * diag(λ) * U*
+  set D := diagonal (id ∘ hM.eigenvalues)
+  set y := Unitary.toUnits U
+  -- exp(-t • diag(λ)) = diag(exp(-t * λ))
+  have hexp_diag : NormedSpace.exp ((-t) • D) =
+      diagonal (fun i => NormedSpace.exp ((-t) * hM.eigenvalues i)) := by
+    rw [← Matrix.diagonal_smul, Matrix.exp_diagonal]; congr 1; ext i; simp
+  -- Connect star U with (y⁻¹).val
+  have hinv_star : (y⁻¹ : (Matrix n n ℝ)ˣ).val = star (U : Matrix n n ℝ) := by
+    simp [y, Unitary.toUnits]
+  have hval_U : y.val = (U : Matrix n n ℝ) := rfl
+  -- -t • M = y.val * (-t • D) * (y⁻¹).val
+  have hsmul' : (-t) • M = y.val * ((-t) • D) * (y⁻¹ : (Matrix n n ℝ)ˣ).val := by
+    rw [hsmul, Unitary.conjStarAlgAut_apply, hinv_star, hval_U]
+  -- exp(-t•M) = y.val * exp(-t • D) * (y⁻¹).val
+  have hexp : NormedSpace.exp ((-t) • M) =
+      y.val * NormedSpace.exp ((-t) • D) * (y⁻¹ : (Matrix n n ℝ)ˣ).val := by
+    rw [hsmul']; exact Matrix.exp_units_conj y _
+  -- Apply mulVec to eigenvector ψ_j
+  rw [hexp, hexp_diag, hinv_star]
+  -- (↑y * diag * star ↑U) *ᵥ ψ_j  =  ↑y *ᵥ (diag *ᵥ (star ↑U *ᵥ ψ_j))
+  rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
+  rw [hM.star_eigenvectorUnitary_mulVec j]
+  -- Keep as mulVec_mulVec; don't apply diagonal_mulVec_single
+  -- Goal before simp: ↑y *ᵥ (diag *ᵥ Pi.single j 1) = exp(-t*λ_j) • ψ_j
+  -- Instead: rewrite diag as scalar * I applied to Pi.single j
+  -- Simpler: use mulVec_smul after converting Pi.single j c to c • Pi.single j 1
+  rw [Matrix.diagonal_mulVec_single, show (fun i => NormedSpace.exp ((-t) * hM.eigenvalues i)) j * (1 : ℝ) =
+      NormedSpace.exp ((-t) * hM.eigenvalues j) from by simp]
+  rw [show (Pi.single j (NormedSpace.exp ((-t) * hM.eigenvalues j)) : n → ℝ) =
+      NormedSpace.exp ((-t) * hM.eigenvalues j) • (Pi.single j (1 : ℝ) : n → ℝ) from by
+    funext i; simp [Pi.single_apply, smul_eq_mul]]
+  rw [Matrix.mulVec_smul, hval_U, hM.eigenvectorUnitary_mulVec j]
+  congr 1; exact congr_fun Real.exp_eq_exp_ℝ.symm _
+
+/-- Inner product of eigenvector with exp(-tM)g extracts the eigenvalue factor. -/
+theorem Matrix.IsHermitian.eigenCoeff_exp_neg_smul
+    {M : Matrix n n ℝ} (hM : M.IsHermitian) (t : ℝ)
+    (g : n → ℝ) (k : n) :
+    (∑ x : n,
+      (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x *
+        ((NormedSpace.exp ((-t) • M)) *ᵥ g) x) =
+    Real.exp (-t * hM.eigenvalues k) *
+      (∑ x : n, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * g x) := by
+  -- exp(-tM) is symmetric, so ψ_k^T exp(-tM) g = (exp(-tM) ψ_k)^T g
+  have hHerm : (NormedSpace.exp ((-t) • M)).IsHermitian := by
+    apply Matrix.IsHermitian.exp
+    rw [Matrix.IsHermitian, conjTranspose_smul, star_trivial, hM.eq]
+  -- Rewrite as dotProduct and use symmetry of exp(-tM) to swap
+  change dotProduct (⇑(hM.eigenvectorBasis k)) ((NormedSpace.exp ((-t) • M)) *ᵥ g) = _
+  rw [Matrix.dotProduct_mulVec]
+  -- ψ_k ᵥ* exp(-t•M) = exp(-t•M) *ᵥ ψ_k  (using symmetry)
+  rw [show (NormedSpace.exp ((-t) • M)) = (NormedSpace.exp ((-t) • M))ᵀ from by
+        rw [← Matrix.conjTranspose_eq_transpose_of_trivial]; exact hHerm.eq.symm,
+      Matrix.vecMul_transpose]
+  -- dotProduct (exp(-t•M) *ᵥ ψ_k) g = exp(-t*λ_k) * dotProduct ψ_k g
+  rw [Matrix.IsHermitian.mulVec_exp_neg_smul hM t k]
+  simp [dotProduct, smul_eq_mul, Finset.mul_sum, mul_comm, mul_left_comm]
+
+/-- **Spectral expansion of the matrix exponential bilinear form.**
+
+For a Hermitian matrix M:
+  `∑ x, f x * (exp(-tM) g) x = ∑ k, exp(-tμ_k) * c_k(f) * c_k(g)`
+where `c_k(f) = ∑ x, ψ_k(x) * f(x)` are the eigenvector coefficients. -/
+theorem Matrix.IsHermitian.bilinear_exp_eq_spectral
+    {M : Matrix n n ℝ} (hM : M.IsHermitian) (t : ℝ)
+    (f g : n → ℝ) :
+    (∑ x : n, f x * ((NormedSpace.exp ((-t) • M)) *ᵥ g) x) =
+    ∑ k : n,
+      Real.exp (-t * hM.eigenvalues k) *
+      (∑ x : n, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * f x) *
+      (∑ x : n, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * g x) := by
+  set h := (NormedSpace.exp ((-t) • M)) *ᵥ g
+  let uf : EuclideanSpace ℝ n := (EuclideanSpace.equiv n ℝ).symm f
+  let uh : EuclideanSpace ℝ n := (EuclideanSpace.equiv n ℝ).symm h
+  have hparseval := OrthonormalBasis.sum_inner_mul_inner
+    (hM.eigenvectorBasis) uf uh
+  have hinner_fh : @inner ℝ _ _ uf uh = ∑ x : n, f x * h x := by
+    simp [uf, uh, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, mul_comm]
+  have hcoeff_f : ∀ k,
+      @inner ℝ _ _ uf (hM.eigenvectorBasis k) =
+      ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * f x := by
+    intro k; simp [uf, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
+  have hcoeff_h : ∀ k,
+      @inner ℝ _ _ (hM.eigenvectorBasis k) uh =
+      ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * h x := by
+    intro k; simp [uh, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, mul_comm]
+  have heigen : ∀ k,
+      ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * h x =
+      Real.exp (-t * hM.eigenvalues k) *
+        ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * g x :=
+    fun k => Matrix.IsHermitian.eigenCoeff_exp_neg_smul hM t g k
+  calc ∑ x, f x * h x
+      = @inner ℝ _ _ uf uh := hinner_fh.symm
+    _ = ∑ k, @inner ℝ _ _ uf (hM.eigenvectorBasis k) *
+          @inner ℝ _ _ (hM.eigenvectorBasis k) uh := hparseval.symm
+    _ = ∑ k, (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * f x) *
+          (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * h x) := by
+        refine Finset.sum_congr rfl ?_; intro k _; rw [hcoeff_f, hcoeff_h]
+    _ = ∑ k, (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * f x) *
+          (Real.exp (-t * hM.eigenvalues k) *
+            ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * g x) := by
+        refine Finset.sum_congr rfl ?_; intro k _; rw [heigen]
+    _ = ∑ k, Real.exp (-t * hM.eigenvalues k) *
+          (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * f x) *
+          (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * g x) := by
+        refine Finset.sum_congr rfl ?_; intro k _; ring
+
+end MatrixExpSpectral
+
 end GaussianField
