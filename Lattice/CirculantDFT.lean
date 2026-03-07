@@ -829,4 +829,132 @@ theorem latticeFourierNormSq_eq_one (N : ℕ) [NeZero N] (m : ℕ) (hm : 0 < m) 
           linarith
       rw [hcos_sum]; simp
 
+/-! ## Lattice Fourier basis orthogonality -/
+
+/-- Product-to-sum: cos a * cos b = (cos(a-b) + cos(a+b))/2. -/
+private theorem cos_mul_cos (a b : ℝ) :
+    cos a * cos b = (cos (a - b) + cos (a + b)) / 2 := by
+  linarith [cos_add a b, cos_sub a b]
+
+/-- Product-to-sum: sin a * sin b = (cos(a-b) - cos(a+b))/2. -/
+private theorem sin_mul_sin (a b : ℝ) :
+    sin a * sin b = (cos (a - b) - cos (a + b)) / 2 := by
+  linarith [cos_add a b, cos_sub a b]
+
+/-- Product-to-sum: cos a * sin b = (sin(a+b) - sin(a-b))/2. -/
+private theorem cos_mul_sin (a b : ℝ) :
+    cos a * sin b = (sin (a + b) - sin (a - b)) / 2 := by
+  linarith [sin_add a b, sin_sub a b]
+
+/-- For 0 < m < N, cos(2πm/N) ≠ 1 (since 0 < 2πm/N < 2π). -/
+theorem cos_ne_one_of_pos_lt (N : ℕ) [NeZero N] (m : ℕ)
+    (hm_pos : 0 < m) (hm_lt : m < N) :
+    cos (2 * π * ↑m / ↑N) ≠ 1 := by
+  have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr (NeZero.pos N)
+  have hx_pos : (0 : ℝ) < 2 * π * ↑m / ↑N := by positivity
+  have hx_lt : 2 * π * ↑m / ↑N < 2 * π := by
+    rw [div_lt_iff₀ hN_pos]
+    nlinarith [show (↑m : ℝ) < ↑N from Nat.cast_lt.mpr hm_lt, pi_pos]
+  intro heq
+  exact absurd ((cos_eq_one_iff_of_lt_of_lt (by linarith) hx_lt).mp heq) (by linarith)
+
+/-- Corollary: sum of cos vanishes for frequencies in (0, N). -/
+theorem sum_cos_zmod_eq_zero_of_pos_lt (N : ℕ) [NeZero N] (m : ℕ)
+    (hm_pos : 0 < m) (hm_lt : m < N) :
+    ∑ z : ZMod N, cos (2 * π * ↑m * (z.val : ℝ) / ↑N) = 0 :=
+  sum_cos_zmod_eq_zero N m (cos_ne_one_of_pos_lt N m hm_pos hm_lt)
+
+/-- Sum of sin over ZMod N vanishes for any integer frequency. -/
+theorem sum_sin_zmod_int_eq_zero (N : ℕ) [NeZero N] (m : ℤ) :
+    ∑ z : ZMod N, sin (2 * π * ↑m * (z.val : ℝ) / ↑N) = 0 := by
+  rcases le_or_gt 0 m with hm | hm
+  · lift m to ℕ using hm
+    exact_mod_cast sum_sin_zmod_eq_zero N m
+  · -- m < 0: use sin(-x) = -sin(x) and reduce to (-m).toNat : ℕ
+    set n := (-m).toNat
+    have hmn : m = -(n : ℤ) := by simp [n, Int.toNat_of_nonneg (by omega : (0 : ℤ) ≤ -m)]
+    simp_rw [show (m : ℝ) = -(n : ℝ) from by exact_mod_cast hmn,
+      show ∀ z : ZMod N, 2 * π * (-(n : ℝ)) * (z.val : ℝ) / ↑N =
+        -(2 * π * ↑n * (z.val : ℝ) / ↑N) from fun z => by ring,
+      sin_neg, Finset.sum_neg_distrib, neg_eq_zero]
+    exact sum_sin_zmod_eq_zero N n
+
+/-- Product of cos and sin over ZMod N sums to zero (any frequencies). -/
+theorem sum_cos_mul_sin_zmod_eq_zero (N : ℕ) [NeZero N] (k l : ℕ) :
+    ∑ z : ZMod N, cos (2 * π * ↑k * (z.val : ℝ) / ↑N) *
+      sin (2 * π * ↑l * (z.val : ℝ) / ↑N) = 0 := by
+  simp_rw [cos_mul_sin]
+  rw [← Finset.sum_div, Finset.sum_sub_distrib]
+  simp_rw [show ∀ z : ZMod N,
+      2 * π * ↑k * (z.val : ℝ) / ↑N + 2 * π * ↑l * (z.val : ℝ) / ↑N =
+      2 * π * ↑((k : ℤ) + ↑l) * (z.val : ℝ) / ↑N from fun z => by push_cast; ring]
+  simp_rw [show ∀ z : ZMod N,
+      2 * π * ↑k * (z.val : ℝ) / ↑N - 2 * π * ↑l * (z.val : ℝ) / ↑N =
+      2 * π * ↑((k : ℤ) - ↑l) * (z.val : ℝ) / ↑N from fun z => by push_cast; ring]
+  rw [sum_sin_zmod_int_eq_zero N ((k : ℤ) + l),
+    sum_sin_zmod_int_eq_zero N ((k : ℤ) - l)]
+  simp
+
+/-- Product of cos functions over ZMod N sums to zero when frequencies
+    are distinct and both in (0, N/2]. -/
+theorem sum_cos_mul_cos_zmod_eq_zero (N : ℕ) [NeZero N] (k l : ℕ)
+    (hk_pos : 0 < k) (hl_pos : 0 < l) (hkl : k ≠ l) (hkl_sum : k + l < N) :
+    ∑ z : ZMod N, cos (2 * π * ↑k * (z.val : ℝ) / ↑N) *
+      cos (2 * π * ↑l * (z.val : ℝ) / ↑N) = 0 := by
+  simp_rw [cos_mul_cos]
+  rw [← Finset.sum_div, Finset.sum_add_distrib]
+  -- Sum frequency: k + l, with 0 < k+l < N
+  simp_rw [show ∀ z : ZMod N,
+      2 * π * ↑k * (z.val : ℝ) / ↑N + 2 * π * ↑l * (z.val : ℝ) / ↑N =
+      2 * π * ↑(k + l) * (z.val : ℝ) / ↑N from fun z => by push_cast; ring]
+  -- Difference frequency: |k - l|, with 0 < |k-l| < N
+  rcases le_or_gt l k with hlk | hkl'
+  · -- k ≥ l: difference = k - l
+    simp_rw [show ∀ z : ZMod N,
+        2 * π * ↑k * (z.val : ℝ) / ↑N - 2 * π * ↑l * (z.val : ℝ) / ↑N =
+        2 * π * ↑(k - l) * (z.val : ℝ) / ↑N from fun z => by
+          rw [Nat.cast_sub hlk]; ring]
+    rw [sum_cos_zmod_eq_zero_of_pos_lt N (k - l) (Nat.sub_pos_of_lt
+      (lt_of_le_of_ne hlk (Ne.symm hkl))) (by omega),
+      sum_cos_zmod_eq_zero_of_pos_lt N (k + l) (by omega) hkl_sum]
+    simp
+  · -- k < l: difference is negative, use cos(-x) = cos(x)
+    simp_rw [show ∀ z : ZMod N,
+        2 * π * ↑k * (z.val : ℝ) / ↑N - 2 * π * ↑l * (z.val : ℝ) / ↑N =
+        -(2 * π * ↑(l - k) * (z.val : ℝ) / ↑N) from fun z => by
+          rw [Nat.cast_sub hkl'.le]; ring,
+      cos_neg]
+    rw [sum_cos_zmod_eq_zero_of_pos_lt N (l - k) (by omega) (by omega),
+      sum_cos_zmod_eq_zero_of_pos_lt N (k + l) (by omega) hkl_sum]
+    simp
+
+/-- Product of sin functions over ZMod N sums to zero when frequencies
+    are distinct and both in (0, N/2]. -/
+theorem sum_sin_mul_sin_zmod_eq_zero (N : ℕ) [NeZero N] (k l : ℕ)
+    (hk_pos : 0 < k) (hl_pos : 0 < l) (hkl : k ≠ l) (hkl_sum : k + l < N) :
+    ∑ z : ZMod N, sin (2 * π * ↑k * (z.val : ℝ) / ↑N) *
+      sin (2 * π * ↑l * (z.val : ℝ) / ↑N) = 0 := by
+  simp_rw [sin_mul_sin]
+  rw [← Finset.sum_div, Finset.sum_sub_distrib]
+  simp_rw [show ∀ z : ZMod N,
+      2 * π * ↑k * (z.val : ℝ) / ↑N + 2 * π * ↑l * (z.val : ℝ) / ↑N =
+      2 * π * ↑(k + l) * (z.val : ℝ) / ↑N from fun z => by push_cast; ring]
+  rcases le_or_gt l k with hlk | hkl'
+  · simp_rw [show ∀ z : ZMod N,
+        2 * π * ↑k * (z.val : ℝ) / ↑N - 2 * π * ↑l * (z.val : ℝ) / ↑N =
+        2 * π * ↑(k - l) * (z.val : ℝ) / ↑N from fun z => by
+          rw [Nat.cast_sub hlk]; ring]
+    rw [sum_cos_zmod_eq_zero_of_pos_lt N (k - l) (Nat.sub_pos_of_lt
+      (lt_of_le_of_ne hlk (Ne.symm hkl))) (by omega),
+      sum_cos_zmod_eq_zero_of_pos_lt N (k + l) (by omega) hkl_sum]
+    simp
+  · simp_rw [show ∀ z : ZMod N,
+        2 * π * ↑k * (z.val : ℝ) / ↑N - 2 * π * ↑l * (z.val : ℝ) / ↑N =
+        -(2 * π * ↑(l - k) * (z.val : ℝ) / ↑N) from fun z => by
+          rw [Nat.cast_sub hkl'.le]; ring,
+      cos_neg]
+    rw [sum_cos_zmod_eq_zero_of_pos_lt N (l - k) (by omega) (by omega),
+      sum_cos_zmod_eq_zero_of_pos_lt N (k + l) (by omega) hkl_sum]
+    simp
+
 end GaussianField
