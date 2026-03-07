@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**23 axioms (+1 skipped), 0 sorries**
+**19 axioms (+1 skipped), 0 sorries**
 
-*Updated 2026-03-06.*
+*Updated 2026-03-07.*
 
 ## Axiom inventory
 
@@ -169,7 +169,10 @@ Proved lattice convergence results:
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `lattice_green_tendsto_continuum` | Lattice/Convergence | axiom | Hard | Full Green's function convergence (bilinear form). |
+| `lattice_covariance_pure_eq_2d_spectral` | Lattice/Convergence | axiom | Medium | Circulant diagonalization: lattice covariance = 2D DFT spectral sum for pure tensors. |
+| `latticeDFTCoeff1d_quadratic_bound` | Lattice/Convergence | axiom | Medium | Uniform quadratic DFT coefficient decay via summation by parts. |
+| `lattice_green_tendsto_continuum_pure` | Lattice/Convergence | **proved** | — | Convergence for pure tensors via Tannery's theorem on ℕ×ℕ. |
+| `lattice_green_tendsto_continuum` | Lattice/Convergence | axiom | Easy | Bilinear extension from pure tensors to general elements. |
 
 ### Green's function invariance
 
@@ -187,14 +190,13 @@ Proved lattice convergence results:
 
 ### Fourier translation/reflection
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `fourierCoeffReal_circleTranslation_zero` | SmoothCircle/FourierTranslation | axiom | Medium | Translation effect on constant Fourier coefficient. |
-| `fourierCoeffReal_circleTranslation_cos` | SmoothCircle/FourierTranslation | axiom | Medium | Translation effect on cosine Fourier coefficient. |
-| `fourierCoeffReal_circleTranslation_sin` | SmoothCircle/FourierTranslation | axiom | Medium | Translation effect on sine Fourier coefficient. |
-| `fourierCoeffReal_circleReflection_zero` | SmoothCircle/FourierTranslation | axiom | Medium | Reflection effect on constant Fourier coefficient. |
-| `fourierCoeffReal_circleReflection_cos` | SmoothCircle/FourierTranslation | axiom | Medium | Reflection effect on cosine Fourier coefficient. |
-| `fourierCoeffReal_circleReflection_sin` | SmoothCircle/FourierTranslation | axiom | Medium | Reflection effect on sine Fourier coefficient. |
+Proved Fourier results (no longer axioms):
+- `fourierCoeffReal_circleTranslation_zero` -- **proved** (periodicity of integration via `integral_Icc_comp_sub_of_periodic`)
+- `fourierCoeffReal_circleTranslation_cos` -- **proved** (cos addition formula + integral linearity + periodicity)
+- `fourierCoeffReal_circleTranslation_sin` -- **proved** (sin addition formula + integral linearity + periodicity)
+- `fourierCoeffReal_circleReflection_zero` -- **proved** (periodicity of integration via `integral_Icc_comp_neg_of_periodic`)
+- `fourierCoeffReal_circleReflection_cos` -- **proved** (cosine is even: `fourierBasisFun_even_cos`)
+- `fourierCoeffReal_circleReflection_sin` -- **proved** (sine is odd: `fourierBasisFun_odd_sin`)
 
 ### Nuclear tensor product functors
 
@@ -215,12 +217,12 @@ Proved lattice convergence results:
 | GaussianField/Support | 2 | 0 |
 | HeatKernel/GreenInvariance | 3 | 0 |
 | HeatKernel/PositionKernel | 1 | 0 |
-| Lattice/Convergence | 1 | 0 |
+| Lattice/Convergence | 3 | 0 |
 | Lattice/HeatKernelConvergence1d | 1 | 0 |
 | Torus/Restriction | 2 | 0 |
-| SmoothCircle/FourierTranslation | 6 | 0 |
+| SmoothCircle/FourierTranslation | 0 | 0 |
 | Nuclear/TensorProductFunctorAxioms | 6 | 0 |
-| **Total** | **25 (+1 skipped)** | **0** |
+| **Total** | **19 (+1 skipped)** | **0** |
 
 ## References
 
