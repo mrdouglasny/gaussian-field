@@ -122,23 +122,88 @@ theorem latticeEigenvalue1d_tendsto (k : ℕ) :
     -- sinc(πk/(N+1)) → sinc(0) as N → ∞
     exact (continuous_sinc.tendsto 0).comp (tendsto_const_div_succ (π * k))
 
-/-! ## ℕ-indexed lattice DFT coefficients -/
+/-! ## Lattice real Fourier basis and DFT coefficients -/
+
+/-- The lattice real Fourier basis function on ℤ/Nℤ.
+
+Mirrors the continuum `fourierBasisFun` but on the discrete lattice:
+- Index 0: `1/√N` (constant)
+- Index 2k-1 (k ≥ 1): `√(2/N) · cos(2πk·val/N)` (cosine)
+- Index 2k (k ≥ 1): `√(2/N) · sin(2πk·val/N)` (sine) -/
+def latticeFourierBasisFun (N : ℕ) : ℕ → ZMod N → ℝ
+  | 0 => fun _ => 1 / Real.sqrt N
+  | n + 1 =>
+    let k := (n / 2 + 1 : ℕ)
+    if n % 2 = 0 then
+      fun z => Real.sqrt (2 / N) * Real.cos (2 * π * k * (ZMod.val z : ℝ) / N)
+    else
+      fun z => Real.sqrt (2 / N) * Real.sin (2 * π * k * (ZMod.val z : ℝ) / N)
 
 /-- **DFT coefficient of a restricted circle function at mode m.**
 
-The m-th DFT coefficient of the restriction of a smooth circle function
-to the N-point lattice. For m < N, this is the projection of `r_N f`
-onto the m-th DFT eigenvector. For m ≥ N, it is 0 (no lattice mode).
+The inner product of the restricted function with the m-th lattice
+Fourier basis function. For m ≥ N, this is 0 (no lattice mode).
 
-The √(L/N) normalization in `circleRestriction` ensures these
-approximate the continuum Fourier coefficients `DyninMityaginSpace.coeff m f`. -/
-axiom latticeDFTCoeff1d (N : ℕ) [NeZero N]
-    (f : SmoothMap_Circle L ℝ) (m : ℕ) : ℝ
+The √(L/N) normalization in `circleRestriction` combined with the
+1/√N normalization in `latticeFourierBasisFun` ensures these approximate
+the continuum Fourier coefficients `DyninMityaginSpace.coeff m f`. -/
+def latticeDFTCoeff1d (N : ℕ) [NeZero N]
+    (f : SmoothMap_Circle L ℝ) (m : ℕ) : ℝ :=
+  if m < N then
+    ∑ z : ZMod N,
+      circleRestriction L N f z * latticeFourierBasisFun N m z
+  else 0
 
 /-- DFT coefficients vanish beyond the lattice cutoff. -/
-axiom latticeDFTCoeff1d_zero_of_ge (N : ℕ) [NeZero N]
+theorem latticeDFTCoeff1d_zero_of_ge (N : ℕ) [NeZero N]
     (f : SmoothMap_Circle L ℝ) (m : ℕ) (hm : N ≤ m) :
-    latticeDFTCoeff1d L N f m = 0
+    latticeDFTCoeff1d L N f m = 0 := by
+  unfold latticeDFTCoeff1d
+  rw [if_neg (not_lt.mpr hm)]
+
+/-! ## Explicit 1D lattice eigenvalues -/
+
+/-- The 1D lattice Laplacian eigenvalue at mode m, using `fourierFreq` indexing.
+
+`λ_m = (4/a²) sin²(π · fourierFreq(m) / N)`
+
+This matches the continuum ordering where modes are:
+constant, cos(2πx/L), sin(2πx/L), cos(4πx/L), ... -/
+def latticeEigenvalue1d (N : ℕ) (a : ℝ) (m : ℕ) : ℝ :=
+  (4 / a ^ 2) * sin (π * (SmoothMap_Circle.fourierFreq m : ℝ) / N) ^ 2
+
+/-- Eigenvalue at mode 0 is 0 (constant mode has zero Laplacian eigenvalue). -/
+theorem latticeEigenvalue1d_zero (N : ℕ) (a : ℝ) :
+    latticeEigenvalue1d N a 0 = 0 := by
+  simp [latticeEigenvalue1d, SmoothMap_Circle.fourierFreq, sin_zero]
+
+/-- 1D lattice eigenvalues are nonneg. -/
+theorem latticeEigenvalue1d_nonneg (N : ℕ) (a : ℝ) (m : ℕ) :
+    0 ≤ latticeEigenvalue1d N a m := by
+  unfold latticeEigenvalue1d
+  apply mul_nonneg (div_nonneg (by norm_num) (sq_nonneg _)) (sq_nonneg _)
+
+/-- **1D lattice eigenvalue converges to continuum eigenvalue.**
+
+Proved from `latticeEigenvalue1d_tendsto` applied to `fourierFreq(m)`. -/
+theorem latticeEigenvalue1d_tendsto_continuum (m : ℕ) :
+    Tendsto (fun N : ℕ =>
+      latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m)
+      atTop (nhds (HasLaplacianEigenvalues.eigenvalue
+        (E := SmoothMap_Circle L ℝ) m)) := by
+  simp only [latticeEigenvalue1d, circleSpacing,
+    circleHasLaplacianEigenvalues]
+  -- (4 / (L/(N+1))²) * sin²(π·freq/((N+1))) → (2π·freq/L)²
+  -- = (4(N+1)²/L²) * sin²(π·freq/(N+1)) → (2π·freq/L)²
+  -- which is exactly latticeEigenvalue1d_tendsto applied to k = fourierFreq m
+  have h := latticeEigenvalue1d_tendsto L (SmoothMap_Circle.fourierFreq m)
+  convert h using 1
+  ext N
+  have hN : ((N : ℝ) + 1) ≠ 0 := by positivity
+  have hL' : L ≠ 0 := ne_of_gt hL.out
+  field_simp
+  push_cast
+  ring
 
 /-! ## Spectral expansion (ℕ-indexed) -/
 
@@ -147,12 +212,12 @@ axiom latticeDFTCoeff1d_zero_of_ge (N : ℕ) [NeZero N]
 The matrix heat kernel bilinear form equals the spectral sum with
 explicit sin² eigenvalues and DFT coefficients. This combines:
 - DFT diagonalization of the circulant Laplacian on ℤ/Nℤ
-- Reindexing from ZMod N to ℕ via the mode map -/
+- The lattice Fourier basis being an eigenbasis of the discrete Laplacian -/
 axiom latticeHeatKernelBilinear1d_eq_spectral (N : ℕ) [NeZero N] (t : ℝ)
     (f g : SmoothMap_Circle L ℝ) :
     latticeHeatKernelBilinear1d L N t f g =
     ∑ m ∈ Finset.range N,
-      Real.exp (-t * latticeLaplacianEigenvalue 1 N (circleSpacing L N) m) *
+      Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
       latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m
 
 /-! ## Coefficient convergence (Riemann sum) -/
@@ -177,24 +242,12 @@ axiom latticeDFTCoeff1d_uniform_bound
     ∃ C : ℝ, ∀ (N : ℕ) (m : ℕ), |latticeDFTCoeff1d L (N + 1) f m| ≤
       C / (1 + (m : ℝ)) ^ 2
 
-/-- **Lattice eigenvalue converges to continuum eigenvalue.**
-
-For each fixed mode m, as N → ∞ the 1D lattice Laplacian eigenvalue
-converges to the continuum circle eigenvalue. This combines the
-sin²→sinc² computation (`latticeEigenvalue1d_tendsto`) with the
-mode-matching between ZMod N DFT modes and ℕ-indexed Fourier modes. -/
-axiom latticeLaplacianEigenvalue1d_tendsto (m : ℕ) :
-    Tendsto (fun N : ℕ =>
-      latticeLaplacianEigenvalue 1 (N + 1) (circleSpacing L (N + 1)) m)
-      atTop (nhds (HasLaplacianEigenvalues.eigenvalue
-        (E := SmoothMap_Circle L ℝ) m))
-
 /-! ## Full 1D heat kernel convergence -/
 
 /-- The m-th lattice heat kernel term at lattice size N. -/
 private def latticeHeatTerm1d (N : ℕ) [NeZero N] (t : ℝ)
     (f g : SmoothMap_Circle L ℝ) (m : ℕ) : ℝ :=
-  Real.exp (-t * latticeLaplacianEigenvalue 1 N (circleSpacing L N) m) *
+  Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
     latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m
 
 /-- Lattice heat kernel term vanishes for m ≥ N. -/
@@ -252,7 +305,7 @@ theorem lattice_heatKernel_tendsto_continuum_1d (t : ℝ) (ht : 0 < t)
     exact Filter.Tendsto.mul
       (Filter.Tendsto.mul
         ((Real.continuous_exp.tendsto _).comp
-          (tendsto_const_nhds.mul (latticeLaplacianEigenvalue1d_tendsto L m)))
+          (tendsto_const_nhds.mul (latticeEigenvalue1d_tendsto_continuum L m)))
         (latticeDFTCoeff1d_tendsto L f m))
       (latticeDFTCoeff1d_tendsto L g m)
   · -- Norm bound: |e^{-tλ} · a · b| ≤ Cf/(1+m)² · Cg/(1+m)²
@@ -260,8 +313,8 @@ theorem lattice_heatKernel_tendsto_continuum_1d (t : ℝ) (ht : 0 < t)
     intro N m
     unfold latticeHeatTerm1d
     rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
-    have hev := latticeLaplacianEigenvalue_nonneg 1 (N + 1) (circleSpacing L (N + 1)) m
-    have hexp_le : Real.exp (-t * latticeLaplacianEigenvalue 1 (N + 1)
+    have hev := latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) m
+    have hexp_le : Real.exp (-t * latticeEigenvalue1d (N + 1)
         (circleSpacing L (N + 1)) m) ≤ 1 :=
       Real.exp_le_one_iff.mpr (by nlinarith)
     calc Real.exp _ * |latticeDFTCoeff1d L (N + 1) f m| *
