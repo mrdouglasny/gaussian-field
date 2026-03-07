@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**25 axioms (+1 skipped), 0 sorries**
+**23 axioms (+1 skipped), 0 sorries**
 
 *Updated 2026-03-06.*
 
@@ -150,13 +150,17 @@ Proved hypercontractive results (axiom-free):
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `latticeHeatKernelBilinear1d_eq_spectral` | Lattice/HeatKernelConvergence1d | axiom | Hard | DFT diagonalization of circulant Laplacian on Z/NZ. |
-| `riemann_sum_periodic_tendsto` | Lattice/HeatKernelConvergence1d | axiom | Medium | Left-endpoint Riemann sum of continuous periodic function converges to integral. Standard calculus; requires splitting Lebesgue integral into subintervals + uniform continuity estimate. |
-| `latticeDFTCoeff1d_uniform_bound` | Lattice/HeatKernelConvergence1d | axiom | Medium | Uniform (in N) rapid-decay bound on lattice DFT coefficients. |
+| ~~`riemann_sum_periodic_tendsto`~~ | Lattice/HeatKernelConvergence1d | **PROVED** | | Riemann sum convergence for continuous periodic functions via uniform continuity + subinterval splitting. |
+| ~~`latticeDFTCoeff1d_uniform_bound`~~ | Lattice/HeatKernelConvergence1d | **PROVED** | | Replaced by flat bound `|c_m| <= sqrt(2L) * ||f||_C0` + eigenvalue lower bound via Jordan's inequality. Convergence uses `exp(-8tm/L^2)` geometric domination instead of `1/(1+m)^2` polynomial decay. |
 
 Proved lattice convergence results:
 - `latticeEigenvalue1d_tendsto` -- eigenvalue convergence via sinc (proved)
 - `latticeEigenvalue1d_tendsto_continuum` -- eigenvalue convergence for general modes (proved)
-- `restriction_times_latticeBasis` -- normalization identity: product of circle restriction and lattice Fourier basis equals (L/N) times continuum product (proved)
+- `restriction_times_latticeBasis` -- normalization identity (proved)
+- `riemann_sum_periodic_tendsto` -- Riemann sum convergence for periodic functions (proved)
+- `latticeDFTCoeff1d_tendsto` -- DFT coefficient convergence via Riemann sums (proved)
+- `latticeDFTCoeff1d_flat_bound` -- uniform bound on DFT coefficients (proved)
+- `latticeEigenvalue1d_ge_8m` -- eigenvalue lower bound via Jordan's inequality (proved)
 - `latticeDFTCoeff1d_eq_riemann_sum` -- DFT coefficient equals Riemann sum of f times fourierBasisFun (proved)
 - `latticeDFTCoeff1d_tendsto` -- **proved** (was axiom): DFT coefficient converges to continuum Fourier coefficient via Riemann sum convergence
 - `lattice_heatKernel_tendsto_continuum_1d` -- full 1D heat kernel bilinear form convergence (proved, uses Tannery's theorem / dominated convergence for sums)
@@ -212,7 +216,7 @@ Proved lattice convergence results:
 | HeatKernel/GreenInvariance | 3 | 0 |
 | HeatKernel/PositionKernel | 1 | 0 |
 | Lattice/Convergence | 1 | 0 |
-| Lattice/HeatKernelConvergence1d | 3 | 0 |
+| Lattice/HeatKernelConvergence1d | 1 | 0 |
 | Torus/Restriction | 2 | 0 |
 | SmoothCircle/FourierTranslation | 6 | 0 |
 | Nuclear/TensorProductFunctorAxioms | 6 | 0 |
