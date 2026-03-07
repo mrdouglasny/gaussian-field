@@ -380,6 +380,27 @@ private theorem latticeEigenvalue1d_ge_8m (N m : ℕ) (hm : 1 ≤ m)
     _ ≤ 4 * M ^ 2 / L ^ 2 * sin (π * j / M) ^ 2 := by
         apply mul_le_mul_of_nonneg_left hsin_sq; positivity
 
+/-! ## Spectral expansion -/
+
+/-- **Lattice heat kernel bilinear form equals the Mathlib spectral expansion.**
+
+Uses `bilinear_exp_eq_spectral` applied to the negative Laplacian matrix.
+The eigenvectors and eigenvalues are from Mathlib's abstract spectral theorem. -/
+theorem latticeHeatKernelBilinear1d_eq_mathlib_spectral (N : ℕ) [NeZero N] (t : ℝ)
+    (f g : SmoothMap_Circle L ℝ) :
+    let a := circleSpacing L N
+    let hM := negLaplacianMatrix_isHermitian 1 N a
+    let fN : FinLatticeSites 1 N → ℝ := fun x => circleRestriction L N f (x 0)
+    let gN : FinLatticeSites 1 N → ℝ := fun x => circleRestriction L N g (x 0)
+    latticeHeatKernelBilinear1d L N t f g =
+    ∑ k : FinLatticeSites 1 N,
+      Real.exp (-t * hM.eigenvalues k) *
+      (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ (FinLatticeSites 1 N)) x * fN x) *
+      (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ (FinLatticeSites 1 N)) x * gN x) := by
+  intro a hM fN gN
+  unfold latticeHeatKernelBilinear1d latticeHeatKernelMatrix
+  exact Matrix.IsHermitian.bilinear_exp_eq_spectral hM t fN gN
+
 /-! ## Spectral expansion (ℕ-indexed) -/
 
 /-- **Lattice heat kernel equals ℕ-indexed spectral sum.**

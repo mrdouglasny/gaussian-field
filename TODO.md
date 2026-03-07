@@ -9,11 +9,18 @@ Target axioms:
 - `lattice_covariance_pure_eq_2d_spectral` (Lattice/Convergence)
 - ~~`latticeDFTCoeff1d_quadratic_bound` (Lattice/Convergence)~~ — **DONE** (Lattice/CirculantDFT.lean)
 
-What to build:
-- DFT on Z/NZ as a unitary map (Mathlib has `dft` but not circulant theory)
-- Circulant matrices diagonalized by DFT
-- Eigenvalue formula: lambda_k = (4/a^2) sum_i sin^2(pi k_i / N)
-- Summation by parts on Z/NZ for quadratic coefficient decay
+Progress:
+- **DONE** (Lattice/HeatKernel.lean): `bilinear_exp_eq_spectral` — spectral expansion
+  of the matrix exponential bilinear form using Mathlib's abstract eigenbasis.
+  Also `mulVec_exp_neg_smul` and `eigenCoeff_exp_neg_smul`.
+- **DONE** (Lattice/CirculantDFT.lean): eigenvector theorems
+  `negLaplacian1d_cos_eigenvalue`, `negLaplacian1d_sin_eigenvalue`
+
+What remains:
+- Connect Mathlib abstract eigenbasis to explicit DFT eigenvectors (CirculantDFT.lean)
+- Show Mathlib eigenvalues = `latticeEigenvalue1d` (complete eigenbasis identification)
+- Note: axiom as stated is wrong for even N at Nyquist mode (norm² = 2, not 1);
+  the Mathlib-based spectral expansion is correct for all N
 
 ### 2. Green's function invariance on pure tensors (eliminates 2 axioms)
 
