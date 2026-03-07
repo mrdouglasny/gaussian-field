@@ -156,6 +156,59 @@ theorem config_apply_eq_sum_evalMap (ω : Configuration (FinLatticeField d N))
     ω f = ∑ x : FinLatticeSites d N, f x * (evalMap d N ω) x := by
   simpa [evalMap] using config_apply_eq_sum_delta (d := d) (N := N) ω f
 
+/-! ### evalMap as a measurable equivalence
+
+For finite-dimensional lattice fields, `evalMap` is a measurable equivalence
+between the Configuration space (weak dual) and the field space. This enables
+change of variables in integrals without measurability conditions on the
+integrand. -/
+
+/-- Inverse of `evalMap`: sends field values φ to the CLM `f ↦ ∑ x, f(x) · φ(x)`. -/
+noncomputable def evalMapInv (φ : FinLatticeField d N) :
+    Configuration (FinLatticeField d N) :=
+  LinearMap.toContinuousLinearMap
+    { toFun := fun f => ∑ x : FinLatticeSites d N, f x * φ x
+      map_add' := fun f g => by simp [Finset.sum_add_distrib, add_mul]
+      map_smul' := fun c f => by
+        simp only [Finset.mul_sum, smul_eq_mul, RingHom.id_apply, Pi.smul_apply]
+        congr 1; ext x; ring }
+
+theorem evalMapInv_apply (φ f : FinLatticeField d N) :
+    (evalMapInv d N φ) f = ∑ x : FinLatticeSites d N, f x * φ x := by
+  simp only [evalMapInv]; rfl
+
+theorem evalMap_evalMapInv (φ : FinLatticeField d N) :
+    evalMap d N (evalMapInv d N φ) = φ := by
+  ext x; simp only [evalMap, evalMapInv_apply, finLatticeDelta]
+  simp [Finset.mem_univ]
+
+theorem evalMapInv_evalMap (ω : Configuration (FinLatticeField d N)) :
+    evalMapInv d N (evalMap d N ω) = ω := by
+  apply ContinuousLinearMap.ext; intro f
+  rw [evalMapInv_apply]
+  exact (config_apply_eq_sum_evalMap d N ω f).symm
+
+theorem evalMapInv_measurable :
+    Measurable (evalMapInv d N) := by
+  apply configuration_measurable_of_eval_measurable (evalMapInv d N)
+  intro f; simp_rw [evalMapInv_apply]
+  exact Finset.measurable_sum _ (fun x _ =>
+    measurable_const.mul (measurable_pi_apply x))
+
+/-- `evalMap` as a measurable equivalence between Configuration space and
+the finite lattice field space. For finite-dimensional V, the canonical
+map `ω ↦ (x ↦ ω(δ_x))` is a measurable isomorphism with inverse
+`φ ↦ (f ↦ ∑ x, f(x) · φ(x))`. -/
+noncomputable def evalMapMeasurableEquiv :
+    Configuration (FinLatticeField d N) ≃ᵐ FinLatticeField d N where
+  toEquiv := {
+    toFun := evalMap d N
+    invFun := evalMapInv d N
+    left_inv := evalMapInv_evalMap d N
+    right_inv := evalMap_evalMapInv d N }
+  measurable_toFun := measurable_evalMap d N
+  measurable_invFun := evalMapInv_measurable d N
+
 theorem gaussianDensity_measurable (a mass : ℝ) :
     Measurable (gaussianDensity d N a mass) := by
   unfold gaussianDensity
@@ -1049,5 +1102,26 @@ theorem integrable_mul_gaussianDensity_of_comp_eval (a mass : ℝ)
     exact (integrable_map_measure hFm.aestronglyMeasurable
       (measurable_evalMap (d := d) (N := N)).aemeasurable).mpr hF
   exact integrable_mul_gaussianDensity_of_fieldLaw (d := d) (N := N) a mass ha hmass F hField
+
+/-- **General density bridge** (no measurability on F).
+
+For ANY function `F : FinLatticeField d N → ℝ`:
+
+  `∫ F(evalMap ω) dμ_GFF = (∫ F · ρ dφ) / (∫ ρ dφ)`
+
+This uses `evalMapMeasurableEquiv` to avoid the `Measurable F` hypothesis
+required by `latticeGaussianMeasure_density_integral`. -/
+theorem latticeGaussianMeasure_density_integral' (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass)
+    (F : FinLatticeField d N → ℝ) :
+    ∫ ω, F (evalMap d N ω) ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    (∫ φ, F φ * gaussianDensity d N a mass φ) /
+    (∫ φ, gaussianDensity d N a mass φ) := by
+  calc ∫ ω, F (evalMap d N ω) ∂(latticeGaussianMeasure d N a mass ha hmass)
+      = ∫ φ, F φ ∂(Measure.map (evalMapMeasurableEquiv d N)
+          (latticeGaussianMeasure d N a mass ha hmass)) :=
+        (integral_map_equiv (evalMapMeasurableEquiv d N) F).symm
+    _ = ∫ φ, F φ ∂(latticeGaussianFieldLaw d N a mass ha hmass) := rfl
+    _ = _ := latticeGaussianFieldLaw_density_integral d N a mass ha hmass F
 
 end GaussianField
