@@ -957,4 +957,109 @@ theorem sum_sin_mul_sin_zmod_eq_zero (N : ℕ) [NeZero N] (k l : ℕ)
       sum_cos_zmod_eq_zero_of_pos_lt N (k + l) (by omega) hkl_sum]
     simp
 
+/-! ## Eigenvector property of 1D lattice Laplacian
+
+The key structural result: cos(2πkz/N) and sin(2πkz/N) are eigenvectors
+of the negative 1D lattice Laplacian `(-Δ)` with eigenvalue `(4/a²)sin²(πk/N)`.
+
+This uses: cos(θ+δ) + cos(θ-δ) = 2cos(θ)cos(δ), so
+(-Δ cos_k)(z) = a⁻²(2cos(θ) - cos(θ+δ) - cos(θ-δ))
+             = 2a⁻²(1 - cos(δ))cos(θ) = (4/a²)sin²(πk/N)·cos(θ). -/
+
+/-- Sum of cos at shifted argument: cos(k·(z+1)) + cos(k·(z-1)) = 2cos(kz)cos(k). -/
+private theorem cos_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
+    cos (2 * π * ↑k * ((z + 1 : ZMod N).val : ℝ) / ↑N) +
+    cos (2 * π * ↑k * ((z - 1 : ZMod N).val : ℝ) / ↑N) =
+    2 * cos (2 * π * ↑k * (z.val : ℝ) / ↑N) *
+      cos (2 * π * ↑k / ↑N) := by
+  rw [cos_zmod_succ, cos_zmod_pred]
+  set θ := 2 * π * ↑k * (z.val : ℝ) / ↑N
+  set δ := 2 * π * ↑k / ↑N
+  rw [show 2 * π * ↑k * ((z.val : ℝ) + 1) / ↑N = θ + δ from by simp only [θ, δ]; ring,
+    show 2 * π * ↑k * ((z.val : ℝ) - 1) / ↑N = θ - δ from by simp only [θ, δ]; ring]
+  linarith [cos_add θ δ, cos_sub θ δ]
+
+/-- The negative 1D Laplacian acts on cos functions as eigenvalue multiplication.
+
+For `v(x) = cos(2πk·(x 0).val/N)`, we have `(-Δ) v = λ_k · v`
+where `λ_k = (2/a²)(1 - cos(2πk/N))`. -/
+theorem negLaplacian1d_cos_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (ha : a ≠ 0) (k : ℕ) :
+    let v : FinLatticeField 1 N :=
+      fun x => cos (2 * π * ↑k * ((x 0).val : ℝ) / ↑N)
+    ∀ x : FinLatticeSites 1 N,
+      (negLaplacianMatrix 1 N a).mulVec v x =
+      (2 * a⁻¹ ^ 2 * (1 - cos (2 * π * ↑k / ↑N))) * v x := by
+  intro v x
+  -- Bridge mulVec to operator action
+  rw [show (negLaplacianMatrix 1 N a).mulVec v x =
+      (massOperator 1 N a 0 v) x from by
+    simp only [negLaplacianMatrix]
+    rw [← massOperator_eq_matrix_mulVec]]
+  -- Expand massOperator = -finiteLaplacian + 0²·id
+  simp only [massOperator, ContinuousLinearMap.add_apply,
+    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+    ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
+    Pi.smul_apply, smul_eq_mul]
+  -- Unfold finiteLaplacian
+  simp only [finiteLaplacian, ContinuousLinearMap.coe_mk',
+    finiteLaplacianLM, LinearMap.coe_mk, AddHom.coe_mk,
+    finiteLaplacianFun]
+  -- For d=1, the sum over Fin 1 is a single term
+  simp only [Fin.sum_univ_one]
+  -- The shifted function arguments simplify via coordinate 0
+  have hv_succ : v (fun j : Fin 1 => if j = 0 then x j + 1 else x j) =
+      cos (2 * π * ↑k * ((x 0 + 1 : ZMod N).val : ℝ) / ↑N) := by
+    show cos (2 * π * ↑k * (((fun j : Fin 1 => if j = 0 then x j + 1 else x j) 0).val : ℝ) / ↑N) = _
+    simp
+  have hv_pred : v (fun j : Fin 1 => if j = 0 then x j - 1 else x j) =
+      cos (2 * π * ↑k * ((x 0 - 1 : ZMod N).val : ℝ) / ↑N) := by
+    show cos (2 * π * ↑k * (((fun j : Fin 1 => if j = 0 then x j - 1 else x j) 0).val : ℝ) / ↑N) = _
+    simp
+  rw [hv_succ, hv_pred, cos_shift_sum]
+  ring
+
+/-- Sum of sin at shifted arguments: sin(k·(z+1)) + sin(k·(z-1)) = 2sin(kz)cos(k). -/
+private theorem sin_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
+    sin (2 * π * ↑k * ((z + 1 : ZMod N).val : ℝ) / ↑N) +
+    sin (2 * π * ↑k * ((z - 1 : ZMod N).val : ℝ) / ↑N) =
+    2 * sin (2 * π * ↑k * (z.val : ℝ) / ↑N) *
+      cos (2 * π * ↑k / ↑N) := by
+  rw [sin_zmod_succ, sin_zmod_pred]
+  set θ := 2 * π * ↑k * (z.val : ℝ) / ↑N
+  set δ := 2 * π * ↑k / ↑N
+  rw [show 2 * π * ↑k * ((z.val : ℝ) + 1) / ↑N = θ + δ from by simp only [θ, δ]; ring,
+    show 2 * π * ↑k * ((z.val : ℝ) - 1) / ↑N = θ - δ from by simp only [θ, δ]; ring]
+  linarith [sin_add θ δ, sin_sub θ δ]
+
+/-- The negative 1D Laplacian acts on sin functions as eigenvalue multiplication. -/
+theorem negLaplacian1d_sin_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (ha : a ≠ 0) (k : ℕ) :
+    let v : FinLatticeField 1 N :=
+      fun x => sin (2 * π * ↑k * ((x 0).val : ℝ) / ↑N)
+    ∀ x : FinLatticeSites 1 N,
+      (negLaplacianMatrix 1 N a).mulVec v x =
+      (2 * a⁻¹ ^ 2 * (1 - cos (2 * π * ↑k / ↑N))) * v x := by
+  intro v x
+  rw [show (negLaplacianMatrix 1 N a).mulVec v x =
+      (massOperator 1 N a 0 v) x from by
+    simp only [negLaplacianMatrix]
+    rw [← massOperator_eq_matrix_mulVec]]
+  simp only [massOperator, ContinuousLinearMap.add_apply,
+    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+    ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
+    Pi.smul_apply, smul_eq_mul]
+  simp only [finiteLaplacian, ContinuousLinearMap.coe_mk',
+    finiteLaplacianLM, LinearMap.coe_mk, AddHom.coe_mk,
+    finiteLaplacianFun]
+  simp only [Fin.sum_univ_one]
+  have hv_succ : v (fun j : Fin 1 => if j = 0 then x j + 1 else x j) =
+      sin (2 * π * ↑k * ((x 0 + 1 : ZMod N).val : ℝ) / ↑N) := by
+    show sin (2 * π * ↑k * (((fun j : Fin 1 => if j = 0 then x j + 1 else x j) 0).val : ℝ) / ↑N) = _
+    simp
+  have hv_pred : v (fun j : Fin 1 => if j = 0 then x j - 1 else x j) =
+      sin (2 * π * ↑k * ((x 0 - 1 : ZMod N).val : ℝ) / ↑N) := by
+    show sin (2 * π * ↑k * (((fun j : Fin 1 => if j = 0 then x j - 1 else x j) 0).val : ℝ) / ↑N) = _
+    simp
+  rw [hv_succ, hv_pred, sin_shift_sum]
+  ring
+
 end GaussianField
