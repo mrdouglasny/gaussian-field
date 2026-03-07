@@ -33,4 +33,5 @@ import Lattice.HeatKernel
 import Lattice.Symmetry
 import Lattice.Covariance
 import Lattice.Convergence
+import Lattice.HeatKernelConvergence1d
 import Lattice.FKG
