@@ -29,6 +29,7 @@ As N → ∞, `sinc(πk/N) → 1`, so `λ_k → (2πk/L)²` = continuum eigenval
 import Lattice.HeatKernel
 import SmoothCircle.Restriction
 import SmoothCircle.Eigenvalues
+import SmoothCircle.Nuclear
 import HeatKernel.Bilinear
 
 noncomputable section
@@ -220,17 +221,148 @@ axiom latticeHeatKernelBilinear1d_eq_spectral (N : ℕ) [NeZero N] (t : ℝ)
       Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
       latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m
 
+
 /-! ## Coefficient convergence (Riemann sum) -/
+
+/-- **Normalization identity**: the product of circle restriction and lattice
+Fourier basis equals (L/N) times the product of the original function with
+the continuum Fourier basis, both evaluated at the lattice point. -/
+private theorem restriction_times_latticeBasis
+    (N : ℕ) [NeZero N] (f : SmoothMap_Circle L ℝ) (m : ℕ) (_hm : m < N)
+    (z : ZMod N) :
+    circleRestriction L N f z * latticeFourierBasisFun N m z =
+    (L / N) * (f (circlePoint L N z) *
+      SmoothMap_Circle.fourierBasisFun (L := L) m (circlePoint L N z)) := by
+  have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr (NeZero.pos N)
+  have hL' : L ≠ 0 := ne_of_gt hL.out
+  have hN_ne : (N : ℝ) ≠ 0 := ne_of_gt hN_pos
+  have sqrt_factor (c : ℝ) (_hc : 0 ≤ c) :
+      Real.sqrt (L / N) * Real.sqrt (c / N) = L / N * Real.sqrt (c / L) := by
+    rw [← Real.sqrt_mul (div_nonneg hL.out.le hN_pos.le)]
+    have : L / ↑N * (c / ↑N) = (L / ↑N) ^ 2 * (c / L) := by field_simp
+    rw [this, Real.sqrt_mul (sq_nonneg _),
+      Real.sqrt_sq (div_nonneg hL.out.le hN_pos.le)]
+  -- Key: √(L/N) * (1/√N) = (L/N) * (1/√L)
+  have sqrt_factor_one :
+      Real.sqrt (L / ↑N) * (1 / Real.sqrt ↑N) = L / ↑N * (1 / Real.sqrt L) := by
+    have h1 : (1 : ℝ) / Real.sqrt ↑N = Real.sqrt (1 / ↑N) := by
+      rw [one_div, one_div, ← Real.sqrt_inv]
+    have h2 : (1 : ℝ) / Real.sqrt L = Real.sqrt (1 / L) := by
+      rw [one_div, one_div, ← Real.sqrt_inv]
+    rw [h1, sqrt_factor 1 (by norm_num), h2]
+  -- Key: arg rewrite for trig arguments
+  have arg_eq (k : ℕ) : 2 * π * ↑k * (ZMod.val z : ℝ) / ↑N =
+      2 * π * ↑k * circlePoint L N z / L := by
+    simp only [circlePoint]; field_simp
+  rcases m with _ | n
+  · -- m = 0: √(L/N) * f(pt) * (1/√N) = (L/N) * (f(pt) * (1/√L))
+    simp only [circleRestriction_apply, circleSpacing_eq,
+      latticeFourierBasisFun, SmoothMap_Circle.fourierBasisFun]
+    calc Real.sqrt (L / ↑N) * f (circlePoint L N z) * (1 / Real.sqrt ↑N)
+        = (Real.sqrt (L / ↑N) * (1 / Real.sqrt ↑N)) * f (circlePoint L N z) := by ring
+      _ = (L / ↑N * (1 / Real.sqrt L)) * f (circlePoint L N z) := by
+            rw [sqrt_factor_one]
+      _ = L / ↑N * (f (circlePoint L N z) * (1 / Real.sqrt L)) := by ring
+  · -- m = n+1
+    simp only [circleRestriction_apply, circleSpacing_eq,
+      latticeFourierBasisFun, SmoothMap_Circle.fourierBasisFun]
+    -- The goal has unapplied lambdas inside if-then-else; split_ifs to resolve
+    split_ifs with h
+    · -- cosine case: n % 2 = 0
+      -- LHS: √(L/N) * f(pt) * (√(2/N) * cos(2πk·val/N))
+      -- RHS: (L/N) * (f(pt) * (√(2/L) * cos(2πk·pt/L)))
+      simp only [arg_eq]
+      calc Real.sqrt (L / ↑N) * f (circlePoint L N z) *
+            (Real.sqrt (2 / ↑N) * cos (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L))
+          = (Real.sqrt (L / ↑N) * Real.sqrt (2 / ↑N)) *
+            (f (circlePoint L N z) * cos (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L)) := by ring
+        _ = (L / ↑N * Real.sqrt (2 / L)) *
+            (f (circlePoint L N z) * cos (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L)) := by
+              rw [sqrt_factor 2 (by norm_num)]
+        _ = L / ↑N * (f (circlePoint L N z) *
+            (Real.sqrt (2 / L) * cos (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L))) := by ring
+    · -- sine case: n % 2 ≠ 0
+      simp only [arg_eq]
+      calc Real.sqrt (L / ↑N) * f (circlePoint L N z) *
+            (Real.sqrt (2 / ↑N) * sin (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L))
+          = (Real.sqrt (L / ↑N) * Real.sqrt (2 / ↑N)) *
+            (f (circlePoint L N z) * sin (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L)) := by ring
+        _ = (L / ↑N * Real.sqrt (2 / L)) *
+            (f (circlePoint L N z) * sin (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L)) := by
+              rw [sqrt_factor 2 (by norm_num)]
+        _ = L / ↑N * (f (circlePoint L N z) *
+            (Real.sqrt (2 / L) * sin (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L))) := by ring
+
+/-- The lattice DFT coefficient equals a Riemann sum of f times fourierBasisFun. -/
+private theorem latticeDFTCoeff1d_eq_riemann_sum
+    (N : ℕ) [NeZero N] (f : SmoothMap_Circle L ℝ) (m : ℕ) (hm : m < N) :
+    latticeDFTCoeff1d L N f m =
+    ∑ z : ZMod N, (L / N) * (f (circlePoint L N z) *
+      SmoothMap_Circle.fourierBasisFun (L := L) m (circlePoint L N z)) := by
+  simp only [latticeDFTCoeff1d, if_pos hm]
+  congr 1; ext z
+  exact restriction_times_latticeBasis L N f m hm z
+
+/-- **Riemann sum convergence for continuous periodic functions on [0, L].**
+
+The left-endpoint Riemann sum with N+1 equally spaced points on [0, L]
+converges to the integral as N → ∞. This follows from uniform continuity
+of g on the compact interval [0, L]:
+
+- Get δ from uniform continuity for tolerance ε/L
+- For N large enough, spacing L/(N+1) < δ
+- On each subinterval [ka, (ka+a)], |g(x) - g(ka)| < ε/L
+- Total error = Σ_k |∫_{ka}^{(k+1)a} (g(x) - g(ka)) dx| ≤ (N+1) · a · (ε/L) = ε -/
+axiom riemann_sum_periodic_tendsto
+    (g : ℝ → ℝ) (hg : Continuous g) (_hper : Function.Periodic g L) :
+    Tendsto (fun N : ℕ =>
+      ∑ k ∈ Finset.range (N + 1),
+        (L / (↑(N + 1) : ℝ)) * g (↑k * L / (↑(N + 1) : ℝ)))
+      atTop (nhds (∫ x in Set.Icc 0 L, g x))
 
 /-- **DFT coefficient converges to Fourier coefficient.**
 
 For each fixed mode m, as N → ∞ the lattice DFT coefficient of the restricted
 test function converges to the continuum DMS Fourier coefficient.
 This is Riemann sum convergence for `∫ f(x) φ_m(x) dx`. -/
-axiom latticeDFTCoeff1d_tendsto
+theorem latticeDFTCoeff1d_tendsto
     (f : SmoothMap_Circle L ℝ) (m : ℕ) :
     Tendsto (fun N : ℕ => latticeDFTCoeff1d L (N + 1) f m)
-      atTop (nhds (DyninMityaginSpace.coeff m f))
+      atTop (nhds (DyninMityaginSpace.coeff m f)) := by
+  -- DyninMityaginSpace.coeff m f = fourierCoeffReal m f = ∫ x in Icc 0 L, f x * φ_m x
+  -- This follows by unfolding the chain:
+  --   coeff m := (coeffCLM m).comp(equiv) → coeffCLM m (equiv f)
+  --   → (equiv f).val m → (toRapidDecay f).val m → fourierCoeffReal m f
+  have hcoeff : DyninMityaginSpace.coeff m f =
+      ∫ x in Set.Icc 0 L, f x * SmoothMap_Circle.fourierBasisFun (L := L) m x := by
+    show ((RapidDecaySeq.coeffCLM m).comp
+      (SmoothMap_Circle.smoothCircleRapidDecayEquiv (L := L)).toContinuousLinearMap) f =
+      ∫ x in Set.Icc 0 L, f x * SmoothMap_Circle.fourierBasisFun (L := L) m x
+    simp [RapidDecaySeq.coeffCLM, RapidDecaySeq.coeffLM,
+      SmoothMap_Circle.smoothCircleRapidDecayEquiv,
+      SmoothMap_Circle.toRapidDecayLM, SmoothMap_Circle.toRapidDecay,
+      SmoothMap_Circle.fourierCoeffReal]
+  rw [hcoeff]
+  set g := fun x => f x * SmoothMap_Circle.fourierBasisFun (L := L) m x
+    with hg_def
+  have hg_cont : Continuous g :=
+    f.continuous.mul
+      (SmoothMap_Circle.fourierBasisFun_smooth m).continuous
+  have hg_per : Function.Periodic g L := fun x => by
+    simp only [hg_def]
+    rw [f.periodic x, SmoothMap_Circle.fourierBasisFun_periodic m x]
+  apply (riemann_sum_periodic_tendsto L g hg_cont hg_per).congr'
+  apply Filter.eventually_atTop.mpr
+  refine ⟨m, fun N hN => ?_⟩
+  have hm : m < N + 1 := by omega
+  -- Beta-reduce the lambda applications
+  show ∑ k ∈ Finset.range (N + 1), L / ↑(N + 1) * g (↑k * L / ↑(N + 1)) =
+    latticeDFTCoeff1d L (N + 1) f m
+  rw [latticeDFTCoeff1d_eq_riemann_sum L (N + 1) f m hm]
+  -- Now: Finset.range sum of g = ZMod sum of f * fourierBasisFun at circlePoint
+  -- Convert ZMod sum to Finset.range sum via Fin
+  symm; rw [← Fin.sum_univ_eq_sum_range]
+  congr 1
 
 /-- **Uniform bound on DFT coefficients.**
 

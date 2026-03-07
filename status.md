@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**6 axioms, 1 sorry**
+**25 axioms (+1 skipped), 0 sorries**
 
-*Updated 2026-03-03.*
+*Updated 2026-03-06.*
 
 ## Axiom inventory
 
@@ -145,21 +145,78 @@ Proved hypercontractive results (axiom-free):
 |------|------|------|-------------|
 | `schwartz_dyninMityaginSpace_axiom` | GaussianField | commented out | Axiom fallback for Schwartz ≅ Dynin-Mityagin space; the proven instance via `SchwartzNuclear.HermiteTensorProduct` is used instead. Available to swap in for faster build/testing. |
 
+### Lattice convergence (1D heat kernel)
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `latticeHeatKernelBilinear1d_eq_spectral` | Lattice/HeatKernelConvergence1d | axiom | Hard | DFT diagonalization of circulant Laplacian on Z/NZ. |
+| `riemann_sum_periodic_tendsto` | Lattice/HeatKernelConvergence1d | axiom | Medium | Left-endpoint Riemann sum of continuous periodic function converges to integral. Standard calculus; requires splitting Lebesgue integral into subintervals + uniform continuity estimate. |
+| `latticeDFTCoeff1d_uniform_bound` | Lattice/HeatKernelConvergence1d | axiom | Medium | Uniform (in N) rapid-decay bound on lattice DFT coefficients. |
+
+Proved lattice convergence results:
+- `latticeEigenvalue1d_tendsto` -- eigenvalue convergence via sinc (proved)
+- `latticeEigenvalue1d_tendsto_continuum` -- eigenvalue convergence for general modes (proved)
+- `restriction_times_latticeBasis` -- normalization identity: product of circle restriction and lattice Fourier basis equals (L/N) times continuum product (proved)
+- `latticeDFTCoeff1d_eq_riemann_sum` -- DFT coefficient equals Riemann sum of f times fourierBasisFun (proved)
+- `latticeDFTCoeff1d_tendsto` -- **proved** (was axiom): DFT coefficient converges to continuum Fourier coefficient via Riemann sum convergence
+- `lattice_heatKernel_tendsto_continuum_1d` -- full 1D heat kernel bilinear form convergence (proved, uses Tannery's theorem / dominated convergence for sums)
+
+### Lattice convergence (Green's function)
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `lattice_green_tendsto_continuum` | Lattice/Convergence | axiom | Hard | Full Green's function convergence (bilinear form). |
+
+### Green's function invariance
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `greenFunctionBilinear_reflection_pure` | HeatKernel/GreenInvariance | axiom | Medium | Green's function reflection invariance for pure vectors. |
+| `greenFunctionBilinear_translation_pure` | HeatKernel/GreenInvariance | axiom | Medium | Green's function translation invariance for pure vectors. |
+| `greenFunctionBilinear_invariant_of_pure` | HeatKernel/GreenInvariance | axiom | Medium | General invariance from pure vector invariance. |
+
+### Gaussian field uniqueness
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `measure_unique_of_charFun` | GaussianField/Properties | axiom | Hard | Uniqueness of measure from characteristic function. |
+
+### Fourier translation/reflection
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `fourierCoeffReal_circleTranslation_zero` | SmoothCircle/FourierTranslation | axiom | Medium | Translation effect on constant Fourier coefficient. |
+| `fourierCoeffReal_circleTranslation_cos` | SmoothCircle/FourierTranslation | axiom | Medium | Translation effect on cosine Fourier coefficient. |
+| `fourierCoeffReal_circleTranslation_sin` | SmoothCircle/FourierTranslation | axiom | Medium | Translation effect on sine Fourier coefficient. |
+| `fourierCoeffReal_circleReflection_zero` | SmoothCircle/FourierTranslation | axiom | Medium | Reflection effect on constant Fourier coefficient. |
+| `fourierCoeffReal_circleReflection_cos` | SmoothCircle/FourierTranslation | axiom | Medium | Reflection effect on cosine Fourier coefficient. |
+| `fourierCoeffReal_circleReflection_sin` | SmoothCircle/FourierTranslation | axiom | Medium | Reflection effect on sine Fourier coefficient. |
+
+### Nuclear tensor product functors
+
+| Item | File | Type | Difficulty | Description |
+|------|------|------|-----------|-------------|
+| `nuclearTensorProduct_mapCLM` | Nuclear/TensorProductFunctorAxioms | axiom | Hard | Functorial map for nuclear tensor products. |
+| `nuclearTensorProduct_swapCLM` | Nuclear/TensorProductFunctorAxioms | axiom | Hard | Swap map for nuclear tensor products. |
+| `nuclearTensorProduct_mapCLM_comp` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Composition law for tensor product functor. |
+| `nuclearTensorProduct_mapCLM_id` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Identity law for tensor product functor. |
+| `nuclearTensorProduct_mapCLM_pure` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Functorial map on pure tensors. |
+| `nuclearTensorProduct_swapCLM_pure` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Swap on pure tensors. |
+
 ### Summary by file
 
 | File | Axioms | Sorries |
 |------|--------|---------|
-| HeatKernel/Bilinear | 0 | 1 |
-| HeatKernel/PositionKernel | 1 | 0 |
-| Torus/Restriction | 2 | 0 |
-| Lattice/RapidDecayLattice | 0 | 0 |
-| Lattice/FKG | 0 | 0 |
-| Lattice/SpectralCovariance | 0 | 0 |
-| GaussianField/Density | 0 | 0 |
-| GaussianField/Hypercontractive | 0 | 0 |
+| GaussianField/Properties | 1 | 0 |
 | GaussianField/Support | 2 | 0 |
-| Nuclear/NuclearTensorProduct | 0 | 0 |
-| **Total** | **5 (+1 skipped)** | **1** |
+| HeatKernel/GreenInvariance | 3 | 0 |
+| HeatKernel/PositionKernel | 1 | 0 |
+| Lattice/Convergence | 1 | 0 |
+| Lattice/HeatKernelConvergence1d | 3 | 0 |
+| Torus/Restriction | 2 | 0 |
+| SmoothCircle/FourierTranslation | 6 | 0 |
+| Nuclear/TensorProductFunctorAxioms | 6 | 0 |
+| **Total** | **25 (+1 skipped)** | **0** |
 
 ## References
 
