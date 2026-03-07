@@ -41,6 +41,7 @@ import Torus.Evaluation
 import HeatKernel.Bilinear
 import SmoothCircle.Eigenvalues
 import Lattice.HeatKernelConvergence1d
+import Lattice.CirculantDFT
 
 noncomputable section
 
@@ -82,9 +83,10 @@ For smooth circle functions, `|c_m^{N+1}(f)| ≤ C / (1 + m)²` uniformly in N.
 Follows from two rounds of discrete summation by parts on the periodic lattice.
 
 Reference: Katznelson, *Harmonic Analysis*, §I.2. -/
-axiom latticeDFTCoeff1d_quadratic_bound (f : SmoothMap_Circle L ℝ) :
+theorem latticeDFTCoeff1d_quadratic_bound (f : SmoothMap_Circle L ℝ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ N m,
-      |latticeDFTCoeff1d L (N + 1) f m| ≤ C / (1 + (m : ℝ)) ^ 2
+      |latticeDFTCoeff1d L (N + 1) f m| ≤ C / (1 + (m : ℝ)) ^ 2 :=
+  latticeDFTCoeff1d_quadratic_bound' L f
 
 /-! ## 2D spectral terms -/
 

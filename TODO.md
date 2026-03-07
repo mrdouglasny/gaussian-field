@@ -7,7 +7,7 @@
 Target axioms:
 - `latticeHeatKernelBilinear1d_eq_spectral` (Lattice/HeatKernelConvergence1d)
 - `lattice_covariance_pure_eq_2d_spectral` (Lattice/Convergence)
-- `latticeDFTCoeff1d_quadratic_bound` (Lattice/Convergence) — via summation by parts
+- ~~`latticeDFTCoeff1d_quadratic_bound` (Lattice/Convergence)~~ — **DONE** (Lattice/CirculantDFT.lean)
 
 What to build:
 - DFT on Z/NZ as a unitary map (Mathlib has `dft` but not circulant theory)
@@ -18,28 +18,23 @@ What to build:
 ### 2. Green's function invariance on pure tensors (eliminates 2 axioms)
 
 Target axioms:
-- `greenFunctionBilinear_reflection_pure` (HeatKernel/GreenInvariance)
-- `greenFunctionBilinear_translation_pure` (HeatKernel/GreenInvariance)
+- ~~`greenFunctionBilinear_reflection_pure` (HeatKernel/GreenInvariance)~~ — **DONE**
+- ~~`greenFunctionBilinear_translation_pure` (HeatKernel/GreenInvariance)~~ — **DONE**
 
-Now provable: the Fourier coefficient transformation theorems in
-`SmoothCircle/FourierTranslation.lean` are all proved. The proofs need:
-- `pure_val` (coefficient factorization for pure tensors)
-- Term-by-term invariance for reflection (sign cancellation: (+-1)^2 = 1)
-- Paired-mode regrouping for translation (`paired_coeff_product_circleTranslation`)
+Proved using `pure_val`, `fourierCoeffReal_reflection_product`,
+`coeff_product_paired_translation`, and `tsum_eq_of_paired_involution`
+(mode-partner involution with eigenvalue degeneracy).
 
 ### 3. Bilinear extension from pure tensors (eliminates 2 axioms)
 
 Target axioms:
-- `greenFunctionBilinear_invariant_of_pure` (HeatKernel/GreenInvariance)
+- ~~`greenFunctionBilinear_invariant_of_pure` (HeatKernel/GreenInvariance)~~ — **DONE**
 - `lattice_green_tendsto_continuum` (Lattice/Convergence)
 
-General principle: if a continuous bilinear identity holds on
-`NuclearTensorProduct.pure`, it holds on all elements (by density of
-pure tensors + continuity of the bilinear form).
-
-What to build:
-- Density of `pure` elements in `NuclearTensorProduct`
-- Extension lemma: continuous bilinear identity on dense subset extends
+Proved `invariant_of_pure` via two-step DyninMityaginSpace expansion:
+fix a pure tensor in arg 2, expand arg 1 using CLM `greenCLM_left`;
+then fix arg 1, expand arg 2 the same way. Requires biorthogonality
+`coeff n (basis m) = δ_{nm}` (holds for `ofRapidDecayEquiv` instances).
 
 ### 4. Measure uniqueness from characteristic function (eliminates 1+ axioms)
 
