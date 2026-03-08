@@ -245,6 +245,9 @@ AddCircle-based lattice frameworks (Tanimoto).
 | [Lattice/Covariance.lean](Lattice/Covariance.lean) | `latticeCovariance` via spectral theorem, `latticeGaussianMeasure` |
 | [GaussianField/Density.lean](GaussianField/Density.lean) | Density bridge: Gaussian measure ↔ Gaussian density |
 | [Lattice/FKG.lean](Lattice/FKG.lean) | FKG inequality for lattice Gaussian and convexly-perturbed measures |
+| [Lattice/CirculantDFT.lean](Lattice/CirculantDFT.lean) | DFT eigenbasis, spectral expansion, 1D heat kernel convergence |
+| [Lattice/HeatKernelConvergence1d.lean](Lattice/HeatKernelConvergence1d.lean) | Eigenvalue/DFT coefficient convergence, Riemann sum convergence |
+| [Lattice/Convergence.lean](Lattice/Convergence.lean) | Green's function convergence (lattice → continuum) |
 
 ### 2e. [Point Evaluation and API](docs/point-eval-and-api.md)
 
@@ -319,19 +322,22 @@ The core results are fully proved with no custom axioms:
 - `GaussianField.measure`, `charFun`, moments — sorry-free
 - `gaussian_ibp_general`, `wick_recursive`, `wick_bound`, `odd_moment_vanish` — sorry-free
 
-The hypercontractive and log-Sobolev development is now fully theorem-backed (`GaussianField/HypercontractiveNat.lean`, `GaussianField/Hypercontractive.lean`) with no remaining axioms or sorries in that path.
+The hypercontractive and log-Sobolev development is fully theorem-backed (`GaussianField/HypercontractiveNat.lean`, `GaussianField/Hypercontractive.lean`) with no remaining axioms or sorries in that path.
 
-The lattice/FKG pipeline is also theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
+The lattice/FKG pipeline is theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
 
-Current project status is **22 axioms, 0 sorries**:
+The 1D lattice-continuum convergence pipeline is fully proved: DFT eigenbasis construction, spectral expansion of the heat kernel, eigenvalue convergence, DFT coefficient convergence via Riemann sums, and the full heat kernel bilinear form convergence theorem (`lattice_heatKernel_tendsto_continuum_1d` in `Lattice/CirculantDFT.lean`).
+
+Green's function invariance (reflection, translation) on pure tensors and the bilinear extension are proved in `HeatKernel/GreenInvariance.lean`. Fourier translation/reflection axioms in `SmoothCircle/FourierTranslation.lean` are fully proved.
+
+Current project status is **14 axioms (+1 skipped), 0 sorries**:
 
 | Section | Axioms | Contents |
 |---------|--------|----------|
-| `SmoothCircle/FourierTranslation.lean` | 6 | Fourier coefficients of circle translation/reflection |
 | `Nuclear/TensorProductFunctorAxioms.lean` | 6 | Nuclear tensor product CLM functoriality (map, swap, comp, id, pure) |
-| `HeatKernel/GreenInvariance.lean` | 4 | Green's function invariance (reflection, swap, translation) |
 | `GaussianField/Support.lean` | 2 | Converse support theorem, support Hilbert space existence |
 | `Torus/Restriction.lean` | 2 | Configuration space on torus is Polish and Borel |
+| `Lattice/Convergence.lean` | 2 | 2D spectral expansion, bilinear extension from pure tensors |
 | `GaussianField/Properties.lean` | 1 | Gaussian measure uniqueness via Minlos (`measure_unique_of_charFun`) |
 | `HeatKernel/PositionKernel.lean` | 1 | Mehler's formula (`mehlerKernel_eq_series`) |
 
@@ -352,10 +358,10 @@ Current project status is **22 axioms, 0 sorries**:
 
 ## Future work
 
-- **New instances**: $C^\infty(S^1)$ is fully proved; remaining targets: $C^\infty(M)$ for compact $M$, lattice spaces, half-spaces (see [concrete instances](docs/concrete-instances.md))
+- **New instances**: $C^\infty(S^1)$ is fully proved; remaining targets: $C^\infty(M)$ for compact $M$, half-spaces (see [concrete instances](docs/concrete-instances.md))
 - **Vector-valued generalization**: Generalize `SmoothMap_Circle L ℝ` and `SchwartzMap D ℝ` to vector-valued codomains $F$ (the `F` parameter in `SmoothMap_Circle` is a placeholder for this), with nuclearity via $C^\infty(M, \mathbb{R}^n) \cong C^\infty(M, \mathbb{R})^n \cong s(\mathbb{N})$; long-term, refactor to `ContMDiffMap (AddCircle L) F` once Mathlib gains manifold structure on `AddCircle`
-- **Heat kernel toolkit**: Formalize the discrete Laplacian, heat kernel, and Kronecker factorization theorem (see [operator construction](docs/operator-construction.md))
-- **Lattice-continuum limits**: Formalize convergence via characteristic functionals, building on the `siteToTorus` embedding (see [lattice-continuum limit](docs/lattice-continuum-limit.md))
+- **2D lattice convergence**: Extend 1D spectral expansion to 2D (`lattice_covariance_pure_eq_2d_spectral`), bilinear extension for Green's function convergence
+- **Nuclear tensor product functor**: Prove the 6 CLM functoriality axioms in `Nuclear/TensorProductFunctorAxioms.lean`
 - **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
 - **Besov regularity**: The support theorem (`gaussian_support_iff`) shows a.s. finite basis norm when $T$ is HS. The next step is showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate Besov indices
 - **$\sigma$-algebra coincidence**: For separable nuclear Fréchet spaces, the cylindrical and Borel $\sigma$-algebras on the dual coincide

@@ -987,7 +987,7 @@ private theorem cos_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
 
 For `v(x) = cos(2πk·(x 0).val/N)`, we have `(-Δ) v = λ_k · v`
 where `λ_k = (2/a²)(1 - cos(2πk/N))`. -/
-theorem negLaplacian1d_cos_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (ha : a ≠ 0) (k : ℕ) :
+theorem negLaplacian1d_cos_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (_ha : a ≠ 0) (k : ℕ) :
     let v : FinLatticeField 1 N :=
       fun x => cos (2 * π * ↑k * ((x 0).val : ℝ) / ↑N)
     ∀ x : FinLatticeSites 1 N,
@@ -1036,7 +1036,7 @@ private theorem sin_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
   linarith [sin_add θ δ, sin_sub θ δ]
 
 /-- The negative 1D Laplacian acts on sin functions as eigenvalue multiplication. -/
-theorem negLaplacian1d_sin_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (ha : a ≠ 0) (k : ℕ) :
+theorem negLaplacian1d_sin_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (_ha : a ≠ 0) (k : ℕ) :
     let v : FinLatticeField 1 N :=
       fun x => sin (2 * π * ↑k * ((x 0).val : ℝ) / ↑N)
     ∀ x : FinLatticeSites 1 N,
@@ -1186,7 +1186,7 @@ theorem latticeFourierNormSq_pos (N : ℕ) [NeZero N] (m : ℕ) (hm : m < N) :
 
 /-- At the Nyquist mode, the norm squared is 2. -/
 private theorem latticeFourierNormSq_nyquist (N : ℕ) [NeZero N] (n : ℕ)
-    (hn_lt : n + 1 < N) (hn_even : n % 2 = 0)
+    (_hn_lt : n + 1 < N) (hn_even : n % 2 = 0)
     (hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N) :
     latticeFourierNormSq N (n + 1) = 2 := by
   have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr (NeZero.pos N)
@@ -1335,7 +1335,7 @@ theorem dft_expansion (N : ℕ) [NeZero N] (f : ZMod N → ℝ) :
       intro z
       have h := congr_fun (B.sum_repr g) z
       simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at h
-      rw [← h]; congr 1; ext m _; congr 1; exact congr_fun (hBφ m) _
+      rw [← h]; congr 1; ext m; congr 1; exact congr_fun (hBφ m) _
     -- c_j * normSq(j) = g · φ_j = 0
     have h_dot : B.repr g j * latticeFourierNormSq N j.val = 0 := by
       -- Unfold normSq: ∑ φ² = ∑ φ*φ

@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**19 axioms (+1 skipped), 0 sorries**
+**14 axioms (+1 skipped), 0 sorries**
 
 *Updated 2026-03-07.*
 
@@ -170,17 +170,16 @@ Proved lattice convergence results:
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `lattice_covariance_pure_eq_2d_spectral` | Lattice/Convergence | axiom | Medium | Circulant diagonalization: lattice covariance = 2D DFT spectral sum for pure tensors. |
-| `latticeDFTCoeff1d_quadratic_bound` | Lattice/Convergence | axiom | Medium | Uniform quadratic DFT coefficient decay via summation by parts. |
+| ~~`latticeDFTCoeff1d_quadratic_bound`~~ | Lattice/Convergence | **proved** | — | Eliminated: replaced by flat bound + eigenvalue lower bound via Jordan's inequality. |
 | `lattice_green_tendsto_continuum_pure` | Lattice/Convergence | **proved** | — | Convergence for pure tensors via Tannery's theorem on ℕ×ℕ. |
 | `lattice_green_tendsto_continuum` | Lattice/Convergence | axiom | Easy | Bilinear extension from pure tensors to general elements. |
 
 ### Green's function invariance
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `greenFunctionBilinear_reflection_pure` | HeatKernel/GreenInvariance | axiom | Medium | Green's function reflection invariance for pure vectors. |
-| `greenFunctionBilinear_translation_pure` | HeatKernel/GreenInvariance | axiom | Medium | Green's function translation invariance for pure vectors. |
-| `greenFunctionBilinear_invariant_of_pure` | HeatKernel/GreenInvariance | axiom | Medium | General invariance from pure vector invariance. |
+Proved Green's function invariance results (no longer axioms):
+- `greenFunctionBilinear_reflection_pure` -- **proved** (mode-partner involution with eigenvalue degeneracy)
+- `greenFunctionBilinear_translation_pure` -- **proved** (coeff_product_paired_translation + tsum_eq_of_paired_involution)
+- `greenFunctionBilinear_invariant_of_pure` -- **proved** (two-step DyninMityaginSpace expansion via greenCLM_left)
 
 ### Gaussian field uniqueness
 
@@ -215,14 +214,11 @@ Proved Fourier results (no longer axioms):
 |------|--------|---------|
 | GaussianField/Properties | 1 | 0 |
 | GaussianField/Support | 2 | 0 |
-| HeatKernel/GreenInvariance | 3 | 0 |
 | HeatKernel/PositionKernel | 1 | 0 |
-| Lattice/Convergence | 3 | 0 |
-| Lattice/HeatKernelConvergence1d | 1 | 0 |
+| Lattice/Convergence | 2 | 0 |
 | Torus/Restriction | 2 | 0 |
-| SmoothCircle/FourierTranslation | 0 | 0 |
 | Nuclear/TensorProductFunctorAxioms | 6 | 0 |
-| **Total** | **19 (+1 skipped)** | **0** |
+| **Total** | **14 (+1 skipped)** | **0** |
 
 ## References
 

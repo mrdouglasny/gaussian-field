@@ -267,6 +267,7 @@ theorem Matrix.IsHermitian.bilinear_exp_eq_spectral
 /-- **Symmetry of Hermitian matrix bilinear form.**
 
 For a real symmetric (Hermitian) matrix M: `(M *ᵥ u) ⬝ᵥ w = u ⬝ᵥ (M *ᵥ w)`. -/
+set_option linter.unusedSectionVars false in
 theorem Matrix.IsHermitian.dotProduct_mulVec_comm
     {M : Matrix n n ℝ} (hM : M.IsHermitian) (u w : n → ℝ) :
     dotProduct (M.mulVec u) w = dotProduct u (M.mulVec w) := by

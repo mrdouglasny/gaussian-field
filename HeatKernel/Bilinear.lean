@@ -251,7 +251,7 @@ it is the Laplace transform of the heat kernel:
 The sum converges because `1/(μ_m + mass²) ≤ 1/mass²` is bounded and
 coefficients are rapidly decreasing. -/
 def greenFunctionBilinear [HasLaplacianEigenvalues E]
-    (mass : ℝ) (hmass : 0 < mass) (f g : E) : ℝ :=
+    (mass : ℝ) (_hmass : 0 < mass) (f g : E) : ℝ :=
   ∑' m, greenTerm (E := E) mass f g m
 
 /-- Summability of the Green's function series. -/
@@ -287,7 +287,7 @@ then evaluating `∫₀^∞ e^{-t(μ_m + mass²)} dt = 1/(μ_m + mass²)`.
 
 The spectral sum definition is primary; this is a derived identity. -/
 theorem greenFunctionBilinear_eq_heatKernel [HasLaplacianEigenvalues E]
-    (mass : ℝ) (hmass : 0 < mass) (f g : E) (m : ℕ) :
+    (mass : ℝ) (_hmass : 0 < mass) (f g : E) (m : ℕ) :
     greenTerm (E := E) mass f g m =
     DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g /
       (HasLaplacianEigenvalues.eigenvalue (E := E) m + mass ^ 2) := by

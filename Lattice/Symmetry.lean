@@ -98,6 +98,7 @@ theorem finiteLaplacian_translation_commute (a : ℝ) (v : FinLatticeSites d N)
 
 /-- Shifting the delta function: `δ_{y+v} = T_v(δ_y)`.
 `δ_{y+v}(z) = 1 iff z = y+v iff z-v = y = δ_y(z-v) = (T_v δ_y)(z)`. -/
+set_option linter.unusedSectionVars false in
 private theorem finLatticeDelta_shift (v : FinLatticeSites d N)
     (y : FinLatticeSites d N) :
     finLatticeDelta d N (y + v) =
@@ -208,6 +209,7 @@ theorem finiteLaplacian_reflection_commute (a : ℝ)
   ring
 
 /-- Delta function under negation: `δ_{-y}(z) = δ_y(-z)`. -/
+set_option linter.unusedSectionVars false in
 private theorem finLatticeDelta_neg (y : FinLatticeSites d N) :
     finLatticeDelta d N (-y) =
     latticeFullReflectionFun d N (finLatticeDelta d N y) := by
