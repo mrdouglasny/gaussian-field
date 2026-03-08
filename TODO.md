@@ -56,17 +56,20 @@ Levy's uniqueness theorem: if two finite Borel measures on a nuclear
 Frechet dual have the same characteristic functional, they are equal.
 Standard reference: Gel'fand-Vilenkin Vol. 4.
 
-### 5. Nuclear tensor product functor (eliminates 6 axioms)
+### 5. Nuclear tensor product functor (eliminates 4 remaining axioms)
 
 Target axioms (all in Nuclear/TensorProductFunctorAxioms):
 - `nuclearTensorProduct_mapCLM`
-- `nuclearTensorProduct_swapCLM`
 - `nuclearTensorProduct_mapCLM_comp`
 - `nuclearTensorProduct_mapCLM_id`
 - `nuclearTensorProduct_mapCLM_pure`
-- `nuclearTensorProduct_swapCLM_pure`
 
-Construction: CLMs on DyninMityaginSpaces have polynomial growth on basis
-coefficients (by coeff_decay + basis_growth). On the Kothe sequence space
-representation, T1 ot T2 acts coefficient-wise via Cantor pairing.
-Swap is the Cantor pairing transpose. ~500+ LOC.
+Progress:
+- **DONE**: `nuclearTensorProduct_swapCLM` — Cantor pair permutation with
+  rapid decay via `1+m ≤ 4·(1+σ(m))²` weight bound.
+- **DONE**: `nuclearTensorProduct_swapCLM_pure` — commutativity of multiplication.
+
+What remains:
+- `mapCLM`: CLMs on DyninMityaginSpaces have polynomial growth on basis
+  coefficients (by coeff_decay + basis_growth). On the Köthe sequence space
+  representation, T1 ⊗ T2 acts coefficient-wise via Cantor pairing. ~400+ LOC.

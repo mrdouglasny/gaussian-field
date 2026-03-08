@@ -74,8 +74,9 @@ axiom lattice_covariance_pure_eq_2d_spectral
     = ∑ m₁ ∈ Finset.range (N + 1), ∑ m₂ ∈ Finset.range (N + 1),
         latticeDFTCoeff1d L (N + 1) f₁ m₁ * latticeDFTCoeff1d L (N + 1) g₁ m₁ *
         latticeDFTCoeff1d L (N + 1) f₂ m₂ * latticeDFTCoeff1d L (N + 1) g₂ m₂ /
-        (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m₁ +
-         latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m₂ + mass ^ 2)
+        ((latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m₁ +
+         latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m₂ + mass ^ 2) *
+         latticeFourierNormSq (N + 1) m₁ * latticeFourierNormSq (N + 1) m₂)
 
 /-- **Lattice DFT coefficients decay at least quadratically, uniformly in N.**
 
@@ -95,8 +96,9 @@ private def latticeGreenTerm2d (N : ℕ) (mass : ℝ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) (p : ℕ × ℕ) : ℝ :=
   latticeDFTCoeff1d L (N + 1) f₁ p.1 * latticeDFTCoeff1d L (N + 1) g₁ p.1 *
   latticeDFTCoeff1d L (N + 1) f₂ p.2 * latticeDFTCoeff1d L (N + 1) g₂ p.2 /
-  (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-   latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2)
+  ((latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+   latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+   latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2)
 
 /-- The `(n₁, n₂)`-th term of the continuum 2D Green's function spectral sum. -/
 private def continuumGreenTerm2d (mass : ℝ)
@@ -181,6 +183,38 @@ private theorem latticeGreenTerm2d_tendsto
     Tendsto (fun N : ℕ => latticeGreenTerm2d L N mass f₁ g₁ f₂ g₂ p)
       atTop (nhds (continuumGreenTerm2d L mass f₁ g₁ f₂ g₂ p)) := by
   unfold latticeGreenTerm2d continuumGreenTerm2d
+  -- normSq → 1 for fixed mode as N → ∞
+  have h_ns1 : Tendsto (fun N : ℕ => (latticeFourierNormSq (N + 1) p.1 : ℝ))
+      atTop (nhds 1) := by
+    rw [Filter.tendsto_def]; intro s hs
+    apply (latticeFourierNormSq_eventually_one p.1).mono; intro N hN
+    change latticeFourierNormSq (N + 1) p.1 ∈ s
+    rw [hN]; exact mem_of_mem_nhds hs
+  have h_ns2 : Tendsto (fun N : ℕ => (latticeFourierNormSq (N + 1) p.2 : ℝ))
+      atTop (nhds 1) := by
+    rw [Filter.tendsto_def]; intro s hs
+    apply (latticeFourierNormSq_eventually_one p.2).mono; intro N hN
+    change latticeFourierNormSq (N + 1) p.2 ∈ s
+    rw [hN]; exact mem_of_mem_nhds hs
+  -- Eigenvalue sum convergence
+  have h_eig : Tendsto (fun N : ℕ =>
+      latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+      latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) atTop
+      (nhds (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.1 +
+             HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.2 +
+             mass ^ 2)) :=
+    ((latticeEigenvalue1d_tendsto_continuum L p.1).add
+      (latticeEigenvalue1d_tendsto_continuum L p.2)).add tendsto_const_nhds
+  -- Full denominator convergence: (eig_sum + m²) * normSq₁ * normSq₂ → (eig_sum + m²)
+  have h_denom : Tendsto (fun N : ℕ =>
+      (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+       latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+       latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2) atTop
+      (nhds (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.1 +
+             HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.2 +
+             mass ^ 2)) := by
+    have := (h_eig.mul h_ns1).mul h_ns2
+    simp only [mul_one] at this; exact this
   apply Filter.Tendsto.div
   · exact Filter.Tendsto.mul
       (Filter.Tendsto.mul
@@ -189,11 +223,7 @@ private theorem latticeGreenTerm2d_tendsto
           (latticeDFTCoeff1d_tendsto L g₁ p.1))
         (latticeDFTCoeff1d_tendsto L f₂ p.2))
       (latticeDFTCoeff1d_tendsto L g₂ p.2)
-  · apply Filter.Tendsto.add
-    · apply Filter.Tendsto.add
-      · exact latticeEigenvalue1d_tendsto_continuum L p.1
-      · exact latticeEigenvalue1d_tendsto_continuum L p.2
-    · exact tendsto_const_nhds
+  · exact h_denom
   · -- Denominator is positive at the limit
     have : HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.1 +
            HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.2 +
@@ -224,76 +254,104 @@ private theorem latticeGreenTerm2d_norm_le
     ‖latticeGreenTerm2d L N mass f₁ g₁ f₂ g₂ p‖ ≤
       Cf₁ * Cg₁ * Cf₂ * Cg₂ /
       (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
-  unfold latticeGreenTerm2d
-  rw [Real.norm_eq_abs, abs_div, abs_mul, abs_mul, abs_mul]
-  have hden_pos : 0 < latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-      latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 :=
-    by linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
-                 latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2,
-                 sq_pos_of_pos hmass]
-  rw [abs_of_pos hden_pos]
-  -- Bound: |num| / den ≤ |num| / mass²
-  have hden_ge : mass ^ 2 ≤ latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-      latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 :=
-    by linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
-                 latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2]
-  have hmass_sq := sq_pos_of_pos hmass
-  have hp1 : (0 : ℝ) < (1 + (p.1 : ℝ)) ^ 2 := by positivity
-  have hp2 : (0 : ℝ) < (1 + (p.2 : ℝ)) ^ 2 := by positivity
-  -- |c_f₁| * |c_g₁| ≤ Cf₁*Cg₁ / (1+m₁)⁴
-  have h1 : |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
-      |latticeDFTCoeff1d L (N + 1) g₁ p.1| ≤
-      Cf₁ * Cg₁ / (1 + (p.1 : ℝ)) ^ 4 :=
-    calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
-          |latticeDFTCoeff1d L (N + 1) g₁ p.1|
-        ≤ (Cf₁ / (1 + (p.1 : ℝ)) ^ 2) * (Cg₁ / (1 + (p.1 : ℝ)) ^ 2) :=
-          mul_le_mul (hf₁ N p.1) (hg₁ N p.1) (abs_nonneg _)
-            (div_nonneg hCf₁ hp1.le)
-      _ = Cf₁ * Cg₁ / (1 + (p.1 : ℝ)) ^ 4 := by
-          rw [div_mul_div_comm]; congr 1; ring
-  -- |c_f₂| * |c_g₂| ≤ Cf₂*Cg₂ / (1+m₂)⁴
-  have h2 : |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-      |latticeDFTCoeff1d L (N + 1) g₂ p.2| ≤
-      Cf₂ * Cg₂ / (1 + (p.2 : ℝ)) ^ 4 :=
-    calc |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-          |latticeDFTCoeff1d L (N + 1) g₂ p.2|
-        ≤ (Cf₂ / (1 + (p.2 : ℝ)) ^ 2) * (Cg₂ / (1 + (p.2 : ℝ)) ^ 2) :=
-          mul_le_mul (hf₂ N p.2) (hg₂ N p.2) (abs_nonneg _)
-            (div_nonneg hCf₂ hp2.le)
-      _ = Cf₂ * Cg₂ / (1 + (p.2 : ℝ)) ^ 4 := by
-          rw [div_mul_div_comm]; congr 1; ring
-  -- Combined numerator bound
-  have hnum : |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
-      |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
-      |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-      |latticeDFTCoeff1d L (N + 1) g₂ p.2| ≤
-      Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
-    have hmul := mul_le_mul h1 h2 (mul_nonneg (abs_nonneg _) (abs_nonneg _))
-      (div_nonneg (mul_nonneg hCf₁ hCg₁) (by positivity))
+  -- If either index is out of range, the term is 0
+  by_cases h_range : p.1 < N + 1 ∧ p.2 < N + 1
+  · obtain ⟨hp1_lt, hp2_lt⟩ := h_range
+    unfold latticeGreenTerm2d
+    rw [Real.norm_eq_abs, abs_div, abs_mul, abs_mul, abs_mul]
+    have hden_pos : 0 < (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+        latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+        latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2 := by
+      apply mul_pos (mul_pos _ _) _
+      · linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
+                   latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2,
+                   sq_pos_of_pos hmass]
+      · exact latticeFourierNormSq_pos (N + 1) p.1 hp1_lt
+      · exact latticeFourierNormSq_pos (N + 1) p.2 hp2_lt
+    rw [abs_of_pos hden_pos]
+    -- Bound: |num| / den ≤ |num| / mass² (den ≥ mass² since normSq ≥ 1)
+    have hden_ge : mass ^ 2 ≤ (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+        latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+        latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2 := by
+      have h_eig_sum_nn : 0 ≤ latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+          latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 :=
+        le_of_lt (by linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
+                               latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2,
+                               sq_pos_of_pos hmass])
+      calc mass ^ 2
+          ≤ latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+            latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 :=
+            by linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
+                         latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2]
+        _ ≤ _ * latticeFourierNormSq (N + 1) p.1 :=
+            le_mul_of_one_le_right h_eig_sum_nn (latticeFourierNormSq_ge_one (N + 1) p.1 hp1_lt)
+        _ ≤ _ * latticeFourierNormSq (N + 1) p.2 :=
+            le_mul_of_one_le_right (mul_nonneg h_eig_sum_nn
+              (le_of_lt (latticeFourierNormSq_pos (N + 1) p.1 hp1_lt)))
+              (latticeFourierNormSq_ge_one (N + 1) p.2 hp2_lt)
+    have hmass_sq := sq_pos_of_pos hmass
+    have hp1 : (0 : ℝ) < (1 + (p.1 : ℝ)) ^ 2 := by positivity
+    have hp2 : (0 : ℝ) < (1 + (p.2 : ℝ)) ^ 2 := by positivity
+    -- |c_f₁| * |c_g₁| ≤ Cf₁*Cg₁ / (1+m₁)⁴
+    have h1 : |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
+        |latticeDFTCoeff1d L (N + 1) g₁ p.1| ≤
+        Cf₁ * Cg₁ / (1 + (p.1 : ℝ)) ^ 4 :=
+      calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
+            |latticeDFTCoeff1d L (N + 1) g₁ p.1|
+          ≤ (Cf₁ / (1 + (p.1 : ℝ)) ^ 2) * (Cg₁ / (1 + (p.1 : ℝ)) ^ 2) :=
+            mul_le_mul (hf₁ N p.1) (hg₁ N p.1) (abs_nonneg _)
+              (div_nonneg hCf₁ hp1.le)
+        _ = Cf₁ * Cg₁ / (1 + (p.1 : ℝ)) ^ 4 := by
+            rw [div_mul_div_comm]; congr 1; ring
+    -- |c_f₂| * |c_g₂| ≤ Cf₂*Cg₂ / (1+m₂)⁴
+    have h2 : |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
+        |latticeDFTCoeff1d L (N + 1) g₂ p.2| ≤
+        Cf₂ * Cg₂ / (1 + (p.2 : ℝ)) ^ 4 :=
+      calc |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
+            |latticeDFTCoeff1d L (N + 1) g₂ p.2|
+          ≤ (Cf₂ / (1 + (p.2 : ℝ)) ^ 2) * (Cg₂ / (1 + (p.2 : ℝ)) ^ 2) :=
+            mul_le_mul (hf₂ N p.2) (hg₂ N p.2) (abs_nonneg _)
+              (div_nonneg hCf₂ hp2.le)
+        _ = Cf₂ * Cg₂ / (1 + (p.2 : ℝ)) ^ 4 := by
+            rw [div_mul_div_comm]; congr 1; ring
+    -- Combined numerator bound
+    have hnum : |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
+        |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
+        |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
+        |latticeDFTCoeff1d L (N + 1) g₂ p.2| ≤
+        Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
+      have hmul := mul_le_mul h1 h2 (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+        (div_nonneg (mul_nonneg hCf₁ hCg₁) (by positivity))
+      calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
+            |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
+            |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
+            |latticeDFTCoeff1d L (N + 1) g₂ p.2|
+          = (|latticeDFTCoeff1d L (N + 1) f₁ p.1| * |latticeDFTCoeff1d L (N + 1) g₁ p.1|) *
+            (|latticeDFTCoeff1d L (N + 1) f₂ p.2| * |latticeDFTCoeff1d L (N + 1) g₂ p.2|) :=
+            by ring
+        _ ≤ (Cf₁ * Cg₁ / (1 + (p.1 : ℝ)) ^ 4) * (Cf₂ * Cg₂ / (1 + (p.2 : ℝ)) ^ 4) := hmul
+        _ = Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
+            rw [div_mul_div_comm]; congr 1; ring
+    -- Main calc: bound denominator then combine
+    set den := (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+        latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+        latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2
     calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
           |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
           |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-          |latticeDFTCoeff1d L (N + 1) g₂ p.2|
-        = (|latticeDFTCoeff1d L (N + 1) f₁ p.1| * |latticeDFTCoeff1d L (N + 1) g₁ p.1|) *
-          (|latticeDFTCoeff1d L (N + 1) f₂ p.2| * |latticeDFTCoeff1d L (N + 1) g₂ p.2|) :=
-          by ring
-      _ ≤ (Cf₁ * Cg₁ / (1 + (p.1 : ℝ)) ^ 4) * (Cf₂ * Cg₂ / (1 + (p.2 : ℝ)) ^ 4) := hmul
-      _ = Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
-          rw [div_mul_div_comm]; congr 1; ring
-  -- Main calc: bound denominator then combine
-  set den := latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-      latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2
-  calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
-        |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
-        |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-        |latticeDFTCoeff1d L (N + 1) g₂ p.2| / den
-      ≤ Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) / den :=
-        div_le_div_of_nonneg_right hnum (le_of_lt hden_pos)
-    _ ≤ Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) / mass ^ 2 :=
-        div_le_div_of_nonneg_left (div_nonneg (by positivity) (by positivity)) hmass_sq hden_ge
-    _ = Cf₁ * Cg₁ * Cf₂ * Cg₂ /
-        (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
-        rw [div_div]; congr 1; ring
+          |latticeDFTCoeff1d L (N + 1) g₂ p.2| / den
+        ≤ Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) / den :=
+          div_le_div_of_nonneg_right hnum (le_of_lt hden_pos)
+      _ ≤ Cf₁ * Cg₁ * Cf₂ * Cg₂ / ((1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) / mass ^ 2 :=
+          div_le_div_of_nonneg_left (div_nonneg (by positivity) (by positivity)) hmass_sq hden_ge
+      _ = Cf₁ * Cg₁ * Cf₂ * Cg₂ /
+          (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4) := by
+          rw [div_div]; congr 1; ring
+  · -- Out of range: term is 0
+    rw [not_and_or, not_lt, not_lt] at h_range
+    have h0 : latticeGreenTerm2d L N mass f₁ g₁ f₂ g₂ p = 0 :=
+      latticeGreenTerm2d_zero_of_ge L N mass f₁ g₁ f₂ g₂ p h_range
+    rw [h0, norm_zero]; positivity
 
 /-- Summability of `C / (mass² (1+m₁)⁴ (1+m₂)⁴)` over `ℕ × ℕ`. -/
 private theorem summable_bound
@@ -541,49 +599,74 @@ private theorem lattice_covariance_pure_abs_le
             fun p => by field_simp
         apply h_summable.abs.tsum_le_tsum _ hg_sum
         intro p
-        unfold latticeGreenTerm2d
-        rw [abs_div, abs_mul, abs_mul, abs_mul]
-        have hden_pos : 0 < latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-            latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 :=
-          by linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
-                       latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2]
-        rw [abs_of_pos hden_pos]
-        have hnum : |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
-            |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
-            |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-            |latticeDFTCoeff1d L (N + 1) g₂ p.2| ≤
-            Af₁ * (Cg₁ / (1 + (p.1 : ℝ)) ^ 2) *
-            Af₂ * (Cg₂ / (1 + (p.2 : ℝ)) ^ 2) := by
-          apply mul_le_mul
-          · apply mul_le_mul
-            · apply mul_le_mul (hf₁ N p.1) (hg₁ N p.1) (abs_nonneg _) hAf₁
-            · exact hf₂ N p.2
-            · exact abs_nonneg _
-            · exact mul_nonneg hAf₁ (div_nonneg hCg₁ (by positivity))
-          · exact hg₂ N p.2
-          · exact abs_nonneg _
-          · positivity
-        calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
+        by_cases h_range : p.1 < N + 1 ∧ p.2 < N + 1
+        · obtain ⟨hp1_lt, hp2_lt⟩ := h_range
+          unfold latticeGreenTerm2d
+          rw [abs_div, abs_mul, abs_mul, abs_mul]
+          have hden_pos : 0 < (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+              latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+              latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2 := by
+            apply mul_pos (mul_pos _ _) _
+            · linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
+                         latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2]
+            · exact latticeFourierNormSq_pos (N + 1) p.1 hp1_lt
+            · exact latticeFourierNormSq_pos (N + 1) p.2 hp2_lt
+          rw [abs_of_pos hden_pos]
+          have hnum : |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
               |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
               |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
-              |latticeDFTCoeff1d L (N + 1) g₂ p.2| /
-              (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-               latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2)
-            ≤ Af₁ * (Cg₁ / (1 + ↑p.1) ^ 2) * Af₂ * (Cg₂ / (1 + ↑p.2) ^ 2) /
-              (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
-               latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) :=
-                div_le_div_of_nonneg_right hnum (le_of_lt hden_pos)
-          _ ≤ Af₁ * (Cg₁ / (1 + ↑p.1) ^ 2) * Af₂ * (Cg₂ / (1 + ↑p.2) ^ 2) / mass ^ 2 := by
-                apply div_le_div_of_nonneg_left
-                · positivity
-                · exact hmass_sq
-                · linarith [latticeEigenvalue1d_nonneg (N + 1)
-                    (circleSpacing L (N + 1)) p.1,
-                    latticeEigenvalue1d_nonneg (N + 1)
-                    (circleSpacing L (N + 1)) p.2]
-          _ = Af₁ * Cg₁ * Af₂ * Cg₂ /
-              (mass ^ 2 * (1 + ↑p.1) ^ 2 * (1 + ↑p.2) ^ 2) := by
-                field_simp
+              |latticeDFTCoeff1d L (N + 1) g₂ p.2| ≤
+              Af₁ * (Cg₁ / (1 + (p.1 : ℝ)) ^ 2) *
+              Af₂ * (Cg₂ / (1 + (p.2 : ℝ)) ^ 2) := by
+            apply mul_le_mul
+            · apply mul_le_mul
+              · apply mul_le_mul (hf₁ N p.1) (hg₁ N p.1) (abs_nonneg _) hAf₁
+              · exact hf₂ N p.2
+              · exact abs_nonneg _
+              · exact mul_nonneg hAf₁ (div_nonneg hCg₁ (by positivity))
+            · exact hg₂ N p.2
+            · exact abs_nonneg _
+            · positivity
+          set den := (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+              latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+              latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2
+          have hden_ge : mass ^ 2 ≤ den := by
+            have h_ns1 := latticeFourierNormSq_ge_one (N + 1) p.1 hp1_lt
+            have h_ns2 := latticeFourierNormSq_ge_one (N + 1) p.2 hp2_lt
+            have h_eig_sum_pos : 0 < latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+                latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 := by
+              linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
+                         latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2,
+                         sq_pos_of_pos hmass]
+            calc mass ^ 2
+                ≤ latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+                  latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2 :=
+                  by linarith [latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.1,
+                               latticeEigenvalue1d_nonneg (N + 1) (circleSpacing L (N + 1)) p.2]
+              _ ≤ (latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.1 +
+                  latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) p.2 + mass ^ 2) *
+                  latticeFourierNormSq (N + 1) p.1 :=
+                  le_mul_of_one_le_right h_eig_sum_pos.le h_ns1
+              _ ≤ den := le_mul_of_one_le_right
+                  (mul_nonneg h_eig_sum_pos.le (le_of_lt (latticeFourierNormSq_pos (N + 1) p.1 hp1_lt))) h_ns2
+          calc |latticeDFTCoeff1d L (N + 1) f₁ p.1| *
+                |latticeDFTCoeff1d L (N + 1) g₁ p.1| *
+                |latticeDFTCoeff1d L (N + 1) f₂ p.2| *
+                |latticeDFTCoeff1d L (N + 1) g₂ p.2| / den
+              ≤ Af₁ * (Cg₁ / (1 + ↑p.1) ^ 2) * Af₂ * (Cg₂ / (1 + ↑p.2) ^ 2) / den :=
+                  div_le_div_of_nonneg_right hnum (le_of_lt hden_pos)
+            _ ≤ Af₁ * (Cg₁ / (1 + ↑p.1) ^ 2) * Af₂ * (Cg₂ / (1 + ↑p.2) ^ 2) / mass ^ 2 := by
+                  apply div_le_div_of_nonneg_left
+                  · positivity
+                  · exact hmass_sq
+                  · exact hden_ge
+            _ = Af₁ * Cg₁ * Af₂ * Cg₂ /
+                (mass ^ 2 * (1 + ↑p.1) ^ 2 * (1 + ↑p.2) ^ 2) := by
+                  field_simp
+        · rw [not_and_or, not_lt, not_lt] at h_range
+          rw [show |latticeGreenTerm2d L N mass f₁ g₁ f₂ g₂ p| = 0 from by
+            rw [latticeGreenTerm2d_zero_of_ge L N mass f₁ g₁ f₂ g₂ p h_range, abs_zero]]
+          positivity
     _ = Af₁ * Cg₁ * Af₂ * Cg₂ / mass ^ 2 *
         ∑' p : ℕ × ℕ, 1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2) := by
         rw [← tsum_mul_left]; congr 1; ext p

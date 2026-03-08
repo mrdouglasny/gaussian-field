@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**13 axioms (+1 skipped), 0 sorries**
+**11 axioms (+1 skipped), 0 sorries**
 
 *Updated 2026-03-08.*
 
@@ -202,11 +202,13 @@ Proved Fourier results (no longer axioms):
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
 | `nuclearTensorProduct_mapCLM` | Nuclear/TensorProductFunctorAxioms | axiom | Hard | Functorial map for nuclear tensor products. |
-| `nuclearTensorProduct_swapCLM` | Nuclear/TensorProductFunctorAxioms | axiom | Hard | Swap map for nuclear tensor products. |
 | `nuclearTensorProduct_mapCLM_comp` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Composition law for tensor product functor. |
 | `nuclearTensorProduct_mapCLM_id` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Identity law for tensor product functor. |
 | `nuclearTensorProduct_mapCLM_pure` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Functorial map on pure tensors. |
-| `nuclearTensorProduct_swapCLM_pure` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Swap on pure tensors. |
+
+Proved nuclear tensor product results (no longer axioms):
+- `nuclearTensorProduct_swapCLM` -- **proved** (Cantor pair permutation `m ↦ pair(unpair(m).2, unpair(m).1)`, rapid decay via `1+m ≤ 4·(1+σ(m))²`)
+- `nuclearTensorProduct_swapCLM_pure` -- **proved** (commutativity of multiplication on coefficients)
 
 ### Summary by file
 
@@ -217,8 +219,8 @@ Proved Fourier results (no longer axioms):
 | HeatKernel/PositionKernel | 1 | 0 |
 | Lattice/Convergence | 1 | 0 |
 | Torus/Restriction | 2 | 0 |
-| Nuclear/TensorProductFunctorAxioms | 6 | 0 |
-| **Total** | **13 (+1 skipped)** | **0** |
+| Nuclear/TensorProductFunctorAxioms | 4 | 0 |
+| **Total** | **11 (+1 skipped)** | **0** |
 
 ## References
 
