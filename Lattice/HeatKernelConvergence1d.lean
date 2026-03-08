@@ -10,7 +10,8 @@ heat kernel on S¹_L as N → ∞.
 ## Main results
 
 - `latticeEigenvalue1d_tendsto` — eigenvalue convergence: (4N²/L²)sin²(πk/N) → (2πk/L)²
-- `lattice_heatKernel_tendsto_continuum_1d` — full bilinear form convergence
+- `latticeDFTCoeff1d_tendsto` — DFT coefficient convergence via Riemann sums
+- `latticeEigenvalue1d_ge_8m` — eigenvalue lower bound via Jordan's inequality
 
 ## Mathematical background
 

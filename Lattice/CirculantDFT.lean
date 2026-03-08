@@ -2,17 +2,21 @@
 Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 
-# Circulant DFT: Eigenvectors and Quadratic Decay
+# Circulant DFT: Eigenvectors, Spectral Expansion, and Convergence
 
 Proves that the lattice Fourier basis functions are eigenvectors of the
-1D discrete Laplacian, and uses this to establish quadratic decay of
-lattice DFT coefficients (replacing the axiom `latticeDFTCoeff1d_quadratic_bound`).
+1D discrete Laplacian, constructs the DFT eigenbasis, proves the corrected
+spectral expansion of the heat kernel bilinear form, and establishes the
+full 1D lattice-to-continuum convergence.
 
 ## Main results
 
-- `negLaplacian1d_cos_eigenvector` — cos modes are eigenvectors of -Δ_a
-- `negLaplacian1d_sin_eigenvector` — sin modes are eigenvectors of -Δ_a
-- `eigenvector_transfer` — λ_m · c_m(f) = ⟨(-Δ)fN, φ_m⟩
+- `negLaplacian1d_cos_eigenvalue` / `sin_eigenvalue` — eigenvalue formulas
+- `negLaplacian1d_dft_eigenvector` — normalized DFT basis eigenvector property
+- `latticeFourierBasis` — DFT eigenbasis construction via linear independence + span
+- `dft_expansion` — DFT expansion: f = Σ (⟨f,φ_m⟩/‖φ_m‖²) · φ_m
+- `latticeHeatKernelBilinear1d_eq_spectral'` — corrected spectral expansion with /normSq
+- `lattice_heatKernel_tendsto_continuum_1d` — full 1D heat kernel convergence
 - `latticeDFTCoeff1d_quadratic_bound'` — |c_m(f)| ≤ C/(1+m)²
 
 ## References
