@@ -264,6 +264,89 @@ theorem Matrix.IsHermitian.bilinear_exp_eq_spectral
           (∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * g x) := by
         refine Finset.sum_congr rfl ?_; intro k _; ring
 
+/-- **Symmetry of Hermitian matrix bilinear form.**
+
+For a real symmetric (Hermitian) matrix M: `(M *ᵥ u) ⬝ᵥ w = u ⬝ᵥ (M *ᵥ w)`. -/
+theorem Matrix.IsHermitian.dotProduct_mulVec_comm
+    {M : Matrix n n ℝ} (hM : M.IsHermitian) (u w : n → ℝ) :
+    dotProduct (M.mulVec u) w = dotProduct u (M.mulVec w) := by
+  rw [Matrix.dotProduct_mulVec]
+  congr 1
+  have hMT : M = Mᵀ := by
+    rw [← Matrix.conjTranspose_eq_transpose_of_trivial]; exact hM.eq.symm
+  symm; conv_lhs => rw [hMT]
+  exact Matrix.vecMul_transpose M u
+
+/-- **Eigenspace orthogonality for Hermitian matrices.**
+
+If M is Hermitian with eigenvectors v (eigenvalue μ) and w (eigenvalue λ ≠ μ),
+then `v ⬝ᵥ w = 0`. -/
+theorem Matrix.IsHermitian.dotProduct_eigenvectors_eq_zero
+    {M : Matrix n n ℝ} (hM : M.IsHermitian)
+    {v w : n → ℝ} {μ ν : ℝ}
+    (hv : M.mulVec v = μ • v) (hw : M.mulVec w = ν • w) (hne : μ ≠ ν) :
+    dotProduct v w = 0 := by
+  -- μ ⟨v, w⟩ = ⟨Mv, w⟩ = ⟨v, Mw⟩ = ν ⟨v, w⟩
+  have lhs : μ * dotProduct v w = dotProduct (M.mulVec v) w := by
+    rw [hv]; simp [dotProduct, smul_eq_mul, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_; ring
+  have rhs : dotProduct (M.mulVec v) w = ν * dotProduct v w := by
+    rw [Matrix.IsHermitian.dotProduct_mulVec_comm hM, hw]
+    simp [dotProduct, smul_eq_mul, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_; ring
+  have : (μ - ν) * dotProduct v w = 0 := by linarith [lhs, rhs]
+  exact (mul_eq_zero.mp this).resolve_left (sub_ne_zero.mpr hne)
+
+/-- **Matrix exponential maps any eigenvector of a Hermitian matrix.**
+
+If `M v = μ • v` and M is Hermitian, then `exp(-t·M) v = exp(-t·μ) • v`.
+
+The proof uses `bilinear_exp_eq_spectral` to compute `w ⬝ᵥ (exp(-tM) v)` for all w,
+and eigenspace orthogonality to identify all Mathlib eigenvector coefficients. -/
+theorem Matrix.IsHermitian.mulVec_exp_of_eigenvector
+    {M : Matrix n n ℝ} (hM : M.IsHermitian) (t : ℝ)
+    {v : n → ℝ} {μ : ℝ} (hv : M.mulVec v = μ • v) :
+    (NormedSpace.exp ((-t) • M)).mulVec v = Real.exp (-t * μ) • v := by
+  set ψ := hM.eigenvectorBasis
+  -- Strategy: show ∑_x w(x) · (exp(-tM) v)(x) = ∑_x w(x) · (exp(-tμ) · v)(x)
+  -- for all w, then extract each component.
+  suffices h_all : ∀ w : n → ℝ,
+      (∑ x, w x * ((NormedSpace.exp ((-t) • M)).mulVec v) x) =
+      (∑ x, w x * (Real.exp (-t * μ) * v x)) by
+    ext i
+    have := h_all (Pi.single i 1)
+    simp only [Pi.single_apply, boole_mul] at this
+    rw [Finset.sum_ite_eq', Finset.sum_ite_eq', if_pos (Finset.mem_univ i),
+         if_pos (Finset.mem_univ i)] at this
+    simp only [Pi.smul_apply, smul_eq_mul]
+    exact this
+  intro w
+  -- LHS: use bilinear_exp_eq_spectral
+  rw [Matrix.IsHermitian.bilinear_exp_eq_spectral hM t w v]
+  -- Transform RHS: ∑ x, w x * (exp * v x) → exp * ∑ x, w x * v x → spectral
+  simp_rw [show ∀ x, w x * (Real.exp (-t * μ) * v x) =
+      Real.exp (-t * μ) * (w x * v x) from fun x => by ring]
+  rw [← Finset.mul_sum]
+  -- Use Parseval on ⟨w, v⟩ (obtained from bilinear_exp_eq_spectral at t = 0)
+  have hparseval : (∑ x, w x * v x) =
+      ∑ k, (∑ x, (ψ k : EuclideanSpace ℝ n) x * w x) *
+           (∑ x, (ψ k : EuclideanSpace ℝ n) x * v x) := by
+    have := Matrix.IsHermitian.bilinear_exp_eq_spectral hM 0 w v
+    simp only [neg_zero, zero_smul, NormedSpace.exp_zero, Matrix.one_mulVec,
+      zero_mul, Real.exp_zero, one_mul] at this
+    exact this
+  rw [hparseval, Finset.mul_sum]
+  -- Goal: ∑ k, exp(-tμ_k) (ψ_k·w)(ψ_k·v) = ∑ k, exp(-tμ) ((ψ_k·w)(ψ_k·v))
+  refine Finset.sum_congr rfl fun k _ => ?_
+  by_cases hk : hM.eigenvalues k = μ
+  · rw [hk]; ring
+  · -- ψ_k·v = 0 by eigenspace orthogonality
+    have h_ortho : dotProduct (⇑(ψ k)) v = 0 :=
+      Matrix.IsHermitian.dotProduct_eigenvectors_eq_zero hM
+        (hM.mulVec_eigenvectorBasis k) hv hk
+    rw [show (∑ x, (ψ k : EuclideanSpace ℝ n) x * v x) = dotProduct (⇑(ψ k)) v from rfl,
+      h_ortho, mul_zero, mul_zero, mul_zero]
+
 end MatrixExpSpectral
 
 end GaussianField

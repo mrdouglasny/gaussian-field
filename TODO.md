@@ -5,7 +5,7 @@
 ### 1. DFT / circulant diagonalization on Z/NZ (eliminates ~3 axioms)
 
 Target axioms:
-- `latticeHeatKernelBilinear1d_eq_spectral` (Lattice/HeatKernelConvergence1d)
+- ~~`latticeHeatKernelBilinear1d_eq_spectral` (Lattice/HeatKernelConvergence1d)~~ — **DONE** (Lattice/CirculantDFT.lean)
 - `lattice_covariance_pure_eq_2d_spectral` (Lattice/Convergence)
 - ~~`latticeDFTCoeff1d_quadratic_bound` (Lattice/Convergence)~~ — **DONE** (Lattice/CirculantDFT.lean)
 
@@ -15,12 +15,16 @@ Progress:
   Also `mulVec_exp_neg_smul` and `eigenCoeff_exp_neg_smul`.
 - **DONE** (Lattice/CirculantDFT.lean): eigenvector theorems
   `negLaplacian1d_cos_eigenvalue`, `negLaplacian1d_sin_eigenvalue`
+- **DONE** (Lattice/CirculantDFT.lean): corrected spectral expansion
+  `latticeHeatKernelBilinear1d_eq_spectral'` — includes `/latticeFourierNormSq`
+  correction for Nyquist mode normalization. Required: DFT basis construction
+  (`latticeFourierBasis`), DFT expansion (`dft_expansion`), eigenvector property
+  (`negLaplacian1d_dft_eigenvector`), matrix exponential eigenvector theorem.
+  Also proved `latticeFourierNormSq_nyquist`, `latticeFourierNormSq_ge_one`,
+  `latticeFourierNormSq_eventually_one` for convergence.
 
 What remains:
-- Connect Mathlib abstract eigenbasis to explicit DFT eigenvectors (CirculantDFT.lean)
-- Show Mathlib eigenvalues = `latticeEigenvalue1d` (complete eigenbasis identification)
-- Note: axiom as stated is wrong for even N at Nyquist mode (norm² = 2, not 1);
-  the Mathlib-based spectral expansion is correct for all N
+- `lattice_covariance_pure_eq_2d_spectral`: 2D version of spectral expansion
 
 ### 2. Green's function invariance on pure tensors (eliminates 2 axioms)
 

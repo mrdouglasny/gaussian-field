@@ -149,7 +149,7 @@ Proved hypercontractive results (axiom-free):
 
 | Item | File | Type | Difficulty | Description |
 |------|------|------|-----------|-------------|
-| `latticeHeatKernelBilinear1d_eq_spectral` | Lattice/HeatKernelConvergence1d | axiom | Hard | DFT diagonalization of circulant Laplacian on Z/NZ. |
+| ~~`latticeHeatKernelBilinear1d_eq_spectral`~~ | Lattice/CirculantDFT | **PROVED** | Hard | Corrected DFT spectral expansion with /normSq Nyquist fix (`latticeHeatKernelBilinear1d_eq_spectral'`). |
 | ~~`riemann_sum_periodic_tendsto`~~ | Lattice/HeatKernelConvergence1d | **PROVED** | | Riemann sum convergence for continuous periodic functions via uniform continuity + subinterval splitting. |
 | ~~`latticeDFTCoeff1d_uniform_bound`~~ | Lattice/HeatKernelConvergence1d | **PROVED** | | Replaced by flat bound `|c_m| <= sqrt(2L) * ||f||_C0` + eigenvalue lower bound via Jordan's inequality. Convergence uses `exp(-8tm/L^2)` geometric domination instead of `1/(1+m)^2` polynomial decay. |
 

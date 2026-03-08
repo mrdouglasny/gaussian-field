@@ -1062,4 +1062,578 @@ theorem negLaplacian1d_sin_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (ha : a ≠
   rw [hv_succ, hv_pred, sin_shift_sum]
   ring
 
+/-! ## Full pairwise orthogonality of the DFT basis
+
+The lattice Fourier basis functions `latticeFourierBasisFun N m` for `m < N`
+are pairwise orthogonal over `ZMod N`. This uses the product-to-sum
+identities and the trig sum vanishing theorems. -/
+
+/-- **Pairwise orthogonality of the lattice Fourier basis.**
+
+For distinct modes `m ≠ n` with `m, n < N`:
+  `∑ z, φ_m(z) · φ_n(z) = 0` -/
+theorem latticeFourierBasisFun_orthogonal (N : ℕ) [NeZero N] (m n : ℕ)
+    (hm : m < N) (hn : n < N) (hmn : m ≠ n) :
+    ∑ z : ZMod N, latticeFourierBasisFun N m z * latticeFourierBasisFun N n z = 0 := by
+  cases m with
+  | zero =>
+    cases n with
+    | zero => exact absurd rfl hmn
+    | succ n =>
+      simp only [latticeFourierBasisFun]
+      set k := n / 2 + 1
+      have hk_pos : 0 < k := by omega
+      have hk_lt : k < N := by omega
+      split
+      · -- 0 vs cos(k)
+        simp_rw [show ∀ z : ZMod N,
+            (1 / Real.sqrt ↑N) * (Real.sqrt (2 / ↑N) * cos (2 * π * ↑k * ↑z.val / ↑N)) =
+            (Real.sqrt (2 / ↑N) / Real.sqrt ↑N) * cos (2 * π * ↑k * ↑z.val / ↑N) from
+          fun z => by ring]
+        rw [← Finset.mul_sum, sum_cos_zmod_eq_zero_of_pos_lt N k hk_pos hk_lt, mul_zero]
+      · -- 0 vs sin(k)
+        simp_rw [show ∀ z : ZMod N,
+            (1 / Real.sqrt ↑N) * (Real.sqrt (2 / ↑N) * sin (2 * π * ↑k * ↑z.val / ↑N)) =
+            (Real.sqrt (2 / ↑N) / Real.sqrt ↑N) * sin (2 * π * ↑k * ↑z.val / ↑N) from
+          fun z => by ring]
+        rw [← Finset.mul_sum, sum_sin_zmod_eq_zero N k, mul_zero]
+  | succ m =>
+    cases n with
+    | zero =>
+      -- m+1 vs 0: factor out constants, use trig sum vanishing
+      simp only [latticeFourierBasisFun]
+      set k := m / 2 + 1
+      have hk_pos : 0 < k := by omega
+      have hk_lt : k < N := by omega
+      split
+      · -- cos(k) vs constant
+        simp_rw [show ∀ z : ZMod N,
+            (Real.sqrt (2 / ↑N) * cos (2 * π * ↑k * ↑z.val / ↑N)) * (1 / Real.sqrt ↑N) =
+            (Real.sqrt (2 / ↑N) / Real.sqrt ↑N) * cos (2 * π * ↑k * ↑z.val / ↑N) from
+          fun z => by ring]
+        rw [← Finset.mul_sum, sum_cos_zmod_eq_zero_of_pos_lt N k hk_pos hk_lt, mul_zero]
+      · -- sin(k) vs constant
+        simp_rw [show ∀ z : ZMod N,
+            (Real.sqrt (2 / ↑N) * sin (2 * π * ↑k * ↑z.val / ↑N)) * (1 / Real.sqrt ↑N) =
+            (Real.sqrt (2 / ↑N) / Real.sqrt ↑N) * sin (2 * π * ↑k * ↑z.val / ↑N) from
+          fun z => by ring]
+        rw [← Finset.mul_sum, sum_sin_zmod_eq_zero N k, mul_zero]
+    | succ n =>
+      -- Both ≥ 1: case split on mode types
+      simp only [latticeFourierBasisFun]
+      set km := m / 2 + 1 with hkm_def
+      set kn := n / 2 + 1 with hkn_def
+      have hkm_pos : 0 < km := by omega
+      have hkn_pos : 0 < kn := by omega
+      have hkm_lt : km ≤ N / 2 := by omega
+      have hkn_lt : kn ≤ N / 2 := by omega
+      -- Factor √(2/N) · a · (√(2/N) · b) = (2/N) · (a · b)
+      have hsq : ∀ (a b : ℝ),
+          Real.sqrt (2 / ↑N) * a * (Real.sqrt (2 / ↑N) * b) = (2 / ↑N) * (a * b) := by
+        intro a b
+        rw [mul_mul_mul_comm, Real.mul_self_sqrt (by positivity : (0 : ℝ) ≤ 2 / ↑N)]
+      split <;> split
+      · -- cos(km) vs cos(kn)
+        have hkm_ne_kn : km ≠ kn := by intro h; apply hmn; omega
+        have hkm_kn_lt : km + kn < N := by omega
+        simp_rw [hsq]
+        rw [← Finset.mul_sum,
+          sum_cos_mul_cos_zmod_eq_zero N km kn hkm_pos hkn_pos hkm_ne_kn hkm_kn_lt,
+          mul_zero]
+      · -- cos(km) vs sin(kn)
+        simp_rw [hsq]
+        rw [← Finset.mul_sum,
+          sum_cos_mul_sin_zmod_eq_zero N km kn, mul_zero]
+      · -- sin(km) vs cos(kn)
+        simp_rw [hsq, show ∀ z : ZMod N,
+            sin (2 * π * ↑km * ↑z.val / ↑N) * cos (2 * π * ↑kn * ↑z.val / ↑N) =
+            cos (2 * π * ↑kn * ↑z.val / ↑N) * sin (2 * π * ↑km * ↑z.val / ↑N) from
+          fun z => mul_comm _ _]
+        rw [← Finset.mul_sum,
+          sum_cos_mul_sin_zmod_eq_zero N kn km, mul_zero]
+      · -- sin(km) vs sin(kn)
+        have hkm_ne_kn : km ≠ kn := by intro h; apply hmn; omega
+        have hkm_kn_lt : km + kn < N := by omega
+        simp_rw [hsq]
+        rw [← Finset.mul_sum,
+          sum_sin_mul_sin_zmod_eq_zero N km kn hkm_pos hkn_pos hkm_ne_kn hkm_kn_lt,
+          mul_zero]
+
+/-- The lattice Fourier norm squared is positive for all modes m < N. -/
+theorem latticeFourierNormSq_pos (N : ℕ) [NeZero N] (m : ℕ) (hm : m < N) :
+    0 < latticeFourierNormSq N m := by
+  cases m with
+  | zero => rw [latticeFourierNormSq_zero]; exact one_pos
+  | succ n =>
+    by_cases hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N
+    · -- Nyquist: n must be even (n odd → fourierFreq = (n+1)/2, so N = n+1, contradicting hm)
+      have hn_even : n % 2 = 0 := by
+        by_contra h; push_neg at h
+        simp [SmoothMap_Circle.fourierFreq] at hNyq; omega
+      -- φ(0) = √(2/N) * cos(0) = √(2/N) > 0, so φ(0)² > 0
+      have h0 : 0 < latticeFourierBasisFun N (n + 1) (0 : ZMod N) ^ 2 := by
+        simp only [latticeFourierBasisFun, hn_even, ↓reduceIte]
+        simp [ZMod.val_zero, mul_zero, zero_div, cos_zero, mul_one]
+        exact pow_pos (div_pos (Real.sqrt_pos_of_pos (by norm_num : (0:ℝ) < 2))
+          (Real.sqrt_pos_of_pos (Nat.cast_pos.mpr (NeZero.pos N)))) 2
+      exact lt_of_lt_of_le h0
+        (Finset.single_le_sum (fun z _ => sq_nonneg _) (Finset.mem_univ (0 : ZMod N)))
+    · rw [latticeFourierNormSq_eq_one N (n + 1) (by omega) hm hNyq]; exact one_pos
+
+/-- At the Nyquist mode, the norm squared is 2. -/
+private theorem latticeFourierNormSq_nyquist (N : ℕ) [NeZero N] (n : ℕ)
+    (hn_lt : n + 1 < N) (hn_even : n % 2 = 0)
+    (hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N) :
+    latticeFourierNormSq N (n + 1) = 2 := by
+  have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr (NeZero.pos N)
+  have h2k : (2 : ℝ) * ↑(n / 2 + 1) = ↑N := by exact_mod_cast hNyq
+  simp only [latticeFourierNormSq, latticeFourierBasisFun, hn_even, ↓reduceIte]
+  simp_rw [mul_pow, sq_sqrt (by positivity : (0:ℝ) ≤ 2 / N)]
+  -- cos(2π(n/2+1)·z/N)² = cos(π·z)² = 1 for all z (since 2(n/2+1) = N)
+  have hcos_sq_one : ∀ z : ZMod N,
+      cos (2 * π * ↑(n / 2 + 1) * ↑z.val / ↑N) ^ 2 = 1 := by
+    intro z
+    have harg : 2 * π * ↑(n / 2 + 1) * ↑z.val / ↑N = ↑z.val * π := by
+      rw [show 2 * π * ↑(n / 2 + 1) * ↑z.val / ↑N =
+        ↑z.val * π * (2 * ↑(n / 2 + 1) / ↑N) from by ring,
+        h2k, div_self (ne_of_gt hN_pos), mul_one]
+    rw [harg]
+    nlinarith [Real.sin_nat_mul_pi z.val, Real.sin_sq_add_cos_sq (↑z.val * π)]
+  simp_rw [hcos_sq_one, mul_one, Finset.sum_const, Finset.card_univ, ZMod.card, nsmul_eq_mul]
+  rw [mul_div_cancel₀ _ (ne_of_gt hN_pos)]
+
+/-- The lattice Fourier norm squared is at least 1 for all modes m < N. -/
+theorem latticeFourierNormSq_ge_one (N : ℕ) [NeZero N] (m : ℕ) (hm : m < N) :
+    1 ≤ latticeFourierNormSq N m := by
+  cases m with
+  | zero => rw [latticeFourierNormSq_zero]
+  | succ n =>
+    by_cases hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N
+    · have hn_even : n % 2 = 0 := by
+        by_contra h; push_neg at h
+        simp [SmoothMap_Circle.fourierFreq] at hNyq; omega
+      rw [latticeFourierNormSq_nyquist N n hm hn_even hNyq]; norm_num
+    · rw [latticeFourierNormSq_eq_one N (n + 1) (by omega) hm hNyq]
+
+/-- For fixed m, latticeFourierNormSq (N+1) m = 1 for all sufficiently large N. -/
+theorem latticeFourierNormSq_eventually_one (m : ℕ) :
+    ∀ᶠ N in Filter.atTop, latticeFourierNormSq (N + 1) m = 1 := by
+  cases m with
+  | zero =>
+    apply Filter.Eventually.of_forall; intro N
+    exact latticeFourierNormSq_zero (N + 1)
+  | succ n =>
+    -- For fixed n+1, the Nyquist condition 2*fourierFreq(n+1) = N+1 holds for at most one N.
+    -- For N ≥ max(n, 2*fourierFreq(n+1)), both n+1 < N+1 and ¬Nyquist hold.
+    set k := SmoothMap_Circle.fourierFreq (n + 1)
+    apply Filter.eventually_atTop.mpr
+    refine ⟨n + 1 + 2 * k, fun N hN => ?_⟩
+    have hm_lt : n + 1 < N + 1 := by omega
+    have hNotNyq : 2 * k ≠ N + 1 := by omega
+    exact latticeFourierNormSq_eq_one (N + 1) (n + 1) (by omega) hm_lt hNotNyq
+
+/-- The DFT basis functions are linearly independent over ℝ. -/
+theorem latticeFourierBasisFun_linearIndependent (N : ℕ) [NeZero N] :
+    LinearIndependent ℝ (fun m : Fin N => latticeFourierBasisFun N m.val) := by
+  rw [linearIndependent_iff']
+  intro s c hsum m hms
+  -- hsum : ∑ i ∈ s, c i • φ_i = 0 (as function ZMod N → ℝ)
+  -- Take "dot product" with φ_m to isolate c_m
+  have hpw : ∀ z : ZMod N,
+      ∑ i ∈ s, c i * latticeFourierBasisFun N i.val z = 0 := by
+    intro z; have := congr_fun hsum z; simpa [Finset.sum_apply, smul_eq_mul]
+  -- Multiply each equation by φ_m(z) and sum over z
+  have h_dot : ∑ z : ZMod N, ∑ i ∈ s,
+      c i * (latticeFourierBasisFun N m.val z * latticeFourierBasisFun N i.val z) = 0 := by
+    simp_rw [show ∀ (i : Fin N) (z : ZMod N),
+        c i * (latticeFourierBasisFun N m.val z * latticeFourierBasisFun N i.val z) =
+        latticeFourierBasisFun N m.val z * (c i * latticeFourierBasisFun N i.val z) from
+      fun i z => by ring, ← Finset.mul_sum]
+    simp [hpw]
+  -- Swap sums: ∑_i c_i * (∑_z φ_m(z) * φ_i(z))
+  rw [Finset.sum_comm] at h_dot
+  simp_rw [← Finset.mul_sum] at h_dot
+  -- By orthogonality, ∑_z φ_m(z) * φ_i(z) = 0 for i ≠ m, so only i = m survives
+  have h_ortho : ∀ i ∈ s, i ≠ m →
+      ∑ z : ZMod N, latticeFourierBasisFun N m.val z *
+        latticeFourierBasisFun N i.val z = 0 := by
+    intro ⟨i, hi⟩ _ hne
+    exact latticeFourierBasisFun_orthogonal N m.val i m.2 hi
+      (fun h => hne (Fin.ext h.symm))
+  rw [Finset.sum_eq_single m (fun i hi hne => by rw [h_ortho i hi hne, mul_zero])
+    (fun hm_not => absurd hms hm_not)] at h_dot
+  -- h_dot : c m * normSq(m) = 0
+  have h_normSq_pos := latticeFourierNormSq_pos N m.val m.2
+  rw [latticeFourierNormSq] at h_normSq_pos
+  simp_rw [sq] at h_normSq_pos
+  exact (mul_eq_zero.mp h_dot).resolve_right (ne_of_gt h_normSq_pos)
+
+/-- The DFT basis functions span all of `ZMod N → ℝ`. -/
+theorem latticeFourierBasisFun_span_eq_top (N : ℕ) [NeZero N] :
+    Submodule.span ℝ (Set.range (fun m : Fin N =>
+      (fun z : ZMod N => latticeFourierBasisFun N m.val z))) = ⊤ :=
+  (latticeFourierBasisFun_linearIndependent N).span_eq_top_of_card_eq_finrank'
+    (by rw [Fintype.card_fin, Module.finrank_pi, ZMod.card])
+
+/-- The DFT basis as a `Module.Basis`. -/
+noncomputable def latticeFourierBasis (N : ℕ) [NeZero N] :
+    Module.Basis (Fin N) ℝ (ZMod N → ℝ) :=
+  Module.Basis.mk (latticeFourierBasisFun_linearIndependent N)
+    (latticeFourierBasisFun_span_eq_top N).ge
+
+/-- The DFT expansion formula: any `f : ZMod N → ℝ` equals its
+Fourier series with coefficients `(f · φ_m) / normSq(m)`. -/
+theorem dft_expansion (N : ℕ) [NeZero N] (f : ZMod N → ℝ) :
+    f = ∑ m : Fin N,
+      ((∑ z : ZMod N, f z * latticeFourierBasisFun N m.val z) /
+        latticeFourierNormSq N m.val) •
+      (fun z => latticeFourierBasisFun N m.val z) := by
+  -- Abbreviate the DFT basis functions
+  set φ : Fin N → (ZMod N → ℝ) :=
+    fun m => latticeFourierBasisFun N m.val with hφ_def
+  -- Construct a basis from linear independence + span = ⊤
+  set B : Module.Basis (Fin N) ℝ (ZMod N → ℝ) :=
+    Module.Basis.mk (latticeFourierBasisFun_linearIndependent N)
+      (latticeFourierBasisFun_span_eq_top N).ge
+  have hBφ : ∀ m : Fin N, B m = φ m :=
+    fun m => Module.Basis.mk_apply _ _ m
+  -- Define the "error" g = f - expansion
+  set g := f - ∑ m : Fin N,
+    ((∑ z, f z * φ m z) / latticeFourierNormSq N m.val) • φ m
+  -- Step 1: g · φ_j = 0 for every j (by orthogonality)
+  have h_ortho : ∀ j : Fin N,
+      ∑ z : ZMod N, g z * φ j z = 0 := by
+    intro j
+    simp only [g, Pi.sub_apply, sub_mul, Finset.sum_sub_distrib]
+    rw [sub_eq_zero]
+    simp_rw [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Finset.sum_mul]
+    rw [Finset.sum_comm]
+    simp_rw [show ∀ (m : Fin N) (z : ZMod N),
+        (∑ w, f w * φ m w) / latticeFourierNormSq N m.val *
+          φ m z * φ j z =
+        ((∑ w, f w * φ m w) / latticeFourierNormSq N m.val) *
+          (φ m z * φ j z) from fun m z => by ring]
+    simp_rw [← Finset.mul_sum]
+    rw [Finset.sum_eq_single j]
+    · rw [show ∑ z : ZMod N, φ j z * φ j z = latticeFourierNormSq N j.val from by
+        simp only [latticeFourierNormSq, sq, φ], div_mul_cancel₀]
+      exact ne_of_gt (latticeFourierNormSq_pos N j.val j.2)
+    · intro m _ hmj
+      rw [latticeFourierBasisFun_orthogonal N m.val j.val m.2 j.2
+          (fun h => hmj (Fin.ext h)), mul_zero]
+    · intro hj; exact absurd (Finset.mem_univ j) hj
+  -- Step 2: B.repr g j = 0 for every j
+  have hcoeff : ∀ j : Fin N, B.repr g j = 0 := by
+    intro j
+    -- Pointwise: g z = ∑ m, (B.repr g m) * φ m z
+    have h_pw : ∀ z : ZMod N,
+        g z = ∑ m : Fin N, B.repr g m * φ m z := by
+      intro z
+      have h := congr_fun (B.sum_repr g) z
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at h
+      rw [← h]; congr 1; ext m _; congr 1; exact congr_fun (hBφ m) _
+    -- c_j * normSq(j) = g · φ_j = 0
+    have h_dot : B.repr g j * latticeFourierNormSq N j.val = 0 := by
+      -- Unfold normSq: ∑ φ² = ∑ φ*φ
+      have h_normSq : latticeFourierNormSq N j.val =
+          ∑ z : ZMod N, φ j z * φ j z := by
+        simp only [latticeFourierNormSq, sq, φ]
+      rw [h_normSq, show B.repr g j * ∑ z, φ j z * φ j z =
+          ∑ z : ZMod N, g z * φ j z from ?_, h_ortho j]
+      -- Expand g, swap sums, use orthogonality
+      simp_rw [h_pw, Finset.sum_mul]
+      rw [Finset.sum_comm]
+      simp_rw [show ∀ (m : Fin N) (z : ZMod N),
+          B.repr g m * φ m z * φ j z =
+          B.repr g m * (φ m z * φ j z) from fun m z => by ring]
+      simp_rw [← Finset.mul_sum]
+      rw [Finset.sum_eq_single j
+        (fun m _ hmj => by rw [latticeFourierBasisFun_orthogonal N m.val j.val
+            m.2 j.2 (fun h => hmj (Fin.ext h)), mul_zero])
+        (fun hj => absurd (Finset.mem_univ j) hj)]
+    exact (mul_eq_zero.mp h_dot).resolve_right
+      (ne_of_gt (latticeFourierNormSq_pos N j.val j.2))
+  -- Step 3: g = 0
+  have hg : g = 0 :=
+    B.ext_elem (fun j => by rw [hcoeff j, map_zero, Finsupp.zero_apply])
+  exact sub_eq_zero.mp hg
+
+/-- The normalized DFT basis functions are eigenvectors of the
+1D negative Laplacian on `FinLatticeSites 1 N`. -/
+theorem negLaplacian1d_dft_eigenvector (N : ℕ) [NeZero N] (a : ℝ) (ha : a ≠ 0)
+    (m : ℕ) (_hm : m < N) :
+    (negLaplacianMatrix 1 N a).mulVec
+      (fun x : FinLatticeSites 1 N => latticeFourierBasisFun N m (x 0)) =
+    latticeEigenvalue1d N a m •
+      (fun x : FinLatticeSites 1 N => latticeFourierBasisFun N m (x 0)) := by
+  -- Helper: eigenvalue formula connecting the cos form to latticeEigenvalue1d
+  have hev : ∀ k : ℕ, ∀ n : ℕ, SmoothMap_Circle.fourierFreq (n + 1) = k →
+      latticeEigenvalue1d N a (n + 1) =
+      2 * a⁻¹ ^ 2 * (1 - cos (2 * π * ↑k / ↑N)) := by
+    intro k n hfk
+    unfold latticeEigenvalue1d; rw [hfk]
+    linarith [eigenvalue_formula a N k]
+  funext x; simp only [Pi.smul_apply, smul_eq_mul]
+  cases m with
+  | zero =>
+    -- φ₀ = const 1/√N, λ₀ = 0
+    simp only [latticeFourierBasisFun, latticeEigenvalue1d_zero, zero_mul]
+    -- M.mulVec (const c) = 0 because Laplacian of constant is 0
+    have h := negLaplacian1d_cos_eigenvalue N a ha 0 x
+    simp only [Nat.cast_zero, zero_mul, zero_div, cos_zero, sub_self,
+      mul_zero] at h
+    -- h : M.mulVec (fun _ => 1) x = 0
+    conv_lhs =>
+      rw [show (fun (_ : FinLatticeSites 1 N) => (1 : ℝ) / Real.sqrt ↑N) =
+          (1 / Real.sqrt ↑N) • (fun (_ : FinLatticeSites 1 N) => (1 : ℝ)) from by
+        ext; simp]
+    rw [Matrix.mulVec_smul, Pi.smul_apply, smul_eq_mul, h, mul_zero]
+  | succ n =>
+    simp only [latticeFourierBasisFun]
+    set k := n / 2 + 1
+    have hfk : SmoothMap_Circle.fourierFreq (n + 1) = k := rfl
+    split
+    · -- Cos mode
+      rw [show (fun x : FinLatticeSites 1 N =>
+          Real.sqrt (2 / ↑N) * cos (2 * π * ↑k * ↑(x 0).val / ↑N)) =
+        Real.sqrt (2 / ↑N) • (fun x : FinLatticeSites 1 N =>
+          cos (2 * π * ↑k * ↑(x 0).val / ↑N)) from rfl,
+        Matrix.mulVec_smul]; simp only [Pi.smul_apply, smul_eq_mul]
+      rw [negLaplacian1d_cos_eigenvalue N a ha k x, hev k n hfk]; ring
+    · -- Sin mode
+      rw [show (fun x : FinLatticeSites 1 N =>
+          Real.sqrt (2 / ↑N) * sin (2 * π * ↑k * ↑(x 0).val / ↑N)) =
+        Real.sqrt (2 / ↑N) • (fun x : FinLatticeSites 1 N =>
+          sin (2 * π * ↑k * ↑(x 0).val / ↑N)) from rfl,
+        Matrix.mulVec_smul]; simp only [Pi.smul_apply, smul_eq_mul]
+      rw [negLaplacian1d_sin_eigenvalue N a ha k x, hev k n hfk]; ring
+
+/-- **Corrected spectral expansion of the 1D lattice heat kernel.**
+
+The bilinear form equals the sum over DFT modes of
+`exp(-t λ_m) * c_m(f) * c_m(g) / normSq(m)`.
+The `/normSq(m)` factor corrects the normalization at the Nyquist mode
+for even N. -/
+theorem latticeHeatKernelBilinear1d_eq_spectral' (N : ℕ) [NeZero N] (t : ℝ)
+    (f g : SmoothMap_Circle L ℝ) :
+    latticeHeatKernelBilinear1d L N t f g =
+    ∑ m ∈ Finset.range N,
+      Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
+      latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m /
+      latticeFourierNormSq N m := by
+  set a := circleSpacing L N
+  set M := negLaplacianMatrix 1 N a
+  set fN : FinLatticeSites 1 N → ℝ := fun x => circleRestriction L N f (x 0)
+  set gN : FinLatticeSites 1 N → ℝ := fun x => circleRestriction L N g (x 0)
+  set φ := latticeFourierBasisFun N
+  set φL : ℕ → FinLatticeSites 1 N → ℝ := fun m x => φ m (x 0)
+  have ha : a ≠ 0 := ne_of_gt (circleSpacing_pos L N)
+  -- Step 1: Expand gN via DFT expansion, lifted to FinLatticeSites
+  have h_gN_expand : gN = ∑ m : Fin N,
+      ((∑ z, circleRestriction L N g z * φ m.val z) /
+        latticeFourierNormSq N m.val) • φL m.val := by
+    ext x
+    have := congr_fun (dft_expansion N (fun z => circleRestriction L N g z)) (x 0)
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this ⊢
+    exact this
+  -- Step 2: Apply exp(-tM) to the expansion
+  have h_exp_gN : (latticeHeatKernelMatrix 1 N a t).mulVec gN =
+      ∑ m : Fin N,
+        (((∑ z, circleRestriction L N g z * φ m.val z) /
+          latticeFourierNormSq N m.val) *
+        Real.exp (-t * latticeEigenvalue1d N a m.val)) • φL m.val := by
+    conv_lhs => rw [h_gN_expand]
+    unfold latticeHeatKernelMatrix
+    rw [Matrix.mulVec_sum]
+    congr 1; ext m
+    rw [Matrix.mulVec_smul]
+    -- exp(-tM) φL_m = exp(-tλ_m) • φL_m
+    have h_eig : (NormedSpace.exp ((-t) • M)).mulVec (φL m.val) =
+        Real.exp (-t * latticeEigenvalue1d N a m.val) • φL m.val :=
+      Matrix.IsHermitian.mulVec_exp_of_eigenvector
+        (negLaplacianMatrix_isHermitian 1 N a) t
+        (negLaplacian1d_dft_eigenvector N a ha m.val m.2)
+    rw [h_eig, smul_smul]
+  -- Step 3: Rewrite bilinear form as a sum and apply h_exp_gN
+  show (∑ x, fN x * ((latticeHeatKernelMatrix 1 N a t).mulVec gN) x) =
+    ∑ m ∈ Finset.range N,
+      Real.exp (-t * latticeEigenvalue1d N a m) *
+      latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m /
+      latticeFourierNormSq N m
+  rw [h_exp_gN]
+  simp_rw [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
+  rw [Finset.sum_comm, ← Fin.sum_univ_eq_sum_range]
+  congr 1; ext m
+  -- Factor out the scalar coefficient
+  have h_rearrange : ∀ (x : FinLatticeSites 1 N),
+      fN x * ((∑ z, (circleRestriction L N) g z * φ (↑m) z) /
+        latticeFourierNormSq N ↑m *
+        rexp (-t * latticeEigenvalue1d N a ↑m) * φL (↑m) x) =
+      ((∑ z, (circleRestriction L N) g z * φ (↑m) z) /
+        latticeFourierNormSq N ↑m *
+        rexp (-t * latticeEigenvalue1d N a ↑m)) *
+      (fN x * φL (↑m) x) := fun x => by ring
+  simp_rw [h_rearrange, ← Finset.mul_sum]
+  -- Identify ∑ x, fN x * φL m x = latticeDFTCoeff1d L N f m
+  have h_dot_f : ∑ x : FinLatticeSites 1 N, fN x * φL (↑m) x =
+      latticeDFTCoeff1d L N f m.val := by
+    rw [sum_fin1_eq_sum_zmod]
+    simp only [latticeDFTCoeff1d, fN, φL, φ, m.2, ↓reduceIte]
+  rw [h_dot_f]
+  -- Identify the coefficient sum with latticeDFTCoeff1d
+  have h_coeff_g : ∑ z, (circleRestriction L N) g z * φ (↑m) z =
+      latticeDFTCoeff1d L N g m.val := by
+    simp only [latticeDFTCoeff1d, φ, m.2, ↓reduceIte]
+  rw [h_coeff_g]; ring
+
+/-! ## Full 1D heat kernel convergence -/
+
+/-- The m-th corrected lattice heat kernel term at lattice size N.
+Includes the `/ latticeFourierNormSq` factor that corrects the Nyquist mode. -/
+private def latticeHeatTerm1d (N : ℕ) [NeZero N] (t : ℝ)
+    (f g : SmoothMap_Circle L ℝ) (m : ℕ) : ℝ :=
+  Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
+    latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m /
+    latticeFourierNormSq N m
+
+/-- Lattice heat kernel term vanishes for m ≥ N. -/
+private theorem latticeHeatTerm1d_zero_of_ge (N : ℕ) [NeZero N] (t : ℝ)
+    (f g : SmoothMap_Circle L ℝ) (m : ℕ) (hm : N ≤ m) :
+    latticeHeatTerm1d L N t f g m = 0 := by
+  unfold latticeHeatTerm1d
+  rw [latticeDFTCoeff1d_zero_of_ge L N f m hm]
+  ring
+
+/-- The lattice bilinear equals the tsum of corrected lattice heat terms. -/
+private theorem latticeHeatKernelBilinear1d_eq_tsum (N : ℕ) [NeZero N] (t : ℝ)
+    (f g : SmoothMap_Circle L ℝ) :
+    latticeHeatKernelBilinear1d L N t f g =
+    ∑' m, latticeHeatTerm1d L N t f g m := by
+  rw [latticeHeatKernelBilinear1d_eq_spectral']
+  symm
+  rw [tsum_eq_sum (s := Finset.range N)]
+  · rfl
+  · intro m hm
+    rw [Finset.mem_range, not_lt] at hm
+    exact latticeHeatTerm1d_zero_of_ge L N t f g m hm
+
+/-- **Full 1D heat kernel convergence: lattice → continuum.**
+
+Uses the flat DFT bound `|c_m| ≤ √(2L) · ‖f‖_C⁰` combined with the
+eigenvalue lower bound `λ_m ≥ 8m/L²` (from Jordan's inequality) to construct
+a summable dominating function `C · exp(-8tm/L²)` for Tannery's theorem.
+The `/normSq` correction vanishes for large N (normSq → 1 for fixed m). -/
+theorem lattice_heatKernel_tendsto_continuum_1d (t : ℝ) (ht : 0 < t)
+    (f g : SmoothMap_Circle L ℝ) :
+    Tendsto
+      (fun N : ℕ => latticeHeatKernelBilinear1d L (N + 1) t f g)
+      atTop
+      (nhds (heatKernelBilinear (E := SmoothMap_Circle L ℝ) t f g)) := by
+  -- Step 1: Rewrite LHS as tsum of lattice heat terms
+  simp_rw [latticeHeatKernelBilinear1d_eq_tsum]
+  -- Step 2: RHS unfolds to a tsum
+  have hRHS : heatKernelBilinear (E := SmoothMap_Circle L ℝ) t f g =
+      ∑' m, Real.exp (-t * HasLaplacianEigenvalues.eigenvalue
+        (E := SmoothMap_Circle L ℝ) m) *
+        DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g := rfl
+  rw [hRHS]
+  -- Step 3: Set up flat bounds and eigenvalue decay
+  set Cf := Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f
+  set Cg := Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 g
+  have hCf_nn : 0 ≤ Cf := mul_nonneg (Real.sqrt_nonneg _)
+    (SmoothMap_Circle.sobolevSeminorm_nonneg 0 f)
+  have hCg_nn : 0 ≤ Cg := mul_nonneg (Real.sqrt_nonneg _)
+    (SmoothMap_Circle.sobolevSeminorm_nonneg 0 g)
+  set α := 8 * t / L ^ 2 with hα_def
+  have hα_pos : 0 < α := div_pos (mul_pos (by norm_num : (0:ℝ) < 8) ht) (sq_pos_of_pos hL.out)
+  -- Summable dominating function: Cf * Cg * exp(-α * m)
+  have h_sum : Summable (fun m : ℕ => Cf * Cg * Real.exp (-α * (m : ℝ))) := by
+    have h_exp_sum : Summable (fun m : ℕ => Real.exp (-α * (m : ℝ))) := by
+      have : ∀ m : ℕ, Real.exp (-α * (m : ℝ)) = Real.exp ((m : ℝ) * (-α)) := by
+        intro m; ring_nf
+      simp_rw [this]
+      exact Real.summable_exp_nat_mul_iff.mpr (by linarith)
+    exact h_exp_sum.const_smul (Cf * Cg) |>.congr fun m => by simp [smul_eq_mul]
+  -- Step 4: Apply Tannery's theorem
+  apply tendsto_tsum_of_dominated_convergence
+    (bound := fun m : ℕ => Cf * Cg * Real.exp (-α * (m : ℝ)))
+  · exact h_sum
+  · -- Pointwise convergence: each term converges
+    intro m
+    -- normSq(N+1, m) = 1 eventually, so latticeHeatTerm1d = exp * c_f * c_g eventually
+    have h_ev : ∀ᶠ N in atTop,
+        latticeHeatTerm1d L (N + 1) t f g m =
+        Real.exp (-t * latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m) *
+          latticeDFTCoeff1d L (N + 1) f m *
+          latticeDFTCoeff1d L (N + 1) g m :=
+      (latticeFourierNormSq_eventually_one m).mono fun N hN => by
+        unfold latticeHeatTerm1d; rw [hN, div_one]
+    exact (Filter.Tendsto.mul
+        (Filter.Tendsto.mul
+          ((Real.continuous_exp.tendsto _).comp
+            (tendsto_const_nhds.mul (latticeEigenvalue1d_tendsto_continuum L m)))
+          (latticeDFTCoeff1d_tendsto L f m))
+        (latticeDFTCoeff1d_tendsto L g m)).congr'
+          (Filter.EventuallyEq.symm h_ev)
+  · -- Norm bound: |latticeHeatTerm(N,m)| ≤ Cf * Cg * exp(-α*m)
+    apply Filter.Eventually.of_forall
+    intro N m
+    unfold latticeHeatTerm1d
+    -- |exp * c_f * c_g / normSq| ≤ |exp * c_f * c_g| since normSq ≥ 1
+    rw [Real.norm_eq_abs]
+    by_cases hm : m = 0
+    · subst hm
+      simp only [latticeEigenvalue1d_zero, mul_zero, Real.exp_zero, one_mul,
+        latticeFourierNormSq_zero, div_one, Nat.cast_zero, mul_one]
+      rw [abs_mul]
+      exact mul_le_mul (latticeDFTCoeff1d_flat_bound L f N 0)
+        (latticeDFTCoeff1d_flat_bound L g N 0) (abs_nonneg _) hCf_nn
+    · have hm' : 1 ≤ m := Nat.one_le_iff_ne_zero.mpr hm
+      by_cases hm_lt : m < N + 1
+      · have h_eig_lb := latticeEigenvalue1d_ge_8m L N m hm' hm_lt
+        have h_exp : Real.exp (-t * latticeEigenvalue1d (N + 1)
+            (circleSpacing L (N + 1)) m) ≤ Real.exp (-α * (m : ℝ)) := by
+          apply Real.exp_le_exp_of_le
+          rw [hα_def, neg_mul, neg_mul, neg_le_neg_iff]
+          calc 8 * t / L ^ 2 * (m : ℝ)
+              = t * (8 * (m : ℝ) / L ^ 2) := by ring
+            _ ≤ t * latticeEigenvalue1d (N + 1)
+                  (circleSpacing L (N + 1)) m :=
+                mul_le_mul_of_nonneg_left h_eig_lb ht.le
+        -- |a / b| ≤ |a| when b ≥ 1
+        have h_normSq_ge : 1 ≤ latticeFourierNormSq (N + 1) m :=
+          latticeFourierNormSq_ge_one (N + 1) m hm_lt
+        have h_abs_div : |Real.exp (-t * latticeEigenvalue1d (N + 1)
+            (circleSpacing L (N + 1)) m) *
+            latticeDFTCoeff1d L (N + 1) f m * latticeDFTCoeff1d L (N + 1) g m /
+            latticeFourierNormSq (N + 1) m| ≤
+            |Real.exp (-t * latticeEigenvalue1d (N + 1)
+              (circleSpacing L (N + 1)) m) *
+              latticeDFTCoeff1d L (N + 1) f m * latticeDFTCoeff1d L (N + 1) g m| := by
+          rw [abs_div]
+          exact div_le_self (abs_nonneg _)
+            (by rw [abs_of_nonneg (le_of_lt (latticeFourierNormSq_pos (N + 1) m hm_lt))]
+                exact h_normSq_ge)
+        calc |Real.exp _ * latticeDFTCoeff1d L (N + 1) f m *
+                latticeDFTCoeff1d L (N + 1) g m /
+                latticeFourierNormSq (N + 1) m|
+            ≤ |Real.exp _ * latticeDFTCoeff1d L (N + 1) f m *
+                latticeDFTCoeff1d L (N + 1) g m| := h_abs_div
+          _ = Real.exp _ * |latticeDFTCoeff1d L (N + 1) f m| *
+                |latticeDFTCoeff1d L (N + 1) g m| := by
+              rw [abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
+          _ ≤ Real.exp (-α * (m : ℝ)) * Cf * Cg := by
+              apply mul_le_mul
+              · exact mul_le_mul h_exp
+                  (latticeDFTCoeff1d_flat_bound L f N m)
+                  (abs_nonneg _) (Real.exp_nonneg _)
+              · exact latticeDFTCoeff1d_flat_bound L g N m
+              · exact abs_nonneg _
+              · exact mul_nonneg (Real.exp_nonneg _) hCf_nn
+          _ = Cf * Cg * Real.exp (-α * (m : ℝ)) := by ring
+      · rw [latticeDFTCoeff1d_zero_of_ge L (N + 1) f m (by omega),
+            latticeDFTCoeff1d_zero_of_ge L (N + 1) g m (by omega)]
+        simp only [mul_zero, zero_div, abs_zero]
+        exact mul_nonneg (mul_nonneg hCf_nn hCg_nn) (Real.exp_nonneg _)
+
 end GaussianField

@@ -326,7 +326,7 @@ Proof chain:
 2. Square: `sin²(πj/M) ≥ 4j²/M²`
 3. Multiply: `(4M²/L²) · sin²(πj/M) ≥ 16j²/L²`
 4. Use `fourierFreq(m)² ≥ m/2`: `16j²/L² ≥ 8m/L²` -/
-private theorem latticeEigenvalue1d_ge_8m (N m : ℕ) (hm : 1 ≤ m)
+theorem latticeEigenvalue1d_ge_8m (N m : ℕ) (hm : 1 ≤ m)
     (hm_lt : m < N + 1) :
     8 * (m : ℝ) / L ^ 2 ≤
     latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m := by
@@ -400,22 +400,6 @@ theorem latticeHeatKernelBilinear1d_eq_mathlib_spectral (N : ℕ) [NeZero N] (t 
   intro a hM fN gN
   unfold latticeHeatKernelBilinear1d latticeHeatKernelMatrix
   exact Matrix.IsHermitian.bilinear_exp_eq_spectral hM t fN gN
-
-/-! ## Spectral expansion (ℕ-indexed) -/
-
-/-- **Lattice heat kernel equals ℕ-indexed spectral sum.**
-
-The matrix heat kernel bilinear form equals the spectral sum with
-explicit sin² eigenvalues and DFT coefficients. This combines:
-- DFT diagonalization of the circulant Laplacian on ℤ/Nℤ
-- The lattice Fourier basis being an eigenbasis of the discrete Laplacian -/
-axiom latticeHeatKernelBilinear1d_eq_spectral (N : ℕ) [NeZero N] (t : ℝ)
-    (f g : SmoothMap_Circle L ℝ) :
-    latticeHeatKernelBilinear1d L N t f g =
-    ∑ m ∈ Finset.range N,
-      Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
-      latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m
-
 
 /-! ## Coefficient convergence (Riemann sum) -/
 
@@ -697,128 +681,6 @@ theorem latticeDFTCoeff1d_tendsto
   symm; rw [← Fin.sum_univ_eq_sum_range]
   congr 1
 
-/-! ## Full 1D heat kernel convergence -/
-
-/-- The m-th lattice heat kernel term at lattice size N. -/
-private def latticeHeatTerm1d (N : ℕ) [NeZero N] (t : ℝ)
-    (f g : SmoothMap_Circle L ℝ) (m : ℕ) : ℝ :=
-  Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
-    latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m
-
-/-- Lattice heat kernel term vanishes for m ≥ N. -/
-private theorem latticeHeatTerm1d_zero_of_ge (N : ℕ) [NeZero N] (t : ℝ)
-    (f g : SmoothMap_Circle L ℝ) (m : ℕ) (hm : N ≤ m) :
-    latticeHeatTerm1d L N t f g m = 0 := by
-  unfold latticeHeatTerm1d
-  rw [latticeDFTCoeff1d_zero_of_ge L N f m hm]
-  ring
-
-/-- The lattice bilinear equals the tsum of lattice heat terms. -/
-private theorem latticeHeatKernelBilinear1d_eq_tsum (N : ℕ) [NeZero N] (t : ℝ)
-    (f g : SmoothMap_Circle L ℝ) :
-    latticeHeatKernelBilinear1d L N t f g =
-    ∑' m, latticeHeatTerm1d L N t f g m := by
-  rw [latticeHeatKernelBilinear1d_eq_spectral]
-  -- The tsum of a function that vanishes beyond N equals the Finset.range N sum
-  symm
-  rw [tsum_eq_sum (s := Finset.range N)]
-  · rfl
-  · intro m hm
-    rw [Finset.mem_range, not_lt] at hm
-    exact latticeHeatTerm1d_zero_of_ge L N t f g m hm
-
-/-- **Full 1D heat kernel convergence: lattice → continuum.**
-
-Uses the flat DFT bound `|c_m| ≤ √(2L) · ‖f‖_C⁰` combined with the
-eigenvalue lower bound `λ_m ≥ 8m/L²` (from Jordan's inequality) to construct
-a summable dominating function `C · exp(-8tm/L²)` for Tannery's theorem. -/
-theorem lattice_heatKernel_tendsto_continuum_1d (t : ℝ) (ht : 0 < t)
-    (f g : SmoothMap_Circle L ℝ) :
-    Tendsto
-      (fun N : ℕ => latticeHeatKernelBilinear1d L (N + 1) t f g)
-      atTop
-      (nhds (heatKernelBilinear (E := SmoothMap_Circle L ℝ) t f g)) := by
-  -- Step 1: Rewrite LHS as tsum of lattice heat terms
-  simp_rw [latticeHeatKernelBilinear1d_eq_tsum]
-  -- Step 2: RHS unfolds to a tsum
-  have hRHS : heatKernelBilinear (E := SmoothMap_Circle L ℝ) t f g =
-      ∑' m, Real.exp (-t * HasLaplacianEigenvalues.eigenvalue
-        (E := SmoothMap_Circle L ℝ) m) *
-        DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g := rfl
-  rw [hRHS]
-  -- Step 3: Set up flat bounds and eigenvalue decay
-  set Cf := Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f
-  set Cg := Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 g
-  have hCf_nn : 0 ≤ Cf := mul_nonneg (Real.sqrt_nonneg _)
-    (SmoothMap_Circle.sobolevSeminorm_nonneg 0 f)
-  have hCg_nn : 0 ≤ Cg := mul_nonneg (Real.sqrt_nonneg _)
-    (SmoothMap_Circle.sobolevSeminorm_nonneg 0 g)
-  set α := 8 * t / L ^ 2 with hα_def
-  have hα_pos : 0 < α := div_pos (mul_pos (by norm_num : (0:ℝ) < 8) ht) (sq_pos_of_pos hL.out)
-  -- Summable dominating function: Cf * Cg * exp(-α * m)
-  have h_sum : Summable (fun m : ℕ => Cf * Cg * Real.exp (-α * (m : ℝ))) := by
-    have h_exp_sum : Summable (fun m : ℕ => Real.exp (-α * (m : ℝ))) := by
-      have : ∀ m : ℕ, Real.exp (-α * (m : ℝ)) = Real.exp ((m : ℝ) * (-α)) := by
-        intro m; ring_nf
-      simp_rw [this]
-      exact Real.summable_exp_nat_mul_iff.mpr (by linarith)
-    exact h_exp_sum.const_smul (Cf * Cg) |>.congr fun m => by simp [smul_eq_mul]
-  -- Step 4: Apply Tannery's theorem
-  apply tendsto_tsum_of_dominated_convergence
-    (bound := fun m : ℕ => Cf * Cg * Real.exp (-α * (m : ℝ)))
-  · exact h_sum
-  · -- Pointwise convergence: each term converges
-    intro m
-    unfold latticeHeatTerm1d
-    exact Filter.Tendsto.mul
-      (Filter.Tendsto.mul
-        ((Real.continuous_exp.tendsto _).comp
-          (tendsto_const_nhds.mul (latticeEigenvalue1d_tendsto_continuum L m)))
-        (latticeDFTCoeff1d_tendsto L f m))
-      (latticeDFTCoeff1d_tendsto L g m)
-  · -- Norm bound: |latticeHeatTerm(N,m)| ≤ Cf * Cg * exp(-α*m)
-    apply Filter.Eventually.of_forall
-    intro N m
-    unfold latticeHeatTerm1d
-    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
-    by_cases hm : m = 0
-    · -- m = 0: eigenvalue is 0, exp is 1
-      subst hm
-      simp only [latticeEigenvalue1d_zero, mul_zero, Real.exp_zero, one_mul,
-        Nat.cast_zero, mul_one]
-      exact mul_le_mul (latticeDFTCoeff1d_flat_bound L f N 0)
-        (latticeDFTCoeff1d_flat_bound L g N 0) (abs_nonneg _) hCf_nn
-    · -- m ≥ 1
-      have hm' : 1 ≤ m := Nat.one_le_iff_ne_zero.mpr hm
-      by_cases hm_lt : m < N + 1
-      · -- Use eigenvalue lower bound
-        have h_eig_lb := latticeEigenvalue1d_ge_8m L N m hm' hm_lt
-        -- exp(-t*λ) ≤ exp(-t * 8m/L²) = exp(-α*m)
-        have h_exp : Real.exp (-t * latticeEigenvalue1d (N + 1)
-            (circleSpacing L (N + 1)) m) ≤ Real.exp (-α * (m : ℝ)) := by
-          apply Real.exp_le_exp_of_le
-          rw [hα_def, neg_mul, neg_mul, neg_le_neg_iff]
-          calc 8 * t / L ^ 2 * (m : ℝ)
-              = t * (8 * (m : ℝ) / L ^ 2) := by ring
-            _ ≤ t * latticeEigenvalue1d (N + 1)
-                  (circleSpacing L (N + 1)) m :=
-                mul_le_mul_of_nonneg_left h_eig_lb ht.le
-        calc Real.exp _ * |latticeDFTCoeff1d L (N + 1) f m| *
-                |latticeDFTCoeff1d L (N + 1) g m|
-            ≤ Real.exp (-α * (m : ℝ)) * Cf * Cg := by
-              apply mul_le_mul
-              · exact mul_le_mul h_exp
-                  (latticeDFTCoeff1d_flat_bound L f N m)
-                  (abs_nonneg _) (Real.exp_nonneg _)
-              · exact latticeDFTCoeff1d_flat_bound L g N m
-              · exact abs_nonneg _
-              · exact mul_nonneg (Real.exp_nonneg _) hCf_nn
-          _ = Cf * Cg * Real.exp (-α * (m : ℝ)) := by ring
-      · -- m ≥ N + 1: DFT coefficients are 0
-        rw [latticeDFTCoeff1d_zero_of_ge L (N + 1) f m (by omega),
-            latticeDFTCoeff1d_zero_of_ge L (N + 1) g m (by omega)]
-        simp only [abs_zero, mul_zero]
-        exact mul_nonneg (mul_nonneg hCf_nn hCg_nn) (Real.exp_nonneg _)
 
 end GaussianField
 
