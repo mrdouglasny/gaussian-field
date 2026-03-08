@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**14 axioms (+1 skipped), 0 sorries**
+**13 axioms (+1 skipped), 0 sorries**
 
-*Updated 2026-03-07.*
+*Updated 2026-03-08.*
 
 ## Axiom inventory
 
@@ -172,7 +172,7 @@ Proved lattice convergence results:
 | `lattice_covariance_pure_eq_2d_spectral` | Lattice/Convergence | axiom | Medium | Circulant diagonalization: lattice covariance = 2D DFT spectral sum for pure tensors. |
 | ~~`latticeDFTCoeff1d_quadratic_bound`~~ | Lattice/Convergence | **proved** | — | Eliminated: replaced by flat bound + eigenvalue lower bound via Jordan's inequality. |
 | `lattice_green_tendsto_continuum_pure` | Lattice/Convergence | **proved** | — | Convergence for pure tensors via Tannery's theorem on ℕ×ℕ. |
-| `lattice_green_tendsto_continuum` | Lattice/Convergence | axiom | Easy | Bilinear extension from pure tensors to general elements. |
+| ~~`lattice_green_tendsto_continuum`~~ | Lattice/Convergence | **proved** | — | Bilinear extension from pure tensors to general elements via DM expansion + uniform polynomial bound. |
 
 ### Green's function invariance
 
@@ -215,10 +215,10 @@ Proved Fourier results (no longer axioms):
 | GaussianField/Properties | 1 | 0 |
 | GaussianField/Support | 2 | 0 |
 | HeatKernel/PositionKernel | 1 | 0 |
-| Lattice/Convergence | 2 | 0 |
+| Lattice/Convergence | 1 | 0 |
 | Torus/Restriction | 2 | 0 |
 | Nuclear/TensorProductFunctorAxioms | 6 | 0 |
-| **Total** | **14 (+1 skipped)** | **0** |
+| **Total** | **13 (+1 skipped)** | **0** |
 
 ## References
 
