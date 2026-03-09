@@ -821,4 +821,11 @@ noncomputable instance smoothCircle_dyninMityaginSpace :
     SmoothMap_Circle.smoothCircle_withSeminorms
     SmoothMap_Circle.smoothCircleRapidDecayEquiv
 
+noncomputable instance smoothCircle_hasBiorthogonalBasis :
+    DyninMityaginSpace.HasBiorthogonalBasis (SmoothMap_Circle L ℝ) :=
+  DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
+    SmoothMap_Circle.sobolevSeminorm
+    SmoothMap_Circle.smoothCircle_withSeminorms
+    SmoothMap_Circle.smoothCircleRapidDecayEquiv
+
 end GaussianField

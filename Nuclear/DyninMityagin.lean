@@ -56,6 +56,18 @@ class DyninMityaginSpace (E : Type*)
     ∀ (k : ℕ), ∃ C > 0, ∃ (s : Finset ι),
     ∀ f m, |coeff m f| * (1 + (m : ℝ)) ^ k ≤ C * (s.sup p) f
 
+/-- A `DyninMityaginSpace` with biorthogonal basis and coefficients:
+`coeff n (basis m) = δ_{nm}`. This holds for all DM spaces constructed
+via `ofRapidDecayEquiv` (including Schwartz spaces and smooth circle functions).
+
+Finite-dimensional spaces with eventually-zero bases do NOT satisfy this. -/
+class DyninMityaginSpace.HasBiorthogonalBasis (E : Type*)
+    [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E]
+    [ContinuousSMul ℝ E] [DyninMityaginSpace E] : Prop where
+  coeff_basis : ∀ n m, DyninMityaginSpace.coeff (E := E) n (DyninMityaginSpace.basis m) =
+    if n = m then 1 else 0
+
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
   [DyninMityaginSpace E]

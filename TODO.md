@@ -58,20 +58,12 @@ Levy's uniqueness theorem: if two finite Borel measures on a nuclear
 Frechet dual have the same characteristic functional, they are equal.
 Standard reference: Gel'fand-Vilenkin Vol. 4.
 
-### 5. Nuclear tensor product functor (eliminates 4 remaining axioms)
+### 5. Nuclear tensor product functor — **DONE** (all 4 axioms eliminated)
 
-Target axioms (all in Nuclear/TensorProductFunctorAxioms):
-- `nuclearTensorProduct_mapCLM`
-- `nuclearTensorProduct_mapCLM_comp`
-- `nuclearTensorProduct_mapCLM_id`
-- `nuclearTensorProduct_mapCLM_pure`
-
-Progress:
-- **DONE**: `nuclearTensorProduct_swapCLM` — Cantor pair permutation with
-  rapid decay via `1+m ≤ 4·(1+σ(m))²` weight bound.
-- **DONE**: `nuclearTensorProduct_swapCLM_pure` — commutativity of multiplication.
-
-What remains:
-- `mapCLM`: CLMs on DyninMityaginSpaces have polynomial growth on basis
-  coefficients (by coeff_decay + basis_growth). On the Köthe sequence space
-  representation, T1 ⊗ T2 acts coefficient-wise via Cantor pairing. ~400+ LOC.
+All target axioms proved (Nuclear/TensorProductFunctorAxioms):
+- **DONE**: `nuclearTensorProduct_mapCLM` — definition + continuity proof
+- **DONE**: `nuclearTensorProduct_mapCLM_pure` — DM expansion + norm-summable product
+- **DONE**: `nuclearTensorProduct_mapCLM_id` — biorthogonality sum collapse
+- **DONE**: `nuclearTensorProduct_mapCLM_comp` — DM expansion on basis vectors + `mapCLM_pure`
+- **DONE**: `nuclearTensorProduct_swapCLM` — Cantor pair permutation
+- **DONE**: `nuclearTensorProduct_swapCLM_pure` — commutativity of multiplication

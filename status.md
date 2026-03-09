@@ -6,7 +6,7 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**10 axioms (+1 skipped), 0 sorries**
+**6 axioms (+1 skipped), 0 sorries**
 
 *Updated 2026-03-08.*
 
@@ -199,14 +199,11 @@ Proved Fourier results (no longer axioms):
 
 ### Nuclear tensor product functors
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `nuclearTensorProduct_mapCLM` | Nuclear/TensorProductFunctorAxioms | axiom | Hard | Functorial map for nuclear tensor products. |
-| `nuclearTensorProduct_mapCLM_comp` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Composition law for tensor product functor. |
-| `nuclearTensorProduct_mapCLM_id` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Identity law for tensor product functor. |
-| `nuclearTensorProduct_mapCLM_pure` | Nuclear/TensorProductFunctorAxioms | axiom | Medium | Functorial map on pure tensors. |
-
 Proved nuclear tensor product results (no longer axioms):
+- `nuclearTensorProduct_mapCLM` -- **proved** (tensor product of CLMs via Schauder basis coefficient mapping + polynomial growth/decay bounds)
+- `nuclearTensorProduct_mapCLM_pure` -- **proved** (DM expansion + `tsum_mul_tsum_of_summable_norm` + Cantor pairing reindex)
+- `nuclearTensorProduct_mapCLM_id` -- **proved** (biorthogonality collapses sum via `tsum_eq_single`)
+- `nuclearTensorProduct_mapCLM_comp` -- **proved** (DM expansion on basis vectors + `mapCLM_pure` for agreement)
 - `nuclearTensorProduct_swapCLM` -- **proved** (Cantor pair permutation `m ↦ pair(unpair(m).2, unpair(m).1)`, rapid decay via `1+m ≤ 4·(1+σ(m))²`)
 - `nuclearTensorProduct_swapCLM_pure` -- **proved** (commutativity of multiplication on coefficients)
 
@@ -219,8 +216,8 @@ Proved nuclear tensor product results (no longer axioms):
 | HeatKernel/PositionKernel | 1 | 0 |
 | Lattice/Convergence | 0 | 0 |
 | Torus/Restriction | 2 | 0 |
-| Nuclear/TensorProductFunctorAxioms | 4 | 0 |
-| **Total** | **10 (+1 skipped)** | **0** |
+| Nuclear/TensorProductFunctorAxioms | 0 | 0 |
+| **Total** | **6 (+1 skipped)** | **0** |
 
 ## References
 

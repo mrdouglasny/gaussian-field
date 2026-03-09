@@ -315,6 +315,12 @@ instance rapidDecay_dyninMityaginSpace : DyninMityaginSpace RapidDecaySeq where
     exact (a.rapid_decay k).le_tsum m
       (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j k))⟩
 
+instance rapidDecay_hasBiorthogonalBasis :
+    DyninMityaginSpace.HasBiorthogonalBasis RapidDecaySeq where
+  coeff_basis n m := by
+    show (basisVec m).val n = if n = m then 1 else 0
+    simp [basisVec]
+
 /-! ### Helper lemmas for seminorm transfer -/
 
 /-- Monotonicity of rapid-decay seminorms: for j ≤ j', seminorm j ≤ seminorm j'. -/
@@ -413,6 +419,22 @@ noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
     show |(RapidDecaySeq.coeffCLM m (equiv f))| * (1 + (m : ℝ)) ^ k ≤
       (C_nn : ℝ) * (s_fin.sup p) f
     exact le_trans h_le_tsum h_bound
+
+/-- `ofRapidDecayEquiv` always produces a biorthogonal DM space. -/
+def DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
+    {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
+    (equiv : E ≃L[ℝ] RapidDecaySeq) :
+    letI := DyninMityaginSpace.ofRapidDecayEquiv p hp equiv
+    DyninMityaginSpace.HasBiorthogonalBasis E :=
+  letI := DyninMityaginSpace.ofRapidDecayEquiv p hp equiv
+  { coeff_basis := fun n m => by
+      show RapidDecaySeq.coeffCLM n (equiv (equiv.symm (RapidDecaySeq.basisVec m))) =
+        if n = m then 1 else 0
+      rw [ContinuousLinearEquiv.apply_symm_apply]
+      show (RapidDecaySeq.basisVec m).val n = if n = m then 1 else 0
+      simp [RapidDecaySeq.basisVec, eq_comm] }
 
 /-! ## Cantor Pairing Bound -/
 
