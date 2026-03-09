@@ -42,6 +42,7 @@ import HeatKernel.Bilinear
 import SmoothCircle.Eigenvalues
 import Lattice.HeatKernelConvergence1d
 import Lattice.CirculantDFT
+import Lattice.CirculantDFT2d
 
 noncomputable section
 
@@ -63,7 +64,7 @@ diagonalized by the 2D DFT. Eigenvalues are sums of 1D eigenvalues and
 eigenvector inner products factor as products of 1D DFT coefficients.
 
 Reference: Davis, *Circulant Matrices*, Ch. 5. -/
-axiom lattice_covariance_pure_eq_2d_spectral
+theorem lattice_covariance_pure_eq_2d_spectral
     (mass : ℝ) (hmass : 0 < mass) (N : ℕ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) :
     covariance
@@ -76,7 +77,52 @@ axiom lattice_covariance_pure_eq_2d_spectral
         latticeDFTCoeff1d L (N + 1) f₂ m₂ * latticeDFTCoeff1d L (N + 1) g₂ m₂ /
         ((latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m₁ +
          latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m₂ + mass ^ 2) *
-         latticeFourierNormSq (N + 1) m₁ * latticeFourierNormSq (N + 1) m₂)
+         latticeFourierNormSq (N + 1) m₁ * latticeFourierNormSq (N + 1) m₂) := by
+  -- Step 1: Apply abstract spectral = DFT spectral identity
+  rw [abstract_spectral_eq_dft_spectral_2d]
+  -- Step 2: Factor DFT coefficients for pure tensors
+  -- evalTorusAtSite on pure tensors = product of circle restrictions
+  have hpure : ∀ (h₁ h₂ : SmoothMap_Circle L ℝ) (x : FinLatticeSites 2 (N + 1)),
+      evalTorusAtSite L (N + 1) x (pure h₁ h₂) =
+      circleRestriction L (N + 1) h₁ (x 0) * circleRestriction L (N + 1) h₂ (x 1) := by
+    intro h₁ h₂ x
+    unfold evalTorusAtSite
+    rw [NuclearTensorProduct.evalCLM_pure]
+    simp [ContinuousLinearMap.comp_apply]
+  -- DFT inner product of pure tensor factors as product of 1D DFT coefficients
+  have hcoeff : ∀ (h₁ h₂ : SmoothMap_Circle L ℝ) (m₁ m₂ : Fin (N + 1)),
+      ∑ x : FinLatticeSites 2 (N + 1),
+        evalTorusAtSite L (N + 1) x (pure h₁ h₂) *
+        (latticeFourierBasisFun (N + 1) ↑m₁ (x 0) *
+         latticeFourierBasisFun (N + 1) ↑m₂ (x 1)) =
+      latticeDFTCoeff1d L (N + 1) h₁ ↑m₁ * latticeDFTCoeff1d L (N + 1) h₂ ↑m₂ := by
+    intro h₁ h₂ m₁ m₂
+    simp_rw [hpure]
+    -- Rearrange products by coordinate
+    simp_rw [show ∀ x : FinLatticeSites 2 (N + 1),
+        (circleRestriction L (N + 1) h₁ (x 0) * circleRestriction L (N + 1) h₂ (x 1)) *
+        (latticeFourierBasisFun (N + 1) ↑m₁ (x 0) * latticeFourierBasisFun (N + 1) ↑m₂ (x 1)) =
+        (circleRestriction L (N + 1) h₁ (x 0) * latticeFourierBasisFun (N + 1) ↑m₁ (x 0)) *
+        (circleRestriction L (N + 1) h₂ (x 1) * latticeFourierBasisFun (N + 1) ↑m₂ (x 1)) from
+      fun x => by ring]
+    -- Factor sum over (ℤ/Nℤ)² as double sum
+    rw [sum_factor]
+    simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+    -- Factor double sum as product of sums
+    rw [← Fintype.sum_mul_sum]
+    -- Identify with latticeDFTCoeff1d
+    congr 1
+    · rw [latticeDFTCoeff1d, if_pos m₁.isLt]
+    · rw [latticeDFTCoeff1d, if_pos m₂.isLt]
+  -- Step 3: Rewrite the inner DFT coefficients using hcoeff
+  simp_rw [hcoeff]
+  -- Step 4: Convert ∑ range (N+1) to ∑ Fin (N+1) on the RHS and match
+  symm
+  rw [← Fin.sum_univ_eq_sum_range]
+  refine Finset.sum_congr rfl fun m₁ _ => ?_
+  rw [← Fin.sum_univ_eq_sum_range]
+  refine Finset.sum_congr rfl fun m₂ _ => ?_
+  ring
 
 /-- **Lattice DFT coefficients decay at least quadratically, uniformly in N.**
 

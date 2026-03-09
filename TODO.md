@@ -6,7 +6,7 @@
 
 Target axioms:
 - ~~`latticeHeatKernelBilinear1d_eq_spectral` (Lattice/HeatKernelConvergence1d)~~ — **DONE** (Lattice/CirculantDFT.lean)
-- `lattice_covariance_pure_eq_2d_spectral` (Lattice/Convergence)
+- ~~`lattice_covariance_pure_eq_2d_spectral` (Lattice/Convergence)~~ — **DONE** (Lattice/CirculantDFT2d.lean)
 - ~~`latticeDFTCoeff1d_quadratic_bound` (Lattice/Convergence)~~ — **DONE** (Lattice/CirculantDFT.lean)
 
 Progress:
@@ -24,7 +24,9 @@ Progress:
   `latticeFourierNormSq_eventually_one` for convergence.
 
 What remains:
-- `lattice_covariance_pure_eq_2d_spectral`: 2D version of spectral expansion
+- ~~`lattice_covariance_pure_eq_2d_spectral`: 2D version of spectral expansion~~ — **DONE**
+  Proved via `abstract_spectral_eq_dft_spectral_2d` (2D DFT Parseval + product eigenvectors
+  + mass operator surjectivity) + pure tensor factoring via `evalCLM_pure`.
 
 ### 2. Green's function invariance on pure tensors (eliminates 2 axioms)
 
