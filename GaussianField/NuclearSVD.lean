@@ -65,7 +65,7 @@ theorem ell2_basis_orthonormal : Orthonormal ℝ ell2_basis := by
     rw [lp.inner_eq_tsum]
     simp only [lp.coeFn_single, Pi.single_apply]
     convert tsum_zero (α := ℝ) (β := ℕ) with i
-    simp only [InnerProductSpace.toInner]
+    simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
     split_ifs <;> simp_all
 
 /-- ℓ² is infinite-dimensional. -/
@@ -274,7 +274,8 @@ theorem inner_ell2_basis_eq_coord (x : ell2') (m : ℕ) :
     arg 1; ext k
     rw [show @inner ℝ ℝ _ (if k = m then (1 : ℝ) else 0) ((x : ℕ → ℝ) k) =
         if k = m then (x : ℕ → ℝ) k else 0 by
-      split_ifs <;> simp [InnerProductSpace.toInner]]
+      simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
+      split_ifs <;> simp]
   rw [tsum_eq_single m (fun k hk => if_neg hk)]
   simp
 
@@ -450,25 +451,29 @@ theorem summable_sqrt_eigenvalues
     intro m n
     have : (↑(A.adjoint (e n)) : ℕ → ℝ) m =
         @inner ℝ ell2' _ (ell2_basis m) (A.adjoint (e n)) := by
-      unfold ell2_basis; rw [lp.inner_single_left]; simp [RCLike.inner_apply]
+      unfold ell2_basis; rw [lp.inner_single_left]
+      simp [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
     rw [this, ContinuousLinearMap.adjoint_inner_right, hA_basis, real_inner_comm]
   have hc_sum : ∀ n,
       Summable (fun m => (↑(w n) : ℕ → ℝ) m * @inner ℝ K _ (e n) (y m)) := by
     intro n
     exact (lp.summable_inner (𝕜 := ℝ) (w n) (A.adjoint (e n))).congr
-      (fun m => by simp only [RCLike.inner_apply, starRingEnd_apply, star_trivial, h_coord]; ring)
+      (fun m => by
+        simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real, h_coord]; ring)
   have hσ_tsum : ∀ n ∈ S, Real.sqrt (μ_ n) =
       ∑' m, (↑(w n) : ℕ → ℝ) m * @inner ℝ K _ (e n) (y m) := by
     intro n _
     by_cases hσ : Real.sqrt (μ_ n) = 0
-    · rw [hσ]; simp [show w n = 0 from by simp [w, hσ]]
+    · rw [hσ]
+      have : w n = 0 := by simp [w, hσ]
+      simp only [this, lp.coeFn_zero, Pi.zero_apply, zero_mul, tsum_zero]
     · have hw_eq : w n = (Real.sqrt (μ_ n))⁻¹ • A.adjoint (e n) := by simp [w, hσ]
       have key : @inner ℝ ell2' _ (w n) (A.adjoint (e n)) = Real.sqrt (μ_ n) := by
         rw [hw_eq, inner_smul_left, starRingEnd_apply, star_trivial,
             real_inner_self_eq_norm_mul_norm, ← hσ_eq]; field_simp
       rw [← key, ← (lp.hasSum_inner (𝕜 := ℝ) (w n) (A.adjoint (e n))).tsum_eq]
       congr 1; ext m
-      simp only [RCLike.inner_apply, starRingEnd_apply, star_trivial, h_coord]; ring
+      simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real, h_coord]; ring
   calc ∑ n ∈ S, Real.sqrt (μ_ n)
       = ∑ n ∈ S, ∑' m, (↑(w n) : ℕ → ℝ) m * @inner ℝ K _ (e n) (y m) :=
         Finset.sum_congr rfl hσ_tsum
@@ -499,7 +504,8 @@ theorem summable_sqrt_eigenvalues
                 have h_conv : ∀ n, @inner ℝ ell2' _ (w n) (ell2_basis m) =
                     (↑(w n) : ℕ → ℝ) m := by
                   intro n; rw [real_inner_comm]; unfold ell2_basis
-                  rw [lp.inner_single_left]; simp [RCLike.inner_apply]
+                  rw [lp.inner_single_left]
+                  simp [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
                 simp only [h_conv] at hw_b
                 exact (Real.sqrt_le_sqrt hw_b).trans (by rw [Real.sqrt_one])
               · have he_b := he_bessel (y m) S
@@ -628,7 +634,7 @@ theorem nuclear_sequence_svd
     have h2 : HasSum (fun m => (A.adjoint (e n) : ℕ → ℝ) m *
         (A.adjoint (e k) : ℕ → ℝ) m) 0 := by
       convert h using 1; ext m
-      rw [RCLike.inner_apply]; simp [starRingEnd]; ring
+      rw [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]; ring
     have h3 := h2.mul_left ((σ_ n)⁻¹ * (σ_ k)⁻¹)
     simp only [mul_zero] at h3
     convert h3 using 1; ext m; ring

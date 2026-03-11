@@ -197,7 +197,10 @@ lemma contDiff_schwartz_parametric_integral
     have h_cdiff : ∀ t, ContDiff ℝ (↑(n + 1) : ℕ∞) (Φ_t t) :=
       fun t => (Φ_t_smooth t).of_le (by exact_mod_cast le_top)
     have h_differentiable : ∀ t, Differentiable ℝ (fun y => iteratedFDeriv ℝ n (Φ_t t) y) :=
-      fun t => (h_cdiff t).differentiable_iteratedFDeriv (by exact_mod_cast Nat.lt_succ_self n)
+      fun t => (h_cdiff t).differentiable_iteratedFDeriv (by
+        apply WithTop.coe_lt_coe.mpr
+        apply WithTop.coe_lt_coe.mpr
+        omega)
     -- The fderiv of iteratedFDeriv n equals L applied to iteratedFDeriv (n+1)
     -- From iteratedFDeriv_succ_eq_comp_left and curryLeftLIE_coe_eq
     have h_fderiv_eq : ∀ t y, fderiv ℝ (fun y' => iteratedFDeriv ℝ n (Φ_t t) y') y =

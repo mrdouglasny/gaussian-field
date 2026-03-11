@@ -84,7 +84,7 @@ theorem schwartz_hermite_expansion_CLF
   -- On ℝ, RCLike.inner_apply tells us: inner x y = y * conj x
   -- For real numbers, conj x = x, so inner 1 x = x * 1 = x
   have key : ∀ x : ℝ, @inner ℝ ℝ _ 1 x = x := fun x => by
-    rw [RCLike.inner_apply]
+    rw [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
     simp
   simp only [key] at h
   exact h

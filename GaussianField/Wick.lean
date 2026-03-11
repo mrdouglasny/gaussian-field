@@ -255,12 +255,17 @@ theorem gaussian_ibp (f₀ h : E) :
     intro ω; ring
   simp_rw [hpull] at heq
   -- Pull I out of the integral
-  rw [integral_const_mul] at heq
-  -- heq : I * ∫ ↑(ω f₀) * exp(I * ↑(ω h)) dμ = (-↑b) * ∫ exp(I * ↑(ω h)) dμ
+  -- heq : ∫ ω, I * (f(ω) * exp(...)) = (-↑b) * ∫ exp(...)
+  -- Use integral_const_mul to get: I * ∫ f(ω)*exp(...) = (-↑b) * ∫ exp(...)
+  have heq' : Complex.I * ∫ ω : Configuration E,
+      ↑(ω f₀) * Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
+      -↑(inner ℝ (T f₀) (T h)) * ∫ ω : Configuration E,
+      Complex.exp (Complex.I * ↑(ω h)) ∂measure T :=
+    (integral_const_mul (μ := measure T) Complex.I _).symm.trans heq
   -- Multiply both sides by (-I) on the left to isolate the integral
   have hI_inv : -(Complex.I * Complex.I) = (1 : ℂ) := by
     simp
-  have key := congr_arg ((-Complex.I) * ·) heq
+  have key := congr_arg ((-Complex.I) * ·) heq'
   simp only [← mul_assoc, neg_mul, hI_inv, one_mul] at key
   -- key : ∫ ... = (-I) * ((-↑b) * ∫ exp(...) dμ)
   rw [key]; ring
@@ -554,12 +559,18 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
         Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
       Complex.I * ∫ ω : Configuration E, ↑(ω f₀) * ↑(ω (g 0)) *
         Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
-      rw [← integral_const_mul]; congr 1; ext ω; ring
+      simp_rw [show ∀ ω : Configuration E, ↑(ω f₀) * (Complex.I * ↑(ω (g 0))) *
+        Complex.exp (Complex.I * ↑(ω h)) = Complex.I * (↑(ω f₀) * ↑(ω (g 0)) *
+        Complex.exp (Complex.I * ↑(ω h))) from fun ω => by ring]
+      exact integral_const_mul Complex.I _
     have h_rhs : ∫ ω : Configuration E,
         Complex.I * ↑(ω (g 0)) * Complex.exp (Complex.I * ↑(ω h)) ∂measure T =
       Complex.I * ∫ ω : Configuration E,
         ↑(ω (g 0)) * Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
-      rw [← integral_const_mul]; congr 1; ext ω; ring
+      simp_rw [show ∀ ω : Configuration E, Complex.I * ↑(ω (g 0)) *
+        Complex.exp (Complex.I * ↑(ω h)) = Complex.I * (↑(ω (g 0)) *
+        Complex.exp (Complex.I * ↑(ω h))) from fun ω => by ring]
+      exact integral_const_mul Complex.I _
     rw [h_lhs, h_rhs] at hderiv
     -- hderiv : -I * (I * ∫ f₀*g₀*exp) = ↑c₁ * ∫ exp + ↑c₂ * (I * ∫ g₀*exp)
     -- Cancel -I*I on LHS
@@ -756,8 +767,11 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
       Complex.I * ∫ ω : Configuration E,
         (↑(ω f₀) * ∏ i, (↑(ω (g i)) : ℂ)) *
         Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
-      rw [← integral_const_mul]; congr 1; ext ω
-      rw [hprod_split ω]; ring
+      trans (∫ ω : Configuration E, Complex.I *
+        ((↑(ω f₀) * ∏ i, (↑(ω (g i)) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h))) ∂measure T)
+      · congr 1; ext ω; rw [hprod_split ω]; ring
+      · exact integral_const_mul Complex.I _
     -- Each summand RHS: ∫ ∏g'(sA j) * (I*ωg_last) * exp
     --   = I * ∫ ∏g'(sA j) * ωg_last * exp
     have hI_sum : ∀ j : Fin (n + 1),
@@ -768,7 +782,14 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
         Complex.I * ∫ ω : Configuration E,
           (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) * ↑(ω g_last) *
           Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
-      intro j; rw [← integral_const_mul]; congr 1; ext ω; ring
+      intro j
+      simp_rw [show ∀ ω : Configuration E,
+        (∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) *
+        (Complex.I * ↑(ω g_last)) *
+        Complex.exp (Complex.I * ↑(ω h)) = Complex.I *
+        ((∏ i : Fin n, (↑(ω (g' (Fin.succAbove j i))) : ℂ)) * ↑(ω g_last) *
+        Complex.exp (Complex.I * ↑(ω h))) from fun ω => by ring]
+      exact integral_const_mul Complex.I _
     -- Last integrand: ∫ ∏g' * (I*ωg_last) * exp = I * ∫ ∏_{n+2}g * exp
     have hI_last : ∫ ω : Configuration E,
         (∏ i, (↑(ω (g' i)) : ℂ)) * (Complex.I * ↑(ω g_last)) *
@@ -776,8 +797,11 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
       Complex.I * ∫ ω : Configuration E,
         (∏ i, (↑(ω (g i)) : ℂ)) *
         Complex.exp (Complex.I * ↑(ω h)) ∂measure T := by
-      rw [← integral_const_mul]; congr 1; ext ω
-      rw [hprod_split ω]; ring
+      trans (∫ ω : Configuration E, Complex.I *
+        ((∏ i, (↑(ω (g i)) : ℂ)) *
+        Complex.exp (Complex.I * ↑(ω h))) ∂measure T)
+      · congr 1; ext ω; rw [hprod_split ω]; ring
+      · exact integral_const_mul Complex.I _
     rw [hI_lhs] at hderiv_eq
     simp_rw [hI_sum] at hderiv_eq
     rw [hI_last] at hderiv_eq

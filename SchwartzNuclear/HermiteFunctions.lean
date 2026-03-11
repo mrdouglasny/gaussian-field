@@ -290,9 +290,9 @@ private theorem deriv_hermiteEval_mul_gaussian (m : ℕ) (x : ℝ) :
   -- Convert deriv of polynomial eval via aeval
   have hpoly : deriv (fun u => (hermiteR m).eval u) x = (derivative (hermiteR m)).eval x := by
     have h1 : (fun u => (hermiteR m).eval u) = fun u => Polynomial.aeval u (hermiteR m) := by
-      ext u; unfold Polynomial.aeval; simp [Polynomial.eval₂_eq_eval_map]
+      ext u; simp [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map, Polynomial.map_id]
     rw [h1, Polynomial.deriv_aeval]
-    unfold Polynomial.aeval; simp [Polynomial.eval₂_eq_eval_map]
+    simp [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map, Polynomial.map_id]
   rw [hpoly]
   have hexp : deriv (fun u : ℝ => Real.exp (-(u ^ 2 / 2))) x = -x * gaussian x := by
     have h1 : HasDerivAt (fun u : ℝ => -(u ^ 2 / 2)) (-x) x := by
@@ -370,7 +370,8 @@ private theorem J_succ_succ (n m : ℕ) : J (n + 1) (m + 1) = (↑(n + 1) : ℝ)
     (f := fun x => (hermiteR (n + 1)).eval x)
     (g := fun u => (hermiteR m).eval u * gaussian u)
     (v := (1 : ℝ))
-    ?_ ?_ ?_ (hermiteR (n + 1)).differentiable (differentiable_hermiteEval_mul_gaussian m)
+    ?_ ?_ ?_ (fun x _ => (hermiteR (n + 1)).differentiable.differentiableAt)
+    (fun x _ => (differentiable_hermiteEval_mul_gaussian m).differentiableAt)
   -- IBP gives: ∫ f * g' = -∫ f' * g
   -- So -∫ f * g' = ∫ f' * g
   simp only [fderiv_apply_one_eq_deriv] at hibp
@@ -830,7 +831,7 @@ theorem deriv_hermiteFunction (n : ℕ) (x : ℝ) :
     have h_outer : HasDerivAt (fun u => (hermiteR n).eval u)
         ((Polynomial.derivative (hermiteR n)).eval (x * Real.sqrt 2)) (x * Real.sqrt 2) := by
       have : (fun u => (hermiteR n).eval u) = fun u => Polynomial.aeval u (hermiteR n) := by
-        ext u; unfold Polynomial.aeval; simp [Polynomial.eval₂_eq_eval_map]
+        ext u; simp [Polynomial.aeval_def, Polynomial.eval₂_eq_eval_map, Polynomial.map_id]
       rw [this]
       exact Polynomial.hasDerivAt_aeval (hermiteR n) (x * Real.sqrt 2)
     have hcomp := h_outer.comp x h_inner
@@ -1411,7 +1412,7 @@ private lemma integral_f_xpow_gaussian_zero
     have h_int := L2.integrable_inner (𝕜 := ℝ) (MemLp.toLp f hf) (MemLp.toLp _ (h_pG_memLp p))
     refine h_int.congr ?_
     filter_upwards [MemLp.coeFn_toLp hf, MemLp.coeFn_toLp (h_pG_memLp p)] with x hfx hpGx
-    rw [hfx, hpGx, RCLike.inner_apply', conj_trivial]
+    rw [hfx, hpGx, real_inner_eq_re_inner ℝ, RCLike.inner_apply', conj_trivial, RCLike.re_to_real]
   have h_mono_integrable : ∀ (c : ℝ) (i : ℕ),
       Integrable (fun x => c * (f x * (x ^ i * Real.exp (-(x ^ 2 / 2))))) volume := by
     intro c i
@@ -1539,7 +1540,7 @@ private lemma integral_f_poly_gaussian_zero
         MemLp.ae_eq (Filter.Eventually.of_forall hφ) (φ.memLp 2 volume)
       refine (L2.integrable_inner (𝕜 := ℝ) (MemLp.toLp f hf) (MemLp.toLp _ hrG)).congr ?_
       filter_upwards [MemLp.coeFn_toLp hf, MemLp.coeFn_toLp hrG] with x hfx hrGx
-      rw [hfx, hrGx, RCLike.inner_apply', conj_trivial]
+      rw [hfx, hrGx, real_inner_eq_re_inner ℝ, RCLike.inner_apply', conj_trivial, RCLike.re_to_real]
     rw [integral_add (h_int_poly p) (h_int_poly q), hp, hq, add_zero]
   | monomial k a =>
     simp only [Polynomial.eval_monomial]
@@ -1561,7 +1562,7 @@ private lemma integrable_f_mul_gaussian
   exact (L2.integrable_inner (𝕜 := ℝ) (MemLp.toLp f hf)
     (MemLp.toLp _ hG)).congr
     (by filter_upwards [MemLp.coeFn_toLp hf, MemLp.coeFn_toLp hG] with x hfx hGx
-        rw [hfx, hGx, RCLike.inner_apply', conj_trivial])
+        rw [hfx, hGx, real_inner_eq_re_inner ℝ, RCLike.inner_apply', conj_trivial, RCLike.re_to_real])
 
 /-- |f(x)| * exp(-x²/4) is integrable when f ∈ L², by Cauchy-Schwarz:
     f ∈ L², exp(-x²/4) ∈ L² (since exp(-x²/4)² = exp(-x²/2)). -/
@@ -1580,7 +1581,7 @@ private lemma integrable_f_mul_half_gaussian
   exact (L2.integrable_inner (𝕜 := ℝ) (MemLp.toLp f hf)
     (MemLp.toLp _ hG)).congr
     (by filter_upwards [MemLp.coeFn_toLp hf, MemLp.coeFn_toLp hG] with x hfx hGx
-        rw [hfx, hGx, RCLike.inner_apply', conj_trivial])
+        rw [hfx, hGx, real_inner_eq_re_inner ℝ, RCLike.inner_apply', conj_trivial, RCLike.re_to_real])
 
 set_option maxHeartbeats 800000 in
 /-- g(x) * exp(c|x|) is integrable, where g(x) = f(x) * exp(-x²/2), by completing the square:
@@ -1647,7 +1648,8 @@ private lemma fourierIntegral_f_mul_gaussian_eq_zero
   set bound : ℝ → ℝ := fun x => ‖g x‖ * Real.exp (2 * π * |ξ| * |x|) with hbound_def
   -- Helper: innerₗ ℝ x ξ = x * ξ for ℝ
   have inner_eq : ∀ y : ℝ, innerₗ ℝ y ξ = y * ξ := by
-    intro y; rw [innerₗ_apply_apply, RCLike.inner_apply, conj_trivial, mul_comm]
+    intro y; rw [innerₗ_apply_apply, real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial,
+      RCLike.re_to_real, mul_comm]
   -- Helper: ‖z x‖ = 2π|x||ξ|
   have norm_z : ∀ y : ℝ, ‖z y‖ ≤ 2 * π * |ξ| * |y| := by
     intro y
@@ -1717,7 +1719,7 @@ private lemma fourierIntegral_f_mul_gaussian_eq_zero
     intro k y
     simp only [z, innerₗ_apply_apply]
     rw [show @inner ℝ ℝ _ y ξ = y * ξ from by
-      rw [RCLike.inner_apply, conj_trivial, mul_comm]]
+      rw [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial, RCLike.re_to_real, mul_comm]]
     rw [show (↑(-2 * π * (y * ξ)) : ℂ) * Complex.I = c * ↑y from by
       simp only [c]; push_cast; ring]
     rw [mul_pow, Complex.ofReal_pow]
@@ -1731,7 +1733,8 @@ private lemma fourierIntegral_f_mul_gaussian_eq_zero
         Polynomial.eval_X])) (φ.memLp 2 volume)
     exact (L2.integrable_inner (𝕜 := ℝ) (MemLp.toLp f hf) (MemLp.toLp _ hpG)).congr
       (by filter_upwards [MemLp.coeFn_toLp hf, MemLp.coeFn_toLp hpG] with x hfx hGx
-          rw [hfx, hGx, RCLike.inner_apply', conj_trivial])
+          rw [hfx, hGx, real_inner_eq_re_inner ℝ, RCLike.inner_apply', conj_trivial,
+            RCLike.re_to_real])
   -- Helper: rewrite summand as constant times moment integrand
   have h_summand_eq : ∀ k : ℕ, (fun y => z y ^ k / (Nat.factorial k : ℂ) * g_ℂ y) =
       fun y => (c ^ k / (Nat.factorial k : ℂ)) *
@@ -1749,10 +1752,13 @@ private lemma fourierIntegral_f_mul_gaussian_eq_zero
     rw [integral_finset_sum _ (fun k _ => h_summand_int k)]
     apply Finset.sum_eq_zero
     intro k _
-    rw [h_summand_eq, integral_const_mul,
-      show ∫ a, (↑(f a * (a ^ k * Real.exp (-(a ^ 2 / 2)))) : ℂ) =
-        ↑(∫ a, f a * (a ^ k * Real.exp (-(a ^ 2 / 2)))) from integral_ofReal,
-      h_moments k, Complex.ofReal_zero, mul_zero]
+    rw [h_summand_eq]
+    calc ∫ y, c ^ k / ↑k.factorial * (↑(f y * (y ^ k * Real.exp (-(y ^ 2 / 2)))) : ℂ)
+        = c ^ k / ↑k.factorial * ∫ y, (↑(f y * (y ^ k * Real.exp (-(y ^ 2 / 2)))) : ℂ) :=
+          integral_const_mul _ _
+      _ = c ^ k / ↑k.factorial * ↑(∫ y, f y * (y ^ k * Real.exp (-(y ^ 2 / 2)))) :=
+          congr_arg _ integral_ofReal
+      _ = 0 := by rw [h_moments k, Complex.ofReal_zero, mul_zero]
   -- Step 8: Limit of zeros is zero
   exact tendsto_nhds_unique h_DCT
     (tendsto_const_nhds.congr (fun N => (h_zero N).symm))

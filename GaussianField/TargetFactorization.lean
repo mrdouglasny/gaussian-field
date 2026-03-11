@@ -113,7 +113,7 @@ theorem nuclear_ell2_embedding_from_decay
     fun f => ⟨fun m => φ m f, hφ_memℓp f⟩ with hj_fun_def
   have hadd : ∀ (f g : E), j_fun (f + g) = j_fun f + j_fun g := by
     intro f g; ext m
-    simp [hj_fun_def, map_add]
+    simp only [hj_fun_def, map_add, lp.coeFn_add, Pi.add_apply]
   have hsmul : ∀ (a : ℝ) (f : E), j_fun (a • f) = a • j_fun f := by
     intro a f; ext m
     simp [hj_fun_def, lp.coeFn_smul, map_smul, smul_eq_mul, Pi.smul_apply]
@@ -135,8 +135,9 @@ theorem nuclear_ell2_embedding_from_decay
     have h_sq_summ : Summable (fun m : ℕ => (φ m f) ^ 2) := by
       have h := lp.summable_inner (𝕜 := ℝ) (⟨fun m => φ m f, hφ_memℓp f⟩ : ell2')
         (⟨fun m => φ m f, hφ_memℓp f⟩ : ell2')
-      simp only [RCLike.inner_apply', RCLike.conj_to_real] at h
-      exact h.congr (fun m => by ring)
+      simp only at h
+      exact h.congr (fun m => by
+        rw [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]; ring)
     have h_ptwise : ∀ m : ℕ, (φ m f) ^ 2 ≤
         (C * (s.sup DyninMityaginSpace.p) f) ^ 2 *
           (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ) := by
@@ -296,7 +297,7 @@ theorem nuclear_clm_target_factorization
     intro n
     by_cases hσn : σ_ n = 0
     · have : v n = 0 := by
-        ext m; simp [v, hW_zero n hσn m, hσn]
+        ext m; simp only [v, hσn, hW_zero n hσn m, mul_zero, lp.coeFn_zero, Pi.zero_apply]
       rw [this, norm_zero, hσn]
     · have h_sq : ‖v n‖ ^ 2 = σ_ n ^ 2 := by
         rw [← real_inner_self_eq_norm_sq, lp.inner_eq_tsum]
@@ -316,8 +317,8 @@ theorem nuclear_clm_target_factorization
       rw [lp.inner_eq_tsum]
       congr 1; ext m
       simp only [v]
-      rw [RCLike.inner_apply', RCLike.conj_to_real]
-      rw [hj_spec f m]
+      rw [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
+      rw [hj_spec f m]; ring
     rw [lhs, rhs]
     congr 1; ext m; ring
 

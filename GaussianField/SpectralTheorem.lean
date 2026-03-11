@@ -246,13 +246,21 @@ theorem compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot
     fun w hw => hT_sym.orthogonalComplement_iSup_eigenspaces_invariant hw
   -- Step 2: Build CLM T_W : W →L[ℝ] W
   set T_W := (T.comp W.subtypeL).codRestrict W (fun ⟨u, hu⟩ => hW_inv u hu) with hT_W_def
+  -- W is a complete space (orthogonal complement of a submodule in a complete space);
+  -- we also need Star (↥W →L[ℝ] ↥W) for IsSelfAdjoint, which requires CompleteSpace ↥W.
+  -- Instance search can't synthesize these through the set-binding, so we provide them
+  -- explicitly via @.
+  have instCS_W : CompleteSpace ↥W :=
+    Submodule.instOrthogonalCompleteSpace (⨆ μ, Module.End.eigenspace (T : E →ₗ[ℝ] E) μ)
   -- Step 3: T_W is self-adjoint
-  have hT_W_sa : IsSelfAdjoint T_W := by
-    rw [ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric]
+  have hT_W_sym : (T_W : ↥W →ₗ[ℝ] ↥W).IsSymmetric := by
     intro ⟨x, _⟩ ⟨y, _⟩
     simp only [Submodule.coe_inner]
     change @inner ℝ E _ (T x) y = @inner ℝ E _ x (T y)
     exact hT_sym x y
+  have hT_W_sa : @IsSelfAdjoint (↥W →L[ℝ] ↥W)
+      (@ContinuousLinearMap.instStarId ℝ ↥W _ _ _ instCS_W) T_W :=
+    (@ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric ℝ ↥W _ _ _ instCS_W).mpr hT_W_sym
   -- Step 4: T_W is compact
   have hT_W_compact : IsCompactOperator T_W :=
     (hT_compact.comp_clm W.subtypeL).codRestrict _ (Submodule.isClosed_orthogonal _)
@@ -268,9 +276,7 @@ theorem compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot
       intro heq
       exact hv_ne (by rw [heq]; simp)
     obtain ⟨μ, e_W, he_ne, he_eig, _⟩ :=
-      hasEigenvector_aux T_W hT_W_sa hT_W_compact hT_W_ne
-    have hT_W_sym : (T_W : ↥W →ₗ[ℝ] ↥W).IsSymmetric := by
-      rw [← ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric]; exact hT_W_sa
+      @hasEigenvector_aux ↥W _ _ instCS_W _ T_W hT_W_sa hT_W_compact hT_W_ne
     have hT_W_eq : (T_W : ↥W →ₗ[ℝ] ↥W) = (T : E →ₗ[ℝ] E).restrict hW_inv := by
       ext ⟨x, hx⟩
       simp only [ContinuousLinearMap.coe_coe, LinearMap.restrict_apply]
@@ -394,12 +400,16 @@ private theorem eigenvector_basis
         (by rw [norm_smul, norm_inv, norm_norm, inv_mul_cancel₀ hw_norm_ne])
     · push_neg at hTw_all; obtain ⟨v, hv, hTv_ne⟩ := hTw_all
       set T_W := (T.comp W.subtypeL).codRestrict W (fun ⟨u, hu⟩ => hT_orth_inv u hu)
-      have hT_W_sa : IsSelfAdjoint T_W := by
-        rw [ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric]
+      have instCS_W : CompleteSpace ↥W :=
+        Submodule.instOrthogonalCompleteSpace (Submodule.span ℝ S)
+      have hT_W_sym : (T_W : ↥W →ₗ[ℝ] ↥W).IsSymmetric := by
         intro ⟨x, _⟩ ⟨y, _⟩
         rw [Submodule.coe_inner, Submodule.coe_inner]
         change @inner ℝ E _ (T x) y = @inner ℝ E _ x (T y)
         exact (ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric.mp hT) x y
+      have hT_W_sa : @IsSelfAdjoint (↥W →L[ℝ] ↥W)
+          (@ContinuousLinearMap.instStarId ℝ ↥W _ _ _ instCS_W) T_W :=
+        (@ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric ℝ ↥W _ _ _ instCS_W).mpr hT_W_sym
       have hT_W_compact : IsCompactOperator T_W :=
         (hK.comp_clm W.subtypeL).codRestrict _ (Submodule.isClosed_orthogonal _)
       have hT_W_ne : T_W ≠ 0 := by
@@ -414,7 +424,7 @@ private theorem eigenvector_basis
         simp only [ZeroMemClass.coe_zero] at this
         exact hTv_ne (by rw [this]; simp)
       obtain ⟨μ, e_W, he_ne, he_eig, _⟩ :=
-        hasEigenvector_aux T_W hT_W_sa hT_W_compact hT_W_ne
+        @hasEigenvector_aux ↥W _ _ instCS_W _ T_W hT_W_sa hT_W_compact hT_W_ne
       have he_eig_E : (T : E →ₗ[ℝ] E) (e_W : E) = μ • (e_W : E) := by
         have h := congr_arg Subtype.val he_eig
         simp only [SetLike.val_smul] at h

@@ -836,7 +836,7 @@ theorem pure_continuous :
   set f : E₁ →+ E₂ →+ NuclearTensorProduct E₁ E₂ :=
     { toFun := fun e₁ => (pureLin e₁).toAddMonoidHom
       map_zero' := by
-        ext e₂ m; simp [pureLin, pure_val]
+        ext e₂ m; simp [pureLin, pure_val]; rfl
       map_add' := fun e₁ e₁' => by
         ext e₂ m; simp [pureLin, pure_val, add_mul] }
   show Continuous (fun p : E₁ × E₂ => f p.1 p.2)
