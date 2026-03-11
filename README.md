@@ -28,7 +28,7 @@ The construction realizes a **rigged Hilbert space** (Gel'fand triple):
 
 $$E \hookrightarrow H_T \hookrightarrow E'$$
 
-where $H_T$ is the **Cameron-Martin space** — the completion of $E$ under the inner product $\langle f, g \rangle_T = \langle T(f), T(g) \rangle_H = C(f,g)$ (formalized as `cameronMartinInner T`). The **support theorem** (`gaussian_support_iff`) characterizes *where* the measure lives: $\mu$ is supported on configurations with finite basis norm ($\sum_n |\omega(e_n)|^2 < \infty$) if and only if $T$ is Hilbert-Schmidt (`IsHilbertSchmidt T`).
+where $H_T$ is the **Cameron-Martin space** — the completion of $E$ under the inner product $\langle f, g \rangle_T = \langle T(f), T(g) \rangle_H = C(f,g)$ (formalized as `cameronMartinInner T`). The **support theorem** (`support_of_hilbertSchmidt`) characterizes *where* the measure lives: if $T$ is Hilbert-Schmidt (`IsHilbertSchmidt T`), then $\mu$ is supported on configurations with finite basis norm ($\sum_n |\omega(e_n)|^2 < \infty$).
 
 This triple is the functional-analytic core of:
 - **Constructive QFT**: the Osterwalder-Schrader and Wightman frameworks, where $\mu$ is the Euclidean path integral measure
@@ -66,8 +66,8 @@ The user provides:
 | `cameronMartinInner T f g` | `ℝ` | Cameron-Martin inner product $\langle f, g \rangle_0 = C(f,g)$ |
 | `cameronMartinNormSq T f` | `ℝ` | Cameron-Martin norm squared $\|f\|_0^2 = \|T(f)\|^2$ |
 | `IsHilbertSchmidt T` | `Prop` | $\sum_n \|T(e_n)\|^2 < \infty$ (Hilbert-Schmidt condition) |
-| `gaussian_support_iff` | iff | $T$ is HS $\iff$ $\sum_n |\omega(e_n)|^2 < \infty$ a.s. |
 | `support_of_hilbertSchmidt` | `∀ᵐ` | HS $\Rightarrow$ a.e. finite basis norm |
+| `weighted_support` | `∀ᵐ` | Weighted-HS $\Rightarrow$ a.e. finite weighted basis norm |
 | `expected_norm_sq_eq_hs` | integral identity | $\mathbb{E}[\sum_n |\omega(e_n)|^2] = \sum_n \|T(e_n)\|^2$ |
 
 ### Design notes
@@ -213,7 +213,7 @@ constructing covariance operators on product spaces.
 |------|------:|----------|
 | [HeatKernel/Axioms.lean](HeatKernel/Axioms.lean) | 264 | `spectralCLM`, `qftEigenvalue`, `qftSingularValue`, boundedness |
 | [HeatKernel/Bilinear.lean](HeatKernel/Bilinear.lean) | 410 | Heat kernel bilinear form `K_t`, Green's function `G_mass`, L² convergence, positivity |
-| [HeatKernel/PositionKernel.lean](HeatKernel/PositionKernel.lean) | 1,843 | Position-space heat kernels: Mehler kernel, circle heat kernel, proved axioms |
+| [HeatKernel/PositionKernel.lean](HeatKernel/PositionKernel.lean) | 2,183 | Position-space heat kernels: Mehler kernel, circle heat kernel (off main build path; [future proof target](summary/future/mehler_kernel.md)) |
 
 `spectralCLM σ hσ : E →L[ℝ] ℓ²` maps `f ↦ (σ_m · coeff_m(f))_m` for any bounded
 multiplier sequence `σ`. This is the key tool for constructing covariance operators:
@@ -243,7 +243,7 @@ AddCircle-based lattice frameworks (Tanimoto).
 | [Lattice/HeatKernel.lean](Lattice/HeatKernel.lean) | Heat kernel `K_t = exp(-t·(-Δ))`, semigroup, symmetry, commutation |
 | [Lattice/Symmetry.lean](Lattice/Symmetry.lean) | Translation/reflection operators, Toeplitz property, Laplacian/heat kernel commutation |
 | [Lattice/Covariance.lean](Lattice/Covariance.lean) | `latticeCovariance` via spectral theorem, `latticeGaussianMeasure` |
-| [GaussianField/Density.lean](GaussianField/Density.lean) | Density bridge: Gaussian measure ↔ Gaussian density |
+| [GaussianField/Density.lean](GaussianField/Density.lean) | [Density bridge: Gaussian measure ↔ Gaussian density](summary/GaussianField/Density.md) |
 | [Lattice/FKG.lean](Lattice/FKG.lean) | FKG inequality for lattice Gaussian and convexly-perturbed measures |
 | [Lattice/CirculantDFT.lean](Lattice/CirculantDFT.lean) | DFT eigenbasis, spectral expansion, 1D heat kernel convergence |
 | [Lattice/HeatKernelConvergence1d.lean](Lattice/HeatKernelConvergence1d.lean) | Eigenvalue/DFT coefficient convergence, Riemann sum convergence |
@@ -267,17 +267,17 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 
 | File | Lines | Contents |
 |------|------:|----------|
-| [SpectralTheorem.lean](GaussianField/SpectralTheorem.lean) | 468 | Compact self-adjoint spectral theorem |
-| [NuclearSVD.lean](GaussianField/NuclearSVD.lean) | 640 | SVD for nuclear operators |
-| [NuclearFactorization.lean](GaussianField/NuclearFactorization.lean) | 190 | Source-indexed nuclear representation |
-| [TargetFactorization.lean](GaussianField/TargetFactorization.lean) | 324 | Target-indexed factorization with ONB |
-| [Construction.lean](GaussianField/Construction.lean) | 715 | Main construction + characteristic functional |
-| [Properties.lean](GaussianField/Properties.lean) | 193 | Gaussianity, moments, $L^p$ integrability |
-| [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | Mathlib `IsGaussian` instance for `measure T` |
-| [Wick.lean](GaussianField/Wick.lean) | 1,067 | [Wick's theorem](docs/wick-theorem.md): Gaussian IBP, recursive Wick formula, moment bounds |
-| [Support.lean](GaussianField/Support.lean) | 256 | Hilbert-Schmidt condition, Cameron-Martin defs, support theorem |
-| [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 441 | Gaussian moments, [Gross log-Sobolev inequality](docs/gross-log-sobolev.md) |
-| [HypercontractiveNat.lean](GaussianField/HypercontractiveNat.lean) | 329 | [Nelson's hypercontractive estimate](docs/gaussian-moment-ratio-proof.md) for even integer p via double-factorial combinatorics |
+| [SpectralTheorem.lean](GaussianField/SpectralTheorem.lean) | 468 | [Compact self-adjoint spectral theorem](summary/GaussianField/SpectralTheorem.md) |
+| [NuclearSVD.lean](GaussianField/NuclearSVD.lean) | 640 | [SVD for nuclear operators](summary/GaussianField/NuclearSVD.md) |
+| [NuclearFactorization.lean](GaussianField/NuclearFactorization.lean) | 190 | [Source-indexed nuclear representation](summary/GaussianField/NuclearFactorization.md) |
+| [TargetFactorization.lean](GaussianField/TargetFactorization.lean) | 324 | [Target-indexed factorization with ONB](summary/GaussianField/TargetFactorization.md) |
+| [Construction.lean](GaussianField/Construction.lean) | 715 | [Main construction + characteristic functional](summary/GaussianField/Construction.md) |
+| [Properties.lean](GaussianField/Properties.lean) | 193 | [Gaussianity, moments, $L^p$ integrability](summary/GaussianField/Properties.md) |
+| [IsGaussian.lean](GaussianField/IsGaussian.lean) | 160 | [Mathlib `IsGaussian` instance for `measure T`](summary/GaussianField/IsGaussian.md) |
+| [Wick.lean](GaussianField/Wick.lean) | 1,067 | [Wick's theorem](summary/GaussianField/Wick.md): Gaussian IBP, recursive Wick formula, moment bounds |
+| [Support.lean](GaussianField/Support.lean) | 274 | [Hilbert-Schmidt condition, Cameron-Martin defs, support theorem](summary/GaussianField/Support.md) |
+| [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 441 | [Gaussian moments, Gross log-Sobolev inequality](summary/GaussianField/Hypercontractive.md) |
+| [HypercontractiveNat.lean](GaussianField/HypercontractiveNat.lean) | 329 | [Nelson's hypercontractive estimate](summary/GaussianField/HypercontractiveNat.md) for even integer p via double-factorial combinatorics |
 
 ### Dependency graph
 
@@ -330,16 +330,12 @@ The 1D lattice-continuum convergence pipeline is fully proved: DFT eigenbasis co
 
 Green's function invariance (reflection, translation) on pure tensors and the bilinear extension are proved in `HeatKernel/GreenInvariance.lean`. Fourier translation/reflection axioms in `SmoothCircle/FourierTranslation.lean` are fully proved.
 
-Current project status is **14 axioms (+1 skipped), 0 sorries**:
+Current project status is **0 axioms (+1 skipped), 0 sorries** on the main build path.
 
-| Section | Axioms | Contents |
-|---------|--------|----------|
-| `Nuclear/TensorProductFunctorAxioms.lean` | 6 | Nuclear tensor product CLM functoriality (map, swap, comp, id, pure) |
-| `GaussianField/Support.lean` | 2 | Converse support theorem, support Hilbert space existence |
-| `Torus/Restriction.lean` | 2 | Configuration space on torus is Polish and Borel |
-| `Lattice/Convergence.lean` | 2 | 2D spectral expansion, bilinear extension from pure tensors |
-| `GaussianField/Properties.lean` | 1 | Gaussian measure uniqueness via Minlos (`measure_unique_of_charFun`) |
-| `HeatKernel/PositionKernel.lean` | 1 | Mehler's formula (`mehlerKernel_eq_series`) |
+Former axioms have been proved or moved to `future/` as documentation:
+- [future/gaussian_field_axioms.lean](future/gaussian_field_axioms.lean) — [measure uniqueness, converse support, support Hilbert space](summary/future/gaussian_field_axioms.md)
+- [future/configuration_torus.lean](future/configuration_torus.lean) — [Polish/Borel instances for Configuration(Torus)](summary/future/configuration_torus.md)
+- [future/mehler_kernel.lean](future/mehler_kernel.lean) — [Mehler's formula eigenfunction expansion](summary/future/mehler_kernel.md)
 
 ## Further documentation
 
@@ -360,11 +356,9 @@ Current project status is **14 axioms (+1 skipped), 0 sorries**:
 
 - **New instances**: $C^\infty(S^1)$ is fully proved; remaining targets: $C^\infty(M)$ for compact $M$, half-spaces (see [concrete instances](docs/concrete-instances.md))
 - **Vector-valued generalization**: Generalize `SmoothMap_Circle L ℝ` and `SchwartzMap D ℝ` to vector-valued codomains $F$ (the `F` parameter in `SmoothMap_Circle` is a placeholder for this), with nuclearity via $C^\infty(M, \mathbb{R}^n) \cong C^\infty(M, \mathbb{R})^n \cong s(\mathbb{N})$; long-term, refactor to `ContMDiffMap (AddCircle L) F` once Mathlib gains manifold structure on `AddCircle`
-- **2D lattice convergence**: Extend 1D spectral expansion to 2D (`lattice_covariance_pure_eq_2d_spectral`), bilinear extension for Green's function convergence
-- **Nuclear tensor product functor**: Prove the 6 CLM functoriality axioms in `Nuclear/TensorProductFunctorAxioms.lean`
 - **Abstract tensor product**: Build completed projective tensor products on Mathlib's algebraic `TensorProduct`, prove isomorphism with `RapidDecaySeq` for DM spaces, and the nuclear coincidence theorem $\pi = \varepsilon$ (see [abstract tensor product plan](docs/abstract-tensor-product-plan.md))
-- **Besov regularity**: The support theorem (`gaussian_support_iff`) shows a.s. finite basis norm when $T$ is HS. The next step is showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate Besov indices
-- **$\sigma$-algebra coincidence**: For separable nuclear Fréchet spaces, the cylindrical and Borel $\sigma$-algebras on the dual coincide
+- **Besov regularity**: The support theorem (`support_of_hilbertSchmidt`) shows a.s. finite basis norm when $T$ is HS. The next step is showing $\mu$-a.s. $\omega \in B^s_{p,q}$ for appropriate Besov indices
+- **$\sigma$-algebra coincidence**: For separable nuclear Fréchet spaces, the cylindrical and Borel $\sigma$-algebras on the dual coincide (see [future/configuration_torus.lean](future/configuration_torus.lean))
 
 ## Building
 
