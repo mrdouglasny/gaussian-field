@@ -166,7 +166,7 @@ private noncomputable def toRapidDecay1DCLM : SchwartzMap ℝ ℝ →L[ℝ] Rapi
   toLinearMap := toRapidDecay1DLM
   cont := by
     -- Each rapidDecaySeminorm k on the output is bounded by Schwartz seminorms on the input
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (schwartz_withSeminorms ℝ ℝ ℝ) RapidDecaySeq.rapidDecay_withSeminorms
     intro k
     -- rapidDecaySeminorm k (toRapidDecay1DLM f) = ∑' n, |cₙ(f)| * (1+n)^k
@@ -555,7 +555,7 @@ private lemma fromRapidDecay1DLM_isBounded :
 private noncomputable def fromRapidDecay1DCLM : RapidDecaySeq →L[ℝ] SchwartzMap ℝ ℝ where
   toLinearMap := fromRapidDecay1DLM
   cont :=
-    Seminorm.continuous_from_bounded RapidDecaySeq.rapidDecay_withSeminorms
+    WithSeminorms.continuous_of_isBounded RapidDecaySeq.rapidDecay_withSeminorms
       (schwartz_withSeminorms ℝ ℝ ℝ) fromRapidDecay1DLM fromRapidDecay1DLM_isBounded
 
 /-- The 1D Hermite isomorphism: `SchwartzMap ℝ ℝ ≃L[ℝ] RapidDecaySeq`. -/
@@ -1989,7 +1989,7 @@ private noncomputable def hermiteCoeffNdCLM (d : ℕ) (α : MultiIndex d) :
       map_add' := (hermiteCoeffNd_linear d α).map_add
       map_smul' := (hermiteCoeffNd_linear d α).map_smul
     }
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (schwartz_withSeminorms ℝ _ ℝ) (norm_withSeminorms ℝ ℝ) lm
     intro _
     refine ⟨{(0, 0)}, ⟨M, integral_nonneg (fun _ => norm_nonneg _)⟩, fun f => ?_⟩
@@ -2156,7 +2156,7 @@ noncomputable def toRapidDecayNdCLM (d : ℕ) :
   | 0 => 0
   | d' + 1 => {
       toLinearMap := toRapidDecayNdLM d'
-      cont := Seminorm.continuous_from_bounded
+      cont := WithSeminorms.continuous_of_isBounded
         (schwartz_withSeminorms ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ)
         RapidDecaySeq.rapidDecay_withSeminorms
         _ (toRapidDecayNdLM_isBounded d')
@@ -2520,7 +2520,7 @@ noncomputable def fromRapidDecayNdCLM (d : ℕ) :
   | 0 => 0
   | d' + 1 => {
       toLinearMap := fromRapidDecayNdLM d'
-      cont := Seminorm.continuous_from_bounded
+      cont := WithSeminorms.continuous_of_isBounded
         RapidDecaySeq.rapidDecay_withSeminorms
         (schwartz_withSeminorms ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ)
         _ (fromRapidDecayNdLM_isBounded d')

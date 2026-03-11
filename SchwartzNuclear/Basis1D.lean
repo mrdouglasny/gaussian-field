@@ -58,7 +58,7 @@ def hermiteCoeff1DCLM (n : ℕ) : SchwartzMap ℝ ℝ →L[ℝ] ℝ where
       map_add' := (hermiteCoeff1D_linear n).map_add
       map_smul' := (hermiteCoeff1D_linear n).map_smul
     }
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (schwartz_withSeminorms ℝ ℝ ℝ) (norm_withSeminorms ℝ ℝ) lm
     intro _
     use Finset.Iic q, ⟨C, le_of_lt hC⟩

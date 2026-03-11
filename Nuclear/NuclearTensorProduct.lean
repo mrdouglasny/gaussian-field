@@ -193,7 +193,7 @@ the coordinate projection is bounded by the 0-th seminorm. -/
 def coeffCLM (m : ℕ) : RapidDecaySeq →L[ℝ] ℝ where
   toLinearMap := coeffLM m
   cont := by
-    apply Seminorm.continuous_from_bounded rapidDecay_withSeminorms (norm_withSeminorms ℝ ℝ)
+    apply WithSeminorms.continuous_of_isBounded rapidDecay_withSeminorms (norm_withSeminorms ℝ ℝ)
     intro _
     refine ⟨{0}, 1, ?_⟩
     intro a
@@ -360,7 +360,7 @@ that is continuously linearly equivalent to it. Given seminorms `p` with
 `WithSeminorms p` and a CLE `equiv : E ≃L[ℝ] RapidDecaySeq`, constructs the
 DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
 `coeff m := coeffCLM m ∘ equiv`. -/
-noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
+@[reducible] noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
@@ -421,7 +421,7 @@ noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
     exact le_trans h_le_tsum h_bound
 
 /-- `ofRapidDecayEquiv` always produces a biorthogonal DM space. -/
-def DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
+@[reducible] def DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
@@ -781,7 +781,7 @@ Continuity follows from the seminorm bound via `continuous_from_bounded`. -/
 def pureCLM_right (e₁ : E₁) : E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ where
   toLinearMap := pureLin e₁
   cont := by
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (DyninMityaginSpace.h_with (E := E₂))
       RapidDecaySeq.rapidDecay_withSeminorms
     intro k
@@ -797,7 +797,7 @@ theorem pure_continuous_left (e₂ : E₂) :
   have : (fun e₁ : E₁ => pure e₁ e₂) = (pureLin (E₁ := E₁) (E₂ := E₂)).flip e₂ := by
     ext e₁ m; simp [pureLin, pure_val]
   rw [this]
-  apply Seminorm.continuous_from_bounded
+  apply WithSeminorms.continuous_of_isBounded
     (DyninMityaginSpace.h_with (E := E₁))
     RapidDecaySeq.rapidDecay_withSeminorms
   intro k
@@ -1059,7 +1059,7 @@ def lift
   toLinearMap := liftLM B hC hB
   cont := by
     obtain ⟨K, hK, N, hbound⟩ := lift_norm_bound B hC hB
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (RapidDecaySeq.rapidDecay_withSeminorms :
         WithSeminorms (RapidDecaySeq.rapidDecaySeminorm :
           ℕ → Seminorm ℝ (NuclearTensorProduct E₁ E₂)))
@@ -1097,7 +1097,7 @@ theorem lift_pure
   -- Step 1: Continuity of B(ψ₁ n) : E₂ →ₗ G for each n
   have hBn_cont : ∀ n, Continuous (B (ψ₁ n)) := by
     intro n
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (DyninMityaginSpace.h_with (E := E₂)) (norm_withSeminorms ℝ G)
     intro _
     refine ⟨s₂, ⟨C * (s₁.sup DyninMityaginSpace.p) (ψ₁ n),
@@ -1107,7 +1107,7 @@ theorem lift_pure
     exact hB (ψ₁ n) x
   -- Step 2: Continuity of B.flip e₂ : E₁ →ₗ G
   have hBflip_cont : Continuous (B.flip e₂) := by
-    apply Seminorm.continuous_from_bounded
+    apply WithSeminorms.continuous_of_isBounded
       (DyninMityaginSpace.h_with (E := E₁)) (norm_withSeminorms ℝ G)
     intro _
     refine ⟨s₁, ⟨C * (s₂.sup DyninMityaginSpace.p) e₂,
