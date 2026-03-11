@@ -20,8 +20,7 @@ to the DyninMityaginSpace basis.
 
 - `expected_norm_sq_eq_hs` — E[Σₙ |ω(eₙ)|²] = Σₙ ‖T(eₙ)‖² (HS norm²)
 - `support_of_hilbertSchmidt` — if T is HS, then a.e. ω has Σₙ |ω(eₙ)|² < ∞
-- `not_supported_of_not_hilbertSchmidt` — converse: not HS ⟹ a.s. divergent
-- `gaussian_support_iff` — the iff characterization
+- `weighted_support` — weighted-HS ⟹ a.e. weighted-summable
 
 ## References
 
@@ -199,60 +198,6 @@ theorem support_of_hilbertSchmidt (T : E →L[ℝ] H) (hHS : IsHilbertSchmidt T)
   simp only [ENNReal.toReal_ofReal (sq_nonneg _)] at h_summ
   exact h_summ
 
-/-! ## Converse: not HS implies divergence a.s.
-
-The converse requires showing that for independent Gaussian random variables
-ω(eₙ) ~ N(0, ‖T(eₙ)‖²) with Σₙ ‖T(eₙ)‖² = ∞, the sum Σₙ |ω(eₙ)|² diverges
-a.s. This follows from Kolmogorov's three-series theorem or the 0-1 law for
-independent random variables, which are not yet available in Mathlib.
-
-We axiomatize this direction. -/
-
-/-- If T is not Hilbert-Schmidt, the squared basis norm diverges a.s.
-
-    Mathematically: if Σₙ ‖T(eₙ)‖² = ∞, then Σₙ |ω(eₙ)|² = ∞ a.s.,
-    because E[|ω(eₙ)|²] = ‖T(eₙ)‖² and the ω(eₙ) are independent
-    (by the characteristic functional factoring over orthogonal test
-    functions). By Kolmogorov's three-series theorem (or the 0-1 law),
-    the sum of independent nonneg random variables with divergent means
-    diverges a.s.
-
-    Reference: Shiryaev, "Probability" (1996), Theorem III.3.1. -/
-axiom not_supported_of_not_hilbertSchmidt
-    {E : Type*} [AddCommGroup E] [Module ℝ E]
-    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [DyninMityaginSpace E]
-    {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
-    [CompleteSpace H] [SeparableSpace H]
-    (T : E →L[ℝ] H)
-    (hNotHS : ¬ IsHilbertSchmidt T) :
-    ∀ᵐ ω ∂(measure T),
-      ¬ Summable (fun n => (ω (DyninMityaginSpace.basis n)) ^ 2)
-
-/-! ## Bundled support theorem -/
-
-/-- The Gaussian measure μ_T is supported on the set of configurations
-    with finite Cameron-Martin norm iff T is Hilbert-Schmidt.
-
-    Forward direction: HS ⟹ E[Σₙ|ω(eₙ)|²] < ∞ ⟹ a.s. finite.
-    Converse: ¬HS ⟹ a.s. divergent by Kolmogorov's three-series theorem. -/
-theorem gaussian_support_iff (T : E →L[ℝ] H) :
-    IsHilbertSchmidt T ↔
-    ∀ᵐ ω ∂(measure T),
-      Summable (fun n => (ω (DyninMityaginSpace.basis n)) ^ 2) := by
-  constructor
-  · exact support_of_hilbertSchmidt T
-  · intro h
-    by_contra hNotHS
-    have h_not := not_supported_of_not_hilbertSchmidt T hNotHS
-    -- h : a.e. summable, h_not : a.e. not summable — contradiction
-    have h_false : ∀ᵐ ω ∂(measure T), False := by
-      filter_upwards [h, h_not] with ω h1 h2
-      exact h2 h1
-    rw [Filter.eventually_false_iff_eq_bot] at h_false
-    haveI := measure_isProbability T
-    exact (ae_neBot.mpr (IsProbabilityMeasure.ne_zero (measure T))).ne h_false
-
 /-! ## Weighted Hilbert-Schmidt condition and support -/
 
 /-- Weighted Hilbert-Schmidt condition: Σₙ wₙ ‖T(eₙ)‖² < ∞.
@@ -325,103 +270,5 @@ omit [CompleteSpace H] [SeparableSpace H] in
 theorem isHilbertSchmidt_eq_weightedHS_one (T : E →L[ℝ] H) :
     IsHilbertSchmidt T ↔ IsWeightedHS T (fun _ => 1) := by
   simp [IsHilbertSchmidt, IsWeightedHS, one_mul]
-
-/-! ## Support Hilbert space (axiomatized)
-
-In the QFT application, E' = S'(ℝ²) is the full distributional dual and
-we need the Gaussian measure to live on a concrete Sobolev space H₋ˢ ⊂ E'.
-The support space H₋ is the weighted ℓ² space of basis coefficients:
-
-    H₋ = {ω ∈ E' : Σₙ wₙ |ω(eₙ)|² < ∞}
-
-with inner product ⟨ω₁, ω₂⟩_{H₋} = Σₙ wₙ ω₁(eₙ) ω₂(eₙ).
-
-This is a separable real Hilbert space that embeds continuously into E'.
-Constructing it formally requires:
-- Showing the weighted sum defines a genuine inner product
-- Constructing the completion (for ω ∈ E' the sum may converge even
-  if ω is not continuous on E — we need the distributional extension)
-- Building the embedding j : H₋ → Configuration E
-
-We axiomatize this construction and its key properties. -/
-
-/-- Axiomatized support Hilbert space for the Gaussian measure.
-
-    Given positive weights w : ℕ → ℝ₊, this provides a complete separable
-    real inner product space H₋ with an injective embedding into
-    Configuration E. The image consists exactly of those ω with finite
-    weighted basis norm, and the inner product recovers the weighted sum.
-
-    Mathematically, H₋ is isometric to the weighted ℓ² space
-    ℓ²_w = {a ∈ ℝ^ℕ : Σₙ wₙ aₙ² < ∞}, embedded into E' via the
-    DyninMityaginSpace basis expansion ω(f) = Σₙ aₙ · coeffₙ(f).
-
-    We use a plain function for the embedding rather than a CLM because
-    Configuration E = WeakDual ℝ E does not carry a NormedAddCommGroup
-    instance. Linearity and continuity are stated as separate fields. -/
-structure SupportHilbertSpace
-    (E : Type*) [AddCommGroup E] [Module ℝ E]
-    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [DyninMityaginSpace E]
-    (w : ℕ → ℝ) where
-  /-- The carrier type of the support Hilbert space. -/
-  Space : Type*
-  [instNACG : NormedAddCommGroup Space]
-  [instIPS : InnerProductSpace ℝ Space]
-  [instCS : CompleteSpace Space]
-  [instSS : SeparableSpace Space]
-  /-- Embedding into Configuration E. -/
-  embedding : Space → Configuration E
-  /-- The embedding is a linear map. -/
-  embedding_linear :
-    ∀ (c : ℝ) (x y : Space),
-      embedding (c • x + y) = c • embedding x + embedding y
-  /-- The embedding is continuous (w.r.t. norm topology on H₋ and
-      weak-* topology on Configuration E). -/
-  embedding_continuous : Continuous embedding
-  /-- The embedding is injective. -/
-  embedding_injective : Function.Injective embedding
-  /-- An element ω ∈ E' is in the image of the embedding iff it has
-      finite weighted basis norm. -/
-  mem_range_iff (ω : Configuration E) :
-    ω ∈ Set.range embedding ↔
-    Summable (fun n => w n * (ω (DyninMityaginSpace.basis n)) ^ 2)
-  /-- The inner product on H₋ equals the weighted basis inner product. -/
-  inner_eq (x y : Space) :
-    @inner ℝ Space instIPS.toInner x y =
-    ∑' n, w n * (embedding x (DyninMityaginSpace.basis n)) *
-                (embedding y (DyninMityaginSpace.basis n))
-
-/-- The support Hilbert space exists for any positive weight sequence.
-
-    Proof sketch: the weighted ℓ² space ℓ²_w is a standard Hilbert space
-    (isometric to ℓ² via rescaling aₙ ↦ √wₙ · aₙ). The embedding into
-    Configuration E maps a sequence (aₙ) to the functional
-    ω(f) = Σₙ aₙ · coeffₙ(f), which converges by the DyninMityaginSpace
-    coefficient decay. Injectivity follows from the expansion axiom.
-
-    Reference: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, §III.4. -/
-axiom supportHilbertSpace_exists
-    {E : Type*} [AddCommGroup E] [Module ℝ E]
-    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [DyninMityaginSpace E]
-    (w : ℕ → ℝ) (hw : ∀ n, 0 < w n) :
-    SupportHilbertSpace E w
-
-/-- When T is weighted-HS, the Gaussian measure is supported on the
-    support Hilbert space: a.e. ω is in the range of the embedding.
-
-    This combines `weighted_support` (the predicate version) with
-    `SupportHilbertSpace.mem_range_iff` (identifying the predicate
-    with membership in H₋). -/
-theorem measure_supported_on_hilbertSpace
-    (T : E →L[ℝ] H) (w : ℕ → ℝ) (hw : ∀ n, 0 < w n)
-    (hWHS : IsWeightedHS T w) :
-    let S := supportHilbertSpace_exists w hw
-    ∀ᵐ ω ∂(measure T), ω ∈ Set.range S.embedding := by
-  intro S
-  have h_pred := weighted_support T w (fun n => le_of_lt (hw n)) hWHS
-  filter_upwards [h_pred] with ω hω
-  rwa [S.mem_range_iff]
 
 end GaussianField

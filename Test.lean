@@ -10,6 +10,7 @@ import GaussianField.Construction
 import GaussianField.Properties
 import GaussianField.IsGaussian
 import HeatKernel
+import HeatKernel.PositionKernel
 
 noncomputable section
 

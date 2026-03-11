@@ -190,43 +190,4 @@ theorem cross_moment_eq_covariance (f g : E) :
   rw [second_moment_eq_covariance T (f + g),
       second_moment_eq_covariance T (f - g)]
 
-/-! ## Measure uniqueness
-
-A centered Gaussian measure on a nuclear space is uniquely determined by its
-covariance. This follows from the Minlos theorem (injectivity of the
-characteristic functional on probability measures over nuclear spaces).
-
-See `docs/gaussian-uniqueness-plan.md` for the proof strategy. -/
-
-/-- **Gaussian measure uniqueness**: two probability measures on `Configuration E`
-with the same characteristic functional are equal.
-
-This follows from the Minlos-Bochner theorem: on nuclear spaces, the
-characteristic functional (Fourier transform) uniquely determines the measure.
-Since the Gaussian characteristic functional `exp(-½‖Tf‖²)` depends only on T,
-any measure with this characteristic functional must equal `measure T`.
-
-**Proof plan**: Import the Minlos theorem (injectivity of Fourier transform
-on measures over nuclear spaces), then apply it to the characteristic functional
-identity. See `docs/gaussian-uniqueness-plan.md`.
-
-**References**:
-- Bogachev, *Gaussian Measures*, Ch. 2 (characterization by Fourier transform)
-- Gel'fand-Vilenkin, *Generalized Functions* Vol. 4, Ch. IV (Minlos theorem)
-- Kallenberg, *Foundations of Modern Probability*, Theorem 4.18 -/
-axiom measure_unique_of_charFun
-    {E : Type*} [AddCommGroup E] [Module ℝ E]
-    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [DyninMityaginSpace E]
-    {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
-    [CompleteSpace H] [SeparableSpace H]
-    (T : E →L[ℝ] H)
-    (μ : @Measure (Configuration E) instMeasurableSpaceConfiguration)
-    [hprob : @IsProbabilityMeasure _ instMeasurableSpaceConfiguration μ]
-    (hcharFun : ∀ f : E,
-      ∫ ω : Configuration E,
-        Complex.exp (Complex.I * ↑(ω f)) ∂μ =
-      Complex.exp (-(1/2 : ℂ) * ↑(@inner ℝ H _ (T f) (T f)))) :
-    μ = measure T
-
 end GaussianField

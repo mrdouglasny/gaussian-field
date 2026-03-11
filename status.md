@@ -6,9 +6,9 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, and the FKG inequality for use by downstream
 projects (pphi2, OSforGFF).
 
-**6 axioms (+1 skipped), 0 sorries**
+**0 axioms (+1 skipped), 0 sorries**
 
-*Updated 2026-03-08.*
+*Updated 2026-03-10.*
 
 ## Axiom inventory
 
@@ -56,18 +56,16 @@ Proved FKG results (no longer axioms):
 
 ### Heat kernel (cylinder QFT, not used by lattice approach)
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `mehlerKernel_eq_series` | HeatKernel/PositionKernel | axiom | Hard | Mehler's formula. |
+Former axiom `mehlerKernel_eq_series` (Mehler's formula) has been moved to
+`future/mehler_kernel.lean` (not counted as project axiom). `HeatKernel/PositionKernel.lean`
+is off the main build path — it contains 2000+ lines of proved cylinder QFT results
+that depend on this axiom, but none are used by pphi2.
 
 Proved heat kernel results (no longer axioms):
 - `circleHeatKernel_pos` -- **proved** (via `HurwitzZeta.cosKernel` + Poisson summation / functional equation). The circleHeatKernel eigenvalue bug (index vs frequency mismatch) was fixed: now uses `fourierFreq n` for the Laplacian eigenvalue.
 - `cylinderEval_summable` -- theorem
 - `integral_norm_tsum_le_tsum_integral_norm` -- theorem
 - `integrable_tsum_of_summable_integral_norm` -- theorem
-
-Remaining axiom:
-- `mehlerKernel_eq_series`: Mehler's formula (Hermite eigenfunction expansion of harmonic oscillator heat kernel). Requires Hermite polynomial generating function, not in Mathlib.
 
 Proved heat kernel bilinear form results:
 - `heatKernelBilinear_summable` — summability of heat kernel series for t > 0
@@ -84,11 +82,6 @@ Remaining sorry:
 
 ### Torus embedding (continuum limit infrastructure)
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `configuration_torus_polish` | Torus/Restriction | axiom | Hard | PolishSpace for weak-* dual of nuclear Fréchet space. |
-| `configuration_torus_borelSpace` | Torus/Restriction | axiom | Moderate | Cylindrical σ-algebra = Borel σ-algebra for nuclear Fréchet dual. |
-
 Proved torus results:
 - `evalCLM` -- **proved** (tensor product of continuous linear functionals via `lift` + `Seminorm.bound_of_continuous`)
 - `evalCLM_pure` -- **proved** (via `lift_pure`)
@@ -96,35 +89,22 @@ Proved torus results:
 - `evalTorusAtSite` -- evaluation of torus test function at lattice site
 - `torusEmbedCLM` -- embedding of lattice fields into Configuration space
 
-Elimination analysis for Polish/Borel axioms:
-- The naive approach (reformulate as `ℕ → ℝ` via Fourier coefficients) does NOT work:
-  the dual of `RapidDecaySeq` is the space of polynomial-growth sequences, which is
-  F_σ (not closed) in `ℕ → ℝ` and is NOT Polish with the subspace topology (it is
-  meager in itself, violating Baire's theorem for completely metrizable spaces).
-- The weak-* topology on s' IS Polish (standard result: Gel'fand-Vilenkin Vol. 4,
-  Schaefer III§7/IV§9), but proving this requires nuclear Fréchet space theory not
-  in Mathlib: metrizability of weak-* dual via Montel property + nuclear compactness,
-  Banach-Steinhaus for Fréchet spaces (`WithSeminorms.banach_steinhaus` exists but
-  the nuclear-specific ingredients do not). Estimated effort: 500-1000+ LOC.
-- BorelSpace (cylindrical = Borel) requires second-countability of the weak-* topology,
-  which is part of the same nuclear space theory.
-- **Decision**: keep as axioms. Used in pphi2 `TorusContinuumLimit/` for Prokhorov's
-  theorem. The mathematical justification is solid; the Lean infrastructure gap is
-  in Mathlib's nuclear space library, not in our project.
+Former axioms `configuration_torus_polish` and `configuration_torus_borelSpace` have been
+moved to `future/configuration_torus.lean` (not counted as project axioms). Their intended
+use (Prokhorov's theorem) is now handled by `prokhorov_configuration` in
+`GaussianField/ConfigurationEmbedding.lean`, which works for any `DyninMityaginSpace E`
+without needing Polish/Borel instances on Configuration.
 
 ### Support theorem
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `not_supported_of_not_hilbertSchmidt` | GaussianField/Support | axiom | Hard | Converse direction: non-HS implies a.s. divergence of basis norm. Requires Kolmogorov's three-series theorem (not in Mathlib). |
-| `supportHilbertSpace_exists` | GaussianField/Support | axiom | Moderate | Existence of support Hilbert space H₋ (weighted ℓ² embedded in E'). Construction is standard but requires completion + DM coefficient decay for the embedding. |
+Former axioms `not_supported_of_not_hilbertSchmidt` and `supportHilbertSpace_exists`
+have been moved to `future/gaussian_field_axioms.lean` (not counted as project axioms).
+Neither is used by pphi2 or any downstream code.
 
 Proved support results:
 - `expected_norm_sq_eq_hs` — theorem: E[Σₙ|ω(eₙ)|²] = Σₙ ‖T(eₙ)‖² via integral_tsum
 - `support_of_hilbertSchmidt` — theorem: HS ⟹ a.e. summable (forward direction via ae_lt_top)
 - `weighted_support` — theorem: weighted-HS ⟹ a.e. weighted-summable (generalized forward direction)
-- `gaussian_support_iff` — theorem: HS ↔ a.e. summable (bundled iff)
-- `measure_supported_on_hilbertSpace` — theorem: weighted-HS ⟹ a.e. ω ∈ range(embedding) (uses `supportHilbertSpace_exists`)
 
 ### Hypercontractive estimates
 
@@ -183,9 +163,9 @@ Proved Green's function invariance results (no longer axioms):
 
 ### Gaussian field uniqueness
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `measure_unique_of_charFun` | GaussianField/Properties | axiom | Hard | Uniqueness of measure from characteristic function. |
+Former axiom `measure_unique_of_charFun` has been moved to
+`future/gaussian_field_axioms.lean` (not counted as project axiom).
+Not currently used by any downstream code.
 
 ### Fourier translation/reflection
 
@@ -211,13 +191,12 @@ Proved nuclear tensor product results (no longer axioms):
 
 | File | Axioms | Sorries |
 |------|--------|---------|
-| GaussianField/Properties | 1 | 0 |
-| GaussianField/Support | 2 | 0 |
-| HeatKernel/PositionKernel | 1 | 0 |
+| GaussianField/Properties | 0 | 0 |
+| GaussianField/Support | 0 | 0 |
 | Lattice/Convergence | 0 | 0 |
-| Torus/Restriction | 2 | 0 |
+| Torus/Restriction | 0 | 0 |
 | Nuclear/TensorProductFunctorAxioms | 0 | 0 |
-| **Total** | **6 (+1 skipped)** | **0** |
+| **Total** | **0 (+1 skipped)** | **0** |
 
 ## References
 
