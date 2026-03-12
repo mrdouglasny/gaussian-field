@@ -626,7 +626,7 @@ private theorem heatKernelTerm_tensorProduct
   have h_eq : heatKernelTerm (E := NuclearTensorProduct E₁ E₂) t
       (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) m =
       Real.exp (-t * (μ₁ + μ₂)) * (c₁f * c₂f) * (c₁g * c₂g) := by
-    simp only [heatKernelTerm, tensorProductHasLaplacianEigenvalues]
+    simp only [heatKernelTerm]
     rfl
   rw [h_eq]
   simp only [heatKernelTerm]

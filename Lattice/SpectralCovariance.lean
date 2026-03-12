@@ -607,7 +607,7 @@ theorem massEigenbasis_coeff_reprSymm (a mass : ℝ)
           ((massEigenvectorBasis d N a mass).repr.symm v) x) := by
     change ((massEigenvectorBasis d N a mass).repr.symm v).ofLp ⬝ᵥ
       star (massEigenvectorBasis d N a mass k).ofLp = _
-    simp [dotProduct, star_trivial, WithLp.ofLp_toLp, mul_comm]
+    simp [dotProduct, star_trivial, mul_comm]
   rw [hright] at hrepr
   exact (hleft.symm.trans hrepr).symm
 
