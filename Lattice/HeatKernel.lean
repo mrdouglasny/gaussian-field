@@ -39,6 +39,16 @@ import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 
 noncomputable section
 
+-- Bridge instance: NormedSpace.exp derives NonUnitalNonAssocRing from Ring via
+-- Ring.toNonAssocRing.toNonUnitalNonAssocRing, but Matrix.topologicalRing uses
+-- Matrix.nonUnitalNonAssocRing (from NormedCommRing). They are rfl-equal, but
+-- Lean's TC synthesis can't unify them. This instance explicitly provides
+-- IsTopologicalRing with the NonUnitalNonAssocRing that NormedSpace.exp expects.
+instance matrix_isTopologicalRing_of_ring {n : Type*} [Fintype n] [DecidableEq n] :
+    @IsTopologicalRing (Matrix n n ℝ) instTopologicalSpaceMatrix
+    (@NonAssocRing.toNonUnitalNonAssocRing _ (@Ring.toNonAssocRing _ Matrix.instRing)) :=
+  Matrix.topologicalRing
+
 namespace GaussianField
 
 open Matrix
@@ -234,15 +244,20 @@ theorem Matrix.IsHermitian.bilinear_exp_eq_spectral
   have hparseval := OrthonormalBasis.sum_inner_mul_inner
     (hM.eigenvectorBasis) uf uh
   have hinner_fh : @inner ℝ _ _ uf uh = ∑ x : n, f x * h x := by
-    simp [uf, uh, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, mul_comm]
+    change uh.ofLp ⬝ᵥ star uf.ofLp = _
+    simp [uf, uh, dotProduct, star_trivial, mul_comm]
   have hcoeff_f : ∀ k,
       @inner ℝ _ _ uf (hM.eigenvectorBasis k) =
       ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * f x := by
-    intro k; simp [uf, EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
+    intro k
+    change (hM.eigenvectorBasis k).ofLp ⬝ᵥ star uf.ofLp = _
+    simp [uf, dotProduct, star_trivial, mul_comm]
   have hcoeff_h : ∀ k,
       @inner ℝ _ _ (hM.eigenvectorBasis k) uh =
       ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * h x := by
-    intro k; simp [uh, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, mul_comm]
+    intro k
+    change uh.ofLp ⬝ᵥ star (hM.eigenvectorBasis k).ofLp = _
+    simp [uh, dotProduct, star_trivial, mul_comm]
   have heigen : ∀ k,
       ∑ x, (hM.eigenvectorBasis k : EuclideanSpace ℝ n) x * h x =
       Real.exp (-t * hM.eigenvalues k) *

@@ -185,7 +185,6 @@ theorem evalMap_evalMapInv (φ : FinLatticeField d N) :
 theorem evalMapInv_evalMap (ω : Configuration (FinLatticeField d N)) :
     evalMapInv d N (evalMap d N ω) = ω := by
   apply ContinuousLinearMap.ext; intro f
-  rw [evalMapInv_apply]
   exact (config_apply_eq_sum_evalMap d N ω f).symm
 
 theorem evalMapInv_measurable :
@@ -715,6 +714,7 @@ theorem normalizedGaussianDensityMeasure_linearFourier
               Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
                 ∂(gaussianDensityMeasure d N a mass) := by
             simp [normalizedGaussianDensityMeasure, integral_smul_measure]
+            norm_cast
     _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
           ∫ φ : FinLatticeField d N,
             (gaussianDensityWeight d N a mass φ).toReal •

@@ -28,3 +28,7 @@ lean_lib «Lattice» where
 lean_lib «GaussianFieldAPI» where
 
 lean_lib «Torus» where
+
+/-- Build all libraries. Use `lake build All` after mathlib upgrades to catch breakage
+in non-default targets. -/
+lean_lib «All» where
