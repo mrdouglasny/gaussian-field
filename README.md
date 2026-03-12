@@ -260,6 +260,39 @@ AddCircle-based lattice frameworks (Tanimoto).
 `GaussianFieldAPI.lean` collects the public API (Configuration, measure, charFun,
 moments, spectralCLM) for downstream consumers.
 
+### 2f. Cylinder (Osterwalder-Schrader Axioms)
+
+Test function space and symmetry infrastructure for the cylinder $S^1_L \times \mathbb{R}$,
+the natural geometry for the Osterwalder-Schrader axioms. The spatial direction is
+compact (circle of circumference $L$) while the temporal direction is the full real line,
+giving a clean positive-time half-space $\{t > 0\}$ with no wraparound issues.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [Cylinder/Basic.lean](Cylinder/Basic.lean) | 75 | `CylinderTestFunction L` $= C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, `Configuration` axioms |
+| [Cylinder/Symmetry.lean](Cylinder/Symmetry.lean) | 320 | Reflection, translation (Schwartz-level and cylinder-level), configuration-level actions, 1D positive-time Schwartz submodule, eval CLM, closedness |
+| [Cylinder/PositiveTime.lean](Cylinder/PositiveTime.lean) | 231 | `cylinderPositiveTimeSubmodule`, `cylinderNegativeTimeSubmodule`, Θ maps P+ into N−, disjointness of Θf from P+, spatial translation preserves P+ |
+| [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 178 | `cylinderMassOperator`, `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance |
+
+**Key definitions:**
+
+- `CylinderTestFunction L` — nuclear tensor product $C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, inherits `DyninMityaginSpace`
+- `cylinderTimeReflection L` — $\mathrm{id} \otimes \Theta$ where $\Theta f(t) = f(-t)$
+- `cylinderPositiveTimeSubmodule L` — closure of span of $g \otimes h$ with $\mathrm{supp}(h) \subset (0,\infty)$
+- `cylinderGreen L mass hmass` — Green's function $G_L(f,g) = \langle Tf, Tg \rangle_{\ell^2}$ from mass operator
+
+**Proved results:**
+
+| Theorem | Statement |
+|---------|-----------|
+| `cylinderTimeReflection_pos_to_neg` | $\Theta$ maps P+ into N− |
+| `cylinderPositiveTime_disjoint_reflected` | $\Theta f \notin P^+$ for nonzero $f \in P^+$ |
+| `cylinderPositiveTime_spatialTranslation_closed` | Spatial translation preserves P+ |
+| `cylinderGreen_bilinear` | $G_L(rf + g, h) = r \cdot G_L(f,h) + G_L(g,h)$ |
+| `cylinderGreen_symm` | $G_L(f,g) = G_L(g,f)$ |
+| `cylinderGreen_nonneg` | $G_L(f,f) \geq 0$ |
+| `cylinderGreen_continuous_diag` | $f \mapsto G_L(f,f)$ is continuous |
+
 ### 3. Gaussian Field Construction
 
 Given `[DyninMityaginSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
@@ -297,6 +330,11 @@ SchwartzNuclear/   SmoothCircle/             GaussianField/
                      Axioms, PositionKernel                          ↓     ↓
                               ↓                                IsGaussian  Wick
                        GaussianFieldAPI.lean (re-exports for downstream)
+
+Cylinder/ (OS axiom infrastructure)
+  Basic ← Symmetry ← PositiveTime
+                   ← GreenFunction
+  (imports SmoothCircle/Nuclear, SchwartzNuclear, Nuclear/TensorProductFunctorAxioms)
 ```
 
 ## Downstream projects
