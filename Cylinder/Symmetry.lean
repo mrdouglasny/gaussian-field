@@ -160,6 +160,55 @@ theorem schwartzTranslation_preserves_positiveTime
   intro x hx
   simp [hf (x - τ) (by linarith)]
 
+/-! ## Schwartz evaluation CLM -/
+
+/-- Point evaluation at t is a CLM on Schwartz space.
+Bounded by the (0,0)-seminorm: |f(t)| ≤ seminorm 0 0 f. -/
+noncomputable def schwartzEvalCLM (t : ℝ) : SchwartzMap ℝ ℝ →L[ℝ] ℝ :=
+  SchwartzMap.mkCLMtoNormedSpace (fun f => f t)
+    (fun f g => by simp [SchwartzMap.add_apply])
+    (fun a f => by simp [SchwartzMap.smul_apply])
+    ⟨{(0, 0)}, 1, zero_le_one, fun f => by
+      simp only [one_mul, Finset.sup_singleton, SchwartzMap.schwartzSeminormFamily_apply]
+      exact SchwartzMap.norm_le_seminorm ℝ f t⟩
+
+@[simp]
+theorem schwartzEvalCLM_apply (t : ℝ) (f : SchwartzMap ℝ ℝ) :
+    schwartzEvalCLM t f = f t := by
+  simp [schwartzEvalCLM, SchwartzMap.mkCLMtoNormedSpace]
+
+/-- Submodule of Schwartz functions vanishing on [0, ∞).
+Mirror of `schwartzPositiveTimeSubmodule`: these have support in (-∞, 0). -/
+def schwartzNegativeTimeSubmodule : Submodule ℝ (SchwartzMap ℝ ℝ) where
+  carrier := {f | ∀ x, 0 ≤ x → f x = 0}
+  zero_mem' := fun _ _ => by simp
+  add_mem' := fun {f g} hf hg x hx => by simp [hf x hx, hg x hx]
+  smul_mem' := fun r f hf x hx => by simp [hf x hx]
+
+/-- The positive-time Schwartz submodule is topologically closed.
+Follows from pointwise evaluation being continuous: if f_n → f in the
+Schwartz topology and each f_n(x) = 0 for x ≤ 0, then f(x) = 0. -/
+theorem schwartzPositiveTimeSubmodule_isClosed :
+    IsClosed (schwartzPositiveTimeSubmodule : Set (SchwartzMap ℝ ℝ)) := by
+  have : (schwartzPositiveTimeSubmodule : Set (SchwartzMap ℝ ℝ)) =
+      ⋂ (x : ℝ) (_ : x ≤ 0), {f | f x = 0} := by
+    ext f; simp [schwartzPositiveTimeSubmodule, Set.mem_iInter]
+  rw [this]
+  apply isClosed_iInter; intro x
+  apply isClosed_iInter; intro _
+  exact isClosed_eq (schwartzEvalCLM x).continuous continuous_const
+
+/-- The negative-time Schwartz submodule is topologically closed. -/
+theorem schwartzNegativeTimeSubmodule_isClosed :
+    IsClosed (schwartzNegativeTimeSubmodule : Set (SchwartzMap ℝ ℝ)) := by
+  have : (schwartzNegativeTimeSubmodule : Set (SchwartzMap ℝ ℝ)) =
+      ⋂ (x : ℝ) (_ : 0 ≤ x), {f | f x = 0} := by
+    ext f; simp [schwartzNegativeTimeSubmodule, Set.mem_iInter]
+  rw [this]
+  apply isClosed_iInter; intro x
+  apply isClosed_iInter; intro _
+  exact isClosed_eq (schwartzEvalCLM x).continuous continuous_const
+
 /-! ## Cylinder-level symmetry actions -/
 
 /-- Time reflection on the cylinder: `(id ⊗ Θ)(f₁ ⊗ f₂)(x,t) = f₁(x) ⊗ f₂(-t)`.

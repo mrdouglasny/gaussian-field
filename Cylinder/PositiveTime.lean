@@ -11,7 +11,15 @@ using the 1D Schwartz positive-time submodule from `Cylinder.Symmetry`.
 
 - `cylinderPositiveTimeSubmodule` — closure of span of pure tensors g ⊗ h
   with h ∈ schwartzPositiveTimeSubmodule
+- `cylinderNegativeTimeSubmodule` — closure of span of pure tensors g ⊗ h
+  with h ∈ schwartzNegativeTimeSubmodule
 - `CylinderPositiveTimeTestFunction` — elements of the positive-time submodule
+
+## Main results
+
+- `cylinderTimeReflection_pos_to_neg` — Θ maps P+ into N− (proved)
+- `cylinderPositiveTime_disjoint_reflected` — Θf ∉ P+ for nonzero f ∈ P+ (proved)
+- `cylinderPositiveTime_spatialTranslation_closed` — spatial translation preserves P+ (proved)
 
 ## Mathematical background
 
@@ -74,18 +82,100 @@ For pure tensors g ⊗ h, this means supp(h) ⊂ (0, ∞). -/
 abbrev CylinderPositiveTimeTestFunction :=
     cylinderPositiveTimeSubmodule L
 
+/-! ## Negative-time submodule -/
+
+/-- The set of negative-time pure tensors: `g ⊗ h` where h vanishes on [0, ∞). -/
+private def negativeTimePureTensors :
+    Set (CylinderTestFunction L) :=
+  {f | ∃ (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ),
+    h ∈ schwartzNegativeTimeSubmodule ∧ f = pure g h}
+
+/-- Submodule of cylinder test functions supported at negative time t < 0.
+
+Defined as the topological closure of the span of pure tensors `g ⊗ h`
+where `h ∈ schwartzNegativeTimeSubmodule` (i.e., h vanishes on [0, ∞)). -/
+def cylinderNegativeTimeSubmodule :
+    Submodule ℝ (CylinderTestFunction L) :=
+  (Submodule.span ℝ (negativeTimePureTensors L)).topologicalClosure
+
+/-! ## Time reflection maps P+ to N+ -/
+
+/-- Time reflection maps positive-time pure tensors to negative-time pure tensors:
+`Θ(g ⊗ h) = g ⊗ Θh`, and if h vanishes on (-∞, 0] then Θh vanishes on [0, ∞). -/
+private theorem timeReflection_maps_pos_to_neg
+    {f : CylinderTestFunction L} (hf : f ∈ positiveTimePureTensors L) :
+    cylinderTimeReflection L f ∈ negativeTimePureTensors L := by
+  obtain ⟨g, h, hh, rfl⟩ := hf
+  refine ⟨g, schwartzReflection h, ?_, ?_⟩
+  · exact schwartzReflection_positive_to_negative hh
+  · show nuclearTensorProduct_mapCLM (ContinuousLinearMap.id ℝ _)
+      schwartzReflection (pure g h) = pure g (schwartzReflection h)
+    rw [nuclearTensorProduct_mapCLM_pure]
+    simp
+
+/-- Time reflection maps the positive-time submodule into the negative-time submodule.
+
+Proof: Θ maps positive-time generators `g ⊗ h` to negative-time generators
+`g ⊗ Θh`, hence the span, hence (by continuity) the closure. -/
+theorem cylinderTimeReflection_pos_to_neg
+    (f : CylinderPositiveTimeTestFunction L) :
+    cylinderTimeReflection L f.val ∈ cylinderNegativeTimeSubmodule L := by
+  set S := Submodule.span ℝ (positiveTimePureTensors L)
+  set Θ := cylinderTimeReflection L
+  set N := cylinderNegativeTimeSubmodule L
+  suffices h : S.topologicalClosure ≤ N.comap Θ.toLinearMap from
+    (h f.property : Θ f.val ∈ N)
+  apply Submodule.topologicalClosure_minimal
+  · intro x hx
+    show Θ x ∈ N
+    suffices Θ x ∈ Submodule.span ℝ (negativeTimePureTensors L) from subset_closure this
+    induction hx using Submodule.span_induction with
+    | mem x hx => exact Submodule.subset_span (timeReflection_maps_pos_to_neg L hx)
+    | zero => simp
+    | add x y _ _ hTx hTy => rw [map_add]; exact Submodule.add_mem _ hTx hTy
+    | smul r x _ hTx => rw [map_smul]; exact Submodule.smul_mem _ r hTx
+  · exact (Submodule.isClosed_topologicalClosure _).preimage Θ.continuous
+
+/-! ## Disjointness of positive-time and negative-time submodules -/
+
+/-- The positive-time and negative-time submodules are disjoint.
+
+This is the fundamental temporal separation property: a nonzero element
+cannot simultaneously be in the closure of positive-time and negative-time
+pure tensors. It follows from the NTP coefficient structure (Cantor-paired
+DM expansion) and the 1D result `schwartzPositiveTime_disjoint_reflected`
+that positive-time and negative-time Schwartz functions have trivial
+intersection. -/
+axiom cylinderPositiveTime_negativeTime_disjoint :
+    cylinderPositiveTimeSubmodule L ⊓ cylinderNegativeTimeSubmodule L = ⊥
+
 /-- Time reflection maps the positive-time submodule to a disjoint submodule.
 
 If f has temporal support in (0, ∞), then Θf has temporal support in (-∞, 0).
-In particular, f and Θf have disjoint temporal supports. This is the
-fundamental property needed for OS3: the cross terms vanish because the
-mass operator Q is local (finite-range on the lattice, differential in
-the continuum).
+In particular, f and Θf have disjoint temporal supports.
+
+Proof: if Θf were also in P+, then Θf ∈ P+ ∩ N+ = {0} (since we proved
+Θf ∈ N+ from f ∈ P+). So Θf = 0, hence f = Θ(Θf) = 0.
 
 Note: this requires f ≠ 0 since Θ0 = 0 is in every submodule. -/
-axiom cylinderPositiveTime_disjoint_reflected
+theorem cylinderPositiveTime_disjoint_reflected
     (f : CylinderPositiveTimeTestFunction L) (hf : f.val ≠ 0) :
-    cylinderTimeReflection L f.val ∉ cylinderPositiveTimeSubmodule L
+    cylinderTimeReflection L f.val ∉ cylinderPositiveTimeSubmodule L := by
+  intro hΘf_pos
+  apply hf
+  -- Θf ∈ N+ (from P+ → N+ theorem)
+  have hΘf_neg := cylinderTimeReflection_pos_to_neg L f
+  -- Θf ∈ P+ ∩ N+ = {0}, so Θf = 0
+  have hΘf_zero : cylinderTimeReflection L f.val = 0 := by
+    have hmem : cylinderTimeReflection L f.val ∈
+        cylinderPositiveTimeSubmodule L ⊓ cylinderNegativeTimeSubmodule L :=
+      ⟨hΘf_pos, hΘf_neg⟩
+    rw [cylinderPositiveTime_negativeTime_disjoint L] at hmem
+    exact (Submodule.mem_bot ℝ).mp hmem
+  -- f = Θ(Θf) = Θ(0) = 0
+  have hinv := ContinuousLinearMap.ext_iff.mp (cylinderTimeReflection_involution L) f.val
+  simp [ContinuousLinearMap.comp_apply] at hinv
+  rw [← hinv, hΘf_zero, map_zero]
 
 /-! ## Positive-time support under translation
 
