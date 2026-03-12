@@ -201,19 +201,19 @@ theorem massEigenbasis_sum_mul_sum_eq_site_inner (a mass : ℝ)
         ∑ x : FinLatticeSites d N,
           (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x := by
     intro k
-    simp only [uf, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, star_trivial,
-      WithLp.ofLp_toLp]
+    change (massEigenvectorBasis d N a mass k).ofLp ⬝ᵥ star uf.ofLp = _
+    simp [dotProduct, star_trivial, uf, WithLp.ofLp_toLp]
   have hcoeff_right : ∀ k : FinLatticeSites d N,
       inner ℝ (massEigenvectorBasis d N a mass k) ug =
         ∑ x : FinLatticeSites d N,
           (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x := by
     intro k
-    simp only [ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, star_trivial,
-      WithLp.ofLp_toLp, mul_comm]
+    change ug.ofLp ⬝ᵥ star (massEigenvectorBasis d N a mass k).ofLp = _
+    simp [dotProduct, star_trivial, ug, WithLp.ofLp_toLp, mul_comm]
   have hinner :
       inner ℝ uf ug = ∑ x : FinLatticeSites d N, f x * g x := by
-    simp only [uf, ug, EuclideanSpace.inner_eq_star_dotProduct, dotProduct, star_trivial,
-      WithLp.ofLp_toLp, mul_comm]
+    change ug.ofLp ⬝ᵥ star uf.ofLp = _
+    simp [dotProduct, star_trivial, uf, ug, WithLp.ofLp_toLp, mul_comm]
   calc
     (∑ k : FinLatticeSites d N,
         (∑ x : FinLatticeSites d N,
@@ -605,10 +605,9 @@ theorem massEigenbasis_coeff_reprSymm (a mass : ℝ)
       (∑ x : FinLatticeSites d N,
         (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
           ((massEigenvectorBasis d N a mass).repr.symm v) x) := by
-    simp [EuclideanSpace.inner_eq_star_dotProduct, dotProduct]
-    refine Finset.sum_congr rfl ?_
-    intro x hx
-    ring
+    change ((massEigenvectorBasis d N a mass).repr.symm v).ofLp ⬝ᵥ
+      star (massEigenvectorBasis d N a mass k).ofLp = _
+    simp [dotProduct, star_trivial, WithLp.ofLp_toLp, mul_comm]
   rw [hright] at hrepr
   exact (hleft.symm.trans hrepr).symm
 
