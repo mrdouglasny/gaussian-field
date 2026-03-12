@@ -4,11 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Positive-Time Test Functions on the Cylinder
 
-Defines the submodule of cylinder test functions supported at positive time.
+Defines the submodule of cylinder test functions supported at positive time,
+using the 1D Schwartz positive-time submodule from `Cylinder.Symmetry`.
 
 ## Main definitions
 
-- `cylinderPositiveTimeSubmodule` — test functions with temporal support in (0, ∞)
+- `cylinderPositiveTimeSubmodule` — closure of span of pure tensors g ⊗ h
+  with h ∈ schwartzPositiveTimeSubmodule
 - `CylinderPositiveTimeTestFunction` — elements of the positive-time submodule
 
 ## Mathematical background
@@ -38,14 +40,22 @@ noncomputable section
 
 namespace GaussianField
 
+open NuclearTensorProduct
+
 variable (L : ℝ) [hL : Fact (0 < L)]
 
 /-! ## Positive-time submodule -/
 
+/-- The set of positive-time pure tensors: `g ⊗ h` where h vanishes on (-∞, 0]. -/
+private def positiveTimePureTensors :
+    Set (CylinderTestFunction L) :=
+  {f | ∃ (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ),
+    h ∈ schwartzPositiveTimeSubmodule ∧ f = pure g h}
+
 /-- Submodule of cylinder test functions supported at positive time t > 0.
 
-Since `CylinderTestFunction L` is a nuclear tensor product `C∞(S¹_L) ⊗̂ 𝓢(ℝ)`
-without direct pointwise evaluation, we axiomatize the submodule structure.
+Defined as the topological closure of the span of pure tensors `g ⊗ h`
+where `h ∈ schwartzPositiveTimeSubmodule` (i.e., h vanishes on (-∞, 0]).
 
 Mathematically, this is the closure (in the nuclear Fréchet topology) of
 finite sums `∑ gᵢ ⊗ hᵢ` where each `hᵢ ∈ 𝓢(ℝ)` has support in (0, ∞).
@@ -53,8 +63,9 @@ finite sums `∑ gᵢ ⊗ hᵢ` where each `hᵢ ∈ 𝓢(ℝ)` has support in (
 Key property: if f is positive-time supported, then `cylinderTimeReflection L f`
 is negative-time supported (support in (-∞, 0)), and these are disjoint.
 This separation is what makes OS3 (reflection positivity) work. -/
-axiom cylinderPositiveTimeSubmodule :
-    Submodule ℝ (CylinderTestFunction L)
+def cylinderPositiveTimeSubmodule :
+    Submodule ℝ (CylinderTestFunction L) :=
+  (Submodule.span ℝ (positiveTimePureTensors L)).topologicalClosure
 
 /-- Positive-time test functions on the cylinder.
 
@@ -69,9 +80,11 @@ If f has temporal support in (0, ∞), then Θf has temporal support in (-∞, 0
 In particular, f and Θf have disjoint temporal supports. This is the
 fundamental property needed for OS3: the cross terms vanish because the
 mass operator Q is local (finite-range on the lattice, differential in
-the continuum). -/
+the continuum).
+
+Note: this requires f ≠ 0 since Θ0 = 0 is in every submodule. -/
 axiom cylinderPositiveTime_disjoint_reflected
-    (f : CylinderPositiveTimeTestFunction L) :
+    (f : CylinderPositiveTimeTestFunction L) (hf : f.val ≠ 0) :
     cylinderTimeReflection L f.val ∉ cylinderPositiveTimeSubmodule L
 
 /-! ## Positive-time support under translation
@@ -83,9 +96,46 @@ functions (shifts support further into the future). Time translation by
 Spatial translation preserves the positive-time property since it acts
 only on the S¹ factor and leaves the temporal support unchanged. -/
 
-/-- Spatial translation preserves positive-time support. -/
-axiom cylinderPositiveTime_spatialTranslation_closed (v : ℝ)
+/-- Spatial translation maps positive-time pure tensors to positive-time
+pure tensors: `T_v(g ⊗ h) = (T_v g) ⊗ h`, preserving the temporal factor. -/
+private theorem spatialTranslation_maps_generators (v : ℝ)
+    {f : CylinderTestFunction L} (hf : f ∈ positiveTimePureTensors L) :
+    cylinderSpatialTranslation L v f ∈ positiveTimePureTensors L := by
+  obtain ⟨g, h, hh, rfl⟩ := hf
+  refine ⟨circleTranslation L v g, h, hh, ?_⟩
+  show nuclearTensorProduct_mapCLM (circleTranslation L v)
+    (ContinuousLinearMap.id ℝ _) (pure g h) = pure (circleTranslation L v g) h
+  rw [nuclearTensorProduct_mapCLM_pure]
+  simp
+
+/-- Spatial translation preserves positive-time support.
+
+Proof: spatial translation `T_v ⊗ id` maps pure tensors `g ⊗ h ↦ (T_v g) ⊗ h`,
+preserving the temporal factor h. So it maps the generating set into itself,
+hence the span, hence (by continuity) the closure. -/
+theorem cylinderPositiveTime_spatialTranslation_closed (v : ℝ)
     (f : CylinderPositiveTimeTestFunction L) :
-    cylinderSpatialTranslation L v f.val ∈ cylinderPositiveTimeSubmodule L
+    cylinderSpatialTranslation L v f.val ∈ cylinderPositiveTimeSubmodule L := by
+  -- Strategy: show the CLM maps the closure into itself via topologicalClosure_minimal
+  set S := Submodule.span ℝ (positiveTimePureTensors L)
+  set T := cylinderSpatialTranslation L v
+  -- The comap of the closure under T is a closed submodule containing S
+  set M := cylinderPositiveTimeSubmodule L  -- = S.topologicalClosure
+  suffices h : S.topologicalClosure ≤ M.comap T.toLinearMap from
+    (h f.property : T f.val ∈ M)
+  apply Submodule.topologicalClosure_minimal
+  · -- S ≤ M.comap T, i.e., T maps span of generators into M
+    intro x hx
+    show T x ∈ M
+    -- It suffices to show T maps span of generators into span of generators
+    suffices T x ∈ S from subset_closure this
+    -- Induction on the span: T maps generators to generators, rest by linearity
+    induction hx using Submodule.span_induction with
+    | mem x hx => exact Submodule.subset_span (spatialTranslation_maps_generators L v hx)
+    | zero => simp
+    | add x y _ _ hTx hTy => rw [map_add]; exact Submodule.add_mem S hTx hTy
+    | smul r x _ hTx => rw [map_smul]; exact Submodule.smul_mem S r hTx
+  · -- M.comap T is closed (continuous preimage of closed set)
+    exact (Submodule.isClosed_topologicalClosure S).preimage T.continuous
 
 end GaussianField

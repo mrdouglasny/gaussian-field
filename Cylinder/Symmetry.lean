@@ -105,6 +105,61 @@ theorem schwartzTranslation_add (σ τ : ℝ) :
   ext f x
   simp [schwartzTranslation, add_comm σ τ]
 
+/-! ## Positive-time Schwartz submodule (1D)
+
+The submodule of Schwartz functions on ℝ that vanish on (-∞, 0].
+This is the temporal component of the Osterwalder-Schrader positive-time
+condition: test functions supported in the future half-line (0, ∞). -/
+
+/-- Submodule of Schwartz functions vanishing on (-∞, 0].
+
+Mathematically, these are the Schwartz functions with support in (0, ∞).
+The condition `∀ x ≤ 0, f x = 0` is equivalent to
+`Function.support f ⊆ Set.Ioi 0`. -/
+def schwartzPositiveTimeSubmodule : Submodule ℝ (SchwartzMap ℝ ℝ) where
+  carrier := {f | ∀ x ≤ 0, f x = 0}
+  zero_mem' := fun _ _ => by simp
+  add_mem' := fun {f g} hf hg x hx => by simp [hf x hx, hg x hx]
+  smul_mem' := fun r f hf x hx => by simp [hf x hx]
+
+/-- If f vanishes on (-∞, 0], then Θf vanishes on [0, ∞). -/
+theorem schwartzReflection_positive_to_negative
+    {f : SchwartzMap ℝ ℝ} (hf : f ∈ schwartzPositiveTimeSubmodule) :
+    ∀ x, 0 ≤ x → schwartzReflection f x = 0 := by
+  intro x hx
+  simp [hf (-x) (by linarith)]
+
+/-- Positive-time and reflected positive-time are disjoint (except 0).
+
+If f vanishes on (-∞, 0] and Θf also vanishes on (-∞, 0], then
+f must vanish everywhere: the first condition kills f on (-∞, 0]
+and the second kills f on [0, ∞) (since (Θf)(x) = f(-x) = 0 for x ≤ 0
+means f(y) = 0 for y ≥ 0). -/
+theorem schwartzPositiveTime_disjoint_reflected
+    {f : SchwartzMap ℝ ℝ} (hf : f ∈ schwartzPositiveTimeSubmodule)
+    (hne : f ≠ 0) :
+    schwartzReflection f ∉ schwartzPositiveTimeSubmodule := by
+  intro hΘf
+  apply hne
+  ext x
+  simp only [SchwartzMap.zero_apply]
+  by_cases hx : x ≤ 0
+  · exact hf x hx
+  · push_neg at hx
+    have h : schwartzReflection f (-x) = 0 := hΘf (-x) (by linarith)
+    simpa using h
+
+/-- Time translation by τ > 0 preserves positive-time support.
+
+If f vanishes on (-∞, 0] and τ > 0, then (T_τ f)(x) = f(x - τ).
+For x ≤ 0: x - τ < 0, so f(x - τ) = 0. -/
+theorem schwartzTranslation_preserves_positiveTime
+    {f : SchwartzMap ℝ ℝ} (hf : f ∈ schwartzPositiveTimeSubmodule)
+    {τ : ℝ} (hτ : 0 ≤ τ) :
+    schwartzTranslation τ f ∈ schwartzPositiveTimeSubmodule := by
+  intro x hx
+  simp [hf (x - τ) (by linarith)]
+
 /-! ## Cylinder-level symmetry actions -/
 
 /-- Time reflection on the cylinder: `(id ⊗ Θ)(f₁ ⊗ f₂)(x,t) = f₁(x) ⊗ f₂(-t)`.
