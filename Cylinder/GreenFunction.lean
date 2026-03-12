@@ -4,13 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Green's Function on the Cylinder S¹_L × ℝ
 
-Axiomatizes the Green's function (covariance) for the massive free field
-on the cylinder and its key properties needed for OS axioms.
+Defines the Green's function (covariance) for the massive free field
+on the cylinder from the axiomatized mass operator, and proves its
+algebraic properties from inner product space theory.
 
 ## Main definitions
 
-- `cylinderGreen L mass` — bilinear form G_L(f,g) on `CylinderTestFunction L`
-- `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² for Gaussian construction
+- `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (axiom)
+- `cylinderGreen L mass` — bilinear form G_L(f,g) = ⟨Tf, Tg⟩ (defined)
 
 ## Mathematical background
 
@@ -20,14 +21,10 @@ The Green's function on S¹_L × ℝ for the operator (-Δ + m²) is:
 
 where φ_n are Fourier modes on S¹_L with eigenvalues λ_n = (2πn/L)².
 
-Unlike the torus, the Laplacian on ℝ has continuous spectrum. The
-Green's function uses the mixed representation: spectral in x, position
-in t. The Hermite basis diagonalizes the DM structure but NOT the
-Laplacian, so `HasLaplacianEigenvalues` does not apply to the ℝ factor.
-
-For the Gaussian measure construction, the covariance is realized via
-a CLM `T : CylinderTestFunction L → H` into a Hilbert space, with
-`G(f,g) = ⟨Tf, Tg⟩_H`.
+The covariance is realized via the mass operator T : CylinderTestFunction L → ℓ²
+(the square root of (-Δ + m²)⁻¹), with G(f,g) = ⟨Tf, Tg⟩_{ℓ²}.
+The algebraic properties (bilinearity, symmetry, nonnegativity, continuity)
+then follow from inner product space axioms.
 
 ## References
 
@@ -44,59 +41,98 @@ namespace GaussianField
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
-/-! ## Cylinder Green's function -/
+/-! ## Mass operator (for Gaussian measure construction)
+
+The mass operator is the fundamental axiom: it encodes the spectral
+data of (-Δ + m²)^{-1/2} on the cylinder. All properties of the
+Green's function are derived from it. -/
+
+/-- The mass operator T : CylinderTestFunction L → ℓ² for the cylinder.
+
+This is the square root of the covariance: G(f,g) = ⟨Tf, Tg⟩_{ℓ²}.
+It maps test functions to rapidly decaying sequences via the spectral
+representation of (-Δ + m²)^{-1/2}.
+
+Used by `GaussianField.measure T` to construct the Gaussian probability
+measure on `Configuration (CylinderTestFunction L)`. -/
+axiom cylinderMassOperator (mass : ℝ) (hmass : 0 < mass) :
+    CylinderTestFunction L →L[ℝ] ell2'
+
+/-! ## Cylinder Green's function
+
+Defined from the mass operator via the inner product on ℓ².
+The algebraic properties follow from inner product space theory. -/
 
 /-- The continuum Green's function on the cylinder S¹_L × ℝ.
 
-  `G_L(f, g) = ⟨f, (-Δ_{S¹} - ∂²_t + m²)⁻¹ g⟩`
+  `G_L(f, g) = ⟨T f, T g⟩_{ℓ²}`
 
-This is a continuous bilinear form on `CylinderTestFunction L`, defined
-by the resolvent of the Laplacian on S¹_L × ℝ. In the mixed
-spectral/position representation:
+where T is the mass operator (square root of (-Δ + m²)⁻¹).
 
-  `G_L(f,g) = Σ_n ∫∫ f̂_n(t) ĝ_n(t') · exp(-√(λ_n + m²)|t-t'|) / (2√(λ_n + m²)) dt dt'`
+Equivalently, in the mixed spectral/position representation:
+
+  `G_L(f,g) = Σ_n ∫∫ f̂_n(t) ĝ_n(t') · exp(-√(λ_n + m²)|t-t'|) / (2√(λ_n + m²)) dt dt'`
 
 where f̂_n(t) = ∫₀ᴸ f(x,t) φ_n(x) dx is the n-th Fourier mode of f. -/
-axiom cylinderGreen (mass : ℝ) (hmass : 0 < mass) :
-    CylinderTestFunction L → CylinderTestFunction L → ℝ
+def cylinderGreen (mass : ℝ) (hmass : 0 < mass)
+    (f g : CylinderTestFunction L) : ℝ :=
+  @inner ℝ ell2' _ (cylinderMassOperator L mass hmass f)
+    (cylinderMassOperator L mass hmass g)
+
+/-- The mass operator realizes the Green's function as an inner product.
+
+  `G_L(f, g) = ⟨T f, T g⟩` -/
+theorem cylinderMassOperator_inner (mass : ℝ) (hmass : 0 < mass)
+    (f g : CylinderTestFunction L) :
+    cylinderGreen L mass hmass f g =
+    @inner ℝ ell2' _ (cylinderMassOperator L mass hmass f)
+      (cylinderMassOperator L mass hmass g) := rfl
 
 /-- The cylinder Green's function is bilinear. -/
-axiom cylinderGreen_bilinear (mass : ℝ) (hmass : 0 < mass) :
+theorem cylinderGreen_bilinear (mass : ℝ) (hmass : 0 < mass) :
     ∀ (r : ℝ) (f g h : CylinderTestFunction L),
       cylinderGreen L mass hmass (r • f + g) h =
-      r * cylinderGreen L mass hmass f h + cylinderGreen L mass hmass g h
+      r * cylinderGreen L mass hmass f h + cylinderGreen L mass hmass g h := by
+  intro r f g h
+  simp only [cylinderGreen, map_add, map_smul]
+  rw [inner_add_left, real_inner_smul_left]
 
 /-- The cylinder Green's function is symmetric. -/
-axiom cylinderGreen_symm (mass : ℝ) (hmass : 0 < mass)
+theorem cylinderGreen_symm (mass : ℝ) (hmass : 0 < mass)
     (f g : CylinderTestFunction L) :
-    cylinderGreen L mass hmass f g = cylinderGreen L mass hmass g f
+    cylinderGreen L mass hmass f g = cylinderGreen L mass hmass g f := by
+  simp only [cylinderGreen]
+  exact real_inner_comm _ _
 
 /-- The cylinder Green's function is nonneg on the diagonal.
 
-  `G_L(f,f) ≥ 0` for all f.
-
-This follows from (-Δ + m²)⁻¹ being a positive operator. -/
-axiom cylinderGreen_nonneg (mass : ℝ) (hmass : 0 < mass)
+  `G_L(f,f) ≥ 0` for all f. -/
+theorem cylinderGreen_nonneg (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L) :
-    0 ≤ cylinderGreen L mass hmass f f
-
-/-- The cylinder Green's function is strictly positive on nonzero functions.
-
-  `G_L(f,f) > 0` for f ≠ 0.
-
-This follows from (-Δ + m²)⁻¹ being strictly positive (injective). -/
-axiom cylinderGreen_pos (mass : ℝ) (hmass : 0 < mass)
-    (f : CylinderTestFunction L) (hf : f ≠ 0) :
-    0 < cylinderGreen L mass hmass f f
+    0 ≤ cylinderGreen L mass hmass f f := by
+  simp only [cylinderGreen]
+  exact real_inner_self_nonneg
 
 /-- The diagonal of the cylinder Green's function is continuous.
 
   `f ↦ G_L(f, f)` is continuous on `CylinderTestFunction L`.
 
-This is needed for OS1 (regularity): the bound uses G(f,f) as the
-continuous seminorm. -/
-axiom cylinderGreen_continuous_diag (mass : ℝ) (hmass : 0 < mass) :
-    Continuous (fun f : CylinderTestFunction L => cylinderGreen L mass hmass f f)
+Follows from continuity of the mass operator T and the inner product. -/
+theorem cylinderGreen_continuous_diag (mass : ℝ) (hmass : 0 < mass) :
+    Continuous (fun f : CylinderTestFunction L => cylinderGreen L mass hmass f f) := by
+  simp only [cylinderGreen]
+  exact (cylinderMassOperator L mass hmass).continuous.inner
+    (cylinderMassOperator L mass hmass).continuous
+
+/-- The cylinder Green's function is strictly positive on nonzero functions.
+
+  `G_L(f,f) > 0` for f ≠ 0.
+
+This requires injectivity of the mass operator T, which follows from
+(-Δ + m²)⁻¹ being strictly positive (the operator has no kernel). -/
+axiom cylinderGreen_pos (mass : ℝ) (hmass : 0 < mass)
+    (f : CylinderTestFunction L) (hf : f ≠ 0) :
+    0 < cylinderGreen L mass hmass f f
 
 /-! ## Invariance properties -/
 
@@ -138,28 +174,5 @@ axiom cylinderGreen_timeReflection_invariant
     cylinderGreen L mass hmass (cylinderTimeReflection L f)
       (cylinderTimeReflection L g) =
     cylinderGreen L mass hmass f g
-
-/-! ## Mass operator (for Gaussian measure construction) -/
-
-/-- The mass operator T : CylinderTestFunction L → ℓ² for the cylinder.
-
-This is the square root of the covariance: G(f,g) = ⟨Tf, Tg⟩_{ℓ²}.
-It maps test functions to rapidly decaying sequences via the spectral
-representation of (-Δ + m²)^{-1/2}.
-
-Used by `GaussianField.measure T` to construct the Gaussian probability
-measure on `Configuration (CylinderTestFunction L)`. -/
-axiom cylinderMassOperator (mass : ℝ) (hmass : 0 < mass) :
-    CylinderTestFunction L →L[ℝ] ell2'
-
-/-- The mass operator realizes the Green's function as an inner product.
-
-  `G_L(f, g) = ⟨T f, T g⟩`
-
-This is the nuclear factorization needed for the Gaussian measure construction. -/
-axiom cylinderMassOperator_inner (mass : ℝ) (hmass : 0 < mass)
-    (f g : CylinderTestFunction L) :
-    cylinderGreen L mass hmass f g =
-    @inner ℝ ell2' _ (cylinderMassOperator L mass hmass f) (cylinderMassOperator L mass hmass g)
 
 end GaussianField
