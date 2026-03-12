@@ -39,4 +39,21 @@ abbrev TorusTestFunction := NuclearTensorProduct (SmoothMap_Circle L ℝ) (Smoot
 -- TorusTestFunction L inherits DyninMityaginSpace from NuclearTensorProduct
 example : DyninMityaginSpace (TorusTestFunction L) := inferInstance
 
+/-! ## Configuration space axioms
+
+These are future proof targets. The Configuration space of the torus test functions
+should be Polish and have the Borel σ-algebra coincide with the cylindrical σ-algebra.
+See `future/configuration_torus.lean` for proof strategies. -/
+
+/-- Configuration(TorusTestFunction L) is a Polish space.
+This follows from the nuclear Fréchet structure of TorusTestFunction L,
+whose weak-* dual is metrizable, complete, and separable. -/
+axiom configuration_torus_polish (L : ℝ) [Fact (0 < L)] :
+    PolishSpace (Configuration (TorusTestFunction L))
+
+/-- The cylindrical σ-algebra on Configuration(TorusTestFunction L) equals
+the Borel σ-algebra. This is standard for Polish duals of nuclear Fréchet spaces. -/
+axiom configuration_torus_borelSpace (L : ℝ) [Fact (0 < L)] :
+    BorelSpace (Configuration (TorusTestFunction L))
+
 end GaussianField
