@@ -55,47 +55,55 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 
 /-! ## Schwartz-level symmetry actions
 
-Reflection and translation on Schwartz space 𝓢(ℝ). These are CLMs
-since 𝓢(ℝ) is closed under precomposition with affine isomorphisms.
-
-Proving continuity in the Schwartz topology requires the chain rule for
-iterated derivatives composed with linear maps (available in Mathlib via
-`norm_iteratedFDeriv_comp_left`). We axiomatize the CLM structure here
-and provide `_apply` lemmas for computation. -/
+Reflection and translation on Schwartz space 𝓢(ℝ). These use Mathlib's
+`SchwartzMap.compCLMOfContinuousLinearEquiv` (for reflection via
+`LinearIsometryEquiv.neg`) and `SchwartzMap.compSubConstCLM` (for
+translation by a constant). -/
 
 /-- Reflection on Schwartz space: `(Θf)(t) = f(-t)`.
 
-This preserves all Schwartz seminorms `sup_t |t^k · f^(n)(-t)|` since
-`‖-t‖ = ‖t‖` and the chain rule gives `(f ∘ neg)^(n) = (-1)^n · f^(n) ∘ neg`. -/
-axiom schwartzReflection : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ
+Defined via `compCLMOfContinuousLinearEquiv` applied to the negation
+linear isometry equivalence. Preserves all Schwartz seminorms since
+negation is a linear isometry. -/
+def schwartzReflection : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+  SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+    (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv
 
 /-- Pointwise evaluation of Schwartz reflection. -/
-axiom schwartzReflection_apply (f : SchwartzMap ℝ ℝ) (x : ℝ) :
-    schwartzReflection f x = f (-x)
+@[simp]
+theorem schwartzReflection_apply (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+    schwartzReflection f x = f (-x) := rfl
 
 /-- Schwartz reflection is an involution: Θ² = id. -/
-axiom schwartzReflection_involution :
+theorem schwartzReflection_involution :
     schwartzReflection.comp schwartzReflection =
-    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ)
+    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) := by
+  ext f x
+  simp [schwartzReflection]
 
 /-- Time translation on Schwartz space: `(T_τ f)(t) = f(t - τ)`.
 
-This preserves Schwartz decay since translation by a fixed amount only
-shifts the argument: `|(t-τ)^k| ≤ C_k · (1 + |t|)^k` for bounded τ. -/
-axiom schwartzTranslation (τ : ℝ) : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ
+Defined via `SchwartzMap.compSubConstCLM`, which handles the decay
+bounds automatically using the antilipschitz property of translation. -/
+def schwartzTranslation (τ : ℝ) : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+  SchwartzMap.compSubConstCLM ℝ τ
 
 /-- Pointwise evaluation of Schwartz translation. -/
-axiom schwartzTranslation_apply (τ : ℝ) (f : SchwartzMap ℝ ℝ) (x : ℝ) :
-    schwartzTranslation τ f x = f (x - τ)
+@[simp]
+theorem schwartzTranslation_apply (τ : ℝ) (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+    schwartzTranslation τ f x = f (x - τ) := rfl
 
 /-- Translation by zero is the identity. -/
-axiom schwartzTranslation_zero :
-    schwartzTranslation 0 = ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ)
+theorem schwartzTranslation_zero :
+    schwartzTranslation 0 = ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) :=
+  SchwartzMap.compSubConstCLM_zero
 
 /-- Translation is additive: T_{σ+τ} = T_τ ∘ T_σ. -/
-axiom schwartzTranslation_add (σ τ : ℝ) :
+theorem schwartzTranslation_add (σ τ : ℝ) :
     (schwartzTranslation τ).comp (schwartzTranslation σ) =
-    schwartzTranslation (σ + τ)
+    schwartzTranslation (σ + τ) := by
+  ext f x
+  simp [schwartzTranslation, add_comm σ τ]
 
 /-! ## Cylinder-level symmetry actions -/
 
