@@ -29,6 +29,8 @@ lean_lib «GaussianFieldAPI» where
 
 lean_lib «Torus» where
 
+lean_lib «Cylinder» where
+
 /-- Build all libraries. Use `lake build All` after mathlib upgrades to catch breakage
 in non-default targets. -/
 lean_lib «All» where

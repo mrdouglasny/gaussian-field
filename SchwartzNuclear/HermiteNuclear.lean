@@ -49,6 +49,14 @@ noncomputable instance schwartz_dyninMityaginSpace_1D :
     (schwartz_withSeminorms ℝ ℝ ℝ)
     schwartzRapidDecayEquiv1D
 
+/-- `HasBiorthogonalBasis` for `SchwartzMap ℝ ℝ` from the Hermite basis. -/
+noncomputable instance schwartz_hasBiorthogonalBasis_1D :
+    DyninMityaginSpace.HasBiorthogonalBasis (SchwartzMap ℝ ℝ) :=
+  DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
+    (fun (kl : ℕ × ℕ) => SchwartzMap.seminorm ℝ kl.1 kl.2)
+    (schwartz_withSeminorms ℝ ℝ ℝ)
+    schwartzRapidDecayEquiv1D
+
 /-- Specialized `DyninMityaginSpace` instance for `SchwartzMap (EuclideanSpace ℝ (Fin (d+1))) ℝ`
 using `schwartzRapidDecayEquivNd` directly, avoiding the `toEuclidean` detour.
 This ensures that `DyninMityaginSpace.coeff` produces the Hermite coefficients from the
