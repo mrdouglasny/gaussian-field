@@ -66,7 +66,7 @@ theorem continuous_eval_at (x : ℝ) :
       map_add' := fun f g => add_apply f g x
       map_smul' := fun r f => smul_apply r f x }
   change Continuous lm
-  apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
+  apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
   intro _
   refine ⟨{0}, ⟨1, by norm_num⟩, fun f => ?_⟩
   simp only [Seminorm.comp_apply, Finset.sup_singleton, NNReal.smul_def,

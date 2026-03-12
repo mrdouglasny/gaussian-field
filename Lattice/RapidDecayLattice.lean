@@ -512,7 +512,7 @@ def latticeCoeffCLM (d : ℕ) [NeZero d] (m : ℕ) : RapidDecayLattice d →L[�
         map_add' := fun _ _ => rfl
         map_smul' := fun r a => by simp [smul_eq_mul] }
     show Continuous f
-    apply Seminorm.cont_withSeminorms_normedSpace ℝ lattice_withSeminorms
+    apply WithSeminorms.continuous_normedSpace_rng ℝ lattice_withSeminorms
     refine ⟨{0}, 1, ?_⟩
     rw [Seminorm.le_def]
     intro a
@@ -755,13 +755,13 @@ noncomputable def latticeRapidDecayEquiv (d : ℕ) [NeZero d] :
     simpa [tsum_mul_left] using h_le
   let toRapidDecayCLM : RapidDecayLattice d →L[ℝ] RapidDecaySeq :=
     { toLinearMap := toRapidDecayLM
-      cont := Seminorm.continuous_from_bounded
+      cont := WithSeminorms.continuous_of_isBounded
         (lattice_withSeminorms (d := d))
         RapidDecaySeq.rapidDecay_withSeminorms
         _ h_to_bounded }
   let fromRapidDecayCLM : RapidDecaySeq →L[ℝ] RapidDecayLattice d :=
     { toLinearMap := fromRapidDecayLM
-      cont := Seminorm.continuous_from_bounded
+      cont := WithSeminorms.continuous_of_isBounded
         RapidDecaySeq.rapidDecay_withSeminorms
         (lattice_withSeminorms (d := d))
         _ h_from_bounded }

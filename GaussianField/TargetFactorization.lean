@@ -165,7 +165,7 @@ theorem nuclear_ell2_embedding_from_decay
       _ = (C * (s.sup DyninMityaginSpace.p) f) ^ 2 * ζ4 := tsum_mul_left
       _ = C ^ 2 * ζ4 * ((s.sup DyninMityaginSpace.p) f) ^ 2 := by ring
   have hζ4_nn : 0 ≤ ζ4 := tsum_nonneg (fun m => Real.rpow_nonneg (by positivity) _)
-  -- Prove continuity via Seminorm.cont_withSeminorms_normedSpace
+  -- Prove continuity via Seminorm.continuous_normedSpace_rng
   set B : ℝ := C * Real.sqrt ζ4
   have hB_nn : 0 ≤ B := by positivity
   have h_norm_bound : ∀ f : E, ‖j_fun f‖ ≤ B * (s.sup DyninMityaginSpace.p) f := by
@@ -178,7 +178,7 @@ theorem nuclear_ell2_embedding_from_decay
       rw [mul_pow, hB_sq]; exact h2
     exact le_of_sq_le_sq h3 (mul_nonneg hB_nn (apply_nonneg _ _))
   have j_cont : Continuous j_lin := by
-    apply Seminorm.cont_withSeminorms_normedSpace ell2' DyninMityaginSpace.h_with
+    apply WithSeminorms.continuous_normedSpace_rng ell2' DyninMityaginSpace.h_with
     refine ⟨s, ⟨⟨B, hB_nn⟩, ?_⟩⟩
     rw [Seminorm.le_def]
     intro f

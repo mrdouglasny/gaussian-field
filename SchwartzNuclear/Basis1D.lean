@@ -50,7 +50,7 @@ def hermiteCoeff1DCLM (n : ℕ) : SchwartzMap ℝ ℝ →L[ℝ] ℝ where
       calc ‖hermiteCoeff1D n f‖
           = |hermiteCoeff1D n f| := Real.norm_eq_abs _
         _ ≤ C * (Finset.Iic q).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) f := h0 f
-    -- Apply continuous_from_bounded
+    -- Apply continuous_of_isBounded
     -- The linear map is: {toFun := hermiteCoeff1D n, ...}
     -- and we show it's bounded by Schwartz seminorms
     let lm : SchwartzMap ℝ ℝ →ₗ[ℝ] ℝ := {

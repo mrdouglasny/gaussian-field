@@ -454,7 +454,7 @@ noncomputable def infiniteLaplacian (d : ℕ) (a : ℝ) :
     RapidDecayLattice d →L[ℝ] RapidDecayLattice d where
   toLinearMap := infiniteLaplacianLM d a
   cont := by
-    apply Seminorm.continuous_from_bounded RapidDecayLattice.lattice_withSeminorms
+    apply WithSeminorms.continuous_of_isBounded RapidDecayLattice.lattice_withSeminorms
       RapidDecayLattice.lattice_withSeminorms
     intro k
     -- For each output seminorm k, bound by input seminorm k with constant

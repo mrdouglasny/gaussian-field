@@ -127,7 +127,7 @@ private lemma reindexLM_isBounded (σ : ℕ ≃ ℕ)
 def reindexCLM (σ : ℕ ≃ ℕ) (hσ_inv : IsPolyBounded σ.symm) :
     RapidDecaySeq →L[ℝ] RapidDecaySeq where
   toLinearMap := reindexLM σ hσ_inv
-  cont := Seminorm.continuous_from_bounded
+  cont := WithSeminorms.continuous_of_isBounded
     rapidDecay_withSeminorms rapidDecay_withSeminorms
     _ (reindexLM_isBounded σ hσ_inv)
 

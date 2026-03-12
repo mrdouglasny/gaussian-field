@@ -42,7 +42,14 @@ import Mathlib.Probability.ProductMeasure
 import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.Probability.Independence.Integration
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction
+import Mathlib.Analysis.Fourier.BoundedContinuousFunctionChar
+import Mathlib.Analysis.Fourier.FourierTransform
+import Mathlib.Analysis.InnerProductSpace.Dual
+import Mathlib.Analysis.InnerProductSpace.ProdL2
+import Mathlib.Analysis.Normed.Lp.MeasurableSpace
+import Mathlib.MeasureTheory.Group.IntegralConvolution
+import Mathlib.MeasureTheory.Integral.Pi
+import Mathlib.MeasureTheory.Measure.FiniteMeasureExt
 import Mathlib.Topology.Algebra.Module.WeakDual
 
 noncomputable section

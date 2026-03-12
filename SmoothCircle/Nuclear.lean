@@ -404,7 +404,7 @@ def toRapidDecayLM : SmoothMap_Circle L ℝ →ₗ[ℝ] RapidDecaySeq where
 
 /-- The forward map is continuous. -/
 theorem toRapidDecay_continuous : Continuous (toRapidDecayLM (L := L)) := by
-  apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms
+  apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms
     RapidDecaySeq.rapidDecay_withSeminorms
   intro k
   obtain ⟨C, hC, hbound⟩ := fourierCoeffReal_decay (L := L) (k + 2)
@@ -521,7 +521,7 @@ private theorem summable_fourierTerm_bound (a : RapidDecaySeq) (j : ℕ) :
 
 /-- The backward map is continuous. -/
 theorem fromRapidDecay_continuous : Continuous (fromRapidDecayLM (L := L)) := by
-  apply Seminorm.continuous_from_bounded RapidDecaySeq.rapidDecay_withSeminorms
+  apply WithSeminorms.continuous_of_isBounded RapidDecaySeq.rapidDecay_withSeminorms
     smoothCircle_withSeminorms
   intro k
   obtain ⟨C, hC, hbound⟩ := sobolevSeminorm_fourierBasis_le (L := L) k

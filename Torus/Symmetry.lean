@@ -88,7 +88,7 @@ def circleReflection : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ w
         map_add' := fun f g => by ext x; exact add_apply f g (-x)
         map_smul' := fun r f => by ext x; exact smul_apply r f (-x) }
     change Continuous lm
-    apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms smoothCircle_withSeminorms
+    apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms smoothCircle_withSeminorms
     intro k
     refine ⟨{k}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
     simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def,
@@ -124,7 +124,7 @@ def circleTranslation (v : ℝ) :
         map_add' := fun f g => by ext x; exact add_apply f g (x - v)
         map_smul' := fun r f => by ext x; exact smul_apply r f (x - v) }
     change Continuous lm
-    apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms smoothCircle_withSeminorms
+    apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms smoothCircle_withSeminorms
     intro k
     refine ⟨{k}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
     simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def,

@@ -138,7 +138,7 @@ def nuclearTensorProduct_swapCLM
     NuclearTensorProduct E₁ E₂ →L[ℝ] NuclearTensorProduct E₂ E₁ :=
   { swapLM with
     cont := by
-      apply Seminorm.continuous_from_bounded
+      apply WithSeminorms.continuous_of_isBounded
         (RapidDecaySeq.rapidDecay_withSeminorms :
           WithSeminorms (RapidDecaySeq.rapidDecaySeminorm :
             ℕ → Seminorm ℝ (NuclearTensorProduct E₁ E₂)))
@@ -515,7 +515,7 @@ def nuclearTensorProduct_mapCLM
     NuclearTensorProduct E₁ E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ :=
   { mapLM T₁ T₂ with
     cont := by
-      apply Seminorm.continuous_from_bounded
+      apply WithSeminorms.continuous_of_isBounded
         (RapidDecaySeq.rapidDecay_withSeminorms :
           WithSeminorms (RapidDecaySeq.rapidDecaySeminorm :
             ℕ → Seminorm ℝ (NuclearTensorProduct E₁ E₂)))

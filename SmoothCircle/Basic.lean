@@ -431,7 +431,7 @@ Continuity follows from `|c_n(f)| ≤ C · p_0(f)`. -/
 def fourierCoeffCLM (n : ℕ) : SmoothMap_Circle L ℝ →L[ℝ] ℝ where
   toLinearMap := fourierCoeffLM n
   cont := by
-    apply Seminorm.continuous_from_bounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
+    apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
     intro _
     set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
     refine ⟨{0}, ⟨M * L, mul_nonneg (le_max_of_le_right (Real.sqrt_nonneg _))

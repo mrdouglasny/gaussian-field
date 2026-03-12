@@ -777,7 +777,7 @@ def pureLin : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] NuclearTensorProduct E₁ E₂ w
       LinearMap.smul_apply, map_smul, smul_eq_mul, RingHom.id_apply, mul_assoc]
 
 /-- For fixed `e₁`, the map `e₂ ↦ pure e₁ e₂` is a continuous linear map.
-Continuity follows from the seminorm bound via `continuous_from_bounded`. -/
+Continuity follows from the seminorm bound via `continuous_of_isBounded`. -/
 def pureCLM_right (e₁ : E₁) : E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ where
   toLinearMap := pureLin e₁
   cont := by
