@@ -181,18 +181,19 @@ theorem greenFunctionBilinear_swap_pure
         mass ^ 2) = g (σ m) := by
     intro m
     -- Unfold g, σ, and the NTP eigenvalue
-    simp only [g, hσ_apply, tensorProductHasLaplacianEigenvalues, Nat.unpair_pair]
-    -- coeff for NTP is (·).val, so rewrite using pure_val
-    show (pure f₂ f₁).val m * (pure g₂ g₁).val m /
-        (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).1 +
-         HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).2 +
-         mass ^ 2) =
-      (pure f₁ f₂).val (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1) *
-        (pure g₁ g₂).val (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1) /
-        (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).2 +
-         HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair m).1 +
-         mass ^ 2)
-    simp only [pure_val, Nat.unpair_pair]
+    simp only [g, hσ_apply]
+    -- coeff for NTP pure tensors decomposes as product of component coefficients
+    have coeff_pure := fun (a b : SmoothMap_Circle L ℝ) (n : ℕ) =>
+      show DyninMityaginSpace.coeff n (pure a b) =
+        DyninMityaginSpace.coeff (Nat.unpair n).1 a *
+        DyninMityaginSpace.coeff (Nat.unpair n).2 b from pure_val a b n
+    -- NTP eigenvalue decomposes as sum of component eigenvalues
+    have ev_ntp := fun (n : ℕ) =>
+      show HasLaplacianEigenvalues.eigenvalue
+        (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) n =
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair n).1 +
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair n).2 from rfl
+    simp only [coeff_pure, ev_ntp, Nat.unpair_pair]
     ring
   -- Step 2: Rewrite LHS as ∑' m, g (σ m), then apply Equiv.tsum_eq
   simp_rw [h_eq]
@@ -217,7 +218,6 @@ private theorem fourierFreq_cos_eq_sin (k : ℕ) (hk : 0 < k) :
 private theorem circle_eigenvalue_cos_eq_sin (k : ℕ) (hk : 0 < k) :
     HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (2 * k - 1) =
     HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (2 * k) := by
-  simp only [circleHasLaplacianEigenvalues]
   have h := fourierFreq_cos_eq_sin k hk
   show (2 * Real.pi * ↑(fourierFreq (2 * k - 1)) / L) ^ 2 =
     (2 * Real.pi * ↑(fourierFreq (2 * k)) / L) ^ 2
@@ -365,7 +365,13 @@ private theorem greenFunctionBilinear_translation_factor1
         (HasLaplacianEigenvalues.eigenvalue
           (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) (σ m) +
           mass ^ 2)
-    simp only [pure_val, hσ, Nat.unpair_pair, tensorProductHasLaplacianEigenvalues]
+    -- NTP eigenvalue decomposes as sum of component eigenvalues
+    have ev_ntp := fun (n : ℕ) =>
+      show HasLaplacianEigenvalues.eigenvalue
+        (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) n =
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair n).1 +
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair n).2 from rfl
+    simp only [pure_val, hσ, Nat.unpair_pair, ev_ntp]
     -- Eigenvalue degeneracy: eigenvalue(modePartner n₁) = eigenvalue(n₁)
     have h_ev : HasLaplacianEigenvalues.eigenvalue
         (E := SmoothMap_Circle L ℝ) (modePartner (Nat.unpair m).1) =
