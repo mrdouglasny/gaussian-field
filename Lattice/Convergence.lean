@@ -215,7 +215,12 @@ private theorem greenFunctionBilinear_pure_eq_tsum
           (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) m +
           mass ^ 2) =
       continuumGreenTerm2d L mass f₁ g₁ f₂ g₂ (Nat.unpair m)
-    simp only [continuumGreenTerm2d, tensorProductHasLaplacianEigenvalues, pure_val]
+    have ev_ntp := fun (n : ℕ) =>
+      show HasLaplacianEigenvalues.eigenvalue
+        (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) n =
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair n).1 +
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (Nat.unpair n).2 from rfl
+    simp only [continuumGreenTerm2d, ev_ntp, pure_val]
     ring
   simp_rw [h_term, ← Nat.pairEquiv_symm_apply]
   exact Nat.pairEquiv.symm.tsum_eq _

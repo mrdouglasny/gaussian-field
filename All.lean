@@ -5,5 +5,4 @@ import Lattice
 import Nuclear
 import SchwartzNuclear
 import SmoothCircle
-import Test
 import Torus
