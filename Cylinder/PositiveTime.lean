@@ -136,6 +136,181 @@ theorem cylinderTimeReflection_pos_to_neg
     | smul r x _ hTx => rw [map_smul]; exact Submodule.smul_mem _ r hTx
   · exact (Submodule.isClosed_topologicalClosure _).preimage Θ.continuous
 
+/-! ## Slice extraction CLMs
+
+For fixed `a : ℕ`, we extract the "a-th slice" of a cylinder test function:
+the subsequence `b ↦ f.val(Nat.pair a b)`. This maps `RapidDecaySeq → RapidDecaySeq`
+and, composed with `schwartzRapidDecayEquiv1D.symm`, gives a CLM to `SchwartzMap ℝ ℝ`.
+
+The key property is that slicing a pure tensor `pure g h` at index `a` yields
+`coeff a g • h`, where `coeff a g` is the a-th DM coefficient of `g`. -/
+
+/-- Extract the a-th slice: `b ↦ f.val(Nat.pair a b)`.
+This is rapidly decaying because `b ≤ Nat.pair a b`. -/
+private theorem pair_weight_le (a b : ℕ) (k : ℕ) :
+    (1 + (b : ℝ)) ^ k ≤ (1 + (Nat.pair a b : ℝ)) ^ k := by
+  apply pow_le_pow_left₀ (by positivity)
+  have h : b ≤ Nat.pair a b := Nat.right_le_pair a b
+  have : (b : ℝ) ≤ (Nat.pair a b : ℝ) := Nat.cast_le (α := ℝ).mpr h
+  linarith
+
+private theorem pair_right_injective (a : ℕ) :
+    Function.Injective (Nat.pair a) := by
+  intro b₁ b₂ h
+  exact (Nat.pair_eq_pair.mp h).2
+
+private def ntpExtractSliceFun (a : ℕ) (f : RapidDecaySeq) : RapidDecaySeq where
+  val b := f.val (Nat.pair a b)
+  rapid_decay k := by
+    set g : ℕ → ℝ := fun m => |f.val m| * (1 + (m : ℝ)) ^ k
+    apply Summable.of_nonneg_of_le
+    · intro b; exact mul_nonneg (abs_nonneg _) (RapidDecaySeq.weight_nonneg b k)
+    · intro b
+      show |f.val (Nat.pair a b)| * (1 + (b : ℝ)) ^ k ≤ g (Nat.pair a b)
+      exact mul_le_mul_of_nonneg_left (pair_weight_le a b k) (abs_nonneg _)
+    · exact (f.rapid_decay k).comp_injective (pair_right_injective a)
+
+private def ntpExtractSliceLM (a : ℕ) : RapidDecaySeq →ₗ[ℝ] RapidDecaySeq where
+  toFun := ntpExtractSliceFun a
+  map_add' f g := RapidDecaySeq.ext fun b => by
+    show (f + g).val (Nat.pair a b) = (ntpExtractSliceFun a f + ntpExtractSliceFun a g).val b
+    simp [ntpExtractSliceFun, RapidDecaySeq.add_val]
+  map_smul' r f := RapidDecaySeq.ext fun b => by
+    show (r • f).val (Nat.pair a b) = (r • ntpExtractSliceFun a f).val b
+    simp [ntpExtractSliceFun, RapidDecaySeq.smul_val]
+
+private theorem ntpExtractSliceLM_isBounded (a : ℕ) :
+    Seminorm.IsBounded RapidDecaySeq.rapidDecaySeminorm
+      RapidDecaySeq.rapidDecaySeminorm (ntpExtractSliceLM a) := by
+  intro k
+  refine ⟨{k}, 1, fun f => ?_⟩
+  simp only [Seminorm.comp_apply, Finset.sup_singleton, one_smul]
+  show ∑' b, |f.val (Nat.pair a b)| * (1 + (b : ℝ)) ^ k ≤
+    ∑' m, |f.val m| * (1 + (m : ℝ)) ^ k
+  set h₁ : ℕ → ℝ := fun b => |f.val (Nat.pair a b)| * (1 + (b : ℝ)) ^ k
+  set h₂ : ℕ → ℝ := fun b => |f.val (Nat.pair a b)| * (1 + (Nat.pair a b : ℝ)) ^ k
+  have h₁_sum : Summable h₁ := (ntpExtractSliceFun a f).rapid_decay k
+  have h₂_sum : Summable h₂ := (f.rapid_decay k).comp_injective (pair_right_injective a)
+  calc ∑' b, h₁ b
+      ≤ ∑' b, h₂ b :=
+        h₁_sum.tsum_le_tsum
+          (fun b => mul_le_mul_of_nonneg_left (pair_weight_le a b k) (abs_nonneg _)) h₂_sum
+    _ ≤ ∑' m, |f.val m| * (1 + (m : ℝ)) ^ k :=
+        tsum_comp_le_tsum_of_inj (f.rapid_decay k)
+          (fun m => mul_nonneg (abs_nonneg _) (RapidDecaySeq.weight_nonneg m k))
+          (pair_right_injective a)
+
+private def ntpExtractSlice (a : ℕ) : RapidDecaySeq →L[ℝ] RapidDecaySeq where
+  toLinearMap := ntpExtractSliceLM a
+  cont := WithSeminorms.continuous_of_isBounded
+    RapidDecaySeq.rapidDecay_withSeminorms
+    RapidDecaySeq.rapidDecay_withSeminorms
+    (ntpExtractSliceLM a) (ntpExtractSliceLM_isBounded a)
+
+@[simp]
+private theorem ntpExtractSlice_val (a : ℕ) (f : RapidDecaySeq) (b : ℕ) :
+    (ntpExtractSlice a f).val b = f.val (Nat.pair a b) := rfl
+
+/-- Compose extraction with `schwartzRapidDecayEquiv1D.symm` to get a CLM
+from `CylinderTestFunction L` to `SchwartzMap ℝ ℝ`. -/
+private def ntpSliceSchwartz (a : ℕ) :
+    CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ :=
+  schwartzRapidDecayEquiv1D.symm.toContinuousLinearMap.comp (ntpExtractSlice a)
+
+/-! ## Slice of pure tensors -/
+
+/-- Slicing a pure tensor at index `a` yields `coeff_a(g) • h`.
+
+For `pure g h`:
+- `(pure g h).val (Nat.pair a b) = coeff a g * coeff b h`
+  (by `NuclearTensorProduct.pure_val` and `Nat.unpair_pair`)
+- The extracted slice is `b ↦ coeff_a(g) * coeff_b(h) = coeff_a(g) • (equiv h).val b`
+- Applying `equiv.symm` gives `coeff_a(g) • h` -/
+private theorem ntpSliceSchwartz_pure (a : ℕ)
+    (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ) :
+    ntpSliceSchwartz L a (NuclearTensorProduct.pure g h) =
+      DyninMityaginSpace.coeff a g • h := by
+  -- Step 1: Show the extracted slice equals coeff_a(g) • equiv(h) as RapidDecaySeq
+  have h_extract : ntpExtractSlice a (NuclearTensorProduct.pure g h) =
+      DyninMityaginSpace.coeff a g • schwartzRapidDecayEquiv1D h := by
+    apply RapidDecaySeq.ext; intro b
+    simp only [ntpExtractSlice_val, NuclearTensorProduct.pure_val,
+      Nat.unpair_pair, RapidDecaySeq.smul_val]
+    -- coeff b h = (schwartzRapidDecayEquiv1D h).val b by definition of ofRapidDecayEquiv
+    rfl
+  -- Step 2: Apply equiv.symm
+  show schwartzRapidDecayEquiv1D.symm (ntpExtractSlice a (NuclearTensorProduct.pure g h)) =
+    DyninMityaginSpace.coeff a g • h
+  rw [h_extract, map_smul, ContinuousLinearEquiv.symm_apply_apply]
+
+/-! ## Slices preserve time submodules -/
+
+/-- The slice CLM maps `cylinderPositiveTimeSubmodule` into
+`schwartzPositiveTimeSubmodule`. -/
+private theorem ntpSliceSchwartz_maps_positive (a : ℕ)
+    (f : CylinderTestFunction L)
+    (hf : f ∈ cylinderPositiveTimeSubmodule L) :
+    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule := by
+  -- Strategy: show preimage of schwartzPositiveTimeSubmodule under the CLM is closed,
+  -- contains the generators, hence contains the topological closure.
+  set S := Submodule.span ℝ (positiveTimePureTensors L)
+  set Φ := ntpSliceSchwartz L a
+  set P := schwartzPositiveTimeSubmodule
+  -- It suffices to show S.topologicalClosure ≤ P.comap Φ.toLinearMap
+  suffices h : S.topologicalClosure ≤ P.comap Φ.toLinearMap from h hf
+  apply Submodule.topologicalClosure_minimal
+  · -- S ≤ P.comap Φ: the CLM maps generators into P
+    intro x hx
+    show Φ x ∈ P
+    -- Induction on the span
+    induction hx using Submodule.span_induction with
+    | mem x hx =>
+      obtain ⟨g, h, hh, rfl⟩ := hx
+      rw [ntpSliceSchwartz_pure]
+      exact Submodule.smul_mem P _ hh
+    | zero => simp [map_zero, Submodule.zero_mem P]
+    | add x y _ _ hΦx hΦy => rw [map_add]; exact Submodule.add_mem P hΦx hΦy
+    | smul r x _ hΦx => rw [map_smul]; exact Submodule.smul_mem P r hΦx
+  · -- P.comap Φ is closed (continuous preimage of closed set)
+    exact schwartzPositiveTimeSubmodule_isClosed.preimage Φ.continuous
+
+/-- The slice CLM maps `cylinderNegativeTimeSubmodule` into
+`schwartzNegativeTimeSubmodule`. -/
+private theorem ntpSliceSchwartz_maps_negative (a : ℕ)
+    (f : CylinderTestFunction L)
+    (hf : f ∈ cylinderNegativeTimeSubmodule L) :
+    ntpSliceSchwartz L a f ∈ schwartzNegativeTimeSubmodule := by
+  set S := Submodule.span ℝ (negativeTimePureTensors L)
+  set Φ := ntpSliceSchwartz L a
+  set N := schwartzNegativeTimeSubmodule
+  suffices h : S.topologicalClosure ≤ N.comap Φ.toLinearMap from h hf
+  apply Submodule.topologicalClosure_minimal
+  · intro x hx
+    show Φ x ∈ N
+    induction hx using Submodule.span_induction with
+    | mem x hx =>
+      obtain ⟨g, h, hh, rfl⟩ := hx
+      rw [ntpSliceSchwartz_pure]
+      exact Submodule.smul_mem N _ hh
+    | zero => simp [map_zero, Submodule.zero_mem N]
+    | add x y _ _ hΦx hΦy => rw [map_add]; exact Submodule.add_mem N hΦx hΦy
+    | smul r x _ hΦx => rw [map_smul]; exact Submodule.smul_mem N r hΦx
+  · exact schwartzNegativeTimeSubmodule_isClosed.preimage Φ.continuous
+
+/-! ## 1D disjointness of positive and negative time Schwartz submodules -/
+
+/-- The positive-time and negative-time Schwartz submodules are disjoint:
+if h vanishes on (-∞,0] AND on [0,∞) then h = 0. -/
+private theorem schwartz_posNeg_disjoint :
+    schwartzPositiveTimeSubmodule ⊓ schwartzNegativeTimeSubmodule = ⊥ := by
+  rw [Submodule.eq_bot_iff]
+  intro h ⟨hpos, hneg⟩
+  ext x
+  simp only [SchwartzMap.zero_apply]
+  by_cases hx : x ≤ 0
+  · exact hpos x hx
+  · push_neg at hx; exact hneg x (le_of_lt hx)
+
 /-! ## Disjointness of positive-time and negative-time submodules -/
 
 /-- The positive-time and negative-time submodules are disjoint.
@@ -146,8 +321,42 @@ pure tensors. It follows from the NTP coefficient structure (Cantor-paired
 DM expansion) and the 1D result `schwartzPositiveTime_disjoint_reflected`
 that positive-time and negative-time Schwartz functions have trivial
 intersection. -/
-axiom cylinderPositiveTime_negativeTime_disjoint :
-    cylinderPositiveTimeSubmodule L ⊓ cylinderNegativeTimeSubmodule L = ⊥
+theorem cylinderPositiveTime_negativeTime_disjoint :
+    cylinderPositiveTimeSubmodule L ⊓ cylinderNegativeTimeSubmodule L = ⊥ := by
+  rw [Submodule.eq_bot_iff]
+  intro f ⟨hf_pos, hf_neg⟩
+  -- Each slice of f is in both positive and negative time
+  have h_slice_zero : ∀ a, ntpSliceSchwartz L a f = 0 := by
+    intro a
+    have h_pos := ntpSliceSchwartz_maps_positive L a f hf_pos
+    have h_neg := ntpSliceSchwartz_maps_negative L a f hf_neg
+    have h_mem : ntpSliceSchwartz L a f ∈
+        schwartzPositiveTimeSubmodule ⊓ schwartzNegativeTimeSubmodule :=
+      ⟨h_pos, h_neg⟩
+    rw [schwartz_posNeg_disjoint] at h_mem
+    exact (Submodule.mem_bot ℝ).mp h_mem
+  -- All slices zero means all coefficients at paired indices are zero
+  have h_val_pair : ∀ a b, f.val (Nat.pair a b) = 0 := by
+    intro a b
+    have h := h_slice_zero a
+    -- ntpSliceSchwartz L a f = equiv.symm (ntpExtractSlice a f) = 0
+    -- So ntpExtractSlice a f = equiv 0 = 0
+    -- So (ntpExtractSlice a f).val b = 0
+    -- i.e. f.val (Nat.pair a b) = 0
+    have h2 : ntpExtractSlice a f = 0 := by
+      have h1 : schwartzRapidDecayEquiv1D.symm (ntpExtractSlice a f) = 0 := h
+      rw [← map_zero schwartzRapidDecayEquiv1D.symm] at h1
+      exact schwartzRapidDecayEquiv1D.symm.injective h1
+    have h3 : (ntpExtractSlice a f).val b = (0 : RapidDecaySeq).val b := by
+      rw [h2]
+    simpa using h3
+  -- Since Nat.pair is surjective, f.val m = 0 for all m
+  apply RapidDecaySeq.ext
+  intro m
+  show f.val m = (0 : RapidDecaySeq).val m
+  rw [RapidDecaySeq.zero_val]
+  have := h_val_pair (Nat.unpair m).1 (Nat.unpair m).2
+  rwa [Nat.pair_unpair] at this
 
 /-- Time reflection maps the positive-time submodule to a disjoint submodule.
 
