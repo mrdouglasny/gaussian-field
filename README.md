@@ -177,17 +177,32 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 63 | `DyninMityaginSpace` instance from the isomorphism |
 | [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 427 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
 
-### 2b. Circle Nuclearity
+### 2b. Circle Analysis
 
 Proves `DyninMityaginSpace (SmoothMap_Circle L ℝ)` (sorry-free) for smooth L-periodic
 functions on the circle via the real Fourier basis and the isomorphism
-`SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq`.
+`SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq`. Also provides the circle Laplacian
+$-d^2/dx^2$ as a CLM, proves its eigenvalue equation on the Fourier basis, and
+defines the heat semigroup $e^{-t\Delta}$ spectrally.
 
 | File | Lines | Contents |
 |------|------:|----------|
 | [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | 845 | Type, seminorms, Fourier basis, orthogonality, coefficients |
 | [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | 824 | IBP decay, CLE, Fourier completeness, `DyninMityaginSpace` instance |
+| [SmoothCircle/Eigenvalues.lean](SmoothCircle/Eigenvalues.lean) | 50 | `HasLaplacianEigenvalues` instance: eigenvalues $(2\pi k/L)^2$ |
+| [SmoothCircle/Laplacian.lean](SmoothCircle/Laplacian.lean) | 226 | `circleLaplacian` CLM $(-d^2/dx^2)$, eigenvalue equation on Fourier basis |
+| [SmoothCircle/HeatSemigroup.lean](SmoothCircle/HeatSemigroup.lean) | 195 | `circleHeatSemigroup` $e^{-t\Delta}$, spectral action, semigroup properties |
+| [SmoothCircle/Restriction.lean](SmoothCircle/Restriction.lean) | 139 | `circleRestriction` CLM: sample at $N$ lattice points with $\sqrt{L/N}$ normalization |
 | [Test.lean](Test.lean) | 358 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus, QFT covariance |
+
+**Circle Laplacian and heat semigroup:**
+
+- `derivSCCLM L` — the derivative $d/dx$ as a CLM on `SmoothMap_Circle L ℝ`
+- `circleLaplacian L` — $-d^2/dx^2$ defined as $-(\text{derivSCCLM})^2$
+- `circleLaplacian_fourierBasis` — eigenvalue equation: $(-d^2/dx^2)(\psi_n) = \lambda_n \psi_n$
+- `circleHeatSemigroup L ht` — $e^{-t\Delta}$ defined spectrally via conjugation through the Fourier equivalence
+- `circleHeatSemigroup_fourierBasis` — spectral action: $e^{-t\Delta}(\psi_n) = e^{-t\lambda_n}\psi_n$
+- `circleHeatSemigroup_zero` — identity: $e^{0\cdot\Delta} = \mathrm{id}$
 
 This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
 on cylinders S¹×ℝ and higher tori Tᵈ. The test file verifies the full pipeline
@@ -318,8 +333,10 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 Nuclear/
   DyninMityagin → NuclearTensorProduct → PointEval
        ↓                ↓
-SchwartzNuclear/   SmoothCircle/             GaussianField/
-  ...              Basic → Nuclear       NuclearFactorization
+SchwartzNuclear/   SmoothCircle/                       GaussianField/
+  ...              Basic → Nuclear → Eigenvalues    NuclearFactorization
+                          ↓    ↓          ↓
+                   Restriction  Laplacian → HeatSemigroup
   HermiteNuclear        ↓                     ↓
        ↓           Test (uses GF)   SpectralTheorem → NuclearSVD → TargetFactorization
   SchwartzTensorProduct                                                ↓

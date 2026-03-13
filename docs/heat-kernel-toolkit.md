@@ -71,6 +71,34 @@ heatSingularValue L mass s m = exp(-(s/2) · qftEigenvalue L mass m)
 `heatSingularValue_factors` (factorization into mass × circle × oscillator),
 `heat_singular_values_bounded` (bounded by 1 for s ≥ 0).
 
+## Circle Laplacian and heat semigroup (`SmoothCircle/Laplacian.lean`, `SmoothCircle/HeatSemigroup.lean`)
+
+The circle Laplacian `-d²/dx²` is defined as a CLM on `SmoothMap_Circle L ℝ`
+and proved to act on the Fourier basis by eigenvalue multiplication:
+
+```
+circleLaplacian L : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ
+circleLaplacian L (ψ_n) = λ_n · ψ_n    where λ_n = (2πk/L)²
+```
+
+The derivative `derivSCCLM L` is first defined as a CLM (with continuity via the
+Sobolev bound `p_k(f') ≤ p_{k+1}(f)`), then the Laplacian is `-(derivSCCLM)²`.
+The eigenvalue proof uses `HasDerivAt` chain rule on trig functions.
+
+The heat semigroup `e^{-tΔ}` is defined spectrally via conjugation through the
+Fourier equivalence `smoothCircleRapidDecayEquiv`:
+
+```
+circleHeatSemigroup L ht : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ
+circleHeatSemigroup L ht (ψ_n) = e^{-tλ_n} · ψ_n
+circleHeatSemigroup L le_rfl = id
+```
+
+The heat weight `heatWeight L t n = exp(-t·λ_n)` satisfies the semigroup property
+`heatWeight L (s+t) n = heatWeight L s n * heatWeight L t n`. The semigroup is
+defined as diagonal multiplication (by `heatWeight`) on `RapidDecaySeq`, conjugated
+through the Fourier CLΕ. All results are sorry-free.
+
 ## Position-space heat kernels (`HeatKernel/PositionKernel.lean`)
 
 ### Mehler kernel (harmonic oscillator)
