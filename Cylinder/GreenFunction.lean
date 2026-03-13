@@ -13,6 +13,15 @@ algebraic properties from inner product space theory.
 - `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (axiom)
 - `cylinderGreen L mass` — bilinear form G_L(f,g) = ⟨Tf, Tg⟩ (defined)
 
+## Main results
+
+- `cylinderGreen_spatialTranslation_invariant` — G is translation-invariant (proved)
+- `cylinderGreen_timeTranslation_invariant` — G is time-translation-invariant (proved)
+- `cylinderGreen_timeReflection_invariant` — G is reflection-invariant (proved)
+
+All three invariance theorems are derived from mass operator equivariance
+axioms via the isometry property ⟨Ux, Uy⟩ = ⟨x, y⟩.
+
 ## Mathematical background
 
 The Green's function on S¹_L × ℝ for the operator (-Δ + m²) is:
@@ -134,45 +143,85 @@ axiom cylinderGreen_pos (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L) (hf : f ≠ 0) :
     0 < cylinderGreen L mass hmass f f
 
-/-! ## Invariance properties -/
+/-! ## Mass operator equivariance
+
+The mass operator intertwines with each symmetry via a linear isometry
+on ℓ²: `T(Sf) = U(Tf)` for an isometry U. This is the fundamental
+spectral property of the operator `(-Δ + m²)^{-1/2}`:
+
+- Spatial translation: Fourier modes pick up phases that cancel in G
+- Time translation: the resolvent kernel depends on time difference
+- Time reflection: the resolvent kernel depends on |t - t'|
+
+These equivariance axioms imply Green's function invariance via the
+isometry property `⟨Ux, Uy⟩ = ⟨x, y⟩`. -/
+
+/-- The mass operator intertwines spatial translation with an isometry on ℓ². -/
+axiom cylinderMassOperator_spatialTranslation_equivariant
+    (mass : ℝ) (hmass : 0 < mass) (v : ℝ) :
+    ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
+    ∀ f, cylinderMassOperator L mass hmass (cylinderSpatialTranslation L v f) =
+         U (cylinderMassOperator L mass hmass f)
+
+/-- The mass operator intertwines time translation with an isometry on ℓ². -/
+axiom cylinderMassOperator_timeTranslation_equivariant
+    (mass : ℝ) (hmass : 0 < mass) (τ : ℝ) :
+    ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
+    ∀ f, cylinderMassOperator L mass hmass (cylinderTimeTranslation L τ f) =
+         U (cylinderMassOperator L mass hmass f)
+
+/-- The mass operator intertwines time reflection with an isometry on ℓ². -/
+axiom cylinderMassOperator_timeReflection_equivariant
+    (mass : ℝ) (hmass : 0 < mass) :
+    ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
+    ∀ f, cylinderMassOperator L mass hmass (cylinderTimeReflection L f) =
+         U (cylinderMassOperator L mass hmass f)
+
+/-! ## Invariance properties
+
+Derived from mass operator equivariance: `G(Sf, Sg) = ⟨T(Sf), T(Sg)⟩ =
+⟨U(Tf), U(Tg)⟩ = ⟨Tf, Tg⟩ = G(f, g)`, using the isometry property. -/
 
 /-- The cylinder Green's function is invariant under spatial translation.
 
-  `G_L(T_v f, T_v g) = G_L(f, g)` for all v ∈ S¹_L.
-
-Spectral proof: translation by v multiplies the n-th Fourier mode by
-`exp(2πinv/L)`, so the product f̂_n · ĝ_n is unchanged (phase cancels). -/
-axiom cylinderGreen_spatialTranslation_invariant
+  `G_L(T_v f, T_v g) = G_L(f, g)` for all v ∈ S¹_L. -/
+theorem cylinderGreen_spatialTranslation_invariant
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
     (f g : CylinderTestFunction L) :
     cylinderGreen L mass hmass (cylinderSpatialTranslation L v f)
       (cylinderSpatialTranslation L v g) =
-    cylinderGreen L mass hmass f g
+    cylinderGreen L mass hmass f g := by
+  simp only [cylinderGreen]
+  obtain ⟨U, hU⟩ := cylinderMassOperator_spatialTranslation_equivariant L mass hmass v
+  rw [hU f, hU g]
+  exact U.inner_map_map _ _
 
 /-- The cylinder Green's function is invariant under time translation.
 
-  `G_L(T_τ f, T_τ g) = G_L(f, g)` for all τ ∈ ℝ.
-
-The Green's function kernel K(x, t-t') depends only on the time
-difference, so translation invariance is immediate. -/
-axiom cylinderGreen_timeTranslation_invariant
+  `G_L(T_τ f, T_τ g) = G_L(f, g)` for all τ ∈ ℝ. -/
+theorem cylinderGreen_timeTranslation_invariant
     (mass : ℝ) (hmass : 0 < mass) (τ : ℝ)
     (f g : CylinderTestFunction L) :
     cylinderGreen L mass hmass (cylinderTimeTranslation L τ f)
       (cylinderTimeTranslation L τ g) =
-    cylinderGreen L mass hmass f g
+    cylinderGreen L mass hmass f g := by
+  simp only [cylinderGreen]
+  obtain ⟨U, hU⟩ := cylinderMassOperator_timeTranslation_equivariant L mass hmass τ
+  rw [hU f, hU g]
+  exact U.inner_map_map _ _
 
 /-- The cylinder Green's function is invariant under time reflection.
 
-  `G_L(Θf, Θg) = G_L(f, g)`.
-
-The Green's function kernel K(x, |t-t'|) depends on |t-t'|, which is
-invariant under t ↦ -t. -/
-axiom cylinderGreen_timeReflection_invariant
+  `G_L(Θf, Θg) = G_L(f, g)`. -/
+theorem cylinderGreen_timeReflection_invariant
     (mass : ℝ) (hmass : 0 < mass)
     (f g : CylinderTestFunction L) :
     cylinderGreen L mass hmass (cylinderTimeReflection L f)
       (cylinderTimeReflection L g) =
-    cylinderGreen L mass hmass f g
+    cylinderGreen L mass hmass f g := by
+  simp only [cylinderGreen]
+  obtain ⟨U, hU⟩ := cylinderMassOperator_timeReflection_equivariant L mass hmass
+  rw [hU f, hU g]
+  exact U.inner_map_map _ _
 
 end GaussianField
