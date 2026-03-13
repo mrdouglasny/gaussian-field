@@ -287,14 +287,15 @@ giving a clean positive-time half-space $\{t > 0\}$ with no wraparound issues.
 | [Cylinder/Basic.lean](Cylinder/Basic.lean) | 75 | `CylinderTestFunction L` $= C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, `Configuration` axioms |
 | [Cylinder/Symmetry.lean](Cylinder/Symmetry.lean) | 320 | Reflection, translation (Schwartz-level and cylinder-level), configuration-level actions, 1D positive-time Schwartz submodule, eval CLM, closedness |
 | [Cylinder/PositiveTime.lean](Cylinder/PositiveTime.lean) | 231 | `cylinderPositiveTimeSubmodule`, `cylinderNegativeTimeSubmodule`, Θ maps P+ into N−, disjointness of Θf from P+, spatial translation preserves P+ |
-| [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 178 | `cylinderMassOperator`, `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance |
+| [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 240 | `cylinderMassOperator` $= (-\Delta + m^2)^{-1/2}$ via `spectralCLM`, `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance |
 
 **Key definitions:**
 
 - `CylinderTestFunction L` — nuclear tensor product $C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, inherits `DyninMityaginSpace`
 - `cylinderTimeReflection L` — $\mathrm{id} \otimes \Theta$ where $\Theta f(t) = f(-t)$
 - `cylinderPositiveTimeSubmodule L` — closure of span of $g \otimes h$ with $\mathrm{supp}(h) \subset (0,\infty)$
-- `cylinderGreen L mass hmass` — Green's function $G_L(f,g) = \langle Tf, Tg \rangle_{\ell^2}$ from mass operator
+- `cylinderMassOperator L mass hmass` — $(-\Delta + m^2)^{-1/2}$ via `spectralCLM` with QFT singular values
+- `cylinderGreen L mass hmass` — Green's function $G_L(f,g) = \langle Tf, Tg \rangle_{\ell^2}$
 
 **Proved results:**
 

@@ -5,12 +5,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Green's Function on the Cylinder S¹_L × ℝ
 
 Defines the Green's function (covariance) for the massive free field
-on the cylinder from the axiomatized mass operator, and proves its
+on the cylinder from the mass operator `(-Δ + m²)^{-1/2}`, and proves its
 algebraic properties from inner product space theory.
 
 ## Main definitions
 
-- `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (axiom)
+- `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (defined)
 - `cylinderGreen L mass` — bilinear form G_L(f,g) = ⟨Tf, Tg⟩ (defined)
 
 ## Main results
@@ -43,6 +43,7 @@ then follow from inner product space axioms.
 
 import Cylinder.Symmetry
 import GaussianField.Construction
+import HeatKernel.Axioms
 
 noncomputable section
 
@@ -52,20 +53,36 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 
 /-! ## Mass operator (for Gaussian measure construction)
 
-The mass operator is the fundamental axiom: it encodes the spectral
-data of (-Δ + m²)^{-1/2} on the cylinder. All properties of the
-Green's function are derived from it. -/
+The mass operator is the spectral CLM `(-Δ + m²)^{-1/2}` on the cylinder,
+defined via `spectralCLM` with singular values `σ_m = λ_m^{-1/2}` where
+`λ_m = (2πk/L)² + (2n+1) + m²` are the eigenvalues of `-Δ + m²` on the
+product basis (Fourier modes on S¹_L × Hermite functions on ℝ).
 
-/-- The mass operator T : CylinderTestFunction L → ℓ² for the cylinder.
+All properties of the Green's function are derived from it. -/
+
+/-- **The mass operator T : CylinderTestFunction L → ℓ² for the cylinder.**
 
 This is the square root of the covariance: G(f,g) = ⟨Tf, Tg⟩_{ℓ²}.
 It maps test functions to rapidly decaying sequences via the spectral
 representation of (-Δ + m²)^{-1/2}.
 
+The m-th coordinate is `σ_m · coeff_m(f)` where `σ_m = (λ_m)^{-1/2}`
+and `λ_m = (2πk/L)² + (2n+1) + mass²` with `(k,n) = unpair(m)`.
+
 Used by `GaussianField.measure T` to construct the Gaussian probability
 measure on `Configuration (CylinderTestFunction L)`. -/
-axiom cylinderMassOperator (mass : ℝ) (hmass : 0 < mass) :
-    CylinderTestFunction L →L[ℝ] ell2'
+def cylinderMassOperator (mass : ℝ) (hmass : 0 < mass) :
+    CylinderTestFunction L →L[ℝ] ell2' :=
+  spectralCLM (fun m => qftSingularValue L mass m)
+    (qft_singular_values_bounded L mass hL.out hmass)
+
+/-- The m-th coordinate of `cylinderMassOperator` is
+`qftSingularValue L mass m · coeff_m(f)`. -/
+theorem cylinderMassOperator_coord (mass : ℝ) (hmass : 0 < mass)
+    (f : CylinderTestFunction L) (m : ℕ) :
+    (cylinderMassOperator L mass hmass f : ℕ → ℝ) m =
+    qftSingularValue L mass m * DyninMityaginSpace.coeff m f :=
+  spectralCLM_coord _ _ f m
 
 /-! ## Cylinder Green's function
 
