@@ -192,4 +192,16 @@ theorem circleHeatSemigroup_zero :
     simp [heatWeight]
   rw [h, ContinuousLinearEquiv.symm_apply_apply]
 
+/-- The heat semigroup multiplies the n-th Fourier coefficient by `heatWeight L t n`.
+
+  `c_n(e^{-tΔ} f) = e^{-tλ_n} · c_n(f)` -/
+theorem circleHeatSemigroup_fourierCoeff {t : ℝ} (ht : 0 ≤ t)
+    (f : SmoothMap_Circle L ℝ) (n : ℕ) :
+    (smoothCircleRapidDecayEquiv (L := L) (circleHeatSemigroup L ht f)).val n =
+    heatWeight L t n * (smoothCircleRapidDecayEquiv (L := L) f).val n := by
+  unfold circleHeatSemigroup
+  simp only [ContinuousLinearMap.comp_apply, ContinuousLinearEquiv.coe_coe,
+    ContinuousLinearEquiv.apply_symm_apply]
+  exact diagMulCLM_val _ _ _ _
+
 end GaussianField
