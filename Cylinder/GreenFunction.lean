@@ -13,31 +13,25 @@ where `A = -Δ_{S¹} - ∂²/∂t² + m²` is the cylinder operator.
 
 ## Architecture
 
-The proof chain uses three layers, each connecting to the heat semigroup:
+The proof chain uses two layers connecting to the heat semigroup:
 
-1. **Covariance operator** `C = A⁻¹ = ∫₀^∞ e^{-tA} dt` — a CLM on test functions.
-   Commutes with any symmetry that commutes with the heat semigroup
-   (by linearity of the Bochner integral).
+1. **Mass operator** `T = A^{-1/2}` — a CLM to ℓ² satisfying `⟨Tf, Tg⟩ = G(f,g)`.
+   Any symmetry that commutes with the heat semigroup `e^{-tA}` for all t ≥ 0
+   also intertwines T with an isometry on ℓ². This follows because the
+   covariance `C = ∫₀^∞ e^{-tA} dt` commutes with such symmetries (by linearity
+   of the Bochner integral), and `T = C^{1/2}` inherits this equivariance.
 
-2. **Mass operator** `T = A^{-1/2}` — a CLM to ℓ² satisfying `⟨Tf, Tg⟩ = G(f,g)`.
-   Equivariance of T follows from commutation of C with the symmetry
-   (since T² = C modulo L² embedding).
-
-3. **Green's function** `G(f,g) = ⟨Tf, Tg⟩` — algebraic properties (bilinearity,
+2. **Green's function** `G(f,g) = ⟨Tf, Tg⟩` — algebraic properties (bilinearity,
    symmetry, nonnegativity) are free from the inner product structure.
 
 ## Main definitions
 
 - `resolventFreq L mass n` — dispersion relation ω_n = √(λ_n + m²) (defined)
-- `cylinderCovarianceCLM L mass` — covariance operator C = A⁻¹ (axiom)
 - `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (axiom)
 - `cylinderGreen L mass` — bilinear form G_L(f,g) = ⟨Tf, Tg⟩ (defined)
 
 ## Main results
 
-- `cylinderCovarianceCLM_spatialTranslation_comm` — C commutes with spatial translation (proved)
-- `cylinderCovarianceCLM_timeTranslation_comm` — C commutes with time translation (proved)
-- `cylinderCovarianceCLM_timeReflection_comm` — C commutes with time reflection (proved)
 - `cylinderMassOperator_spatialTranslation_equivariant` — T equivariant (proved)
 - `cylinderMassOperator_timeTranslation_equivariant` — T equivariant (proved)
 - `cylinderMassOperator_timeReflection_equivariant` — T equivariant (proved)
@@ -159,109 +153,6 @@ theorem resolventFreq_zero_mode (mass : ℝ) (hmass : 0 ≤ mass) :
   unfold resolventFreq
   simp [SmoothMap_Circle.fourierFreq, Real.sqrt_sq hmass]
 
-/-! ## Covariance operator (heat kernel integral)
-
-The covariance operator `C = A⁻¹ = (-Δ_{S¹} - ∂²/∂t² + m²)⁻¹` is the
-Bochner integral of the cylinder heat semigroup:
-
-  `C = ∫₀^∞ e^{-tA} dt`
-
-This is a CLM on `CylinderTestFunction L` (the resolvent maps Schwartz-class
-functions to Schwartz-class functions since all Fourier multiplier symbols
-are smooth with polynomially bounded derivatives).
-
-The covariance operator is the central object connecting the heat semigroup
-to the Green's function. Its key property: **it commutes with any CLM that
-commutes with the heat semigroup**, by linearity of the Bochner integral.
-This is the mathematical content of the heat kernel approach to invariance.
-
-In the spatial Fourier decomposition, C acts mode-by-mode:
-for mode n with dispersion relation ω_n, the temporal part is the
-Fourier multiplier `(p² + ω_n²)^{-1}` on 𝓢(ℝ). -/
-
-/-- **The covariance operator** `C = A⁻¹` on `CylinderTestFunction L`.
-
-Defined as the Bochner integral of the cylinder heat semigroup:
-
-  `C = ∫₀^∞ e^{-tA} dt`
-
-where `A = -Δ_{S¹} - ∂²/∂t² + m²`. The integral converges because
-the factor `e^{-m²t}` in the heat semigroup ensures exponential decay
-of the integrand for `m > 0`.
-
-This is the inverse of the cylinder operator A, mapping test functions
-to test functions (the resolvent is a smoothing operator). -/
-axiom cylinderCovarianceCLM (mass : ℝ) (hmass : 0 < mass) :
-    CylinderTestFunction L →L[ℝ] CylinderTestFunction L
-
-/-- **Heat kernel commutation principle for the covariance operator.**
-
-If a CLM `S` commutes with the cylinder heat semigroup `e^{-tA}` for
-all `t ≥ 0`, then `S` commutes with the covariance operator `C = ∫₀^∞ e^{-tA} dt`.
-
-Proof sketch (to be formalized when Bochner integrals for CLMs are available):
-
-  `C(Sf) = ∫₀^∞ e^{-tA}(Sf) dt = ∫₀^∞ S(e^{-tA}f) dt = S(∫₀^∞ e^{-tA}f dt) = S(Cf)`
-
-The second equality uses the hypothesis `[S, e^{-tA}] = 0`, and the third
-uses linearity of the Bochner integral with respect to continuous linear maps. -/
-axiom cylinderCovarianceCLM_comm_of_heat_comm
-    (mass : ℝ) (hmass : 0 < mass)
-    (S : CylinderTestFunction L →L[ℝ] CylinderTestFunction L)
-    (h_heat : ∀ {t : ℝ} (ht : 0 ≤ t) (f : CylinderTestFunction L),
-      cylinderHeatSemigroup L ht mass (S f) =
-      S (cylinderHeatSemigroup L ht mass f))
-    (f : CylinderTestFunction L) :
-    cylinderCovarianceCLM L mass hmass (S f) =
-    S (cylinderCovarianceCLM L mass hmass f)
-
-/-! ### Covariance equivariance (proved from heat kernel commutation)
-
-Each commutation theorem is proved by applying the heat kernel commutation
-principle to the corresponding cylinder heat semigroup equivariance theorem. -/
-
-/-- The covariance operator commutes with spatial translation.
-
-  `C(T_v f) = T_v(Cf)` for all v.
-
-Proved from `cylinderCovarianceCLM_comm_of_heat_comm` using
-`cylinderHeatSemigroup_spatialTranslation_comm`. -/
-theorem cylinderCovarianceCLM_spatialTranslation_comm
-    (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
-    (f : CylinderTestFunction L) :
-    cylinderCovarianceCLM L mass hmass (cylinderSpatialTranslation L v f) =
-    cylinderSpatialTranslation L v (cylinderCovarianceCLM L mass hmass f) :=
-  cylinderCovarianceCLM_comm_of_heat_comm L mass hmass _ (fun ht g =>
-    cylinderHeatSemigroup_spatialTranslation_comm L ht mass v g) f
-
-/-- The covariance operator commutes with time translation.
-
-  `C(T_τ f) = T_τ(Cf)` for all τ.
-
-Proved from `cylinderCovarianceCLM_comm_of_heat_comm` using
-`cylinderHeatSemigroup_timeTranslation_comm`. -/
-theorem cylinderCovarianceCLM_timeTranslation_comm
-    (mass : ℝ) (hmass : 0 < mass) (τ : ℝ)
-    (f : CylinderTestFunction L) :
-    cylinderCovarianceCLM L mass hmass (cylinderTimeTranslation L τ f) =
-    cylinderTimeTranslation L τ (cylinderCovarianceCLM L mass hmass f) :=
-  cylinderCovarianceCLM_comm_of_heat_comm L mass hmass _ (fun ht g =>
-    cylinderHeatSemigroup_timeTranslation_comm L ht mass τ g) f
-
-/-- The covariance operator commutes with time reflection.
-
-  `C(Θf) = Θ(Cf)`.
-
-Proved from `cylinderCovarianceCLM_comm_of_heat_comm` using
-`cylinderHeatSemigroup_timeReflection_comm`. -/
-theorem cylinderCovarianceCLM_timeReflection_comm
-    (mass : ℝ) (hmass : 0 < mass)
-    (f : CylinderTestFunction L) :
-    cylinderCovarianceCLM L mass hmass (cylinderTimeReflection L f) =
-    cylinderTimeReflection L (cylinderCovarianceCLM L mass hmass f) :=
-  cylinderCovarianceCLM_comm_of_heat_comm L mass hmass _ (fun ht g =>
-    cylinderHeatSemigroup_timeReflection_comm L ht mass g) f
-
 /-! ## Mass operator (for Gaussian measure construction)
 
 The mass operator `T = A^{-1/2} : CylinderTestFunction L → ℓ²` is the
@@ -375,90 +266,78 @@ axiom cylinderGreen_pos (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L) (hf : f ≠ 0) :
     0 < cylinderGreen L mass hmass f f
 
-/-! ## Covariance transfer principle
+/-! ## Heat kernel equivariance principle
 
-The covariance transfer principle reduces mass operator equivariance to
-covariance operator commutation. If `S` commutes with the covariance
-operator `C`, then the mass operator `T = C^{1/2}` intertwines `S` with
-an isometry on ℓ².
+If a CLM `S` commutes with the cylinder heat semigroup `e^{-tA}` for all
+`t ≥ 0`, then the mass operator `T = A^{-1/2}` intertwines `S` with a
+linear isometry `U` on ℓ²: `T(Sf) = U(Tf)`.
 
-This is the key axiom connecting the heat kernel approach (which gives
-covariance commutation) to the mass operator equivariance needed for
-Green's function invariance.
+**Mathematical justification**: The proof goes through the covariance
+operator `C = ∫₀^∞ e^{-tA} dt`. By linearity of the Bochner integral,
+`[S, e^{-tA}] = 0` implies `[S, C] = 0`. Since `T*T = C` in the L²
+sense, commutation with C implies `S` preserves the quadratic form
+`⟨f, Cg⟩ = ⟨Tf, Tg⟩`, and any invertible map preserving a positive
+definite form lifts to an isometry of the GNS Hilbert space. -/
 
-**Mathematical justification**: The mass operator satisfies `T*T = C` in
-the L² sense. If `SC = CS` and `S` is L²-unitary (which holds for all
-our symmetries: translation and reflection preserve L² norms), then:
+/-- **Heat kernel equivariance principle for the mass operator.**
 
-  `T(Sf) = U(Tf)` for some isometry U on ℓ²
+If a CLM `S` commutes with the cylinder heat semigroup `e^{-tA}` for
+all `t ≥ 0`, then the mass operator `T` intertwines `S` with a linear
+isometry `U` on ℓ²: `T(Sf) = U(Tf)`.
 
-This follows because `S` preserves the quadratic form `⟨f, Cg⟩_{L²}` =
-`⟨Tf, Tg⟩_{ℓ²}`, and any invertible map preserving a positive definite
-form lifts to an isometry of the GNS Hilbert space. -/
-
-/-- **Covariance transfer principle.**
-
-If a CLM `S` on the cylinder test function space commutes with the
-covariance operator `C = A⁻¹`, then the mass operator `T = A^{-1/2}`
-intertwines `S` with a linear isometry `U` on ℓ²: `T(Sf) = U(Tf)`.
-
-Combined with `cylinderCovarianceCLM_comm_of_heat_comm`, this gives:
+This single axiom replaces the previous three-step chain:
 heat semigroup commutation → covariance commutation → mass operator
-equivariance → Green's function invariance. -/
-axiom cylinderMassOperator_covarianceTransfer
+equivariance. -/
+axiom cylinderMassOperator_equivariant_of_heat_comm
     (mass : ℝ) (hmass : 0 < mass)
     (S : CylinderTestFunction L →L[ℝ] CylinderTestFunction L)
-    (h_cov : ∀ f, cylinderCovarianceCLM L mass hmass (S f) =
-                   S (cylinderCovarianceCLM L mass hmass f)) :
+    (h_heat : ∀ {t : ℝ} (ht : 0 ≤ t) (f : CylinderTestFunction L),
+      cylinderHeatSemigroup L ht mass (S f) =
+      S (cylinderHeatSemigroup L ht mass f)) :
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (S f) =
          U (cylinderMassOperator L mass hmass f)
 
-/-! ## Mass operator equivariance (proved via covariance transfer)
+/-! ## Mass operator equivariance (proved from heat kernel principle)
 
-Each equivariance theorem is proved in two steps:
-1. Apply `cylinderCovarianceCLM_comm_of_heat_comm` to get covariance commutation
-   (using heat semigroup equivariance from `Cylinder.FreeHeatSemigroup`)
-2. Apply `cylinderMassOperator_covarianceTransfer` to get mass operator equivariance -/
+Each equivariance theorem is proved by applying the heat kernel equivariance
+principle to the corresponding cylinder heat semigroup equivariance theorem. -/
 
 /-- The mass operator intertwines spatial translation with an isometry on ℓ².
 
-Proof chain: `cylinderHeatSemigroup_spatialTranslation_comm`
-  → `cylinderCovarianceCLM_spatialTranslation_comm`
-  → `cylinderMassOperator_covarianceTransfer`. -/
+Proved from `cylinderMassOperator_equivariant_of_heat_comm` using
+`cylinderHeatSemigroup_spatialTranslation_comm`. -/
 theorem cylinderMassOperator_spatialTranslation_equivariant
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ) :
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (cylinderSpatialTranslation L v f) =
          U (cylinderMassOperator L mass hmass f) :=
-  cylinderMassOperator_covarianceTransfer L mass hmass _ fun f =>
-    cylinderCovarianceCLM_spatialTranslation_comm L mass hmass v f
+  cylinderMassOperator_equivariant_of_heat_comm L mass hmass _ fun ht g =>
+    cylinderHeatSemigroup_spatialTranslation_comm L ht mass v g
 
 /-- The mass operator intertwines time translation with an isometry on ℓ².
 
-Proof chain: `cylinderHeatSemigroup_timeTranslation_comm`
-  → `cylinderCovarianceCLM_timeTranslation_comm`
-  → `cylinderMassOperator_covarianceTransfer`. -/
+Proved from `cylinderMassOperator_equivariant_of_heat_comm` using
+`cylinderHeatSemigroup_timeTranslation_comm`. -/
 theorem cylinderMassOperator_timeTranslation_equivariant
     (mass : ℝ) (hmass : 0 < mass) (τ : ℝ) :
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (cylinderTimeTranslation L τ f) =
          U (cylinderMassOperator L mass hmass f) :=
-  cylinderMassOperator_covarianceTransfer L mass hmass _ fun f =>
-    cylinderCovarianceCLM_timeTranslation_comm L mass hmass τ f
+  cylinderMassOperator_equivariant_of_heat_comm L mass hmass _ fun ht g =>
+    cylinderHeatSemigroup_timeTranslation_comm L ht mass τ g
 
 /-- The mass operator intertwines time reflection with an isometry on ℓ².
 
-Proof chain: `cylinderHeatSemigroup_timeReflection_comm`
-  → `cylinderCovarianceCLM_timeReflection_comm`
-  → `cylinderMassOperator_covarianceTransfer`. -/
+Proved from `cylinderMassOperator_equivariant_of_heat_comm` using
+`cylinderHeatSemigroup_timeReflection_comm`. -/
 theorem cylinderMassOperator_timeReflection_equivariant
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (cylinderTimeReflection L f) =
          U (cylinderMassOperator L mass hmass f) :=
-  cylinderMassOperator_covarianceTransfer L mass hmass _ fun f =>
-    cylinderCovarianceCLM_timeReflection_comm L mass hmass f
+  cylinderMassOperator_equivariant_of_heat_comm L mass hmass _ fun ht g =>
+    cylinderHeatSemigroup_timeReflection_comm L ht mass g
 
 /-! ## Invariance properties
 
