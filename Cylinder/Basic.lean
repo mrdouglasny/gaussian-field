@@ -54,22 +54,4 @@ abbrev CylinderTestFunction := NuclearTensorProduct (SmoothMap_Circle L ℝ) (Sc
 -- CylinderTestFunction L inherits DyninMityaginSpace from NuclearTensorProduct
 example : DyninMityaginSpace (CylinderTestFunction L) := inferInstance
 
-/-! ## Configuration space axioms
-
-These are future proof targets. The Configuration space of the cylinder test functions
-should be Polish and have the Borel σ-algebra coincide with the cylindrical σ-algebra.
-Both follow from nuclearity of the test function space (standard for duals of
-nuclear Fréchet spaces). -/
-
-/-- Configuration(CylinderTestFunction L) is a Polish space.
-This follows from the nuclear Fréchet structure of CylinderTestFunction L,
-whose weak-* dual is metrizable, complete, and separable. -/
-axiom configuration_cylinder_polish (L : ℝ) [Fact (0 < L)] :
-    PolishSpace (Configuration (CylinderTestFunction L))
-
-/-- The cylindrical σ-algebra on Configuration(CylinderTestFunction L) equals
-the Borel σ-algebra. This is standard for Polish duals of nuclear Fréchet spaces. -/
-axiom configuration_cylinder_borelSpace (L : ℝ) [Fact (0 < L)] :
-    BorelSpace (Configuration (CylinderTestFunction L))
-
 end GaussianField
