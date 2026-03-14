@@ -4,22 +4,30 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Fourier Multipliers on Schwartz Space 𝓢(ℝ)
 
-Axiomatizes Fourier multiplier CLMs on 𝓢(ℝ) and derives the free heat
-semigroup and resolvent multiplier with their equivariance properties.
+Defines Fourier multiplier CLMs on 𝓢(ℝ) via Mathlib's `fourierMultiplierCLM`
+and proves the identity-at-zero property. Equivariance and semigroup
+composition remain axiomatized.
 
 ## Main definitions
 
 - `heatSymbol t p = e^{-tp²}` — the heat kernel Fourier symbol
 - `resolventSymbol ω p = (p² + ω²)^{-1/2}` — the resolvent Fourier symbol
-- `freeHeatSemigroup` — CLM for the heat symbol (alias for `heatMultiplierCLM`)
-- `resolventMultiplierCLM` — CLM for the resolvent symbol
+- `realFourierMultiplierCLM` — lift-apply-project CLM construction
+- `heatMultiplierCLM` — CLM for the heat symbol (defined, not axiomatized)
+- `resolventMultiplierCLM` — CLM for the resolvent symbol (defined)
+- `freeHeatSemigroup` — alias for `heatMultiplierCLM`
 
-## Main axioms
+## Main results
 
-- `heatMultiplierCLM` — the heat kernel Fourier multiplier CLM
-- `resolventMultiplierCLM` — the resolvent Fourier multiplier CLM
+- `heatMultiplierCLM_zero` — heat multiplier at t=0 is the identity (proved)
+
+## Remaining axioms
+
+- `heatSymbol_hasTemperateGrowth` — temperate growth of heat symbol
+- `resolventSymbol_hasTemperateGrowth` — temperate growth of resolvent symbol
 - `*_translation_comm` — all Fourier multipliers commute with translation
 - `*_reflection_comm` — even Fourier multipliers commute with reflection
+- `heatMultiplierCLM_comp` — semigroup composition property
 
 ## Mathematical background
 
@@ -51,6 +59,7 @@ reflecting f negates the Fourier variable, and even σ is invariant.
 -/
 
 import Cylinder.Symmetry
+import Mathlib.Analysis.Distribution.FourierMultiplier
 
 noncomputable section
 
@@ -91,30 +100,83 @@ theorem resolventSymbol_pos {ω : ℝ} (hω : 0 < ω) (p : ℝ) :
   unfold resolventSymbol
   exact Real.rpow_pos_of_pos (by positivity) _
 
-/-! ## Fourier multiplier CLMs (axiomatized)
+/-! ## Real Fourier multiplier CLM via lift-apply-project
 
-Each Fourier multiplier is axiomatized as a CLM on 𝓢(ℝ) together with
-its equivariance properties. The translation and reflection equivariance
-follow from the structure of Fourier multipliers (universal for translation,
-requires even symbol for reflection). -/
+We construct real-valued Fourier multiplier CLMs on 𝓢(ℝ, ℝ) by:
+1. **Lift**: embed 𝓢(ℝ, ℝ) → 𝓢(ℝ, ℂ) via `Complex.ofRealCLM`
+2. **Apply**: use Mathlib's `fourierMultiplierCLM` on 𝓢(ℝ, ℂ)
+3. **Project**: extract the real part 𝓢(ℝ, ℂ) → 𝓢(ℝ, ℝ) via `Complex.reCLM`
+
+This gives concrete definitions (not axioms) for the heat and resolvent
+multiplier CLMs, modulo `HasTemperateGrowth` for their symbols. -/
+
+/-- The heat symbol has temperate growth for t ≥ 0.
+
+The heat symbol `e^{-tp²}` is smooth and all derivatives are bounded
+(in fact, Schwartz), so `HasTemperateGrowth` holds with k = 0. -/
+axiom heatSymbol_hasTemperateGrowth (t : ℝ) (ht : 0 ≤ t) :
+    (heatSymbol t).HasTemperateGrowth
+
+/-- The resolvent symbol has temperate growth for ω > 0.
+
+The resolvent symbol `(p² + ω²)^{-1/2}` and all its derivatives are
+polynomially bounded (in fact, bounded), so `HasTemperateGrowth` holds. -/
+axiom resolventSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
+    (resolventSymbol ω).HasTemperateGrowth
+
+/-- Lift real Schwartz functions to complex: `f ↦ ofReal ∘ f`. -/
+def schwartzToComplex : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℂ :=
+  SchwartzMap.postcompCLM Complex.ofRealCLM
+
+/-- Project complex Schwartz functions to real: `f ↦ re ∘ f`. -/
+def schwartzToReal : SchwartzMap ℝ ℂ →L[ℝ] SchwartzMap ℝ ℝ :=
+  SchwartzMap.postcompCLM Complex.reCLM
+
+/-- The roundtrip `re ∘ ofReal = id` on real Schwartz functions. -/
+theorem schwartzToReal_comp_schwartzToComplex :
+    schwartzToReal.comp schwartzToComplex =
+    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) := by
+  ext f x
+  simp [schwartzToReal, schwartzToComplex]
+
+attribute [local instance] SMulCommClass.symm in
+/-- **Real Fourier multiplier CLM** via lift-apply-project.
+
+For a real-valued symbol `σ : ℝ → ℝ` with temperate growth, this is
+`re ∘ M_σ ∘ ofReal` where `M_σ = ℱ⁻¹ ∘ (σ · ) ∘ ℱ` is Mathlib's
+`fourierMultiplierCLM` applied on `𝓢(ℝ, ℂ)` with scalar field `ℝ`.
+
+Using `𝕜 = ℝ` means all three CLMs in the composition are `→L[ℝ]`,
+avoiding the need for `restrictScalars`. -/
+def realFourierMultiplierCLM (σ : ℝ → ℝ)
+    (_hσ : σ.HasTemperateGrowth) :
+    SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+  schwartzToReal.comp
+    ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)
+
+/-! ## Fourier multiplier CLMs (defined)
+
+Each Fourier multiplier is now defined concretely via
+`realFourierMultiplierCLM`, with only `HasTemperateGrowth` axiomatized
+for the symbols. -/
 
 /-- **The heat kernel Fourier multiplier** on 𝓢(ℝ).
 
-  `(e^{-tΔ} f)(x) = (4πt)^{-1/2} ∫ e^{-(x-y)²/(4t)} f(y) dy`
+  `(e^{-tΔ} f)(x) = ℱ⁻¹(e^{-tp²} · ℱf)(x)`
 
-In Fourier space, this multiplies ℱf by `e^{-tp²}`.
-Maps 𝓢(ℝ) → 𝓢(ℝ) because the Gaussian convolution kernel is Schwartz. -/
-axiom heatMultiplierCLM {t : ℝ} (ht : 0 ≤ t) :
-    SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ
+Defined via lift-apply-project from Mathlib's `fourierMultiplierCLM`. -/
+def heatMultiplierCLM {t : ℝ} (ht : 0 ≤ t) :
+    SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+  realFourierMultiplierCLM (heatSymbol t) (heatSymbol_hasTemperateGrowth t ht)
 
 /-- **The resolvent Fourier multiplier** on 𝓢(ℝ).
 
   Symbol: `(p² + ω²)^{-1/2}`. Convolution kernel: `e^{-ω|x|}/(2ω)`.
 
-Maps 𝓢(ℝ) → 𝓢(ℝ) because the multiplier and all its derivatives are
-polynomially bounded (in fact, bounded). -/
-axiom resolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
-    SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ
+Defined via lift-apply-project from Mathlib's `fourierMultiplierCLM`. -/
+def resolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
+    SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+  realFourierMultiplierCLM (resolventSymbol ω) (resolventSymbol_hasTemperateGrowth ω hω)
 
 /-! ### Equivariance axioms -/
 
@@ -159,10 +221,19 @@ axiom resolventMultiplierCLM_reflection_comm {ω : ℝ} (hω : 0 < ω)
 
 /-! ### Heat semigroup properties -/
 
-/-- The heat multiplier at time 0 is the identity. -/
-axiom heatMultiplierCLM_zero :
+/-- The heat multiplier at time 0 is the identity.
+
+Proof: `heatSymbol 0 = 1`, so the Fourier multiplier is `1 • id = id`,
+and the roundtrip `re ∘ ofReal = id` completes the proof. -/
+theorem heatMultiplierCLM_zero :
     heatMultiplierCLM (le_refl (0 : ℝ)) =
-    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ)
+    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) := by
+  show realFourierMultiplierCLM (heatSymbol 0) _ = _
+  have h1 : heatSymbol 0 = fun _ => (1 : ℝ) := by ext p; exact heatSymbol_zero p
+  simp only [h1]
+  ext f x
+  simp [realFourierMultiplierCLM, schwartzToReal, schwartzToComplex,
+    SchwartzMap.fourierMultiplierCLM_const]
 
 /-- The heat multiplier satisfies the semigroup property:
   `e^{-sΔ} ∘ e^{-tΔ} = e^{-(s+t)Δ}`.
