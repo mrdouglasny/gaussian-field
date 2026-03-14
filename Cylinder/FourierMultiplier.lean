@@ -22,12 +22,15 @@ composition remain axiomatized.
 - `heatSymbol_hasTemperateGrowth` — temperate growth of heat symbol (proved)
 - `resolventSymbol_hasTemperateGrowth` — temperate growth of resolvent symbol (proved)
 - `heatMultiplierCLM_zero` — heat multiplier at t=0 is the identity (proved)
+- `heatMultiplierCLM_comp` — semigroup composition (proved from general comp axiom)
+- `*_translation_comm` — translation equivariance (proved from general axiom)
+- `*_reflection_comm` — reflection equivariance (proved from general axiom)
 
-## Remaining axioms
+## Remaining axioms (3 general properties of `realFourierMultiplierCLM`)
 
-- `*_translation_comm` — all Fourier multipliers commute with translation
-- `*_reflection_comm` — even Fourier multipliers commute with reflection
-- `heatMultiplierCLM_comp` — semigroup composition property
+- `realFourierMultiplierCLM_comp` — composition of multipliers = multiplier of product
+- `realFourierMultiplierCLM_translation_comm` — translation equivariance
+- `realFourierMultiplierCLM_even_reflection_comm` — reflection equivariance for even symbols
 
 ## Mathematical background
 
@@ -217,11 +220,51 @@ def realFourierMultiplierCLM (σ : ℝ → ℝ)
   schwartzToReal.comp
     ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)
 
+/-! ### General axioms for real Fourier multipliers
+
+These three axioms encode the core properties of Fourier multipliers
+that require the Fourier transform's interaction with translation,
+reflection, and composition. They replace five symbol-specific axioms. -/
+
+/-- **Composition of real Fourier multipliers.**
+
+  `M_{σ₁} ∘ M_{σ₂} = M_{σ₁ · σ₂}`
+
+This follows from Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`
+on the complex side, plus the fact that real-symbol multipliers preserve
+real-valuedness (Fourier conjugation symmetry). -/
+axiom realFourierMultiplierCLM_comp (σ₁ σ₂ : ℝ → ℝ)
+    (hσ₁ : σ₁.HasTemperateGrowth) (hσ₂ : σ₂.HasTemperateGrowth) :
+    (realFourierMultiplierCLM σ₁ hσ₁).comp (realFourierMultiplierCLM σ₂ hσ₂) =
+    realFourierMultiplierCLM (σ₁ * σ₂) (hσ₁.mul hσ₂)
+
+/-- **Translation equivariance of real Fourier multipliers.**
+
+  `M_σ(T_τ f) = T_τ(M_σ f)`
+
+Universal: translation by τ multiplies ℱf by e^{-2πiτp}, which commutes
+with pointwise multiplication by σ(p). -/
+axiom realFourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
+    (hσ : σ.HasTemperateGrowth) (τ : ℝ) (f : SchwartzMap ℝ ℝ) :
+    realFourierMultiplierCLM σ hσ (schwartzTranslation τ f) =
+    schwartzTranslation τ (realFourierMultiplierCLM σ hσ f)
+
+/-- **Reflection equivariance of real Fourier multipliers with even symbol.**
+
+  `M_σ(Θf) = Θ(M_σ f)` when `σ(-p) = σ(p)`
+
+Reflection negates the Fourier variable, and even σ is invariant. -/
+axiom realFourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
+    (hσ : σ.HasTemperateGrowth) (heven : ∀ p, σ (-p) = σ p)
+    (f : SchwartzMap ℝ ℝ) :
+    realFourierMultiplierCLM σ hσ (schwartzReflection f) =
+    schwartzReflection (realFourierMultiplierCLM σ hσ f)
+
 /-! ## Fourier multiplier CLMs (defined)
 
 Each Fourier multiplier is now defined concretely via
-`realFourierMultiplierCLM`, with only `HasTemperateGrowth` axiomatized
-for the symbols. -/
+`realFourierMultiplierCLM`, with `HasTemperateGrowth` proved for
+the symbols. -/
 
 /-- **The heat kernel Fourier multiplier** on 𝓢(ℝ).
 
@@ -247,40 +290,45 @@ def resolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
 
   `e^{-tΔ}(T_τ f) = T_τ(e^{-tΔ} f)`
 
-Universal for Fourier multipliers: translation by τ multiplies ℱf by
-e^{-2πiτp}, which commutes with multiplication by σ(p). -/
-axiom heatMultiplierCLM_translation_comm {t : ℝ} (ht : 0 ≤ t) (τ : ℝ)
+Proved from the general translation equivariance of Fourier multipliers. -/
+theorem heatMultiplierCLM_translation_comm {t : ℝ} (ht : 0 ≤ t) (τ : ℝ)
     (f : SchwartzMap ℝ ℝ) :
     heatMultiplierCLM ht (schwartzTranslation τ f) =
-    schwartzTranslation τ (heatMultiplierCLM ht f)
+    schwartzTranslation τ (heatMultiplierCLM ht f) :=
+  realFourierMultiplierCLM_translation_comm _ _ τ f
 
 /-- The heat multiplier commutes with reflection.
 
   `e^{-tΔ}(Θf) = Θ(e^{-tΔ} f)`
 
-Holds because the heat symbol is even: `e^{-t(-p)²} = e^{-tp²}`. -/
-axiom heatMultiplierCLM_reflection_comm {t : ℝ} (ht : 0 ≤ t)
+Proved from general reflection equivariance + evenness of the heat symbol. -/
+theorem heatMultiplierCLM_reflection_comm {t : ℝ} (ht : 0 ≤ t)
     (f : SchwartzMap ℝ ℝ) :
     heatMultiplierCLM ht (schwartzReflection f) =
-    schwartzReflection (heatMultiplierCLM ht f)
+    schwartzReflection (heatMultiplierCLM ht f) :=
+  realFourierMultiplierCLM_even_reflection_comm _ _ (heatSymbol_even t) f
 
 /-- The resolvent multiplier commutes with translation.
 
-  `M_ω(T_τ f) = T_τ(M_ω f)` -/
-axiom resolventMultiplierCLM_translation_comm {ω : ℝ} (hω : 0 < ω) (τ : ℝ)
+  `M_ω(T_τ f) = T_τ(M_ω f)`
+
+Proved from the general translation equivariance of Fourier multipliers. -/
+theorem resolventMultiplierCLM_translation_comm {ω : ℝ} (hω : 0 < ω) (τ : ℝ)
     (f : SchwartzMap ℝ ℝ) :
     resolventMultiplierCLM hω (schwartzTranslation τ f) =
-    schwartzTranslation τ (resolventMultiplierCLM hω f)
+    schwartzTranslation τ (resolventMultiplierCLM hω f) :=
+  realFourierMultiplierCLM_translation_comm _ _ τ f
 
 /-- The resolvent multiplier commutes with reflection.
 
   `M_ω(Θf) = Θ(M_ω f)`
 
-Holds because the resolvent symbol is even: `((-p)² + ω²)^{-1/2} = (p² + ω²)^{-1/2}`. -/
-axiom resolventMultiplierCLM_reflection_comm {ω : ℝ} (hω : 0 < ω)
+Proved from general reflection equivariance + evenness of the resolvent symbol. -/
+theorem resolventMultiplierCLM_reflection_comm {ω : ℝ} (hω : 0 < ω)
     (f : SchwartzMap ℝ ℝ) :
     resolventMultiplierCLM hω (schwartzReflection f) =
-    schwartzReflection (resolventMultiplierCLM hω f)
+    schwartzReflection (resolventMultiplierCLM hω f) :=
+  realFourierMultiplierCLM_even_reflection_comm _ _ (resolventSymbol_even ω) f
 
 /-! ### Heat semigroup properties -/
 
@@ -301,10 +349,15 @@ theorem heatMultiplierCLM_zero :
 /-- The heat multiplier satisfies the semigroup property:
   `e^{-sΔ} ∘ e^{-tΔ} = e^{-(s+t)Δ}`.
 
-Follows from `e^{-sp²} · e^{-tp²} = e^{-(s+t)p²}` at the symbol level. -/
-axiom heatMultiplierCLM_comp {s t : ℝ} (hs : 0 ≤ s) (ht : 0 ≤ t) :
+Proved from the general composition axiom + symbol multiplication identity. -/
+theorem heatMultiplierCLM_comp {s t : ℝ} (hs : 0 ≤ s) (ht : 0 ≤ t) :
     (heatMultiplierCLM hs).comp (heatMultiplierCLM ht) =
-    heatMultiplierCLM (show 0 ≤ s + t from add_nonneg hs ht)
+    heatMultiplierCLM (show 0 ≤ s + t from add_nonneg hs ht) := by
+  show (realFourierMultiplierCLM _ _).comp (realFourierMultiplierCLM _ _) = _
+  rw [realFourierMultiplierCLM_comp]
+  congr 1
+  ext p
+  exact heatSymbol_mul s t p
 
 /-! ## Derived definitions and theorems
 
