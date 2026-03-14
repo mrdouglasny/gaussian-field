@@ -19,12 +19,12 @@ composition remain axiomatized.
 
 ## Main results
 
+- `heatSymbol_hasTemperateGrowth` — temperate growth of heat symbol (proved)
+- `resolventSymbol_hasTemperateGrowth` — temperate growth of resolvent symbol (proved)
 - `heatMultiplierCLM_zero` — heat multiplier at t=0 is the identity (proved)
 
 ## Remaining axioms
 
-- `heatSymbol_hasTemperateGrowth` — temperate growth of heat symbol
-- `resolventSymbol_hasTemperateGrowth` — temperate growth of resolvent symbol
 - `*_translation_comm` — all Fourier multipliers commute with translation
 - `*_reflection_comm` — even Fourier multipliers commute with reflection
 - `heatMultiplierCLM_comp` — semigroup composition property
@@ -113,16 +113,79 @@ multiplier CLMs, modulo `HasTemperateGrowth` for their symbols. -/
 /-- The heat symbol has temperate growth for t ≥ 0.
 
 The heat symbol `e^{-tp²}` is smooth and all derivatives are bounded
-(in fact, Schwartz), so `HasTemperateGrowth` holds with k = 0. -/
-axiom heatSymbol_hasTemperateGrowth (t : ℝ) (ht : 0 ≤ t) :
-    (heatSymbol t).HasTemperateGrowth
+(in fact, Schwartz), so `HasTemperateGrowth` holds with k = 0.
+
+Proof: `heatSymbol t = exp ∘ (p ↦ -tp²)`. The inner function is polynomial
+(temperate growth by `fun_prop`). The outer function `exp` is smooth and all
+derivatives (= exp) are bounded by `exp(1)` on `(-∞, 1)`, which contains the
+range of the inner function for t ≥ 0. Apply `HasTemperateGrowth.comp'`. -/
+theorem heatSymbol_hasTemperateGrowth (t : ℝ) (ht : 0 ≤ t) :
+    (heatSymbol t).HasTemperateGrowth := by
+  show (Real.exp ∘ (fun p => -t * p ^ 2)).HasTemperateGrowth
+  apply Function.HasTemperateGrowth.comp' (t := Set.Iio 1)
+  · rintro _ ⟨p, rfl⟩
+    simp only [Set.mem_Iio]
+    nlinarith [sq_nonneg p]
+  · exact isOpen_Iio.uniqueDiffOn
+  · exact Real.contDiff_exp.contDiffOn
+  · intro N
+    refine ⟨0, Real.exp 1, le_of_lt (Real.exp_pos 1), ?_⟩
+    intro n _ x hx
+    rw [norm_iteratedFDerivWithin_eq_norm_iteratedDerivWithin,
+      iteratedDerivWithin_eq_iteratedDeriv isOpen_Iio.uniqueDiffOn
+        (Real.contDiff_exp.contDiffAt.of_le le_top) hx,
+      iteratedDeriv_eq_iterate, Real.iter_deriv_exp]
+    simp only [pow_zero, mul_one]
+    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos x)]
+    exact Real.exp_le_exp.mpr hx.le
+  · fun_prop
 
 /-- The resolvent symbol has temperate growth for ω > 0.
 
-The resolvent symbol `(p² + ω²)^{-1/2}` and all its derivatives are
-polynomially bounded (in fact, bounded), so `HasTemperateGrowth` holds. -/
-axiom resolventSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
-    (resolventSymbol ω).HasTemperateGrowth
+The resolvent symbol `(p² + ω²)^{-1/2}` is smooth (since the base is everywhere
+positive) and all derivatives are bounded because the exponent `r - n < 0`
+for all derivative orders `n`, making `y^{r-n}` decreasing. We apply
+`HasTemperateGrowth.comp'` with outer function `y^{-1/2}` restricted to
+`{y | ω²/2 < y}` (an open set containing the range of `p² + ω²`). -/
+theorem resolventSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
+    (resolventSymbol ω).HasTemperateGrowth := by
+  show ((fun y => y ^ (-(1 : ℝ) / 2)) ∘ (fun p => p ^ 2 + ω ^ 2)).HasTemperateGrowth
+  have hω2 : (0 : ℝ) < ω ^ 2 / 2 := by positivity
+  apply Function.HasTemperateGrowth.comp' (t := Set.Ioi (ω ^ 2 / 2))
+  · rintro _ ⟨p, rfl⟩
+    simp only [Set.mem_Ioi]
+    nlinarith [sq_nonneg p, pow_pos hω 2]
+  · exact isOpen_Ioi.uniqueDiffOn
+  · exact contDiffOn_fun_id.rpow_const_of_ne fun x hx => (lt_trans hω2 hx).ne'
+  · intro N
+    refine ⟨0, ∑ k ∈ Finset.range (N + 1),
+      ‖(descPochhammer ℝ k).eval (-(1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ (-(1 : ℝ) / 2 - ↑k),
+      by positivity, ?_⟩
+    intro n hn x hx
+    have hx_pos : 0 < x := lt_trans hω2 hx
+    have hrn : -(1 : ℝ) / 2 - (n : ℝ) < 0 := by
+      have : (0 : ℝ) ≤ (n : ℝ) := n.cast_nonneg; linarith
+    rw [norm_iteratedFDerivWithin_eq_norm_iteratedDerivWithin,
+      iteratedDerivWithin_eq_iteratedDeriv isOpen_Ioi.uniqueDiffOn
+        (Real.contDiffAt_rpow_const_of_ne hx_pos.ne') hx,
+      iteratedDeriv_eq_iterate, Real.iter_deriv_rpow_const, norm_mul,
+      pow_zero, mul_one]
+    have h1 : ‖x ^ (-(1 : ℝ) / 2 - ↑n)‖ ≤ (ω ^ 2 / 2) ^ (-(1 : ℝ) / 2 - ↑n) := by
+      rw [Real.norm_eq_abs, abs_of_pos (Real.rpow_pos_of_pos hx_pos _)]
+      exact (Real.rpow_le_rpow_iff_of_neg hx_pos hω2 hrn).mpr hx.le
+    calc ‖(descPochhammer ℝ n).eval (-(1 : ℝ) / 2)‖ * ‖x ^ (-(1 : ℝ) / 2 - ↑n)‖
+        ≤ ‖(descPochhammer ℝ n).eval (-(1 : ℝ) / 2)‖ *
+            (ω ^ 2 / 2) ^ (-(1 : ℝ) / 2 - ↑n) := by gcongr
+      _ ≤ ∑ k ∈ Finset.range (N + 1),
+            ‖(descPochhammer ℝ k).eval (-(1 : ℝ) / 2)‖ *
+              (ω ^ 2 / 2) ^ (-(1 : ℝ) / 2 - ↑k) :=
+          Finset.single_le_sum (f := fun k =>
+              ‖(descPochhammer ℝ k).eval (-(1 : ℝ) / 2)‖ *
+                (ω ^ 2 / 2) ^ (-(1 : ℝ) / 2 - (k : ℝ)))
+            (fun k _ => mul_nonneg (norm_nonneg _)
+              (le_of_lt (Real.rpow_pos_of_pos hω2 _)))
+            (Finset.mem_range.mpr (Nat.lt_succ_of_le hn))
+  · fun_prop
 
 /-- Lift real Schwartz functions to complex: `f ↦ ofReal ∘ f`. -/
 def schwartzToComplex : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℂ :=
