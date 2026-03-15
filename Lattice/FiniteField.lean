@@ -106,6 +106,12 @@ noncomputable instance finLatticeField_dyninMityaginSpace :
     DyninMityaginSpace (FinLatticeField d N) where
   ι := Unit
   p := fun _ => finLatticeSeminorm d N
+  h_countable := inferInstance
+  h_completeSpace := by
+    have heq : (IsTopologicalAddGroup.rightUniformSpace (FinLatticeField d N)) =
+        (Pi.uniformSpace (fun _ : FinLatticeSites d N => ℝ)) :=
+      IsUniformAddGroup.rightUniformSpace_eq
+    exact heq ▸ inferInstance
   h_with := by
     rw [SeminormFamily.withSeminorms_iff_nhds_eq_iInf]
     simp only [iInf_const]

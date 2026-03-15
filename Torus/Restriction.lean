@@ -45,15 +45,7 @@ These are future proof targets. The Configuration space of the torus test functi
 should be Polish and have the Borel σ-algebra coincide with the cylindrical σ-algebra.
 See `future/configuration_torus.lean` for proof strategies. -/
 
-/-- Configuration(TorusTestFunction L) is a Polish space.
-This follows from the nuclear Fréchet structure of TorusTestFunction L,
-whose weak-* dual is metrizable, complete, and separable. -/
-axiom configuration_torus_polish (L : ℝ) [Fact (0 < L)] :
-    PolishSpace (Configuration (TorusTestFunction L))
-
-/-- The cylindrical σ-algebra on Configuration(TorusTestFunction L) equals
-the Borel σ-algebra. This is standard for Polish duals of nuclear Fréchet spaces. -/
-axiom configuration_torus_borelSpace (L : ℝ) [Fact (0 < L)] :
-    BorelSpace (Configuration (TorusTestFunction L))
+-- Polish/Borel axioms moved to pphi2 (branch: cylinder) where they are used.
+-- They are not needed by gaussian-field itself.
 
 end GaussianField
