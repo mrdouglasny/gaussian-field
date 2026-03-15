@@ -74,7 +74,7 @@ theorem configBasisEval_injective :
     have h1 := DyninMityaginSpace.expansion (ω₁ : E →L[ℝ] ℝ) f
     have h2 := DyninMityaginSpace.expansion (ω₂ : E →L[ℝ] ℝ) f
     rw [h1, h2]
-    congr 1; ext m; rw [hbasis m]
+    congr 1; ext m; exact congrArg _ (hbasis m)
 
 /-- `configBasisEval` is continuous (each coordinate is weak-* continuous). -/
 theorem configBasisEval_continuous :
@@ -639,6 +639,6 @@ theorem prokhorov_configuration
         | succ n ih =>
           simp only [Finset.sum_range_succ, ContinuousLinearMap.add_apply, ih,
             ContinuousLinearMap.smul_apply, smul_eq_mul, mul_comm]
-      simp_rw [h_eq]; exact h.tendsto_sum_nat
+      exact (h.tendsto_sum_nat).congr (fun n => (h_eq n).symm)
 
 end GaussianField
