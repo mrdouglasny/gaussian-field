@@ -37,7 +37,12 @@ namespace GaussianField
 Seminorms and index type are bundled inside the class so that typeclass
 synthesis can infer everything from `E` alone. The expansion axiom is
 stated for scalar functionals `φ : E →L[ℝ] ℝ`, not arbitrary Hilbert
-spaces — the Hilbert-space form is recovered as `expansion_H`. -/
+spaces — the Hilbert-space form is recovered as `expansion_H`.
+
+The class includes `h_countable` (countable seminorm index) and
+`h_completeSpace` (completeness w.r.t. the canonical uniform structure).
+Together these give `BaireSpace E` (see `DyninMityaginSpace.instBaireSpace`)
+via: countable seminorms → pseudometrizable + complete → Baire. -/
 class DyninMityaginSpace (E : Type*)
     [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E]

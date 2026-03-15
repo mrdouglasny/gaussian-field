@@ -545,7 +545,8 @@ end RapidDecaySeq
 that is continuously linearly equivalent to it. Given seminorms `p` with
 `WithSeminorms p` and a CLE `equiv : E ≃L[ℝ] RapidDecaySeq`, constructs the
 DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
-`coeff m := coeffCLM m ∘ equiv`. -/
+`coeff m := coeffCLM m ∘ equiv`. Countability of `ι` and completeness of `E`
+(transferred from `RapidDecaySeq` via the CLE) are propagated automatically. -/
 @[reducible] noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]

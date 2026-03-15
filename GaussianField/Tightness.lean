@@ -9,14 +9,18 @@ uniform second moment bounds is tight.
 
 ## Main results
 
-- `configuration_tight_of_uniform_second_moments` — the full criterion
+- `configuration_tight_of_uniform_second_moments` — the full criterion (0 sorries)
 
-## Sorry status
+## Key intermediate results
 
-- `DyninMityaginSpace.instBaireSpace` — DM spaces are Baire (needs completeness proof)
-
-## Proved results
-
+- `DyninMityaginSpace.instBaireSpace` — DM spaces are Baire spaces
+  (countable seminorms → pseudometrizable, completeness → Baire)
+- `dm_sequentialSpace` — DM spaces are sequential (first countable from
+  countably generated uniformity)
+- `lowerSemicontinuous_second_moment` — `f ↦ ∫ (ω f)² dμ` is lower
+  semicontinuous (sequential Fatou via `lintegral_liminf_le`)
+- `uniform_bound_from_pointwise` — Banach-Steinhaus / barrel theorem:
+  pointwise bounded second moments → uniform seminorm bound
 - `coordBox_isCompact` — compactness of coordinate boxes via sequential
   compactness (Tychonoff + Tannery's theorem + DM reconstruction)
 -/
@@ -175,6 +179,7 @@ private lemma isClosed_sublevel_all
   exact isClosed_iInter (fun i =>
     (lowerSemicontinuous_second_moment μ h_int i).isClosed_preimage _)
 
+omit hDM in
 /-- Parallelogram bound for second moments: if `∫(ω(x+cf))² ≤ N` and
 `∫(ω(x-cf))² ≤ N`, then `c² * ∫(ωf)² ≤ N`. Uses the identity
 `(a+b)²+(a-b)² = 2a²+2b²` and nonnegativity of `∫(ωx)²`. -/
