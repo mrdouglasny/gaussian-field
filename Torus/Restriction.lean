@@ -39,18 +39,16 @@ abbrev TorusTestFunction := NuclearTensorProduct (SmoothMap_Circle L ℝ) (Smoot
 -- TorusTestFunction L inherits DyninMityaginSpace from NuclearTensorProduct
 example : DyninMityaginSpace (TorusTestFunction L) := inferInstance
 
-/-! ## Configuration space axioms
+/-! ## Configuration space topology notes
 
-These are future proof targets. The Configuration space of the torus test functions
-should be Polish and have the Borel σ-algebra coincide with the cylindrical σ-algebra.
-See `future/configuration_torus.lean` for proof strategies. -/
+`Configuration (TorusTestFunction L) = WeakDual ℝ (TorusTestFunction L)` with the
+weak-* topology is NOT metrizable (hence not Polish) for infinite-dimensional E.
+The axioms `configuration_torus_polish` and `configuration_torus_borelSpace` that
+were previously here have been removed as they are inconsistent.
 
--- Polish/Borel axioms: not needed by gaussian-field main, but kept on
--- cylinder branch for pphi2 compatibility.
-axiom configuration_torus_polish (L : ℝ) [Fact (0 < L)] :
-    PolishSpace (Configuration (TorusTestFunction L))
-
-axiom configuration_torus_borelSpace (L : ℝ) [Fact (0 < L)] :
-    BorelSpace (Configuration (TorusTestFunction L))
+The tightness theorem `configuration_tight_of_uniform_second_moments` and Prokhorov's
+theorem `prokhorov_configuration` now work without PolishSpace/BorelSpace assumptions,
+using the cylindrical σ-algebra `instMeasurableSpaceConfiguration` directly and the
+embedding into `ℕ → ℝ` via `configBasisEval`. -/
 
 end GaussianField

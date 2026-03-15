@@ -21,8 +21,8 @@ uniform second moment bounds is tight.
   semicontinuous (sequential Fatou via `lintegral_liminf_le`)
 - `uniform_bound_from_pointwise` — Banach-Steinhaus / barrel theorem:
   pointwise bounded second moments → uniform seminorm bound
-- `coordBox_isCompact` — compactness of coordinate boxes via sequential
-  compactness (Tychonoff + Tannery's theorem + DM reconstruction)
+- `coordBox_isCompact` — compactness of coordinate boxes as closed subsets
+  of the continuous image of a compact product box (Tychonoff + DM reconstruction)
 -/
 
 import GaussianField.ConfigurationEmbedding
@@ -465,165 +465,163 @@ private lemma summable_coeff_mul_pow (f : E) (r : ℕ) :
   · exact ((Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)).comp_injective
       Nat.succ_injective |>.congr (fun m => by simp [Nat.succ_eq_add_one]; ring)).mul_left _
 
-/-- Compactness of coordinate boxes via sequential compactness.
+/-- Compactness of coordinate boxes as closed subsets of a continuous image of a compact set.
 
-Uses: Tychonoff for `ℝ^ℕ` product of intervals, DM expansion + dominated
-convergence (Tannery) for weak-* convergence, metrizable space equivalence
-`IsCompact ↔ IsSeqCompact`. -/
+The coordBox is the set of ω with |ω(ψ_m)| ≤ D·(1+m)^r for all m. We show it is compact by:
+
+1. **Product box is compact**: The set ∏_m [-B(m), B(m)] in ℕ → ℝ is compact (Tychonoff).
+2. **Reconstruction map**: For x in the product box, define a CLM via
+   f ↦ ∑' m, coeff_m(f) * x(m) (summable by coeff_decay + polynomial bound on x).
+   This gives a continuous map from the product box to Configuration E.
+3. **coordBox ⊆ image**: Any ω in coordBox has configBasisEval(ω) in the product box,
+   and the reconstruction map recovers ω (by DM expansion uniqueness).
+4. **Conclude**: coordBox is a closed subset of a compact image, hence compact. -/
 private theorem coordBox_isCompact
-    [PolishSpace (Configuration E)]
     (D : ℝ) (_hD : 0 < D) (r : ℕ) :
     IsCompact (coordBox (hDM := hDM) D r) := by
-  -- In a Polish (hence pseudometrizable) space, compact ↔ sequentially compact
-  rw [isCompact_iff_isSeqCompact]
-  intro ω hω
-  -- Step 1: The product box ∏_m Icc(-(D·(1+m)^r), D·(1+m)^r) is compact by Tychonoff
+  -- Step 1: Product box ∏_m Icc(-(D·(1+m)^r), D·(1+m)^r) is compact by Tychonoff
   set B : ℕ → ℝ := fun m => D * (1 + (m : ℝ)) ^ r with hB_def
   set box := Set.pi Set.univ (fun m => Set.Icc (-(B m)) (B m))
   have hbox_compact : IsCompact box := isCompact_univ_pi (fun m => isCompact_Icc)
-  -- Step 2: configBasisEval maps coordBox into the product box
-  have hω_in_box : ∀ n, configBasisEval (ω n) ∈ box := by
-    intro n
-    have hωn := hω n
-    rw [coordBox, Set.mem_iInter] at hωn
-    intro m _
-    simp only [configBasisEval, Set.mem_Icc]
-    exact ⟨neg_le_of_abs_le (hωn m), le_of_abs_le (hωn m)⟩
-  -- Step 3: Extract convergent subsequence in ℝ^ℕ
-  obtain ⟨x, hx_mem, φ, hφ_strict, hconv_RN⟩ := hbox_compact.tendsto_subseq hω_in_box
-  -- x is in the product box, so |x m| ≤ B m
-  have hx_bound : ∀ m, |x m| ≤ B m := by
-    intro m; exact abs_le.mpr (hx_mem m (Set.mem_univ m))
-  -- configBasisEval (ω (φ n)) → x coordinate-wise
-  have hconv_coord : ∀ m, Tendsto (fun n => (ω (φ n)) (hDM.basis m)) atTop (nhds (x m)) := by
-    intro m
-    have := (continuous_apply m).continuousAt.tendsto.comp hconv_RN
-    simpa [Function.comp, configBasisEval] using this
-  -- Step 4: Show ω ∘ φ converges pointwise using DM expansion + Tannery
-  have hconv_eval : ∀ f : E, Tendsto (fun n => (ω (φ n)) f) atTop
-      (nhds (∑' m, hDM.coeff m f * x m)) := by
-    intro f
-    have h_eq : ∀ n, (ω (φ n)) f = ∑' m, hDM.coeff m f * (ω (φ n)) (hDM.basis m) := by
-      intro n; exact hDM.expansion (ω (φ n)) f
-    simp_rw [h_eq]
-    apply tendsto_tsum_of_dominated_convergence
-        (bound := fun m => |hDM.coeff m f| * B m)
-    · convert (summable_coeff_mul_pow f r).mul_left D using 1
-      ext m
-      simp [hB_def]
-      ring
-    · intro m
-      exact (tendsto_const_nhds (x := hDM.coeff m f)).mul (hconv_coord m)
-    · apply Eventually.of_forall; intro n m
-      rw [Real.norm_eq_abs, abs_mul]
-      have hωφn : ω (φ n) ∈ coordBox (hDM := hDM) D r := hω (φ n)
-      rw [coordBox, Set.mem_iInter] at hωφn
-      exact mul_le_mul_of_nonneg_left (hωφn m) (abs_nonneg _)
-  -- Step 5: The limit defines a CLM (continuous linear functional on E)
-  have hL_summable : ∀ f : E, Summable (fun m => hDM.coeff m f * x m) := by
-    intro f
+  -- Step 2: For any x in the box, ∑' m, coeff m f * x m is summable
+  have hL_summable : ∀ x ∈ box, ∀ f : E, Summable (fun m => hDM.coeff m f * x m) := by
+    intro x hx f
+    have hx_bound : ∀ m, |x m| ≤ B m := fun m => abs_le.mpr (hx m (Set.mem_univ m))
     apply ((summable_coeff_mul_pow f r).mul_left D).of_norm_bounded_eventually
     apply Eventually.of_forall; intro m
     rw [Real.norm_eq_abs, abs_mul]
-    have h : |(hDM.coeff m f)| * |x m| ≤ D * (|(hDM.coeff m f)| * (1 + (m : ℝ)) ^ r) := by
-      calc |(hDM.coeff m f)| * |x m|
-          ≤ |(hDM.coeff m f)| * (D * (1 + (m : ℝ)) ^ r) := by
-            apply mul_le_mul_of_nonneg_left (hx_bound m)
-            exact abs_nonneg _
-        _ = D * (|(hDM.coeff m f)| * (1 + (m : ℝ)) ^ r) := by ring
-    exact h
-  -- Define the linear map
-  let L_lin : E →ₗ[ℝ] ℝ :=
-    { toFun := fun f => ∑' m, hDM.coeff m f * x m
-      map_add' := fun f g => by
-        show (∑' m, hDM.coeff m (f + g) * x m) =
-          (∑' m, hDM.coeff m f * x m) + (∑' m, hDM.coeff m g * x m)
-        have h_eq : (fun m => hDM.coeff m (f + g) * x m) =
-            (fun m => hDM.coeff m f * x m + hDM.coeff m g * x m) := by
-          ext m; rw [map_add]; ring
-        rw [h_eq]; exact (hL_summable f).tsum_add (hL_summable g)
-      map_smul' := fun c f => by
-        show (∑' m, hDM.coeff m (c • f) * x m) = c • (∑' m, hDM.coeff m f * x m)
-        have h_eq : (fun m => hDM.coeff m (c • f) * x m) =
-            (fun m => c * (hDM.coeff m f * x m)) := by
-          ext m; rw [map_smul, smul_eq_mul]; ring
-        rw [h_eq, tsum_mul_left, smul_eq_mul] }
-  -- Continuity: |L(f)| ≤ C·q(f) for continuous seminorm q, using coeff_decay
-  have hL_cont : Continuous L_lin := by
-    obtain ⟨C_d, hC_d, s_d, hdecay⟩ := hDM.coeff_decay (r + 2)
-    have h_inv_summable : Summable (fun m : ℕ => 1 / (1 + (m : ℝ)) ^ 2) :=
-      ((Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)).comp_injective
-        Nat.succ_injective).congr (fun m => by simp [Nat.succ_eq_add_one]; ring)
-    set S' := ∑' (m : ℕ), (1 : ℝ) / (1 + (m : ℝ)) ^ 2
-    set q := s_d.sup hDM.p
-    have hq_cont : Continuous q :=
-      Finset.sup_induction (p := fun (s : Seminorm ℝ E) => Continuous s)
-        (show Continuous (⊥ : Seminorm ℝ E) from continuous_const)
-        (fun _ ha _ hb => ha.sup hb)
-        (fun i _ => hDM.h_with.continuous_seminorm i)
-    have hBsum : ∀ f, Summable (fun m => |hDM.coeff m f| * B m) := fun f =>
-      ((summable_coeff_mul_pow f r).mul_left D).congr (fun m => by simp [hB_def]; ring)
-    have hL_abs_bound : ∀ f, |L_lin f| ≤ D * C_d * S' * q f := by
-      intro f
-      show |∑' m, hDM.coeff m f * x m| ≤ D * C_d * S' * q f
-      have h_abs : |∑' m, hDM.coeff m f * x m| ≤ ∑' m, |hDM.coeff m f| * |x m| := by
-        calc |∑' m, hDM.coeff m f * x m|
-            ≤ ∑' m, ‖hDM.coeff m f * x m‖ := by
-              rw [← Real.norm_eq_abs]; exact norm_tsum_le_tsum_norm (hL_summable f).norm
-          _ = ∑' m, |hDM.coeff m f| * |x m| := by
-              congr 1; ext m; rw [Real.norm_eq_abs, abs_mul]
-      have h1 : (∑' m, |hDM.coeff m f| * |x m|) ≤ ∑' m, |hDM.coeff m f| * B m :=
-        (((hL_summable f).norm).congr (fun m => by rw [Real.norm_eq_abs, abs_mul])).tsum_le_tsum
-          (fun m => mul_le_mul_of_nonneg_left (hx_bound m) (abs_nonneg _)) (hBsum f)
-      have h2 : (∑' m, |hDM.coeff m f| * B m) ≤
-          ∑' (m : ℕ), C_d * q f * (D / (1 + (m : ℝ)) ^ 2) :=
-        (hBsum f).tsum_le_tsum
-          (fun m => by
-            calc |hDM.coeff m f| * B m
-                = (|hDM.coeff m f| * (1 + (m : ℝ)) ^ (r + 2)) * (D / (1 + (m : ℝ)) ^ 2) := by
-                  simp only [hB_def]; rw [pow_add]; field_simp
-              _ ≤ (C_d * q f) * (D / (1 + (m : ℝ)) ^ 2) :=
-                  mul_le_mul_of_nonneg_right (hdecay f m) (by positivity))
-          (h_inv_summable.mul_left (C_d * q f * D) |>.congr (fun m => by ring))
-      have h3 : (∑' (m : ℕ), C_d * q f * (D / (1 + (m : ℝ)) ^ 2)) =
-          D * C_d * S' * q f := by
-        conv_lhs => arg 1; ext m; rw [show C_d * q f * (D / (1 + (m : ℝ)) ^ 2) =
-          C_d * q f * D * (1 / (1 + (m : ℝ)) ^ 2) from by ring]
-        rw [tsum_mul_left]; ring
-      linarith
-    apply continuous_of_continuousAt_zero L_lin.toAddMonoidHom
-    rw [ContinuousAt, map_zero, Metric.tendsto_nhds]
-    intro ε hε
-    have hqε : {f : E | q f < ε / (D * C_d * S' + 1)} ∈ nhds (0 : E) :=
-      (hq_cont.isOpen_preimage _ isOpen_Iio).mem_nhds (by simp [map_zero]; positivity)
-    exact Filter.mem_of_superset hqε (fun f hf => by
-      simp only [Real.dist_eq, sub_zero, Set.mem_setOf_eq] at hf ⊢
-      have hS'_pos : 0 < S' := by
-        have : (∑ m ∈ Finset.range 1, 1 / (1 + (m : ℝ)) ^ 2) ≤ S' :=
-          h_inv_summable.sum_le_tsum _ (fun _ _ => by positivity)
-        simp at this; linarith
-      have hDCS_pos : 0 < D * C_d * S' :=
-        mul_pos (mul_pos _hD hC_d) hS'_pos
-      calc |L_lin f| ≤ D * C_d * S' * q f := hL_abs_bound f
-        _ < D * C_d * S' * (ε / (D * C_d * S' + 1)) :=
-            mul_lt_mul_of_pos_left hf hDCS_pos
-        _ ≤ (D * C_d * S' + 1) * (ε / (D * C_d * S' + 1)) :=
-            mul_le_mul_of_nonneg_right (by linarith) (by positivity)
-        _ = ε := mul_div_cancel₀ ε (by positivity))
-  -- Package as ContinuousLinearMap = Configuration E
-  -- We now build the witness for IsSeqCompact
-  refine ⟨⟨L_lin, hL_cont⟩, ?_, φ, hφ_strict, ?_⟩
-  · -- Prove ⟨L_lin, hL_cont⟩ ∈ coordBox D r
-    rw [coordBox, Set.mem_iInter]; intro m
-    simp only [Set.mem_setOf_eq]
-    have h_eq : ((⟨L_lin, hL_cont⟩ : Configuration E) : E →L[ℝ] ℝ) (hDM.basis m) = x m :=
-      tendsto_nhds_unique (hconv_eval (hDM.basis m)) (hconv_coord m)
-    convert hx_bound m using 1
-    exact congrArg (fun z => |z|) h_eq
-  · -- Prove Tendsto (ω ∘ φ) atTop (nhds ⟨L_lin, hL_cont⟩)
-    rw [tendsto_iff_forall_eval_tendsto_topDualPairing]
-    intro f; simp only [topDualPairing_apply, Function.comp]
-    exact hconv_eval f
+    calc |(hDM.coeff m f)| * |x m|
+        ≤ |(hDM.coeff m f)| * (D * (1 + (m : ℝ)) ^ r) :=
+          mul_le_mul_of_nonneg_left (hx_bound m) (abs_nonneg _)
+      _ = D * (|(hDM.coeff m f)| * (1 + (m : ℝ)) ^ r) := by ring
+  -- Step 3: Define the reconstruction map from box (subtype) to Configuration E
+  -- For each x in box, construct the CLM f ↦ ∑' m, coeff_m(f) * x(m)
+  let configFromCoords : ↥box → Configuration E := fun ⟨x, hx⟩ => by
+    -- Build the linear map
+    let L_lin : E →ₗ[ℝ] ℝ :=
+      { toFun := fun f => ∑' m, hDM.coeff m f * x m
+        map_add' := fun f g => by
+          show (∑' m, hDM.coeff m (f + g) * x m) =
+            (∑' m, hDM.coeff m f * x m) + (∑' m, hDM.coeff m g * x m)
+          have h_eq : (fun m => hDM.coeff m (f + g) * x m) =
+              (fun m => hDM.coeff m f * x m + hDM.coeff m g * x m) := by
+            ext m; rw [map_add]; ring
+          rw [h_eq]; exact (hL_summable x hx f).tsum_add (hL_summable x hx g)
+        map_smul' := fun c f => by
+          show (∑' m, hDM.coeff m (c • f) * x m) = c • (∑' m, hDM.coeff m f * x m)
+          have h_eq : (fun m => hDM.coeff m (c • f) * x m) =
+              (fun m => c * (hDM.coeff m f * x m)) := by
+            ext m; rw [map_smul, smul_eq_mul]; ring
+          rw [h_eq, tsum_mul_left, smul_eq_mul] }
+    -- Prove the linear map is continuous: |L(f)| ≤ C·q(f)
+    have hx_bound : ∀ m, |x m| ≤ B m := fun m => abs_le.mpr (hx m (Set.mem_univ m))
+    have hL_cont : Continuous L_lin := by
+      obtain ⟨C_d, hC_d, s_d, hdecay⟩ := hDM.coeff_decay (r + 2)
+      have h_inv_summable : Summable (fun m : ℕ => 1 / (1 + (m : ℝ)) ^ 2) :=
+        ((Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)).comp_injective
+          Nat.succ_injective).congr (fun m => by simp [Nat.succ_eq_add_one]; ring)
+      set S' := ∑' (m : ℕ), (1 : ℝ) / (1 + (m : ℝ)) ^ 2
+      set q := s_d.sup hDM.p
+      have hq_cont : Continuous q :=
+        Finset.sup_induction (p := fun (s : Seminorm ℝ E) => Continuous s)
+          (show Continuous (⊥ : Seminorm ℝ E) from continuous_const)
+          (fun _ ha _ hb => ha.sup hb)
+          (fun i _ => hDM.h_with.continuous_seminorm i)
+      have hBsum : ∀ f', Summable (fun m => |hDM.coeff m f'| * B m) := fun f' =>
+        ((summable_coeff_mul_pow f' r).mul_left D).congr (fun m => by simp [hB_def]; ring)
+      have hL_abs_bound : ∀ f', |L_lin f'| ≤ D * C_d * S' * q f' := by
+        intro f'
+        show |∑' m, hDM.coeff m f' * x m| ≤ D * C_d * S' * q f'
+        have h_abs : |∑' m, hDM.coeff m f' * x m| ≤ ∑' m, |hDM.coeff m f'| * |x m| := by
+          calc |∑' m, hDM.coeff m f' * x m|
+              ≤ ∑' m, ‖hDM.coeff m f' * x m‖ := by
+                rw [← Real.norm_eq_abs]
+                exact norm_tsum_le_tsum_norm (hL_summable x hx f').norm
+            _ = ∑' m, |hDM.coeff m f'| * |x m| := by
+                congr 1; ext m; rw [Real.norm_eq_abs, abs_mul]
+        have h1 : (∑' m, |hDM.coeff m f'| * |x m|) ≤ ∑' m, |hDM.coeff m f'| * B m :=
+          (((hL_summable x hx f').norm).congr (fun m => by rw [Real.norm_eq_abs, abs_mul])).tsum_le_tsum
+            (fun m => mul_le_mul_of_nonneg_left (hx_bound m) (abs_nonneg _)) (hBsum f')
+        have h2 : (∑' m, |hDM.coeff m f'| * B m) ≤
+            ∑' (m : ℕ), C_d * q f' * (D / (1 + (m : ℝ)) ^ 2) :=
+          (hBsum f').tsum_le_tsum
+            (fun m => by
+              calc |hDM.coeff m f'| * B m
+                  = (|hDM.coeff m f'| * (1 + (m : ℝ)) ^ (r + 2)) * (D / (1 + (m : ℝ)) ^ 2) := by
+                    simp only [hB_def]; rw [pow_add]; field_simp
+                _ ≤ (C_d * q f') * (D / (1 + (m : ℝ)) ^ 2) :=
+                    mul_le_mul_of_nonneg_right (hdecay f' m) (by positivity))
+            (h_inv_summable.mul_left (C_d * q f' * D) |>.congr (fun m => by ring))
+        have h3 : (∑' (m : ℕ), C_d * q f' * (D / (1 + (m : ℝ)) ^ 2)) =
+            D * C_d * S' * q f' := by
+          conv_lhs => arg 1; ext m; rw [show C_d * q f' * (D / (1 + (m : ℝ)) ^ 2) =
+            C_d * q f' * D * (1 / (1 + (m : ℝ)) ^ 2) from by ring]
+          rw [tsum_mul_left]; ring
+        linarith
+      apply continuous_of_continuousAt_zero L_lin.toAddMonoidHom
+      rw [ContinuousAt, map_zero, Metric.tendsto_nhds]
+      intro ε hε
+      have hqε : {f' : E | q f' < ε / (D * C_d * S' + 1)} ∈ nhds (0 : E) :=
+        (hq_cont.isOpen_preimage _ isOpen_Iio).mem_nhds (by simp [map_zero]; positivity)
+      exact Filter.mem_of_superset hqε (fun f' hf' => by
+        simp only [Real.dist_eq, sub_zero, Set.mem_setOf_eq] at hf' ⊢
+        have hS'_pos : 0 < S' := by
+          have : (∑ m ∈ Finset.range 1, 1 / (1 + (m : ℝ)) ^ 2) ≤ S' :=
+            h_inv_summable.sum_le_tsum _ (fun _ _ => by positivity)
+          simp at this; linarith
+        have hDCS_pos : 0 < D * C_d * S' :=
+          mul_pos (mul_pos _hD hC_d) hS'_pos
+        calc |L_lin f'| ≤ D * C_d * S' * q f' := hL_abs_bound f'
+          _ < D * C_d * S' * (ε / (D * C_d * S' + 1)) :=
+              mul_lt_mul_of_pos_left hf' hDCS_pos
+          _ ≤ (D * C_d * S' + 1) * (ε / (D * C_d * S' + 1)) :=
+              mul_le_mul_of_nonneg_right (by linarith) (by positivity)
+          _ = ε := mul_div_cancel₀ ε (by positivity))
+    exact ⟨L_lin, hL_cont⟩
+  -- Step 4: configFromCoords is continuous (pointwise in the weak-* topology)
+  have h_configFromCoords_cont : Continuous configFromCoords := by
+    apply WeakDual.continuous_of_continuous_eval
+    intro f
+    -- For each f, the map x ↦ ∑' m, coeff m f * x.val m is continuous on box
+    show Continuous (fun (p : ↥box) => (configFromCoords p) f)
+    -- Unfold: (configFromCoords ⟨x, hx⟩) f = ∑' m, coeff m f * x m
+    have h_eq : (fun (p : ↥box) => (configFromCoords p) f) =
+        (fun (p : ↥box) => ∑' m, hDM.coeff m f * p.val m) := by
+      ext ⟨x, hx⟩; rfl
+    rw [h_eq]
+    -- Uniform bound: ‖coeff m f * x m‖ ≤ |coeff m f| * B m (for x ∈ box)
+    have hu_summable : Summable (fun m => |hDM.coeff m f| * B m) :=
+      ((summable_coeff_mul_pow f r).mul_left D).congr
+        (fun m => by simp only [hB_def]; ring)
+    exact continuous_tsum
+      (f := fun m (p : ↥box) => hDM.coeff m f * p.val m)
+      (u := fun m => |hDM.coeff m f| * B m)
+      (fun m => continuous_const.mul ((continuous_apply m).comp continuous_subtype_val))
+      hu_summable
+      (fun m ⟨x, hx⟩ => by
+        rw [Real.norm_eq_abs, abs_mul]
+        exact mul_le_mul_of_nonneg_left (abs_le.mpr (hx m (Set.mem_univ m))) (abs_nonneg _))
+  -- Step 5: coordBox ⊆ configFromCoords '' box (via DM expansion)
+  have h_sub : coordBox (hDM := hDM) D r ⊆ Set.range configFromCoords := by
+    intro ω hω_mem
+    -- ω ∈ coordBox means |ω(basis m)| ≤ B m, so configBasisEval ω ∈ box
+    have hx_in_box : configBasisEval ω ∈ box := by
+      intro m _; simp only [configBasisEval, Set.mem_Icc]
+      have hm := (Set.mem_iInter.mp hω_mem m : |ω (hDM.basis m)| ≤ B m)
+      exact ⟨neg_le_of_abs_le hm, le_of_abs_le hm⟩
+    refine ⟨⟨configBasisEval ω, hx_in_box⟩, ?_⟩
+    -- configFromCoords(configBasisEval ω) = ω by DM expansion
+    apply ContinuousLinearMap.ext; intro f
+    show (configFromCoords ⟨configBasisEval ω, hx_in_box⟩) f = ω f
+    -- configFromCoords(x)(f) = ∑' m, coeff m f * x m = ∑' m, coeff m f * ω(basis m) = ω f
+    show (∑' m, hDM.coeff m f * (configBasisEval ω) m) = ω f
+    simp only [configBasisEval]
+    exact (hDM.expansion ω f).symm
+  -- Step 6: coordBox is closed (already proved) and contained in a compact image
+  haveI : CompactSpace ↥box := isCompact_iff_compactSpace.mp hbox_compact
+  have h_image_compact : IsCompact (Set.range configFromCoords) :=
+    isCompact_range h_configFromCoords_cont
+  exact h_image_compact.of_isClosed_subset (coordBox_closed D r) h_sub
 
 /-! ## Chebyshev + union bound -/
 
@@ -744,7 +742,6 @@ private theorem coordBox_compl_mass_le
 On the weak dual of a nuclear Fréchet space, a family of probability
 measures with uniformly bounded second moments is tight. -/
 theorem configuration_tight_of_uniform_second_moments
-    [PolishSpace (Configuration E)] [BorelSpace (Configuration E)]
     {ι : Type*}
     (μ : ι → @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (hprob : ∀ i, @IsProbabilityMeasure _ instMeasurableSpaceConfiguration (μ i))
