@@ -57,6 +57,17 @@ instance DyninMityaginSpace.instBaireSpace : BaireSpace E := by
 
 /-! ## Uniform bound from pointwise second moments (barrel theorem) -/
 
+private lemma dm_sequentialSpace : SequentialSpace E := by
+  haveI := hDM.h_countable
+  letI : UniformSpace E := IsTopologicalAddGroup.rightUniformSpace E
+  haveI : IsUniformAddGroup E := isUniformAddGroup_of_addCommGroup
+  haveI : (nhds (0 : E)).IsCountablyGenerated := by
+    rw [(SeminormFamily.withSeminorms_iff_nhds_eq_iInf hDM.p).mp hDM.h_with]
+    exact Filter.iInf.isCountablyGenerated _
+  haveI : (uniformity E).IsCountablyGenerated :=
+    IsUniformAddGroup.uniformity_countably_generated
+  infer_instance
+
 /-- Each second-moment map `f ↦ ∫ (ω f)² dμ_i` is lower semicontinuous in `f`.
 
 Follows from Fatou's lemma: if `f_n → f`, then `ω(f_n) → ω(f)` for each `ω`
@@ -70,7 +81,80 @@ private lemma lowerSemicontinuous_second_moment
     (i : ι) :
     LowerSemicontinuous (fun f : E =>
       ∫ ω : Configuration E, (ω f) ^ 2 ∂(μ i)) := by
-  sorry
+  -- Use closed-preimage characterization: LSC ↔ ∀ y, {f | g f ≤ y} is closed
+  rw [lowerSemicontinuous_iff_isClosed_preimage]
+  intro y
+  -- In a SequentialSpace, closed ↔ sequentially closed
+  haveI : SequentialSpace E := dm_sequentialSpace
+  rw [← isSeqClosed_iff_isClosed]
+  -- Show sequential closedness via Fatou
+  intro u f₀ hu_mem hu_tendsto
+  -- hu_mem : ∀ n, ∫ (ω (u n))^2 ≤ y
+  -- hu_tendsto : u n → f₀
+  -- Goal : ∫ (ω f₀)^2 ≤ y
+  simp only [Set.mem_preimage, Set.mem_Iic] at hu_mem ⊢
+  -- For y < 0: the set is empty since ∫ (ω f)^2 ≥ 0
+  by_cases hy : y < 0
+  · exact absurd (hu_mem 0) (not_le.mpr (lt_of_lt_of_le hy (integral_nonneg (fun _ => sq_nonneg _))))
+  push_neg at hy
+  -- Now y ≥ 0
+  -- Step 1: Pointwise convergence of (ω (u n))^2 → (ω f₀)^2
+  have h_ptwise : ∀ ω' : Configuration E,
+      Tendsto (fun n => (ω' (u n)) ^ 2) atTop (nhds ((ω' f₀) ^ 2)) := by
+    intro ω'
+    exact ((ω'.continuous.continuousAt.tendsto.comp hu_tendsto).pow 2)
+  -- Step 2: Fatou via lintegral
+  -- Convert Bochner integrals to lintegral via nonneg
+  set g := fun (n : ℕ) (ω' : Configuration E) =>
+    ENNReal.ofReal ((ω' (u n)) ^ 2) with hg_def
+  have h_meas : ∀ n, AEMeasurable (g n) (μ i) := by
+    intro n
+    exact (h_int (u n) i).aestronglyMeasurable.aemeasurable.ennreal_ofReal
+  -- lintegral Fatou: ∫⁻ liminf g_n ≤ liminf ∫⁻ g_n
+  have h_fatou : ∫⁻ ω', liminf (fun n => g n ω') atTop ∂(μ i) ≤
+      liminf (fun n => ∫⁻ ω', g n ω' ∂(μ i)) atTop :=
+    lintegral_liminf_le' h_meas
+  -- liminf g_n ω' = ENNReal.ofReal ((ω' f₀)^2) (by pointwise convergence)
+  have h_liminf_eq : ∀ ω' : Configuration E,
+      liminf (fun n => g n ω') atTop = ENNReal.ofReal ((ω' f₀) ^ 2) := by
+    intro ω'
+    exact (ENNReal.tendsto_ofReal (h_ptwise ω')).liminf_eq
+  -- Rewrite LHS of Fatou
+  have h_lhs : ∫⁻ ω', ENNReal.ofReal ((ω' f₀) ^ 2) ∂(μ i) ≤
+      liminf (fun n => ∫⁻ ω', g n ω' ∂(μ i)) atTop := by
+    calc ∫⁻ ω', ENNReal.ofReal ((ω' f₀) ^ 2) ∂(μ i)
+        = ∫⁻ ω', liminf (fun n => g n ω') atTop ∂(μ i) := by
+          congr 1; ext ω'; exact (h_liminf_eq ω').symm
+      _ ≤ liminf (fun n => ∫⁻ ω', g n ω' ∂(μ i)) atTop := h_fatou
+  -- Each ∫⁻ g_n = ENNReal.ofReal (∫ (ω (u n))^2) by ofReal_integral_eq_lintegral_ofReal
+  have h_rhs_eq : ∀ n, ∫⁻ ω', g n ω' ∂(μ i) =
+      ENNReal.ofReal (∫ ω', (ω' (u n)) ^ 2 ∂(μ i)) := by
+    intro n
+    exact (ofReal_integral_eq_lintegral_ofReal (h_int (u n) i)
+      (ae_of_all _ (fun _ => sq_nonneg _))).symm
+  -- Similarly for f₀
+  have h_lhs_eq : ∫⁻ ω', ENNReal.ofReal ((ω' f₀) ^ 2) ∂(μ i) =
+      ENNReal.ofReal (∫ ω', (ω' f₀) ^ 2 ∂(μ i)) := by
+    exact (ofReal_integral_eq_lintegral_ofReal (h_int f₀ i)
+      (ae_of_all _ (fun _ => sq_nonneg _))).symm
+  -- Combine: ENNReal.ofReal (∫ (ω f₀)^2) ≤ liminf ENNReal.ofReal (∫ (ω (u n))^2)
+  rw [h_lhs_eq] at h_lhs
+  simp_rw [h_rhs_eq] at h_lhs
+  -- Each ∫ (ω (u n))^2 ≤ y, so ENNReal.ofReal (∫ ...) ≤ ENNReal.ofReal y
+  have h_bound : ∀ n, ENNReal.ofReal (∫ ω', (ω' (u n)) ^ 2 ∂(μ i)) ≤ ENNReal.ofReal y := by
+    intro n; exact ENNReal.ofReal_le_ofReal (hu_mem n)
+  -- liminf ≤ y
+  have h_liminf_le : liminf (fun n => ENNReal.ofReal (∫ ω', (ω' (u n)) ^ 2 ∂(μ i))) atTop ≤
+      ENNReal.ofReal y := by
+    apply liminf_le_of_le ⟨0, Eventually.of_forall (fun _ => zero_le _)⟩
+    intro b hb
+    obtain ⟨n, hn⟩ := hb.exists
+    exact hn.trans (h_bound n)
+  -- Chain: ENNReal.ofReal (∫ (ω f₀)^2) ≤ ENNReal.ofReal y
+  have h_final_ennreal : ENNReal.ofReal (∫ ω', (ω' f₀) ^ 2 ∂(μ i)) ≤ ENNReal.ofReal y :=
+    h_lhs.trans h_liminf_le
+  -- Since ∫ (ω f₀)^2 ≥ 0 and y ≥ 0, ENNReal.ofReal preserves the order
+  exact (ENNReal.ofReal_le_ofReal_iff hy).mp h_final_ennreal
 
 /-- The sublevel set `V_n = {f : E | ∀ i, ∫ (ω f)² dμ_i ≤ n}` is closed.
 
