@@ -10,7 +10,7 @@ import GaussianField.Construction
 import GaussianField.Properties
 import GaussianField.IsGaussian
 import HeatKernel
-import HeatKernel.PositionKernel
+-- import HeatKernel.PositionKernel  -- moved to future/
 
 noncomputable section
 
@@ -290,70 +290,4 @@ These tests verify:
 3. The bridge theorem connecting position-space to spectral CLM elaborates
 -/
 
-section PositionKernel
-
-variable {L : ℝ} [Fact (0 < L)]
-
--- Mehler kernel (harmonic oscillator) — no L dependence
-#check mehlerKernel
-#check mehlerKernel_eq_series
-#check mehlerKernel_summable
-#check mehlerKernel_symmetric
-#check mehlerKernel_pos
-#check mehlerKernel_reproduces_hermite
-#check mehlerKernel_semigroup
-
--- Circle heat kernel
-#check @circleHeatKernel
-#check @circleHeatKernel_summable
-#check @circleHeatKernel_symmetric
-#check @circleHeatKernel_pos
-#check @circleHeatKernel_periodic₁
-#check @circleHeatKernel_periodic₂
-#check @circleHeatKernel_reproduces_fourier
-#check @circleHeatKernel_semigroup
-
--- Full cylinder heat kernel
-#check @cylinderHeatKernel
-#check @cylinderHeatKernel_eq_series
-#check @cylinderHeatKernel_symmetric
-#check @cylinderHeatKernel_pos
-#check @cylinderHeatKernel_periodic₁
-#check @cylinderHeatKernel_periodic₂
-
--- Pointwise evaluation of test functions
-#check @cylinderEval
-#check @cylinderEval_summable
-
--- Bridge: position-space kernel ↔ spectral CLM
-#check @cylinderHeatKernel_reproduces
-#check cylinderHeatKernel_matches_heatSingularValue
-
--- Verify derived theorems elaborate with concrete parameters
-section PositionKernel_Tests
-variable (mass t : ℝ) (ht : 0 < t) (hmass : 0 < mass)
-variable (θ₁ x₁ θ₂ x₂ : ℝ)
-
--- Symmetry is a theorem (not axiom)
-example : cylinderHeatKernel L mass t θ₁ x₁ θ₂ x₂ =
-    cylinderHeatKernel L mass t θ₂ x₂ θ₁ x₁ :=
-  cylinderHeatKernel_symmetric L mass t θ₁ x₁ θ₂ x₂
-
--- Positivity is a theorem (derived from component positivity axioms)
-example : 0 < cylinderHeatKernel L mass t θ₁ x₁ θ₂ x₂ :=
-  cylinderHeatKernel_pos L mass t ht θ₁ x₁ θ₂ x₂
-
--- Periodicity is a theorem (derived from circle periodicity axioms)
-example : cylinderHeatKernel L mass t (θ₁ + L) x₁ θ₂ x₂ =
-    cylinderHeatKernel L mass t θ₁ x₁ θ₂ x₂ :=
-  cylinderHeatKernel_periodic₁ L mass t θ₁ x₁ θ₂ x₂
-
--- The parameter match: kernel at t = s/2 gives heatSingularValue at s
-example (s : ℝ) (m : ℕ) :
-    Real.exp (-(s / 2 * qftEigenvalue L mass m)) =
-    heatSingularValue L mass s m :=
-  cylinderHeatKernel_matches_heatSingularValue L mass s m
-
-end PositionKernel_Tests
-
-end PositionKernel
+-- PositionKernel section moved to future/ (contains mehlerKernel_eq_series axiom)
