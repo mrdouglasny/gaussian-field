@@ -24,6 +24,7 @@ uniform second moment bounds is tight.
 import GaussianField.ConfigurationEmbedding
 import Mathlib.Analysis.Normed.Group.Tannery
 import Mathlib.Analysis.LocallyConvex.Barrelled
+import Mathlib.Topology.Baire.CompleteMetrizable
 
 noncomputable section
 
@@ -38,12 +39,21 @@ variable {E : Type*} [AddCommGroup E] [Module ℝ E]
 
 /-! ## BaireSpace for DyninMityaginSpace -/
 
-/-- A DyninMityaginSpace is a Baire space (complete metrizable → Baire).
-Sorry'd: needs proof that the WithSeminorms topology is completely metrizable,
-which follows from completeness of the Schauder expansion but requires
-nontrivial uniform space arguments. -/
+/-- A DyninMityaginSpace is a Baire space.
+
+Proof: Countable seminorms → countably generated uniformity → pseudometrizable.
+Together with completeness (class field) → completely pseudometrizable → Baire. -/
 instance DyninMityaginSpace.instBaireSpace : BaireSpace E := by
-  sorry
+  haveI := hDM.h_countable
+  letI : UniformSpace E := IsTopologicalAddGroup.rightUniformSpace E
+  haveI : IsUniformAddGroup E := isUniformAddGroup_of_addCommGroup
+  haveI : (nhds (0 : E)).IsCountablyGenerated := by
+    rw [(SeminormFamily.withSeminorms_iff_nhds_eq_iInf hDM.p).mp hDM.h_with]
+    exact Filter.iInf.isCountablyGenerated _
+  haveI : (uniformity E).IsCountablyGenerated :=
+    IsUniformAddGroup.uniformity_countably_generated
+  haveI : CompleteSpace E := hDM.h_completeSpace
+  infer_instance
 
 /-! ## Uniform bound from pointwise second moments (barrel theorem) -/
 

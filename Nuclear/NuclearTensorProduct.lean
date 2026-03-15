@@ -155,6 +155,190 @@ instance instIsTopologicalAddGroup : IsTopologicalAddGroup RapidDecaySeq :=
 instance instContinuousSMul : ContinuousSMul ℝ RapidDecaySeq :=
   rapidDecay_withSeminorms.continuousSMul
 
+/-- `RapidDecaySeq` is complete with respect to the right uniform structure
+induced by its topological add group structure.
+
+**Proof outline.** Given a Cauchy sequence `u : ℕ → RapidDecaySeq`:
+1. Each coordinate `m ↦ (u n).val m` is Cauchy in ℝ (bounded by seminorm 0),
+   hence converges to some `a m`.
+2. The sequence `u` is eventually bounded in each seminorm (Cauchy property),
+   so `a` inherits rapid decay: `∑ |a m| (1+m)^k ≤ B`.
+3. Convergence `u n → a` in the seminorm topology follows from passing
+   the Cauchy bounds through limits of partial sums. -/
+-- Helper: coordinate projection is bounded by seminorm 0
+private theorem coord_le_seminorm0 (a : RapidDecaySeq) (m : ℕ) :
+    |a.val m| ≤ rapidDecaySeminorm 0 a := by
+  show |a.val m| ≤ ∑' n, |a.val n| * (1 + (n : ℝ)) ^ 0
+  calc |a.val m|
+      = |a.val m| * (1 + (m : ℝ)) ^ 0 := by simp [pow_zero]
+    _ ≤ ∑' n, |a.val n| * (1 + (n : ℝ)) ^ 0 :=
+        (a.rapid_decay 0).le_tsum m
+          (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j 0))
+
+-- Helper: finite sum of weighted coords ≤ seminorm
+private theorem finset_sum_le_seminorm (a : RapidDecaySeq) (k : ℕ) (s : Finset ℕ) :
+    ∑ m ∈ s, |a.val m| * (1 + (m : ℝ)) ^ k ≤ rapidDecaySeminorm k a :=
+  (a.rapid_decay k).sum_le_tsum s (fun m _ => mul_nonneg (abs_nonneg _) (weight_nonneg m k))
+
+-- Helper: Cauchy condition for seminorms. From CauchySeq in the seminorm topology,
+-- extract: for each k and ε > 0, ∃ N, ∀ n m ≥ N, seminorm k (u n - u m) < ε.
+private theorem cauchySeq_seminorm_bound
+    (u : ℕ → RapidDecaySeq)
+    (hu : @CauchySeq RapidDecaySeq ℕ
+      (IsTopologicalAddGroup.rightUniformSpace RapidDecaySeq) _ u)
+    (k : ℕ) (ε : ℝ) (hε : 0 < ε) :
+    ∃ N, ∀ n m, N ≤ n → N ≤ m → rapidDecaySeminorm k (u n - u m) < ε := by
+  letI : UniformSpace RapidDecaySeq := IsTopologicalAddGroup.rightUniformSpace RapidDecaySeq
+  -- The Cauchy condition says differences u n - u m are eventually in any nhds 0 set.
+  -- We use the additive Cauchy characterization via entourages.
+  -- The set {(x,y) | seminorm k (x - y) < ε} is an entourage because
+  -- the uniformity = comap (fun p => p.2 - p.1) (nhds 0) for the right uniform structure,
+  -- and {x | seminorm k x < ε} is a neighborhood of 0.
+  have h_ent : {p : RapidDecaySeq × RapidDecaySeq | rapidDecaySeminorm k (p.1 - p.2) < ε} ∈
+      uniformity RapidDecaySeq := by
+    -- Rewrite using the right uniform structure definition
+    show {p : RapidDecaySeq × RapidDecaySeq | rapidDecaySeminorm k (p.1 - p.2) < ε} ∈
+      uniformity RapidDecaySeq
+    rw [show uniformity RapidDecaySeq = Filter.comap (fun p : RapidDecaySeq × RapidDecaySeq =>
+        p.2 - p.1) (nhds 0) from rfl]
+    apply Filter.mem_comap.mpr
+    refine ⟨{x | rapidDecaySeminorm k x < ε}, ?_, ?_⟩
+    · -- {x | seminorm k x < ε} ∈ nhds 0
+      have h0 : rapidDecaySeminorm k 0 = 0 := map_zero _
+      have : {x | rapidDecaySeminorm k x < ε} ∈ nhds (0 : RapidDecaySeq) :=
+        (rapidDecay_withSeminorms.continuous_seminorm k).continuousAt.preimage_mem_nhds
+          (by rw [h0]; exact Iio_mem_nhds hε)
+      exact this
+    · intro ⟨a, b⟩ (hx : rapidDecaySeminorm k (b - a) < ε)
+      show rapidDecaySeminorm k (a - b) < ε
+      rwa [show a - b = -(b - a) from (neg_sub b a).symm, map_neg_eq_map]
+  exact hu.mem_entourage h_ent
+
+instance instCompleteSpace :
+    @CompleteSpace RapidDecaySeq (IsTopologicalAddGroup.rightUniformSpace RapidDecaySeq) := by
+  letI : UniformSpace RapidDecaySeq := IsTopologicalAddGroup.rightUniformSpace RapidDecaySeq
+  haveI : IsUniformAddGroup RapidDecaySeq := isUniformAddGroup_of_addCommGroup
+  haveI : (nhds (0 : RapidDecaySeq)).IsCountablyGenerated := by
+    rw [(SeminormFamily.withSeminorms_iff_nhds_eq_iInf rapidDecaySeminorm).1
+      rapidDecay_withSeminorms]
+    exact Filter.iInf.isCountablyGenerated _
+  haveI : (uniformity RapidDecaySeq).IsCountablyGenerated :=
+    IsUniformAddGroup.uniformity_countably_generated
+  apply UniformSpace.complete_of_cauchySeq_tendsto
+  intro u hu
+  -- Step 1: Extract Cauchy condition for seminorms
+  have hcauchy : ∀ k ε, 0 < ε → ∃ N, ∀ n m, N ≤ n → N ≤ m →
+      rapidDecaySeminorm k (u n - u m) < ε :=
+    fun k ε hε => cauchySeq_seminorm_bound u hu k ε hε
+  -- Step 2: Each coordinate sequence is Cauchy in ℝ, hence convergent
+  have coord_cauchy : ∀ m, CauchySeq (fun n => (u n).val m) := by
+    intro m
+    rw [Metric.cauchySeq_iff']
+    intro ε hε
+    obtain ⟨N, hN⟩ := hcauchy 0 ε hε
+    exact ⟨N, fun n hn => by
+      rw [Real.dist_eq]
+      calc |((u n).val m - (u N).val m)|
+          = |(u n - u N).val m| := by
+            show _ = |((u n) + (-(u N))).val m|; simp [add_val, neg_val, sub_eq_add_neg]
+        _ ≤ rapidDecaySeminorm 0 (u n - u N) := coord_le_seminorm0 _ m
+        _ < ε := hN n N hn le_rfl⟩
+  -- Get the pointwise limit
+  choose a ha using fun m => cauchySeq_tendsto_of_complete (coord_cauchy m)
+  -- Step 3: Show `a` has rapid decay
+  -- From Cauchy: for each k, ∃ bound B such that all seminorm k (u n) ≤ B
+  have seminorm_bound : ∀ k, ∃ B, ∀ n, rapidDecaySeminorm k (u n) ≤ B := by
+    intro k
+    obtain ⟨N, hN⟩ := hcauchy k 1 one_pos
+    -- For n ≥ N, seminorm k (u n) ≤ seminorm k (u N) + 1 by triangle inequality
+    -- For n < N, we can take the max
+    have h_large : ∀ n, N ≤ n → rapidDecaySeminorm k (u n) ≤
+        rapidDecaySeminorm k (u N) + 1 := by
+      intro n hn
+      calc rapidDecaySeminorm k (u n)
+          = rapidDecaySeminorm k ((u n - u N) + u N) := by rw [sub_add_cancel]
+        _ ≤ rapidDecaySeminorm k (u n - u N) + rapidDecaySeminorm k (u N) :=
+            map_add_le_add _ _ _
+        _ ≤ 1 + rapidDecaySeminorm k (u N) := by
+            linarith [hN n N hn le_rfl]
+        _ = rapidDecaySeminorm k (u N) + 1 := by ring
+    -- Take the max of all values
+    let B := (Finset.range (N + 1)).sup' ⟨0, Finset.mem_range.mpr (Nat.zero_lt_succ N)⟩
+        (fun n => rapidDecaySeminorm k (u n)) ⊔ (rapidDecaySeminorm k (u N) + 1)
+    refine ⟨B, fun n => ?_⟩
+    by_cases hn : N ≤ n
+    · exact le_sup_of_le_right (h_large n hn)
+    · push_neg at hn
+      apply le_sup_of_le_left
+      exact Finset.le_sup' (fun i => rapidDecaySeminorm k (u i))
+        (Finset.mem_range.mpr (by omega))
+  -- Now show a has rapid decay: for each k, ∑ |a m| * (1+m)^k converges
+  -- Key: for any finite s, ∑_{m∈s} |a m| * (1+m)^k ≤ B
+  -- because ∑_{m∈s} |a m| * (1+m)^k = lim_n ∑_{m∈s} |(u n).val m| * (1+m)^k ≤ B
+  have a_rapid : ∀ k, Summable (fun m => |a m| * (1 + (m : ℝ)) ^ k) := by
+    intro k
+    obtain ⟨B, hB⟩ := seminorm_bound k
+    apply summable_of_sum_le (fun m => mul_nonneg (abs_nonneg _) (weight_nonneg m k))
+    intro s
+    -- ∑_{m∈s} |a m| * w m = lim_n ∑_{m∈s} |(u n).val m| * w m
+    -- For each finite m, (u n).val m → a m, so |(u n).val m| → |a m|
+    -- Hence the finite sum converges
+    have h_sum_lim : Filter.Tendsto
+        (fun n => ∑ m ∈ s, |(u n).val m| * (1 + (m : ℝ)) ^ k)
+        Filter.atTop (nhds (∑ m ∈ s, |a m| * (1 + (m : ℝ)) ^ k)) := by
+      apply tendsto_finset_sum
+      intro m _
+      exact (Filter.Tendsto.abs (ha m)).mul tendsto_const_nhds
+    -- Each partial sum ≤ seminorm k (u n) ≤ B
+    have h_sum_le : ∀ n, ∑ m ∈ s, |(u n).val m| * (1 + (m : ℝ)) ^ k ≤ B := by
+      intro n
+      exact le_trans (finset_sum_le_seminorm (u n) k s) (hB n)
+    exact le_of_tendsto h_sum_lim (Filter.Eventually.of_forall h_sum_le)
+  -- Construct the limit element
+  let L : RapidDecaySeq := ⟨a, a_rapid⟩
+  -- Step 4: Show u n → L in the seminorm topology
+  refine ⟨L, ?_⟩
+  rw [rapidDecay_withSeminorms.tendsto_nhds_atTop u L]
+  intro k ε hε
+  obtain ⟨N, hN⟩ := hcauchy k (ε / 2) (half_pos hε)
+  refine ⟨N, fun n hn => ?_⟩
+  -- Need: rapidDecaySeminorm k (u n - L) < ε
+  -- i.e., ∑' m, |(u n).val m - a m| * (1+m)^k < ε
+  -- For any finite s:
+  -- ∑_{m∈s} |(u n).val m - a m| * w m
+  --   = lim_j ∑_{m∈s} |(u n).val m - (u j).val m| * w m   (since (u j).val m → a m)
+  --   ≤ lim_j rapidDecaySeminorm k (u n - u j)             (finite sum ≤ seminorm)
+  --   But for j ≥ N, rapidDecaySeminorm k (u n - u j) < ε/2
+  --   So ∑_{m∈s} |(u n).val m - a m| * w m ≤ ε/2
+  -- By tsum_le_of_sum_le (taking sup over all s), ∑' m ≤ ε/2 < ε
+  show rapidDecaySeminorm k (u n - L) < ε
+  -- Rewrite the seminorm as a tsum of |(u n).val m - a m| * weight
+  have h_eq : rapidDecaySeminorm k (u n - L) =
+      ∑' m, |(u n).val m - a m| * (1 + (m : ℝ)) ^ k := by
+    show ∑' m, |(u n - L).val m| * (1 + (m : ℝ)) ^ k = _
+    simp only [sub_eq_add_neg, add_val, neg_val, L]
+  rw [h_eq]
+  -- Show the tsum ≤ ε/2
+  suffices h : ∑' m, |(u n).val m - a m| * (1 + (m : ℝ)) ^ k ≤ ε / 2 by linarith
+  apply Real.tsum_le_of_sum_le (fun m => mul_nonneg (abs_nonneg _) (weight_nonneg m k))
+  intro s
+  -- For each finite s, the partial sum ≤ ε/2
+  -- ∑_{m∈s} |(u n).val m - a m| * w m = lim_j ∑_{m∈s} |(u n).val m - (u j).val m| * w m
+  have h_lim : Filter.Tendsto
+      (fun j => ∑ m ∈ s, |(u n).val m - (u j).val m| * (1 + (m : ℝ)) ^ k)
+      Filter.atTop (nhds (∑ m ∈ s, |(u n).val m - a m| * (1 + (m : ℝ)) ^ k)) := by
+    apply tendsto_finset_sum
+    intro m _
+    exact ((tendsto_const_nhds.sub (ha m)).abs).mul tendsto_const_nhds
+  apply le_of_tendsto h_lim
+  rw [Filter.eventually_atTop]
+  refine ⟨N, fun j hj => ?_⟩
+  calc ∑ m ∈ s, |(u n).val m - (u j).val m| * (1 + (m : ℝ)) ^ k
+      = ∑ m ∈ s, |(u n - u j).val m| * (1 + (m : ℝ)) ^ k := by
+        simp only [sub_eq_add_neg, add_val, neg_val]
+    _ ≤ rapidDecaySeminorm k (u n - u j) := finset_sum_le_seminorm (u n - u j) k s
+    _ ≤ ε / 2 := le_of_lt (hN n j hn hj)
+
 /-! ### Standard basis and coefficients -/
 
 /-- The m-th standard basis vector: 1 at position m, 0 elsewhere. -/
@@ -303,6 +487,8 @@ instance rapidDecay_dyninMityaginSpace : DyninMityaginSpace RapidDecaySeq where
   ι := ℕ
   p := rapidDecaySeminorm
   h_with := rapidDecay_withSeminorms
+  h_countable := instCountableNat
+  h_completeSpace := instCompleteSpace
   basis := basisVec
   coeff := coeffCLM
   expansion := rapidDecay_expansion
@@ -363,12 +549,23 @@ DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
 @[reducible] noncomputable def DyninMityaginSpace.ofRapidDecayEquiv
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
+    {ι : Type} [Countable ι] (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
     (equiv : E ≃L[ℝ] RapidDecaySeq) : DyninMityaginSpace E where
   toT1Space := t1Space_of_injective_of_continuous equiv.injective equiv.continuous
   ι := ι
   p := p
   h_with := hp
+  h_countable := ‹Countable ι›
+  h_completeSpace := by
+    -- Transfer CompleteSpace from RapidDecaySeq to E via the CLE.
+    -- Set up uniform spaces on both sides from rightUniformSpace.
+    letI uE : UniformSpace E := IsTopologicalAddGroup.rightUniformSpace E
+    haveI : IsUniformAddGroup E := isUniformAddGroup_of_addCommGroup
+    letI uR : UniformSpace RapidDecaySeq :=
+      IsTopologicalAddGroup.rightUniformSpace RapidDecaySeq
+    haveI : IsUniformAddGroup RapidDecaySeq := isUniformAddGroup_of_addCommGroup
+    exact (completeSpace_congr (e := equiv.toLinearEquiv.toEquiv)
+      equiv.isUniformEmbedding).2 RapidDecaySeq.instCompleteSpace
   basis m := equiv.symm (RapidDecaySeq.basisVec m)
   coeff m := (RapidDecaySeq.coeffCLM m).comp equiv.toContinuousLinearMap
   expansion φ f := by
@@ -424,7 +621,7 @@ DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
 @[reducible] def DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    {ι : Type} (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
+    {ι : Type} [Countable ι] (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
     (equiv : E ≃L[ℝ] RapidDecaySeq) :
     letI := DyninMityaginSpace.ofRapidDecayEquiv p hp equiv
     DyninMityaginSpace.HasBiorthogonalBasis E :=

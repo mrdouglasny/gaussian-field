@@ -45,6 +45,9 @@ class DyninMityaginSpace (E : Type*)
   ι : Type
   p : ι → Seminorm ℝ E
   h_with : WithSeminorms p
+  h_countable : Countable ι
+  h_completeSpace :
+    @CompleteSpace E (IsTopologicalAddGroup.rightUniformSpace E)
   basis : ℕ → E
   coeff : ℕ → (E →L[ℝ] ℝ)
   expansion :
