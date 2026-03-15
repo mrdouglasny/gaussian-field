@@ -106,6 +106,10 @@ noncomputable instance finLatticeField_dyninMityaginSpace :
     DyninMityaginSpace (FinLatticeField d N) where
   ι := Unit
   p := fun _ => finLatticeSeminorm d N
+  h_countable := inferInstance
+  h_completeSpace := by
+    -- FinLatticeField d N = FinLatticeSites d N → ℝ is finite-dimensional → complete
+    sorry
   h_with := by
     rw [SeminormFamily.withSeminorms_iff_nhds_eq_iInf]
     simp only [iInf_const]
