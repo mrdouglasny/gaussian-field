@@ -134,4 +134,30 @@ theorem evalTorusAtSite_timeReflection (N : ℕ) [NeZero N]
   -- This is a property of circleReflection + circleRestriction
   sorry
 
+/-- Translation of lattice sites: x ↦ x - (j₁, j₂) in (ℤ/Nℤ)². -/
+def translateSites (N : ℕ) (j₁ j₂ : ℤ) (x : FinLatticeSites 2 N) :
+    FinLatticeSites 2 N :=
+  ![x 0 - (j₁ : ZMod N), x 1 - (j₂ : ZMod N)]
+
+/-- **Equivariance of evalTorusAtSite under lattice translation.**
+
+  `evalTorusAtSite x (T_{(j₁a, j₂a)} f) = evalTorusAtSite (x - (j₁, j₂)) f`
+
+where `a = L/N` is the lattice spacing and `j₁, j₂ ∈ ℤ`.
+Uses `evalCLM_comp_mapCLM` + circle restriction translation property:
+  `circleRestriction(T_{ja} g)(k) = circleRestriction(g)(k - j)` (by L-periodicity). -/
+theorem evalTorusAtSite_latticeTranslation (N : ℕ) [NeZero N]
+    (j₁ j₂ : ℤ) (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSite L N x (nuclearTensorProduct_mapCLM
+      (circleTranslation L (circleSpacing L N * j₁))
+      (circleTranslation L (circleSpacing L N * j₂)) f) =
+    evalTorusAtSite L N (translateSites N j₁ j₂ x) f := by
+  simp only [evalTorusAtSite, translateSites]
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+  rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
+  -- Need: proj_{x i} ∘ circRestr ∘ T_{ja} = proj_{x i - j} ∘ circRestr
+  -- i.e., circleRestriction(T_{ja} g)(k) = circleRestriction(g)(k - j)
+  -- This uses: T_{ja} g evaluates as g(· - ja), and circlePoint(k) - ja ≡ circlePoint(k-j) mod L
+  sorry
+
 end GaussianField
