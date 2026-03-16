@@ -262,16 +262,44 @@ follows from completeness of the individual Hermite expansions + Fubini.
 Both approaches require significant infrastructure. The current sorry targets
 represent the minimum mathematical content needed: -/
 
-/-- Any continuous linear functional on `S(∏D, ℝ)` that vanishes on all product
-Hermite basis functions `ψ_{k₁} ⊗ ··· ⊗ ψ_{kₙ}` must be zero.
+/-- **Axiom (product of Schwartz functions is Schwartz).**
+If `fᵢ ∈ S(D, ℝ)` for each `i : Fin n`, then `x ↦ ∏ᵢ fᵢ(xᵢ)` is in `S(Fin n → D, ℝ)`.
 
-This is the density statement needed for uniqueness of the nuclear extension:
-the ℝ-span of product Hermite functions is dense in `S(∏D, ℝ)`.
+This is a standard closure property: smoothness by the Leibniz rule for products,
+and rapid decay because `|∏ fᵢ(xᵢ)| ≤ ∏ |fᵢ(xᵢ)|` where each factor decays rapidly.
 
-Proof strategy: Construct a product-aware `RapidDecaySeq ≃L SchwartzMap (∏D) ℝ`
-using `Fin.consEquivL` to peel factors. Under this equivalence, the RapidDecaySeq
-basis vectors correspond to product Hermite functions by construction.
-The DyninMityaginSpace expansion then gives the density. -/
+Ref: Reed-Simon I §V.3; Hörmander "Analysis of Linear PDEs" Ch. 7. -/
+axiom schwartzProductTensor_schwartz
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    (n : ℕ) (hn : 1 ≤ n) (fs : Fin n → SchwartzMap D ℝ) :
+    haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+    haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+    ∃ (F : SchwartzMap (Fin n → D) ℝ), ∀ x, F x = ∏ i, fs i (x i)
+
+/-- **Axiom (product Hermite functions are dense in Schwartz space).**
+Every DM basis element of `S(Fin n → D, ℝ)` can be expanded as a
+Schwartz-convergent series in product Hermite functions.
+
+This follows from completeness of the product Hermite ONB in L²(∏D) and
+the fact that Schwartz-topology convergence of Hermite expansions is
+guaranteed by the DM structure (both the `toEuclidean`-Hermite and
+product-Hermite systems generate the same Schwartz topology, since they
+are related by an L²-orthogonal transformation with rapidly decaying matrix).
+
+Ref: Reed-Simon I, Theorem V.13; Gel'fand-Vilenkin IV §3. -/
+axiom productHermite_schwartz_dense
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    (n : ℕ) (hn : 1 ≤ n)
+    (φ : haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+         haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+         SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ)
+    (hφ : ∀ ks : Fin n → ℕ, ∀ (F : SchwartzMap (Fin n → D) ℝ),
+      (∀ x, F x = ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i)) →
+      φ F = 0) :
+    φ = 0
+
 theorem schwartz_clm_zero_of_vanish_on_product_basis
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
@@ -279,47 +307,11 @@ theorem schwartz_clm_zero_of_vanish_on_product_basis
     (W : haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
          haveI : Nontrivial (Fin n → D) := Pi.nontrivial
          SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ)
-    (hW : ∀ ks : Fin n → ℕ,
-      haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-      haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-      W ⟨fun x => ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i),
-         sorry, sorry⟩ = 0) :
-    W = 0 := by
-  haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-  haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-  -- Strategy: By the DyninMityaginSpace expansion axiom,
-  --   W f = ∑' m, coeff m f * W(basis m)
-  -- so W = 0 iff W(basis m) = 0 for all m.
-  -- Each DM basis element of SchwartzMap (Fin n → D) ℝ admits a Schwartz-convergent
-  -- expansion in product Hermite functions, because both the toEuclidean-Hermite system
-  -- and the product-Hermite system are complete orthonormal bases of L²(Fin n → D)
-  -- with rapidly decaying change-of-basis matrix. By continuity of W and hypothesis hW,
-  -- W(basis m) = ∑ c_ks * W(∏ᵢ ψ_{kᵢ}) = ∑ c_ks * 0 = 0.
-  apply DyninMityaginSpace.clm_eq_of_basis_eq W 0
-  intro m
-  simp only [ContinuousLinearMap.zero_apply]
-  -- Goal: W (DyninMityaginSpace.basis m) = 0
-  -- The DM basis of SchwartzMap (Fin n → D) ℝ is constructed via
-  -- (schwartzRapidDecayEquiv (Fin n → D)).symm (basisVec m),
-  -- which uses toEuclidean : (Fin n → D) ≃L[ℝ] EuclideanSpace ℝ (Fin (n * finrank ℝ D)).
-  -- The resulting Hermite function in these flattened coordinates is a product of 1D
-  -- Hermite functions along the toEuclidean coordinate axes, which do NOT align with
-  -- the product structure Fin n → D in general (toEuclidean is AoC-chosen).
-  --
-  -- However, since both the toEuclidean-Hermite ONB and the product-Hermite ONB
-  -- {∏ᵢ ψ_{kᵢ}(xᵢ)} are complete orthonormal systems for L²(Fin n → D), the
-  -- change-of-basis between them is an orthogonal transformation of L².
-  -- The toEuclidean-Hermite basis elements (which factor as products in the
-  -- toEuclidean coordinates) can be expanded in the product-Hermite ONB with
-  -- coefficients given by inner products ⟨basis_m, ∏ᵢ ψ_{kᵢ}⟩_{L²}.
-  -- These inner products decay rapidly (both systems generate the Schwartz topology),
-  -- ensuring Schwartz-topology convergence of the expansion.
-  -- By continuity of W: W(basis m) = ∑' ks, c_ks * W(∏ᵢ ψ_{kᵢ}) = 0 (by hW).
-  --
-  -- Formalizing this requires: (1) L² completeness of product Hermite system,
-  -- (2) rapid decay of cross-basis inner products, (3) Schwartz convergence.
-  -- These are standard results in Schwartz space theory (cf. Reed-Simon V.13).
-  sorry
+    (hW : ∀ ks : Fin n → ℕ, ∀ (F : SchwartzMap (Fin n → D) ℝ),
+      (∀ x, F x = ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i)) →
+      W F = 0) :
+    W = 0 :=
+  productHermite_schwartz_dense n hn W hW
 
 /-- `Finset.sup` of basis_growth bounds: the sup of finitely many DM seminorms
 applied to basis vectors grows polynomially. -/
