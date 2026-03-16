@@ -321,16 +321,41 @@ theorem schwartz_clm_zero_of_vanish_on_product_basis
   -- These are standard results in Schwartz space theory (cf. Reed-Simon V.13).
   sorry
 
-/-- **Continuous multilinear maps on DM spaces are polynomially bounded on basis vectors.**
+/-- `Finset.sup` of basis_growth bounds: the sup of finitely many DM seminorms
+applied to basis vectors grows polynomially. -/
+private theorem basis_growth_finset_sup
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    (s_idx : Finset (DyninMityaginSpace.ι (E := SchwartzMap D ℝ))) :
+    ∃ C > 0, ∃ s_bg : ℕ, ∀ m : ℕ,
+      (s_idx.sup DyninMityaginSpace.p)
+        (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m) ≤
+        C * (1 + (m : ℝ)) ^ s_bg := by
+  induction s_idx using Finset.cons_induction with
+  | empty => exact ⟨1, one_pos, 0, fun m => by simp [Finset.sup_empty]⟩
+  | cons a s_rest ha ih =>
+    obtain ⟨C1, hC1, s1, h1⟩ := DyninMityaginSpace.basis_growth (E := SchwartzMap D ℝ) a
+    obtain ⟨C2, hC2, s2, h2⟩ := ih
+    refine ⟨C1 + C2, by linarith, max s1 s2, fun m => ?_⟩
+    rw [Finset.sup_cons]
+    apply sup_le
+    · calc DyninMityaginSpace.p a (DyninMityaginSpace.basis m)
+          ≤ C1 * (1 + (m : ℝ)) ^ s1 := h1 m
+        _ ≤ C1 * (1 + (m : ℝ)) ^ (max s1 s2 : ℕ) := by
+            gcongr
+            · linarith [Nat.cast_nonneg (α := ℝ) m]
+            · exact Nat.le_max_left s1 s2
+        _ ≤ (C1 + C2) * (1 + (m : ℝ)) ^ (max s1 s2 : ℕ) := by
+            gcongr; linarith
+    · calc (s_rest.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis m)
+          ≤ C2 * (1 + (m : ℝ)) ^ s2 := h2 m
+        _ ≤ C2 * (1 + (m : ℝ)) ^ (max s1 s2 : ℕ) := by
+            gcongr
+            · linarith [Nat.cast_nonneg (α := ℝ) m]
+            · exact Nat.le_max_right s1 s2
+        _ ≤ (C1 + C2) * (1 + (m : ℝ)) ^ (max s1 s2 : ℕ) := by
+            gcongr; linarith
 
-For a continuous n-multilinear `Phi` and basis vectors indexed by a tuple `ks : Fin n → ℕ`:
-  `|Phi(ψ_{k₁},...,ψ_{kₙ})| ≤ C · ∏ᵢ (1 + kᵢ)^s`
-
-Proof: Continuity of Phi at 0 gives a neighborhood bound
-`{f | p(f) < δ}^n → {r | |r| < 1}` for some Schwartz seminorm p and δ > 0.
-By n-linearity: `|Phi(f₁,...,fₙ)| ≤ (1/δ)^n · ∏ p(fᵢ)`.
-By `basis_growth`: `p(ψ_m) ≤ C · (1+m)^s`.
-Combined: `|Phi(ψ_{k₁},...,ψ_{kₙ})| ≤ (C/δ)^n · ∏ (1+kᵢ)^s`. -/
 theorem multilinear_on_basis_bound
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
@@ -355,11 +380,7 @@ theorem multilinear_on_basis_bound
     obtain ⟨s_idx, C_sem, hC_sem, h_bound⟩ := h_sem
     -- For each seminorm index in s_idx, basis_growth gives poly bound.
     -- The sup of finitely many poly bounds is poly bounded.
-    have h_sup_growth : ∃ C_bg > 0, ∃ s_bg : ℕ, ∀ m : ℕ,
-        (s_idx.sup DyninMityaginSpace.p)
-          (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m) ≤
-          C_bg * (1 + (m : ℝ)) ^ s_bg := by
-      sorry -- Finset.induction on s_idx using basis_growth for each element
+    have h_sup_growth := basis_growth_finset_sup s_idx
     obtain ⟨C_bg, hC_bg, s_bg, h_bg⟩ := h_sup_growth
     refine ⟨C_sem * C_bg ^ n, by positivity, s_bg, fun ks => ?_⟩
     calc |Phi (fun i => DyninMityaginSpace.basis (ks i))|
