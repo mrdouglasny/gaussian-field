@@ -31,6 +31,7 @@ where `r_N` is the circle restriction map (sampling with √(L/N) normalization)
 
 import Torus.Restriction
 import Lattice.FiniteField
+import Nuclear.TensorProductFunctorAxioms
 
 noncomputable section
 
@@ -83,5 +84,28 @@ def torusEmbedCLM (N : ℕ) [NeZero N]
     torusEmbedCLM L N φ f =
     ∑ x : FinLatticeSites 2 N, φ x * evalTorusAtSite L N x f :=
   rfl
+
+/-- Swap of lattice sites: (x₀, x₁) ↦ (x₁, x₀). -/
+def swapSites (N : ℕ) (x : FinLatticeSites 2 N) : FinLatticeSites 2 N :=
+  ![x 1, x 0]
+
+/-- **Equivariance of evalTorusAtSite under coordinate swap.**
+
+  `evalTorusAtSite x (swap f) = evalTorusAtSite (swap_sites x) f`
+
+This is the key identity for proving D4 swap invariance of the
+torus-embedded interacting measure. -/
+theorem evalTorusAtSite_swap (N : ℕ) [NeZero N]
+    (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSite L N x (GaussianField.nuclearTensorProduct_swapCLM f) =
+    evalTorusAtSite L N (swapSites N x) f := by
+  simp only [evalTorusAtSite, swapSites]
+  -- LHS: evalCLM (proj_{x 0} ∘ circRestr) (proj_{x 1} ∘ circRestr) (swapCLM f)
+  -- RHS: evalCLM (proj_{![x 1, x 0] 0} ∘ circRestr) (proj_{![x 1, x 0] 1} ∘ circRestr) f
+  -- Simplify ![x 1, x 0] indices
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+  -- Now: evalCLM (proj_{x 0} ∘ circRestr) (proj_{x 1} ∘ circRestr) (swapCLM f) =
+  --      evalCLM (proj_{x 1} ∘ circRestr) (proj_{x 0} ∘ circRestr) f
+  exact GaussianField.evalCLM_comp_swapCLM _ _ f
 
 end GaussianField
