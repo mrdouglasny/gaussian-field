@@ -709,6 +709,25 @@ theorem nuclearTensorProduct_mapCLM_comp
   simp only [mapImage, ContinuousLinearMap.comp_apply]
   exact (nuclearTensorProduct_mapCLM_pure T₁ T₂ _ _).symm
 
+/-- **evalCLM commutes with mapCLM.**
+
+  `evalCLM φ₁ φ₂ (mapCLM T₁ T₂ f) = evalCLM (φ₁.comp T₁) (φ₂.comp T₂) f`
+
+On pure tensors: `φ₁(T₁ e₁) * φ₂(T₂ e₂)` = `(φ₁∘T₁)(e₁) * (φ₂∘T₂)(e₂)`.
+Extension by `rapidDecay_expansion` + single-space Schauder expansion in mapImage.
+TODO: prove from tsum expansion. -/
+theorem evalCLM_comp_mapCLM
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
+    (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+    (f : NuclearTensorProduct E₁ E₂) :
+    NuclearTensorProduct.evalCLM φ₁ φ₂ (nuclearTensorProduct_mapCLM T₁ T₂ f) =
+    NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂) f := by
+  sorry
+
 end GaussianField
 
 end

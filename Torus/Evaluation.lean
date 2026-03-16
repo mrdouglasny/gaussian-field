@@ -30,6 +30,7 @@ where `r_N` is the circle restriction map (sampling with √(L/N) normalization)
 -/
 
 import Torus.Restriction
+import Torus.Symmetry
 import Lattice.FiniteField
 import Nuclear.TensorProductFunctorAxioms
 
@@ -107,5 +108,30 @@ theorem evalTorusAtSite_swap (N : ℕ) [NeZero N]
   -- Now: evalCLM (proj_{x 0} ∘ circRestr) (proj_{x 1} ∘ circRestr) (swapCLM f) =
   --      evalCLM (proj_{x 1} ∘ circRestr) (proj_{x 0} ∘ circRestr) f
   exact GaussianField.evalCLM_comp_swapCLM _ _ f
+
+/-- Time-reflection of lattice sites: (x₀, x₁) ↦ (-x₀, x₁). -/
+def timeReflectSites (N : ℕ) (x : FinLatticeSites 2 N) : FinLatticeSites 2 N :=
+  ![-x 0, x 1]
+
+/-- **Equivariance of evalTorusAtSite under time reflection.**
+
+  `evalTorusAtSite x (Θ f) = evalTorusAtSite (timeReflectSites x) f`
+
+where `Θ = torusTimeReflection = mapCLM (circleReflection) id`.
+Uses `evalCLM_comp_mapCLM`. -/
+theorem evalTorusAtSite_timeReflection (N : ℕ) [NeZero N]
+    (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSite L N x (nuclearTensorProduct_mapCLM
+      (circleReflection L) (ContinuousLinearMap.id ℝ _) f) =
+    evalTorusAtSite L N (timeReflectSites N x) f := by
+  simp only [evalTorusAtSite, timeReflectSites]
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+  rw [evalCLM_comp_mapCLM]
+  simp only [ContinuousLinearMap.comp_id]
+  -- Need: (proj_{x 0}).comp (circleRestriction L N) |>.comp (circleReflection L)
+  --     = (proj_{-x 0}).comp (circleRestriction L N)
+  -- i.e., circleRestriction(circleReflection g)(x 0) = circleRestriction(g)(-x 0)
+  -- This is a property of circleReflection: reflection negates the ZMod index
+  sorry
 
 end GaussianField
