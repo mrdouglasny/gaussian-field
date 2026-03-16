@@ -110,9 +110,15 @@ private theorem summable_one_div_add_one_sq :
     (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
   exact this.congr (fun m => by push_cast; ring_nf)
 
-/-- The extension linear map is bounded by DyninMityaginSpace seminorms.
-The bound `|Σ c_m v_m| ≤ CvCcS · p_s(f)` follows from `coeff_decay` + poly growth
-+ convergence of `Σ 1/(1+m)^2`. -/
+/-- The extension linear map is bounded by DyninMityaginSpace seminorms:
+`|Σ c_m v_m| ≤ CvCcS · p_s(f)` where `S = Σ 1/(m+1)^2`.
+
+Proof outline: `|Σ c_m v_m| ≤ Σ |c_m| |v_m| ≤ Σ CvCc · p_s(f) · (1+m)^{-2} = CvCcS · p_s(f)`.
+Uses `coeff_decay` at index `p+2` to get `(1+m)^{-2}` tail after absorbing `(1+m)^p` from `v`.
+
+Note: The full calc proof times out (~400k heartbeats) due to Lean elaboration of
+`tsum_le_tsum` on Schwartz-space types. The bound is the same as in
+`summable_coeff_mul_polyBounded` but wrapped in `IsBounded`. -/
 private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
     Seminorm.IsBounded (DyninMityaginSpace.p (E := E))
       (fun _ : Fin 1 => normSeminorm ℝ ℝ)
