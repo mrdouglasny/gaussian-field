@@ -74,36 +74,58 @@ theorem DyninMityaginSpace.summable_coeff_mul_polyBounded
           apply mul_le_mul_of_nonneg_right _ (inv_nonneg.mpr (pow_nonneg h1.le 2))
           exact mul_le_mul_of_nonneg_left (hc_bound f m) hCv.le
       _ = Cv * Cc * (s.sup DyninMityaginSpace.p) f * ((1 + (m : ℝ)) ^ 2)⁻¹ := by ring
-  exact Summable.of_nonneg_of_le (fun _ => norm_nonneg _) h_dom
-    -- Σ C/(1+m)^2: constant times shifted p-series with exponent 2 > 1
-    (by exact (sorry : Summable fun (b : ℕ) => Cv * Cc * (s.sup DyninMityaginSpace.p) f *
-      ((1 + (b : ℝ)) ^ 2)⁻¹))
+  refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) h_dom ?_
+  -- Σ C/(1+m)^2: constant times shifted p-series with exponent 2 > 1
+  apply Summable.mul_left
+  have : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
+    have := (summable_nat_add_iff 1).mpr
+      (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+    exact this.congr (fun m => by push_cast; ring_nf)
+  exact this.congr (fun m => by rw [one_div]; congr 1; ring)
 
-/-- `f ↦ Σ coeff_m(f) · v_m` is a continuous linear functional when `v` has
-polynomial growth. Linearity from `coeff`; continuity from the uniform bound
-`|Σ c_m v_m| ≤ C · p_s(f)`. -/
+/-- The linear map `f ↦ Σ coeff_m(f) · v_m`. -/
+private def DyninMityaginSpace.extensionLM (v : ℕ → ℝ) (hv : PolyBounded v) :
+    E →ₗ[ℝ] ℝ where
+  toFun f := ∑' m, DyninMityaginSpace.coeff (E := E) m f * v m
+  map_add' f g := by
+    have hsf := summable_coeff_mul_polyBounded (E := E) v hv f
+    have hsg := summable_coeff_mul_polyBounded (E := E) v hv g
+    rw [show (∑' m, DyninMityaginSpace.coeff (E := E) m f * v m) +
+      (∑' m, DyninMityaginSpace.coeff (E := E) m g * v m) =
+      ∑' m, (DyninMityaginSpace.coeff (E := E) m f * v m +
+        DyninMityaginSpace.coeff (E := E) m g * v m) from
+      (hsf.tsum_add hsg).symm]
+    exact tsum_congr (fun m => by simp [map_add, add_mul])
+  map_smul' r f := by
+    simp only [RingHom.id_apply]
+    rw [show r • (∑' m, DyninMityaginSpace.coeff (E := E) m f * v m) =
+      r * (∑' m, DyninMityaginSpace.coeff (E := E) m f * v m) from rfl,
+      ← tsum_mul_left]
+    exact tsum_congr (fun m => by simp [map_smul, smul_eq_mul, mul_assoc])
+
+/-- Helper: the shifted p-series `Σ 1/(m+1)^2` converges. -/
+private theorem summable_one_div_add_one_sq :
+    Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
+  have := (summable_nat_add_iff 1).mpr
+    (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+  exact this.congr (fun m => by push_cast; ring_nf)
+
+/-- The extension linear map is bounded by DyninMityaginSpace seminorms.
+The bound `|Σ c_m v_m| ≤ CvCcS · p_s(f)` follows from `coeff_decay` + poly growth
++ convergence of `Σ 1/(1+m)^2`. -/
+private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
+    Seminorm.IsBounded (DyninMityaginSpace.p (E := E))
+      (fun _ : Fin 1 => normSeminorm ℝ ℝ)
+      (DyninMityaginSpace.extensionLM (E := E) v hv) := by
+  sorry
+
 def DyninMityaginSpace.clm_of_polyBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
-    E →L[ℝ] ℝ := by
-  exact
-  { toFun := fun f => ∑' m, DyninMityaginSpace.coeff (E := E) m f * v m
-    map_add' := fun f g => by
-      have hsf := summable_coeff_mul_polyBounded (E := E) v hv f
-      have hsg := summable_coeff_mul_polyBounded (E := E) v hv g
-      rw [show (∑' m, DyninMityaginSpace.coeff (E := E) m f * v m) +
-        (∑' m, DyninMityaginSpace.coeff (E := E) m g * v m) =
-        ∑' m, (DyninMityaginSpace.coeff (E := E) m f * v m +
-          DyninMityaginSpace.coeff (E := E) m g * v m) from
-        (hsf.tsum_add hsg).symm]
-      exact tsum_congr (fun m => by
-        simp [map_add, add_mul])
-    map_smul' := fun r f => by
-      simp only [RingHom.id_apply]
-      rw [show r • (∑' m, DyninMityaginSpace.coeff (E := E) m f * v m) =
-        r * (∑' m, DyninMityaginSpace.coeff (E := E) m f * v m) from rfl,
-        ← tsum_mul_left]
-      exact tsum_congr (fun m => by
-        simp [map_smul, smul_eq_mul, mul_assoc])
-    cont := by sorry }
+    E →L[ℝ] ℝ where
+  toLinearMap := extensionLM v hv
+  cont := by
+    exact WithSeminorms.continuous_of_isBounded
+      (DyninMityaginSpace.h_with (E := E)) (norm_withSeminorms ℝ ℝ)
+      _ (DyninMityaginSpace.extensionLM_isBounded (E := E) v hv)
 
 /-- The CLM agrees with v on basis vectors (biorthogonal basis). -/
 theorem DyninMityaginSpace.clm_of_polyBounded_basis
