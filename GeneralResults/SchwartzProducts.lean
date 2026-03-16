@@ -4,26 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # General Results for Schwartz Nuclear Extension
 
-Textbook axioms about Schwartz spaces that are used in the nuclear extension
-theorem. These are standard results from distribution theory that have not
-yet been formalized in Lean/Mathlib.
+Results about products of Schwartz functions, used in the nuclear extension theorem.
 
-## Axioms
+`schwartzProductTensor_schwartz` follows from the existing `schwartzPointwiseProduct`
+and `schwartzTensorEquiv` infrastructure (2-fold case on EuclideanSpace), but the
+n-fold generalization on arbitrary `Fin n → D` requires coordinate bookkeeping
+through `schwartzDomCongr` that is not yet fully formalized.
 
-- `schwartzProductTensor_schwartz` — product of Schwartz functions is Schwartz
-- `productHermite_schwartz_dense` — product Hermite system is dense in S(∏D)
-
-Both are well-known textbook results (Reed-Simon I, Gel'fand-Vilenkin IV).
-They can be proved by:
-1. For `schwartzProductTensor_schwartz`: Leibniz rule for iterated derivatives
-   of products + rapid decay of each factor in its own variable.
-2. For `productHermite_schwartz_dense`: completeness of the product Hermite ONB
-   in L²(∏D) + the DyninMityaginSpace expansion implies Schwartz-topology
-   density (both the toEuclidean-Hermite and product-Hermite systems generate
-   the same Schwartz topology via rapidly decaying change-of-basis matrix).
+`productHermite_schwartz_dense` is a standard density result (Reed-Simon V.13).
 -/
 
 import SchwartzNuclear.HermiteNuclear
+import SchwartzNuclear.SchwartzTensorProduct
 
 noncomputable section
 
@@ -31,13 +23,23 @@ open GaussianField
 
 namespace GaussianField
 
-/-- **Axiom (product of Schwartz functions is Schwartz).**
-If `fᵢ ∈ S(D, ℝ)` for each `i : Fin n`, then `x ↦ ∏ᵢ fᵢ(xᵢ)` is in `S(Fin n → D, ℝ)`.
+/-! ## Product of Schwartz functions is Schwartz
 
-This is a standard closure property: smoothness by the Leibniz rule for products,
-and rapid decay because `|∏ fᵢ(xᵢ)| ≤ ∏ |fᵢ(xᵢ)|` where each factor decays rapidly.
+The 2-fold case is `schwartzPointwiseProduct` (in `SchwartzTensorProduct.lean`):
+  `schwartzPointwiseProduct d f g : SchwartzMap (EuclideanSpace ℝ (Fin (d+2))) ℝ`
+with `schwartzPointwiseProduct_apply`: evaluates to `f(init x) · g(last x)`.
 
-Ref: Reed-Simon I §V.3; Hörmander "Analysis of Linear PDEs" Ch. 7. -/
+The n-fold generalization requires iterating this construction with
+appropriate coordinate equivalences. For now we axiomatize it. -/
+
+/-- Product of Schwartz functions is Schwartz.
+
+Proved for the 2-fold case by `schwartzPointwiseProduct` via `schwartzPeelOff.symm`
+applied to `NuclearTensorProduct.pure f g`. The n-fold case follows by induction,
+composing with `schwartzDomCongr` for the coordinate equivalence
+`Fin (n+1) → D ≃L (Fin n → D) × D` (via `Fin.consEquivL`).
+
+The axiomatization avoids ~200 lines of coordinate bookkeeping. -/
 axiom schwartzProductTensor_schwartz
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
@@ -46,18 +48,12 @@ axiom schwartzProductTensor_schwartz
     haveI : Nontrivial (Fin n → D) := Pi.nontrivial
     ∃ (F : SchwartzMap (Fin n → D) ℝ), ∀ x, F x = ∏ i, fs i (x i)
 
-/-- **Axiom (product Hermite functions are dense in Schwartz space).**
-Every DM basis element of `S(Fin n → D, ℝ)` can be expanded as a
-Schwartz-convergent series in product Hermite functions.
+/-- Product Hermite functions are dense in Schwartz space on the product domain.
 
-Equivalently: if a continuous linear functional on `S(Fin n → D, ℝ)` vanishes
-on all product Hermite functions `∏ᵢ ψ_{kᵢ}(xᵢ)`, then it is zero.
-
-This follows from completeness of the product Hermite ONB in L²(∏D) and
-the fact that Schwartz-topology convergence of Hermite expansions is
-guaranteed by the DM structure (both the `toEuclidean`-Hermite and
-product-Hermite systems generate the same Schwartz topology, since they
-are related by an L²-orthogonal transformation with rapidly decaying matrix).
+If a CLF on `S(∏D)` vanishes on all product Hermite functions, it is zero.
+This follows from completeness of the product Hermite ONB in L²(∏D)
+and the DyninMityaginSpace expansion (both the `toEuclidean`-Hermite and
+product-Hermite systems generate the same Schwartz topology).
 
 Ref: Reed-Simon I, Theorem V.13; Gel'fand-Vilenkin IV §3. -/
 axiom productHermite_schwartz_dense
