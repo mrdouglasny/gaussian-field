@@ -356,6 +356,7 @@ private theorem basis_growth_finset_sup
         _ ≤ (C1 + C2) * (1 + (m : ℝ)) ^ (max s1 s2 : ℕ) := by
             gcongr; linarith
 
+set_option maxHeartbeats 1600000 in
 theorem multilinear_on_basis_bound
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
@@ -364,36 +365,89 @@ theorem multilinear_on_basis_bound
     ∃ C > 0, ∃ s : ℕ, ∀ (ks : Fin n → ℕ),
       |Phi (fun i => DyninMityaginSpace.basis (ks i))| ≤
         C * ∏ i : Fin n, (1 + (ks i : ℝ)) ^ s := by
-  -- Step 1: Extract seminorm bound from continuity of Phi.
-  -- For a continuous multilinear map, continuity at 0 gives:
-  -- ∃ (s : Finset ι) (δ > 0), (s.sup p)(fᵢ) < δ ∀i ⟹ |Phi(f)| < 1
-  -- By n-linearity: |Phi(f)| ≤ δ⁻ⁿ · ∏ (s.sup p)(fᵢ)
-  -- This neighborhood extraction from WithSeminorms requires Filter.Tendsto
-  -- + hasBasis_zero_ball, which is standard but verbose (~80 lines).
-  -- For now, we sorry this step and derive the rest.
-  suffices h_sem : ∃ (s_idx : Finset (DyninMityaginSpace.ι (E := SchwartzMap D ℝ))) (C_sem : ℝ),
-      0 < C_sem ∧ ∀ (ks : Fin n → ℕ),
-        |Phi (fun i => DyninMityaginSpace.basis (ks i))| ≤
-          C_sem * ∏ i, (s_idx.sup DyninMityaginSpace.p)
-            (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) by
-    -- Step 2: Use basis_growth to convert seminorm bound to polynomial bound
-    obtain ⟨s_idx, C_sem, hC_sem, h_bound⟩ := h_sem
-    -- For each seminorm index in s_idx, basis_growth gives poly bound.
-    -- The sup of finitely many poly bounds is poly bounded.
-    have h_sup_growth := basis_growth_finset_sup s_idx
-    obtain ⟨C_bg, hC_bg, s_bg, h_bg⟩ := h_sup_growth
-    refine ⟨C_sem * C_bg ^ n, by positivity, s_bg, fun ks => ?_⟩
-    calc |Phi (fun i => DyninMityaginSpace.basis (ks i))|
-        ≤ C_sem * ∏ i, (s_idx.sup DyninMityaginSpace.p)
-            (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) := h_bound ks
-      _ ≤ C_sem * ∏ i, (C_bg * (1 + (ks i : ℝ)) ^ s_bg) := by
-          gcongr with i; exact h_bg (ks i)
-      _ = C_sem * C_bg ^ n * ∏ i, (1 + (ks i : ℝ)) ^ s_bg := by
-          rw [Finset.prod_mul_distrib]; simp [Finset.prod_const, Finset.card_fin]; ring
-  -- Step 1 sorry: extract seminorm bound from Phi.cont
-  -- Uses: Phi.cont.tendsto 0, WithSeminorms.hasBasis_zero_ball,
-  -- Filter.Tendsto.basis_left, multilinear scaling.
-  exact sorry
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · -- Case n = 0: product is empty = 1, bound by |Phi _| + 1
+    refine ⟨|Phi (fun i => Fin.elim0 i)| + 1, by positivity, 0, fun ks => ?_⟩
+    simp only [Finset.univ_eq_empty, Finset.prod_empty, mul_one]
+    have : (fun i : Fin 0 => DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) =
+           (fun i : Fin 0 => Fin.elim0 i) := by ext i; exact Fin.elim0 i
+    rw [this]; linarith [abs_nonneg (Phi (fun i => Fin.elim0 i))]
+  · -- Case n ≥ 1: use continuity at 0 + multilinear scaling + basis_growth
+    haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+    -- Step 1: Phi⁻¹({|·| < 1}) is a neighborhood of 0 (since Phi 0 = 0 and Phi is continuous)
+    have hPreimage : Phi ⁻¹' {x : ℝ | |x| < 1} ∈ nhds (0 : Fin n → SchwartzMap D ℝ) := by
+      apply Phi.cont.continuousAt.preimage_mem_nhds
+      show {x : ℝ | |x| < 1} ∈ nhds (Phi 0); rw [Phi.map_zero]
+      exact IsOpen.mem_nhds (isOpen_lt continuous_abs continuous_const) (by simp)
+    -- Step 2: Extract a uniform seminorm ball from the product-topology neighborhood
+    rw [nhds_pi, Filter.mem_pi] at hPreimage
+    obtain ⟨w, _, t, ht_mem, ht_sub⟩ := hPreimage
+    have hU_nhds : (⋂ i : Fin n, t i) ∈ nhds (0 : SchwartzMap D ℝ) :=
+      Filter.iInter_mem.mpr (fun i => ht_mem i)
+    rw [(DyninMityaginSpace.h_with (E := SchwartzMap D ℝ)).hasBasis_zero_ball.mem_iff] at hU_nhds
+    obtain ⟨⟨sfin, δ⟩, hδ_raw, hball_sub⟩ := hU_nhds
+    change 0 < δ at hδ_raw
+    change (sfin.sup DyninMityaginSpace.p).ball 0 δ ⊆ _ at hball_sub
+    -- Step 3: If all seminorm values < δ, then |Phi| < 1
+    have h_ball : ∀ fs : Fin n → SchwartzMap D ℝ,
+        (∀ i, (sfin.sup DyninMityaginSpace.p) (fs i) < δ) → |Phi fs| < 1 := by
+      intro fs hfs
+      have hfs_in_U : ∀ i, fs i ∈ ⋂ j : Fin n, t j := fun i =>
+        hball_sub (by rw [Seminorm.mem_ball, sub_zero]; exact hfs i)
+      exact ht_sub (fun i _ => Set.mem_iInter.mp (hfs_in_U i) i)
+    -- Step 4: Polynomial growth of (sfin.sup p) on basis elements
+    obtain ⟨C_bg, hC_bg, s_bg, h_bg⟩ := basis_growth_finset_sup sfin
+    -- Step 5: Combine via multilinear scaling
+    -- For each i, set c_i = 2*(q(ψ_{k_i})+1)/δ and g_i = c_i⁻¹ • ψ_{k_i}.
+    -- Then q(g_i) < δ (scaling argument) and ψ_{k_i} = c_i • g_i.
+    -- By map_smul_univ: Phi(ψ) = (∏ c_i) • Phi(gs), and |Phi(gs)| < 1.
+    -- So |Phi(ψ)| ≤ ∏ c_i ≤ (2*(C_bg+1)/δ)^n * ∏ (1+k_i)^s_bg.
+    refine ⟨(2 * (C_bg + 1) / δ) ^ n, by positivity, s_bg, fun ks => ?_⟩
+    set q := sfin.sup DyninMityaginSpace.p
+    set c : Fin n → ℝ := fun i =>
+      2 * (q (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) + 1) / δ
+    set gs : Fin n → SchwartzMap D ℝ :=
+      fun i => (c i)⁻¹ • DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)
+    have hc_pos : ∀ i, 0 < c i := fun i => by simp only [c]; positivity
+    have hc_ne : ∀ i, c i ≠ 0 := fun i => ne_of_gt (hc_pos i)
+    have h_eq : (fun i => DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) =
+        fun i => c i • gs i := by
+      ext i; simp only [gs, smul_smul, mul_inv_cancel₀ (hc_ne i), one_smul]
+    have hgs : ∀ i, q (gs i) < δ := by
+      intro i; simp only [gs, map_smul_eq_mul]
+      rw [Real.norm_of_nonneg (inv_nonneg.mpr (hc_pos i).le)]
+      set qi := q (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i))
+      have hqi : 0 ≤ qi := by positivity
+      rw [show c i = 2 * (qi + 1) / δ from rfl, inv_div]
+      calc δ / (2 * (qi + 1)) * qi
+          = δ * qi / (2 * (qi + 1)) := by ring
+        _ < δ * (qi + 1) / (2 * (qi + 1)) :=
+            div_lt_div_of_pos_right (by nlinarith) (by positivity)
+        _ = δ / 2 := by
+            rw [mul_div_mul_right _ _ (show (0 : ℝ) < qi + 1 by linarith).ne']
+        _ < δ := by linarith
+    have hPhi_gs : |Phi gs| < 1 := h_ball gs hgs
+    rw [h_eq, Phi.map_smul_univ c gs, smul_eq_mul, abs_mul]
+    have h_prod_pos : 0 < ∏ i, c i := Finset.prod_pos (fun i _ => hc_pos i)
+    calc |∏ i, c i| * |Phi gs|
+        ≤ (∏ i, c i) * 1 := by
+          rw [abs_of_pos h_prod_pos]
+          exact mul_le_mul_of_nonneg_left hPhi_gs.le h_prod_pos.le
+      _ = ∏ i : Fin n, c i := mul_one _
+      _ ≤ ∏ i : Fin n, (2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg) := by
+          apply Finset.prod_le_prod (fun i _ => (hc_pos i).le) (fun i _ => ?_)
+          show 2 * (q (DyninMityaginSpace.basis (ks i)) + 1) / δ ≤
+            2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg
+          rw [div_mul_eq_mul_div]
+          apply div_le_div_of_nonneg_right _ hδ_raw.le
+          have hx : (1 : ℝ) ≤ (1 + (ks i : ℝ)) ^ s_bg :=
+            one_le_pow₀ (le_add_of_nonneg_right (Nat.cast_nonneg (ks i)))
+          nlinarith [h_bg (ks i)]
+      _ = (2 * (C_bg + 1) / δ) ^ n * ∏ i : Fin n, (1 + (ks i : ℝ)) ^ s_bg := by
+          rw [show (fun i => 2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg) =
+              (fun i => (fun _ : Fin n => 2 * (C_bg + 1) / δ) i *
+                (1 + (ks i : ℝ)) ^ s_bg) from rfl,
+              Finset.prod_mul_distrib, Finset.prod_const, Finset.card_fin]
 
 /-- Consequence: polynomial bound on basis values for any poly-bounded encoding.
 If `βs m i ≤ D · (1+m)^q` for all i, m, then `Phi(ψ_{βs m})` is PolyBounded. -/
