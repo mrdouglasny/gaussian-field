@@ -20,6 +20,7 @@ uniquely to a continuous linear functional on the Schwartz space of the product 
 -/
 
 import SchwartzNuclear.HermiteNuclear
+import SchwartzNuclear.TsumBound
 import Mathlib.Topology.Algebra.InfiniteSum.Ring
 
 noncomputable section
@@ -148,7 +149,29 @@ private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv :
     Seminorm.IsBounded (DyninMityaginSpace.p (E := E))
       (fun _ : Fin 1 => normSeminorm ℝ ℝ)
       (DyninMityaginSpace.extensionLM (E := E) v hv) := by
-  sorry
+  obtain ⟨Cv, hCv, p, hv_bound⟩ := hv
+  obtain ⟨Cc, hCc, s, hc_bound⟩ := DyninMityaginSpace.coeff_decay (E := E) (p + 2)
+  set S := ∑' m : ℕ, (1 : ℝ) / ((m : ℝ) + 1) ^ 2
+  intro _
+  refine ⟨s, ⟨Cv * Cc * S, by positivity⟩, fun f => ?_⟩
+  simp only [Seminorm.comp_apply, NNReal.smul_def, smul_eq_mul, coe_normSeminorm,
+    Real.norm_eq_abs, extensionLM, LinearMap.coe_mk, AddHom.coe_mk]
+  set a := fun m => DyninMityaginSpace.coeff (E := E) m f * v m
+  set w := fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2
+  set B := Cv * Cc * (s.sup DyninMityaginSpace.p) f
+  have ha := summable_coeff_mul_polyBounded (E := E) v ⟨Cv, hCv, p, hv_bound⟩ f
+  have h_pw : ∀ m, |a m| ≤ B * w m := fun m => by
+    show |DyninMityaginSpace.coeff (E := E) m f * v m| ≤
+      Cv * Cc * (s.sup DyninMityaginSpace.p) f * (1 / ((m : ℝ) + 1) ^ 2)
+    have := coeff_mul_poly_bound v hv_bound hc_bound hCv f m
+    rw [show (1 : ℝ) / ((m : ℝ) + 1) ^ 2 = ((1 + (m : ℝ)) ^ 2)⁻¹ from by
+      rw [one_div, add_comm]] at *
+    exact this
+  calc |∑' m, a m|
+      ≤ B * ∑' m, w m :=
+        abs_tsum_le_of_pointwise_le ha summable_one_div_add_one_sq (by positivity) h_pw
+    _ = B * S := rfl
+    _ = Cv * Cc * S * (s.sup DyninMityaginSpace.p) f := by ring
 
 def DyninMityaginSpace.clm_of_polyBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
     E →L[ℝ] ℝ where
