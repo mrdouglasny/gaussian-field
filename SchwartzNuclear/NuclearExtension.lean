@@ -263,19 +263,61 @@ theorem schwartz_productTensor_denseRange
           (schwartz_dyninMityaginSpace (D := D)) (fk i) (x i)) := by
   sorry
 
-/-- **Multilinear on basis is polynomially bounded**: For a continuous ℝ-multilinear
-`Phi : S(D,ℝ)^n → ℝ`, the values `Phi(ψ_{β₁},...,ψ_{βₙ})` grow polynomially.
+/-- **Continuous multilinear maps on DM spaces are polynomially bounded on basis vectors.**
 
-Follows from continuity of `Phi` (seminorm bound) and `basis_growth`. -/
+For a continuous n-multilinear `Phi` and basis vectors indexed by a tuple `ks : Fin n → ℕ`:
+  `|Phi(ψ_{k₁},...,ψ_{kₙ})| ≤ C · ∏ᵢ (1 + kᵢ)^s`
+
+Proof: Continuity of Phi at 0 gives a neighborhood bound
+`{f | p(f) < δ}^n → {r | |r| < 1}` for some Schwartz seminorm p and δ > 0.
+By n-linearity: `|Phi(f₁,...,fₙ)| ≤ (1/δ)^n · ∏ p(fᵢ)`.
+By `basis_growth`: `p(ψ_m) ≤ C · (1+m)^s`.
+Combined: `|Phi(ψ_{k₁},...,ψ_{kₙ})| ≤ (C/δ)^n · ∏ (1+kᵢ)^s`. -/
+theorem multilinear_on_basis_bound
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    (n : ℕ)
+    (Phi : ContinuousMultilinearMap ℝ (fun _ : Fin n => SchwartzMap D ℝ) ℝ) :
+    ∃ C > 0, ∃ s : ℕ, ∀ (ks : Fin n → ℕ),
+      |Phi (fun i => DyninMityaginSpace.basis (ks i))| ≤
+        C * ∏ i : Fin n, (1 + (ks i : ℝ)) ^ s := by
+  sorry
+
+/-- Consequence: polynomial bound on basis values for any poly-bounded encoding.
+If `βs m i ≤ D · (1+m)^q` for all i, m, then `Phi(ψ_{βs m})` is PolyBounded. -/
 theorem multilinear_on_basis_polyBounded
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     (n : ℕ)
     (Phi : ContinuousMultilinearMap ℝ (fun _ : Fin n => SchwartzMap D ℝ) ℝ)
-    (βs : ℕ → Fin n → ℕ) :
+    (βs : ℕ → Fin n → ℕ)
+    (hβ : ∃ D_enc > 0, ∃ q : ℕ, ∀ m i, (βs m i : ℝ) ≤ D_enc * (1 + (m : ℝ)) ^ q) :
     PolyBounded (fun m => Phi (fun i =>
       @DyninMityaginSpace.basis (SchwartzMap D ℝ) _ _ _ _ _
         (schwartz_dyninMityaginSpace (D := D)) (βs m i))) := by
-  sorry
+  obtain ⟨C, hC, s, h_bound⟩ := multilinear_on_basis_bound n Phi
+  obtain ⟨D_enc, hD, q, hβ_bound⟩ := hβ
+  refine ⟨C * (D_enc + 1) ^ (n * s), by positivity, n * s * q, fun m => ?_⟩
+  have h1 : (0 : ℝ) ≤ (m : ℝ) := Nat.cast_nonneg m
+  have h_base : (1 : ℝ) ≤ (1 + (m : ℝ)) ^ q :=
+    one_le_pow₀ (by linarith : (1 : ℝ) ≤ 1 + (m : ℝ))
+  set A := (D_enc + 1) * (1 + (m : ℝ)) ^ q with hA_def
+  have hA : 0 < A := by positivity
+  have h_each : ∀ i, (1 + (βs m i : ℝ)) ^ s ≤ A ^ s := by
+    intro i
+    apply pow_le_pow_left₀ (by positivity)
+    calc (1 : ℝ) + (βs m i : ℝ)
+        ≤ 1 + D_enc * (1 + (m : ℝ)) ^ q := by linarith [hβ_bound m i]
+      _ ≤ (D_enc + 1) * (1 + (m : ℝ)) ^ q := by nlinarith [h_base]
+  calc |Phi (fun i => DyninMityaginSpace.basis (βs m i))|
+      ≤ C * ∏ i : Fin n, (1 + (βs m i : ℝ)) ^ s := h_bound (βs m)
+    _ ≤ C * ∏ _i : Fin n, A ^ s :=
+        mul_le_mul_of_nonneg_left
+          (Finset.prod_le_prod (fun i _ => by positivity) (fun i _ => h_each i)) hC.le
+    _ = C * A ^ (Finset.card (Finset.univ : Finset (Fin n)) * s) := by
+        rw [Finset.prod_const]; ring
+    _ = C * A ^ (n * s) := by rw [Finset.card_fin]
+    _ = C * (D_enc + 1) ^ (n * s) * (1 + (m : ℝ)) ^ (n * s * q) := by
+        rw [hA_def, mul_pow, ← pow_mul]; ring
 
 end GaussianField
