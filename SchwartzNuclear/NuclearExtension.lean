@@ -285,6 +285,40 @@ theorem schwartz_clm_zero_of_vanish_on_product_basis
       W ⟨fun x => ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i),
          sorry, sorry⟩ = 0) :
     W = 0 := by
+  haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+  haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+  -- Strategy: By the DyninMityaginSpace expansion axiom,
+  --   W f = ∑' m, coeff m f * W(basis m)
+  -- so W = 0 iff W(basis m) = 0 for all m.
+  -- Each DM basis element of SchwartzMap (Fin n → D) ℝ admits a Schwartz-convergent
+  -- expansion in product Hermite functions, because both the toEuclidean-Hermite system
+  -- and the product-Hermite system are complete orthonormal bases of L²(Fin n → D)
+  -- with rapidly decaying change-of-basis matrix. By continuity of W and hypothesis hW,
+  -- W(basis m) = ∑ c_ks * W(∏ᵢ ψ_{kᵢ}) = ∑ c_ks * 0 = 0.
+  apply DyninMityaginSpace.clm_eq_of_basis_eq W 0
+  intro m
+  simp only [ContinuousLinearMap.zero_apply]
+  -- Goal: W (DyninMityaginSpace.basis m) = 0
+  -- The DM basis of SchwartzMap (Fin n → D) ℝ is constructed via
+  -- (schwartzRapidDecayEquiv (Fin n → D)).symm (basisVec m),
+  -- which uses toEuclidean : (Fin n → D) ≃L[ℝ] EuclideanSpace ℝ (Fin (n * finrank ℝ D)).
+  -- The resulting Hermite function in these flattened coordinates is a product of 1D
+  -- Hermite functions along the toEuclidean coordinate axes, which do NOT align with
+  -- the product structure Fin n → D in general (toEuclidean is AoC-chosen).
+  --
+  -- However, since both the toEuclidean-Hermite ONB and the product-Hermite ONB
+  -- {∏ᵢ ψ_{kᵢ}(xᵢ)} are complete orthonormal systems for L²(Fin n → D), the
+  -- change-of-basis between them is an orthogonal transformation of L².
+  -- The toEuclidean-Hermite basis elements (which factor as products in the
+  -- toEuclidean coordinates) can be expanded in the product-Hermite ONB with
+  -- coefficients given by inner products ⟨basis_m, ∏ᵢ ψ_{kᵢ}⟩_{L²}.
+  -- These inner products decay rapidly (both systems generate the Schwartz topology),
+  -- ensuring Schwartz-topology convergence of the expansion.
+  -- By continuity of W: W(basis m) = ∑' ks, c_ks * W(∏ᵢ ψ_{kᵢ}) = 0 (by hW).
+  --
+  -- Formalizing this requires: (1) L² completeness of product Hermite system,
+  -- (2) rapid decay of cross-basis inner products, (3) Schwartz convergence.
+  -- These are standard results in Schwartz space theory (cf. Reed-Simon V.13).
   sorry
 
 /-- **Continuous multilinear maps on DM spaces are polynomially bounded on basis vectors.**
