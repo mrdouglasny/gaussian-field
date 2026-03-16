@@ -211,36 +211,56 @@ axiom schwartz_nuclear_extension (d n : ℕ)
 - Complexify: `W(f) := w(Re f) + i·w(Im f)` — this is ℂ-linear and continuous
 - Agreement on product tensors from coefficient factorization + multilinearity
 
-### Key sorry targets
+### Key obstacle: `toEuclidean` uses arbitrary basis (AoC)
 
-The following lemmas are needed to complete the proof: -/
+The `schwartz_dyninMityaginSpace` instance goes through `toEuclidean`, which is
+`ContinuousLinearEquiv.ofFinrankEq` — an AoC-chosen basis. The resulting Hermite
+basis functions do NOT necessarily factor as product tensors because the coordinate
+ordering may not respect the product structure `Fin n → D`.
 
-/-- **Hermite basis factorization**: Each Hermite basis function of
-`S(Fin n → D, ℝ)` factors as a product of individual-factor Hermite functions.
+### Resolution: Product-aware DyninMityaginSpace
 
-For `ψ_m ∈ S(ℝ^{n·dim(D)}, ℝ)` with flattened index `m`:
-  `ψ_m(x₁,...,xₙ) = ψ_{β₁(m)}(x₁) · ... · ψ_{βₙ(m)}(xₙ)`
+For the specific type `D = Fin (d+1) → ℝ`, construct a product-aware equivalence
+`SchwartzMap (Fin n → D) ℝ ≃L[ℝ] RapidDecaySeq` by peeling off factors:
+- `Fin.consEquivL`: splits `Fin (n+1) → D ≃L D × (Fin n → D)`
+- `schwartzDomCongr`: transfers to `SchwartzMap (D × Fin n → D) ℝ`
+- `schwartzTensorEquiv`-style decomposition via `NuclearTensorProduct`
 
-where `(β₁,...,βₙ)` comes from iterated Cantor unpairing of `m` into `n` groups.
+With this equivalence, the basis at index `m` factors by construction as
+a product of individual-factor basis elements, making `schwartz_basis_isProductTensor`
+trivial.
 
-This follows from:
-- `hermiteFunctionNd_unpair`: multi-d Hermite functions factor via Cantor unpairing
-- `schwartzRapidDecayEquiv` builds the basis from `hermiteFunctionNd`
-- The coordinate equivalence `toEuclidean` preserves the product structure -/
-theorem schwartz_basis_isProductTensor
+### Alternative: Density of product tensors
+
+Even without the basis factorization, the nuclear extension can be proved by
+showing that the ℂ-span of product tensors is DENSE in `S(prod, ℂ)`. This
+follows from completeness of the individual Hermite expansions + Fubini.
+
+Both approaches require significant infrastructure. The current sorry targets
+represent the minimum mathematical content needed: -/
+
+/-- **Density of product tensor span**: The ℂ-span of functions
+`x ↦ f₁(x₁) · ... · fₙ(xₙ)` (for `fᵢ ∈ S(D, ℝ)`) is dense in `S(∏D, ℝ)`.
+
+This is the key topological fact for the nuclear extension theorem.
+It follows from completeness of the Hermite basis: the products
+`ψ_{k₁}(x₁) · ... · ψ_{kₙ}(xₙ)` of individual Hermite functions
+form a complete orthonormal system for L²(∏D), and their Schwartz-topology
+convergence (from `schwartzRapidDecayEquiv`) implies density in S(∏D).
+
+The proof requires constructing a product-aware `RapidDecaySeq` equivalence
+for `SchwartzMap (Fin n → D) ℝ`, bypassing `toEuclidean`. This uses
+`Fin.consEquivL` to peel factors and the existing Hermite expansion. -/
+theorem schwartz_productTensor_denseRange
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
-    (n : ℕ) (hn : 1 ≤ n) (m : ℕ) :
-    ∃ (βs : Fin n → ℕ),
-    ∀ (x : Fin n → D),
-      haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-      haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-      @DyninMityaginSpace.basis (SchwartzMap (Fin n → D) ℝ) _ _ _ _ _
-        (schwartz_dyninMityaginSpace (D := Fin n → D)) m
-        (fun i => x i) =
+    (n : ℕ) (hn : 1 ≤ n) :
+    haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+    haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+    DenseRange (fun (fk : Fin n → ℕ) (x : Fin n → D) =>
       ∏ i : Fin n,
         @DyninMityaginSpace.basis (SchwartzMap D ℝ) _ _ _ _ _
-          (schwartz_dyninMityaginSpace (D := D)) (βs i) (x i) := by
+          (schwartz_dyninMityaginSpace (D := D)) (fk i) (x i)) := by
   sorry
 
 /-- **Multilinear on basis is polynomially bounded**: For a continuous ℝ-multilinear
@@ -256,35 +276,6 @@ theorem multilinear_on_basis_polyBounded
     PolyBounded (fun m => Phi (fun i =>
       @DyninMityaginSpace.basis (SchwartzMap D ℝ) _ _ _ _ _
         (schwartz_dyninMityaginSpace (D := D)) (βs m i))) := by
-  sorry
-
-/-- **Coefficient factorization**: Hermite coefficients of a product function
-factorize as a product of individual-factor coefficients.
-
-For `f(x₁,...,xₙ) = g₁(x₁) · ... · gₙ(xₙ)`:
-  `coeff_m(f) = ∏ᵢ coeff_{βᵢ(m)}(gᵢ)`
-
-This uses Fubini's theorem for the Hermite coefficient integral and the
-factorization of multi-dimensional Hermite functions. -/
-theorem schwartz_coeff_productTensor_factorize
-    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
-    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
-    (n : ℕ) (hn : 1 ≤ n) (gs : Fin n → SchwartzMap D ℝ) (m : ℕ)
-    (βs : Fin n → ℕ)
-    (h_factor : ∀ (x : Fin n → D),
-      haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-      haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-      @DyninMityaginSpace.basis (SchwartzMap (Fin n → D) ℝ) _ _ _ _ _
-        (schwartz_dyninMityaginSpace (D := Fin n → D)) m (fun i => x i) =
-      ∏ i, @DyninMityaginSpace.basis (SchwartzMap D ℝ) _ _ _ _ _
-        (schwartz_dyninMityaginSpace (D := D)) (βs i) (x i)) :
-    haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩;
-    haveI : Nontrivial (Fin n → D) := Pi.nontrivial;
-    @DyninMityaginSpace.coeff (SchwartzMap (Fin n → D) ℝ) _ _ _ _ _
-      (schwartz_dyninMityaginSpace (D := Fin n → D)) m
-      ⟨fun x => ∏ i, gs i (x i), sorry, sorry⟩ =
-    ∏ i, @DyninMityaginSpace.coeff (SchwartzMap D ℝ) _ _ _ _ _
-      (schwartz_dyninMityaginSpace (D := D)) (βs i) (gs i) := by
   sorry
 
 end GaussianField
