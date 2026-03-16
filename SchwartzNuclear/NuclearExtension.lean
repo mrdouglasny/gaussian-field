@@ -239,28 +239,29 @@ follows from completeness of the individual Hermite expansions + Fubini.
 Both approaches require significant infrastructure. The current sorry targets
 represent the minimum mathematical content needed: -/
 
-/-- **Density of product tensor span**: The ℂ-span of functions
-`x ↦ f₁(x₁) · ... · fₙ(xₙ)` (for `fᵢ ∈ S(D, ℝ)`) is dense in `S(∏D, ℝ)`.
+/-- Any continuous linear functional on `S(∏D, ℝ)` that vanishes on all product
+Hermite basis functions `ψ_{k₁} ⊗ ··· ⊗ ψ_{kₙ}` must be zero.
 
-This is the key topological fact for the nuclear extension theorem.
-It follows from completeness of the Hermite basis: the products
-`ψ_{k₁}(x₁) · ... · ψ_{kₙ}(xₙ)` of individual Hermite functions
-form a complete orthonormal system for L²(∏D), and their Schwartz-topology
-convergence (from `schwartzRapidDecayEquiv`) implies density in S(∏D).
+This is the density statement needed for uniqueness of the nuclear extension:
+the ℝ-span of product Hermite functions is dense in `S(∏D, ℝ)`.
 
-The proof requires constructing a product-aware `RapidDecaySeq` equivalence
-for `SchwartzMap (Fin n → D) ℝ`, bypassing `toEuclidean`. This uses
-`Fin.consEquivL` to peel factors and the existing Hermite expansion. -/
-theorem schwartz_productTensor_denseRange
+Proof strategy: Construct a product-aware `RapidDecaySeq ≃L SchwartzMap (∏D) ℝ`
+using `Fin.consEquivL` to peel factors. Under this equivalence, the RapidDecaySeq
+basis vectors correspond to product Hermite functions by construction.
+The DyninMityaginSpace expansion then gives the density. -/
+theorem schwartz_clm_zero_of_vanish_on_product_basis
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
-    (n : ℕ) (hn : 1 ≤ n) :
-    haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-    haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-    DenseRange (fun (fk : Fin n → ℕ) (x : Fin n → D) =>
-      ∏ i : Fin n,
-        @DyninMityaginSpace.basis (SchwartzMap D ℝ) _ _ _ _ _
-          (schwartz_dyninMityaginSpace (D := D)) (fk i) (x i)) := by
+    (n : ℕ) (hn : 1 ≤ n)
+    (W : haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+         haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+         SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ)
+    (hW : ∀ ks : Fin n → ℕ,
+      haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+      haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+      W ⟨fun x => ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i),
+         sorry, sorry⟩ = 0) :
+    W = 0 := by
   sorry
 
 /-- **Continuous multilinear maps on DM spaces are polynomially bounded on basis vectors.**
