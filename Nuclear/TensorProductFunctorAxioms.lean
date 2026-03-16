@@ -721,12 +721,44 @@ theorem evalCLM_comp_mapCLM
     [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
     [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (hbasis₁ : ∀ n m, DyninMityaginSpace.coeff (E := E₁) n
+      (DyninMityaginSpace.basis m) = if n = m then 1 else 0)
+    (hbasis₂ : ∀ n m, DyninMityaginSpace.coeff (E := E₂) n
+      (DyninMityaginSpace.basis m) = if n = m then 1 else 0)
     (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
     (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : NuclearTensorProduct E₁ E₂) :
     NuclearTensorProduct.evalCLM φ₁ φ₂ (nuclearTensorProduct_mapCLM T₁ T₂ f) =
     NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂) f := by
-  sorry
+  -- Both sides are CLMs in f that agree on basisVec.
+  -- By rapidDecay_expansion, they must agree on all f.
+  have key : ∀ m,
+      (NuclearTensorProduct.evalCLM φ₁ φ₂).comp (nuclearTensorProduct_mapCLM T₁ T₂)
+        (RapidDecaySeq.basisVec m) =
+      NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)
+        (RapidDecaySeq.basisVec m) := by
+    intro m
+    have hbv := NuclearTensorProduct.basisVec_eq_pure hbasis₁ hbasis₂ m
+    simp only [ContinuousLinearMap.comp_apply]
+    rw [hbv, nuclearTensorProduct_mapCLM_pure,
+        NuclearTensorProduct.evalCLM_pure,
+        NuclearTensorProduct.evalCLM_pure]
+    simp only [ContinuousLinearMap.comp_apply]
+  -- Expand both sides via rapidDecay_expansion and apply key
+  have h1 := RapidDecaySeq.rapidDecay_expansion
+    ((NuclearTensorProduct.evalCLM φ₁ φ₂).comp (nuclearTensorProduct_mapCLM T₁ T₂)) f
+  have h2 := RapidDecaySeq.rapidDecay_expansion
+    (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)) f
+  simp only [ContinuousLinearMap.comp_apply] at h1
+  calc (NuclearTensorProduct.evalCLM φ₁ φ₂) (nuclearTensorProduct_mapCLM T₁ T₂ f)
+      = ∑' m, f.val m * (NuclearTensorProduct.evalCLM φ₁ φ₂)
+          (nuclearTensorProduct_mapCLM T₁ T₂ (RapidDecaySeq.basisVec m)) := h1
+    _ = ∑' m, f.val m * (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂))
+          (RapidDecaySeq.basisVec m) := by
+        congr 1; ext m
+        simp only [ContinuousLinearMap.comp_apply] at key
+        congr 1; exact key m
+    _ = (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)) f := h2.symm
 
 end GaussianField
 

@@ -596,7 +596,7 @@ theorem greenFunctionBilinear_invariant_of_pure
 
 /-- The DyninMityaginSpace basis for `SmoothMap_Circle L ℝ` (constructed via
 `ofRapidDecayEquiv`) satisfies biorthogonality: `coeff n (basis m) = δ_{nm}`. -/
-private theorem smoothCircle_coeff_basis (n m : ℕ) :
+theorem smoothCircle_coeff_basis (n m : ℕ) :
     DyninMityaginSpace.coeff (E := SmoothMap_Circle L ℝ) n
       (DyninMityaginSpace.basis m) = if n = m then 1 else 0 := by
   show (RapidDecaySeq.coeffCLM n).comp

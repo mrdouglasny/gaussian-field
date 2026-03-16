@@ -1450,6 +1450,33 @@ theorem evalCLM_pure {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [Topol
 
 end Eval
 
+/-- Under biorthogonality, basis vectors equal pure tensors of basis elements.
+`basisVec m = pure (basis a) (basis b)` where `(a,b) = unpair(m)`. -/
+theorem basisVec_eq_pure
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (hbasis₁ : ∀ n m, DyninMityaginSpace.coeff (E := E₁) n
+      (DyninMityaginSpace.basis m) = if n = m then 1 else 0)
+    (hbasis₂ : ∀ n m, DyninMityaginSpace.coeff (E := E₂) n
+      (DyninMityaginSpace.basis m) = if n = m then 1 else 0)
+    (m : ℕ) :
+    (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂) =
+    NuclearTensorProduct.pure
+      (DyninMityaginSpace.basis (E := E₁) (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (E := E₂) (Nat.unpair m).2) := by
+  ext n
+  simp only [RapidDecaySeq.basisVec, pure_val, hbasis₁, hbasis₂]
+  by_cases h : n = m
+  · subst h; simp
+  · simp [h]
+    by_cases h₁ : (Nat.unpair n).1 = (Nat.unpair m).1
+    · simp [h₁]
+      intro h₂; apply h
+      rw [← Nat.pair_unpair n, ← Nat.pair_unpair m, h₁, h₂]
+    · simp [h₁]
+
 end NuclearTensorProduct
 
 end GaussianField

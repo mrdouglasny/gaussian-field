@@ -33,6 +33,7 @@ import Torus.Restriction
 import Torus.Symmetry
 import Lattice.FiniteField
 import Nuclear.TensorProductFunctorAxioms
+import HeatKernel.GreenInvariance
 
 noncomputable section
 
@@ -126,12 +127,11 @@ theorem evalTorusAtSite_timeReflection (N : ℕ) [NeZero N]
     evalTorusAtSite L N (timeReflectSites N x) f := by
   simp only [evalTorusAtSite, timeReflectSites]
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
-  rw [evalCLM_comp_mapCLM]
+  rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
   simp only [ContinuousLinearMap.comp_id]
-  -- Need: (proj_{x 0}).comp (circleRestriction L N) |>.comp (circleReflection L)
-  --     = (proj_{-x 0}).comp (circleRestriction L N)
-  -- i.e., circleRestriction(circleReflection g)(x 0) = circleRestriction(g)(-x 0)
-  -- This is a property of circleReflection: reflection negates the ZMod index
+  -- Need: proj_{x 0} ∘ circRestr ∘ circleReflection = proj_{-x 0} ∘ circRestr
+  -- i.e., (circleRestriction (circleReflection g))(x 0) = (circleRestriction g)(-x 0)
+  -- This is a property of circleReflection + circleRestriction
   sorry
 
 end GaussianField
