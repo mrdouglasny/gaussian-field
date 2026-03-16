@@ -21,6 +21,7 @@ uniquely to a continuous linear functional on the Schwartz space of the product 
 
 import SchwartzNuclear.HermiteNuclear
 import SchwartzNuclear.TsumBound
+import GeneralResults.SchwartzProducts
 import Mathlib.Topology.Algebra.InfiniteSum.Ring
 
 noncomputable section
@@ -259,46 +260,9 @@ Even without the basis factorization, the nuclear extension can be proved by
 showing that the ℂ-span of product tensors is DENSE in `S(prod, ℂ)`. This
 follows from completeness of the individual Hermite expansions + Fubini.
 
-Both approaches require significant infrastructure. The current sorry targets
-represent the minimum mathematical content needed: -/
-
-/-- **Axiom (product of Schwartz functions is Schwartz).**
-If `fᵢ ∈ S(D, ℝ)` for each `i : Fin n`, then `x ↦ ∏ᵢ fᵢ(xᵢ)` is in `S(Fin n → D, ℝ)`.
-
-This is a standard closure property: smoothness by the Leibniz rule for products,
-and rapid decay because `|∏ fᵢ(xᵢ)| ≤ ∏ |fᵢ(xᵢ)|` where each factor decays rapidly.
-
-Ref: Reed-Simon I §V.3; Hörmander "Analysis of Linear PDEs" Ch. 7. -/
-axiom schwartzProductTensor_schwartz
-    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
-    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
-    (n : ℕ) (hn : 1 ≤ n) (fs : Fin n → SchwartzMap D ℝ) :
-    haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-    haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-    ∃ (F : SchwartzMap (Fin n → D) ℝ), ∀ x, F x = ∏ i, fs i (x i)
-
-/-- **Axiom (product Hermite functions are dense in Schwartz space).**
-Every DM basis element of `S(Fin n → D, ℝ)` can be expanded as a
-Schwartz-convergent series in product Hermite functions.
-
-This follows from completeness of the product Hermite ONB in L²(∏D) and
-the fact that Schwartz-topology convergence of Hermite expansions is
-guaranteed by the DM structure (both the `toEuclidean`-Hermite and
-product-Hermite systems generate the same Schwartz topology, since they
-are related by an L²-orthogonal transformation with rapidly decaying matrix).
-
-Ref: Reed-Simon I, Theorem V.13; Gel'fand-Vilenkin IV §3. -/
-axiom productHermite_schwartz_dense
-    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
-    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
-    (n : ℕ) (hn : 1 ≤ n)
-    (φ : haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
-         haveI : Nontrivial (Fin n → D) := Pi.nontrivial
-         SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ)
-    (hφ : ∀ ks : Fin n → ℕ, ∀ (F : SchwartzMap (Fin n → D) ℝ),
-      (∀ x, F x = ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i)) →
-      φ F = 0) :
-    φ = 0
+Both approaches require significant infrastructure. The axioms
+`schwartzProductTensor_schwartz` and `productHermite_schwartz_dense`
+(in `GeneralResults.lean`) capture the minimum mathematical content needed. -/
 
 theorem schwartz_clm_zero_of_vanish_on_product_basis
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
