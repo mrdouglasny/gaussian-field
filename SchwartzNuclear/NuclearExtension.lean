@@ -339,7 +339,40 @@ theorem multilinear_on_basis_bound
     ∃ C > 0, ∃ s : ℕ, ∀ (ks : Fin n → ℕ),
       |Phi (fun i => DyninMityaginSpace.basis (ks i))| ≤
         C * ∏ i : Fin n, (1 + (ks i : ℝ)) ^ s := by
-  sorry
+  -- Step 1: Extract seminorm bound from continuity of Phi.
+  -- For a continuous multilinear map, continuity at 0 gives:
+  -- ∃ (s : Finset ι) (δ > 0), (s.sup p)(fᵢ) < δ ∀i ⟹ |Phi(f)| < 1
+  -- By n-linearity: |Phi(f)| ≤ δ⁻ⁿ · ∏ (s.sup p)(fᵢ)
+  -- This neighborhood extraction from WithSeminorms requires Filter.Tendsto
+  -- + hasBasis_zero_ball, which is standard but verbose (~80 lines).
+  -- For now, we sorry this step and derive the rest.
+  suffices h_sem : ∃ (s_idx : Finset (DyninMityaginSpace.ι (E := SchwartzMap D ℝ))) (C_sem : ℝ),
+      0 < C_sem ∧ ∀ (ks : Fin n → ℕ),
+        |Phi (fun i => DyninMityaginSpace.basis (ks i))| ≤
+          C_sem * ∏ i, (s_idx.sup DyninMityaginSpace.p)
+            (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) by
+    -- Step 2: Use basis_growth to convert seminorm bound to polynomial bound
+    obtain ⟨s_idx, C_sem, hC_sem, h_bound⟩ := h_sem
+    -- For each seminorm index in s_idx, basis_growth gives poly bound.
+    -- The sup of finitely many poly bounds is poly bounded.
+    have h_sup_growth : ∃ C_bg > 0, ∃ s_bg : ℕ, ∀ m : ℕ,
+        (s_idx.sup DyninMityaginSpace.p)
+          (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m) ≤
+          C_bg * (1 + (m : ℝ)) ^ s_bg := by
+      sorry -- Finset.induction on s_idx using basis_growth for each element
+    obtain ⟨C_bg, hC_bg, s_bg, h_bg⟩ := h_sup_growth
+    refine ⟨C_sem * C_bg ^ n, by positivity, s_bg, fun ks => ?_⟩
+    calc |Phi (fun i => DyninMityaginSpace.basis (ks i))|
+        ≤ C_sem * ∏ i, (s_idx.sup DyninMityaginSpace.p)
+            (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i)) := h_bound ks
+      _ ≤ C_sem * ∏ i, (C_bg * (1 + (ks i : ℝ)) ^ s_bg) := by
+          gcongr with i; exact h_bg (ks i)
+      _ = C_sem * C_bg ^ n * ∏ i, (1 + (ks i : ℝ)) ^ s_bg := by
+          rw [Finset.prod_mul_distrib]; simp [Finset.prod_const, Finset.card_fin]; ring
+  -- Step 1 sorry: extract seminorm bound from Phi.cont
+  -- Uses: Phi.cont.tendsto 0, WithSeminorms.hasBasis_zero_ball,
+  -- Filter.Tendsto.basis_left, multilinear scaling.
+  exact sorry
 
 /-- Consequence: polynomial bound on basis values for any poly-bounded encoding.
 If `βs m i ≤ D · (1+m)^q` for all i, m, then `Phi(ψ_{βs m})` is PolyBounded. -/
