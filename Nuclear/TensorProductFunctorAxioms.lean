@@ -163,6 +163,47 @@ theorem nuclearTensorProduct_swapCLM_pure
     (NuclearTensorProduct.pure e₂ e₁).val m
   simp only [pure_val, pairSwap, Nat.unpair_pair]; ring
 
+set_option maxHeartbeats 800000 in
+/-- **evalCLM commutes with swap.**
+
+For `E₁ = E₂ = E` (same DyninMityaginSpace on both factors):
+  `evalCLM φ₁ φ₂ (swapCLM f) = evalCLM φ₂ φ₁ f`
+
+Proof: Unfold `evalCLM` to its `lift` tsum, substitute the swap, relabel by `pairSwapEquiv`,
+and use `mul_comm` on the `φ₁(ψ_a) * φ₂(ψ_b)` factors. -/
+theorem evalCLM_comp_swapCLM
+    {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
+    (φ₁ φ₂ : E →L[ℝ] ℝ) (f : NuclearTensorProduct E E) :
+    NuclearTensorProduct.evalCLM φ₁ φ₂ (nuclearTensorProduct_swapCLM f) =
+    NuclearTensorProduct.evalCLM φ₂ φ₁ f := by
+  -- Both sides unfold to tsums via the lift definition of evalCLM.
+  -- evalCLM φ₁ φ₂ a = ∑' m, a.val m • compBilin φ₁ φ₂ (basis a') (basis b')
+  -- where (a',b') = unpair(m), and compBilin φ₁ φ₂ e₁ e₂ = φ₁ e₁ * φ₂ e₂ (rfl).
+  set ψ := DyninMityaginSpace.basis (E := E)
+  -- Unfold evalCLM to its lift/tsum definition (compBilin_apply is rfl)
+  show (∑' m, (nuclearTensorProduct_swapCLM f).val m *
+      (φ₁ (ψ (Nat.unpair m).1) * φ₂ (ψ (Nat.unpair m).2))) =
+    ∑' m, f.val m * (φ₂ (ψ (Nat.unpair m).1) * φ₁ (ψ (Nat.unpair m).2))
+  -- LHS: (swapCLM f).val m = f.val(pairSwap m) by definition of swapRapidDecay
+  -- Set h to be the LHS summand
+  set h := fun m => f.val (pairSwap m) *
+    (φ₁ (ψ (Nat.unpair m).1) * φ₂ (ψ (Nat.unpair m).2))
+  -- The LHS tsum equals ∑' m, h m
+  have h_lhs_eq : ∀ m, (nuclearTensorProduct_swapCLM f).val m *
+      (φ₁ (ψ (Nat.unpair m).1) * φ₂ (ψ (Nat.unpair m).2)) = h m := fun _ => rfl
+  simp_rw [h_lhs_eq]
+  -- Relabel: ∑' m, h m = ∑' m, h(pairSwap m) via pairSwapEquiv
+  rw [(pairSwapEquiv.tsum_eq h).symm]
+  -- h(pairSwap m) = f.val(pairSwap(pairSwap m)) * (φ₁(ψ (unpair(pairSwap m)).1) * φ₂(ψ (unpair(pairSwap m)).2))
+  --              = f.val m * (φ₁(ψ (unpair m).2) * φ₂(ψ (unpair m).1))
+  -- since pairSwap is involutive and pairSwap m = pair (unpair m).2 (unpair m).1
+  simp only [pairSwapEquiv_apply, h]
+  congr 1; ext m
+  rw [pairSwap_involutive m]
+  simp only [pairSwap, Nat.unpair_pair]
+  ring
+
 /-! ## Tensor product of CLMs
 
 The key construction: `mapCLM T₁ T₂` acts on `f : NTP E₁ E₂ = RapidDecaySeq` by
