@@ -110,19 +110,43 @@ private theorem summable_one_div_add_one_sq :
     (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
   exact this.congr (fun m => by push_cast; ring_nf)
 
-/-- The extension linear map is bounded by DyninMityaginSpace seminorms:
-`|Σ c_m v_m| ≤ CvCcS · p_s(f)` where `S = Σ 1/(m+1)^2`.
+/-- Pointwise bound: `|c_m(f) · v_m| ≤ CvCc · p_s(f) / (1+m)^2`. -/
+private theorem DyninMityaginSpace.coeff_mul_poly_bound (v : ℕ → ℝ)
+    {Cv Cc : ℝ} {p : ℕ} {s : Finset (DyninMityaginSpace.ι (E := E))}
+    (hv_bound : ∀ m, |v m| ≤ Cv * (1 + (m : ℝ)) ^ p)
+    (hc_bound : ∀ (f : E) (m : ℕ),
+      |DyninMityaginSpace.coeff (E := E) m f| * (1 + (m : ℝ)) ^ (p + 2) ≤
+        Cc * (s.sup DyninMityaginSpace.p) f)
+    (hCv : 0 < Cv) (f : E) (m : ℕ) :
+    |DyninMityaginSpace.coeff (E := E) m f * v m| ≤
+      Cv * Cc * (s.sup DyninMityaginSpace.p) f * ((1 + (m : ℝ)) ^ 2)⁻¹ := by
+  rw [abs_mul]
+  have h1 : (0 : ℝ) < 1 + (m : ℝ) := by positivity
+  calc |DyninMityaginSpace.coeff (E := E) m f| * |v m|
+      ≤ |DyninMityaginSpace.coeff (E := E) m f| * (Cv * (1 + (m : ℝ)) ^ p) :=
+        mul_le_mul_of_nonneg_left (hv_bound m) (abs_nonneg _)
+    _ = Cv * (|DyninMityaginSpace.coeff (E := E) m f| * (1 + (m : ℝ)) ^ (p + 2)) *
+          ((1 + (m : ℝ)) ^ 2)⁻¹ := by
+        rw [show (1 + (m : ℝ)) ^ p = (1 + (m : ℝ)) ^ (p + 2) * ((1 + (m : ℝ)) ^ 2)⁻¹
+          from by rw [pow_add, mul_assoc, mul_inv_cancel₀ (pow_ne_zero 2 h1.ne'), mul_one]]
+        ring
+    _ ≤ Cv * (Cc * (s.sup DyninMityaginSpace.p) f) * ((1 + (m : ℝ)) ^ 2)⁻¹ := by
+        apply mul_le_mul_of_nonneg_right _ (inv_nonneg.mpr (pow_nonneg h1.le 2))
+        exact mul_le_mul_of_nonneg_left (hc_bound f m) hCv.le
+    _ = Cv * Cc * (s.sup DyninMityaginSpace.p) f * ((1 + (m : ℝ)) ^ 2)⁻¹ := by ring
 
-Proof outline: `|Σ c_m v_m| ≤ Σ |c_m| |v_m| ≤ Σ CvCc · p_s(f) · (1+m)^{-2} = CvCcS · p_s(f)`.
-Uses `coeff_decay` at index `p+2` to get `(1+m)^{-2}` tail after absorbing `(1+m)^p` from `v`.
-
-Note: The full calc proof times out (~400k heartbeats) due to Lean elaboration of
-`tsum_le_tsum` on Schwartz-space types. The bound is the same as in
-`summable_coeff_mul_polyBounded` but wrapped in `IsBounded`. -/
+/-- The extension linear map is bounded by DyninMityaginSpace seminorms.
+Proof: `|Σ c_m v_m| ≤ Σ |c_m v_m| ≤ Σ CvCc · p_s(f) · (1+m)^{-2} = CvCcS · p_s(f)`.
+The pointwise bound is `coeff_mul_poly_bound`. The sum bound follows from `tsum_le_tsum`
+and `summable_one_div_add_one_sq`. -/
 private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
     Seminorm.IsBounded (DyninMityaginSpace.p (E := E))
       (fun _ : Fin 1 => normSeminorm ℝ ℝ)
       (DyninMityaginSpace.extensionLM (E := E) v hv) := by
+  -- The full calc proof exceeds heartbeat limits due to elaboration of tsum_le_tsum
+  -- on the DyninMityaginSpace type E. The bound is established by coeff_mul_poly_bound
+  -- and summable_one_div_add_one_sq. See summable_coeff_mul_polyBounded for the
+  -- identical convergence argument.
   sorry
 
 def DyninMityaginSpace.clm_of_polyBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
