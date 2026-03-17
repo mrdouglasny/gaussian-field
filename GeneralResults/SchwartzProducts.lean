@@ -251,6 +251,40 @@ private lemma clm_zero_of_basis_zero {E : Type*} [AddCommGroup E] [Module ℝ E]
     φ = 0 := by
   ext f; rw [DyninMityaginSpace.expansion φ f]; simp [h]
 
+/-- Currying as a continuous linear equivalence on finite function spaces. -/
+private noncomputable def curryCLE (n d : ℕ) :
+    ((Fin n × Fin d) → ℝ) ≃L[ℝ] (Fin n → Fin d → ℝ) := by
+  refine ContinuousLinearEquiv.mk (LinearEquiv.curry ℝ ℝ (Fin n) (Fin d)) ?_ ?_
+  · simpa [LinearEquiv.curry, Function.curry] using
+      (continuous_pi fun i => continuous_pi fun j => continuous_apply (i, j))
+  · simpa [LinearEquiv.curry, Function.uncurry] using
+      (continuous_pi fun p : Fin n × Fin d =>
+        ((continuous_apply p.2).comp (continuous_apply p.1)))
+
+/-- Flatten a finite family of Euclidean blocks into one Euclidean space. -/
+private noncomputable def flattenEuclidean (n d : ℕ) :
+    (Fin n → EuclideanSpace ℝ (Fin d)) ≃L[ℝ] EuclideanSpace ℝ (Fin (n * d)) := by
+  let e1 := ContinuousLinearEquiv.piCongrRight
+    (fun _ : Fin n => EuclideanSpace.equiv (Fin d) ℝ)
+  let e2 := (curryCLE n d).symm
+  let e3 := ContinuousLinearEquiv.piCongrLeft ℝ (fun _ : Fin (n * d) => ℝ)
+    (finProdFinEquiv : Fin n × Fin d ≃ Fin (n * d))
+  exact e1.trans (e2.trans (e3.trans (EuclideanSpace.equiv (Fin (n * d)) ℝ).symm))
+
+/-- Product-aware Euclidean coordinates on `Fin n → D`, flattening each `toEuclidean D`
+block contiguously. -/
+private noncomputable def prodToEuclidean (n : ℕ) (D : Type*)
+    [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D] :
+    (Fin n → D) ≃L[ℝ] EuclideanSpace ℝ (Fin (n * Module.finrank ℝ D)) := by
+  exact (ContinuousLinearEquiv.piCongrRight
+      (fun _ : Fin n => toEuclidean (E := D))).trans
+    (flattenEuclidean n (Module.finrank ℝ D))
+
+/-- Restrict a total multi-index on `Fin (n * d)` to the `i`-th block of length `d`. -/
+private noncomputable def blockMultiIndex (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
+    Fin d → ℕ :=
+  fun j => α (finProdFinEquiv (i, j))
+
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
 
 If a continuous linear functional on `S(∏D)` vanishes on all product Hermite functions,
@@ -296,39 +330,23 @@ theorem productHermite_schwartz_dense
   | zero => omega
   | succ k ih =>
     by_cases hk : k = 0
-    · -- **Base case n = 1**: Transfer via CLE (Fin 1 → D) ≃L[ℝ] D.
-      subst hk
-      -- schwartzDomCongr sends S(D) → S(Fin 1 → D) via f ↦ (x ↦ f(x 0))
+    · subst hk
       set T : SchwartzMap D ℝ ≃L[ℝ] SchwartzMap (Fin 1 → D) ℝ :=
         schwartzDomCongr (ContinuousLinearEquiv.funUnique (Fin 1) ℝ D)
-      -- Compose: φ' = φ ∘ T : S(D) →L[ℝ] ℝ
       set φ' : SchwartzMap D ℝ →L[ℝ] ℝ := φ.comp T.toContinuousLinearMap
-      -- φ' vanishes on all DM basis elements of S(D):
-      -- φ'(ψ_m) = φ(T(ψ_m)) and T(ψ_m)(x) = ψ_m(x 0) = ∏ i : Fin 1, ψ_m(x i)
       have h_basis : ∀ m, φ' (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m) = 0 := by
         intro m
         show φ (T (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m)) = 0
         apply hφ (fun _ => m) (T (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m))
         intro x
         simp [T, schwartzDomCongr, SchwartzMap.compCLMOfContinuousLinearEquiv]
-      -- By DM expansion, φ' = 0
       have hφ'_zero : φ' = 0 := clm_zero_of_basis_zero φ' h_basis
-      -- Since T is an equivalence (surjective), φ = 0
       ext f
       have key : φ' (T.symm f) = 0 := by simp [hφ'_zero]
       simp only [φ', ContinuousLinearMap.comp_apply, ContinuousLinearEquiv.coe_coe,
         T.apply_symm_apply] at key
       simpa using key
-    · -- **Inductive step n = k + 1, k ≥ 1**:
-      -- The proof requires currying CLMs and density of pure tensors.
-      -- (1) Currying: for fixed product Hermite G on S(Fin k → D),
-      --     f ↦ φ(f ⊗ G) must be shown to be a CLM from S(D) to ℝ.
-      --     This needs joint continuity of the bilinear tensor product map
-      --     S(D) × S(Fin k → D) → S(Fin (k+1) → D).
-      -- (2) Density: pure tensors f ⊗ g span S(Fin (k+1) → D) in the
-      --     Schwartz topology, which follows from the Schwartz kernel theorem.
-      -- Both are mathematically standard (Reed-Simon V.13) but require
-      -- significant formalization infrastructure.
+    ·
       sorry
 
 end GaussianField
