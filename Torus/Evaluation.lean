@@ -130,9 +130,30 @@ theorem evalTorusAtSite_timeReflection (N : ℕ) [NeZero N]
   rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
   simp only [ContinuousLinearMap.comp_id]
   -- Need: proj_{x 0} ∘ circRestr ∘ circleReflection = proj_{-x 0} ∘ circRestr
-  -- i.e., (circleRestriction (circleReflection g))(x 0) = (circleRestriction g)(-x 0)
-  -- This is a property of circleReflection + circleRestriction
-  sorry
+  -- i.e., circleRestriction(circleReflection g)(x 0) = circleRestriction(g)(-x 0)
+  -- Prove the key CLM equality and use it
+  have key : ((ContinuousLinearMap.proj (x 0)).comp
+      (circleRestriction L N)).comp (circleReflection L) =
+    (ContinuousLinearMap.proj (-(x 0))).comp (circleRestriction L N) := by
+    ext g
+    simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.proj_apply,
+      circleRestriction_apply, circleReflection, circlePoint]
+    -- Goal: √(L/N) * g(-(val(x 0) * L / N)) = √(L/N) * g(val(-(x 0)) * L / N)
+    congr 1
+    -- Use ZMod.neg_val: val(-k) = if k = 0 then 0 else N - val k
+    rw [ZMod.neg_val (x 0)]
+    split
+    · -- k = 0 case: g(-(val(0) * L/N)) = g(0)
+      next hk => simp [hk]
+    · -- k ≠ 0 case: g(-(val k * L/N)) = g((N - val k) * L/N)
+      next hk =>
+      have hval_le : ZMod.val (x 0) ≤ N := le_of_lt (ZMod.val_lt (x 0))
+      have hN : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
+      rw [show (↑(N - ZMod.val (x 0)) : ℝ) * L / ↑N =
+          -(↑(ZMod.val (x 0)) * L / ↑N) + L from by
+        rw [Nat.cast_sub hval_le]; field_simp; ring]
+      exact (g.periodic' _).symm
+  rw [key]
 
 /-- Translation of lattice sites: x ↦ x - (j₁, j₂) in (ℤ/Nℤ)². -/
 def translateSites (N : ℕ) (j₁ j₂ : ℤ) (x : FinLatticeSites 2 N) :
@@ -156,8 +177,52 @@ theorem evalTorusAtSite_latticeTranslation (N : ℕ) [NeZero N]
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
   rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
   -- Need: proj_{x i} ∘ circRestr ∘ T_{ja} = proj_{x i - j} ∘ circRestr
+  -- Helper: (proj_k ∘ circRestr) ∘ T_{j*a} = (proj_{k-j}) ∘ circRestr
   -- i.e., circleRestriction(T_{ja} g)(k) = circleRestriction(g)(k - j)
-  -- This uses: T_{ja} g evaluates as g(· - ja), and circlePoint(k) - ja ≡ circlePoint(k-j) mod L
-  sorry
+  have transl_key : ∀ (k : ZMod N) (j : ℤ),
+      ((ContinuousLinearMap.proj k).comp (circleRestriction L N)).comp
+        (circleTranslation L (circleSpacing L N * j)) =
+      (ContinuousLinearMap.proj (k - (j : ZMod N))).comp (circleRestriction L N) := by
+    intro k j
+    ext g
+    simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.proj_apply,
+      circleRestriction_apply, circlePoint, circleSpacing]
+    -- Unfold circleTranslation application
+    show Real.sqrt (L / ↑N) * g (↑(ZMod.val k) * L / ↑N - L / ↑N * ↑j) =
+      Real.sqrt (L / ↑N) * g (↑(ZMod.val (k - (j : ZMod N))) * L / ↑N)
+    congr 1
+    -- val(k) - j ≡ val(k - j) (mod N), so they differ by m*N for some m : ℤ
+    -- Hence (val(k) - j)*L/N = val(k-j)*L/N + m*L
+    -- By L-periodicity of g, the two sides are equal.
+    have hN_ne : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
+    -- Both val(k) - j and val(k-j) lift k - j : ZMod N to ℤ, so they're congruent mod N
+    have hcong : (↑(ZMod.val k) - j : ℤ) ≡ ↑(ZMod.val (k - (j : ZMod N))) [ZMOD (N : ℤ)] := by
+      rw [← ZMod.intCast_eq_intCast_iff]
+      push_cast
+      simp
+    obtain ⟨m, hm⟩ := Int.modEq_iff_dvd.mp hcong
+    -- hm : val(k-j) - (val(k) - j) = N * m
+    -- Rewrite the LHS argument using periodicity
+    have arith : ↑(ZMod.val k) * L / ↑N - L / ↑N * ↑j =
+        ↑(ZMod.val (k - (j : ZMod N))) * L / ↑N + ↑(-m) * L := by
+      have hm_real : (↑(ZMod.val (k - (j : ZMod N))) : ℝ) - (↑(ZMod.val k) - ↑j) =
+          ↑N * ↑m := by exact_mod_cast hm
+      -- val(k)*L/N - L/N*j = (val(k) - j) * L/N  (algebra)
+      -- = (val(k-j) - N*m) * L/N                  (from hm_real)
+      -- = val(k-j)*L/N - m*L                      (algebra)
+      -- = val(k-j)*L/N + (-m)*L
+      have hNr : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
+      rw [show ↑(ZMod.val k) * L / ↑N - L / ↑N * ↑j =
+        (↑(ZMod.val k) - ↑j) * L / ↑N from by ring]
+      rw [show (↑(ZMod.val k) - ↑j : ℝ) =
+        ↑(ZMod.val (k - (j : ZMod N))) - ↑N * ↑m from by linarith]
+      rw [show (↑(ZMod.val (k - (j : ZMod N))) - ↑N * ↑m) * L / ↑N =
+        ↑(ZMod.val (k - (j : ZMod N))) * L / ↑N - ↑m * (↑N * L / ↑N) from by ring]
+      rw [show (↑N : ℝ) * L / ↑N = L from by rw [mul_comm]; exact mul_div_cancel_of_imp (fun h => absurd h hNr)]
+      push_cast
+      linarith
+    rw [arith]
+    exact (g.periodic.int_mul (-m)) _
+  rw [transl_key (x 0) j₁, transl_key (x 1) j₂]
 
 end GaussianField
