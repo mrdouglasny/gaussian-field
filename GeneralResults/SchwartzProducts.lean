@@ -318,7 +318,19 @@ As `m` ranges over `ℕ`, the resulting multi-index `α` ranges over all of `Fin
 (via `multiIndexEquiv`), so the per-block multi-indices range independently over all
 `Fin (finrank ℝ D) → ℕ`, covering all product Hermite configurations.
 
-sorry: Multi-index block decomposition through `prodToEuclidean` and `multiIndexEquiv`. -/
+The multi-index block decomposition through `prodToEuclidean` and
+`multiIndexEquiv` is a concrete Finset.prod regrouping via `finProdFinEquiv`.
+
+The key identity: `∏_{J < N} h_{α_J}(y_J) = ∏_{i < n} ∏_{j < d} h_{α_{(i,j)}}(y_{(i,j)})`
+where coordinates are organized in blocks via `finProdFinEquiv`.
+
+This is mathematically just `Finset.prod_equiv finProdFinEquiv` followed by
+`Finset.prod_product'` to split the product over `Fin n × Fin d` into iterated
+products. The Lean formalization requires carefully tracking the CLE composition
+`productRapidDecayEquiv = schwartzDomCongr prodToEuclidean ∘ schwartzRapidDecayEquivFin`
+and matching the `multiIndexEquiv` block structure with `blockMultiIndex`.
+
+sorry: ~50 lines of Finset.prod regrouping through CLE composition. -/
 private lemma productEquiv_symm_basisVec_isProductHermite
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
