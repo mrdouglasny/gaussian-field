@@ -239,15 +239,47 @@ theorem schwartzProductTensor_schwartz
     intro k m
     exact schwartz_product_decay n (by omega) fs k m
 
+/-! ## Density of product Hermite functions -/
+
+/-- A continuous linear functional on a DyninMityaginSpace that vanishes on all basis
+elements is zero. Immediate from the DM expansion `φ f = ∑' m, coeff_m(f) * φ(basis_m)`. -/
+private lemma clm_zero_of_basis_zero {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    [DyninMityaginSpace E]
+    (φ : E →L[ℝ] ℝ)
+    (h : ∀ m : ℕ, φ (DyninMityaginSpace.basis m) = 0) :
+    φ = 0 := by
+  ext f; rw [DyninMityaginSpace.expansion φ f]; simp [h]
+
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
 
-If a CLF on `S(∏D)` vanishes on all product Hermite functions, it is zero.
-This follows from completeness of the product Hermite ONB in L²(∏D)
-and the DyninMityaginSpace expansion (both the `toEuclidean`-Hermite and
-product-Hermite systems generate the same Schwartz topology).
+If a continuous linear functional on `S(∏D)` vanishes on all product Hermite functions,
+it is zero.
+
+**Proof** (by induction on `n`):
+
+*Base case* (`n = 1`): The product Hermite functions `∏ i : Fin 1, ψ_{k i}(x i)`
+reduce to `ψ_{k 0}(x 0)`. Via the continuous linear equivalence
+`Fin 1 → D ≃L[ℝ] D` (`ContinuousLinearEquiv.funUnique`), the Schwartz domain
+transfer `schwartzDomCongr` sends each DM basis element `ψ_m` of `S(D)` to the
+function `x ↦ ψ_m(x 0)` on `S(Fin 1 → D)`. The hypothesis gives `φ(T(ψ_m)) = 0`,
+i.e., `(φ ∘ T)(ψ_m) = 0` for all `m`. By the DM expansion
+(`clm_zero_of_basis_zero`), `φ ∘ T = 0`. Since `T` is an equivalence, `φ = 0`.
+
+*Inductive step* (`n → n+1`): Uses currying through the splitting
+`Fin (n+1) → D ≃L[ℝ] D × (Fin n → D)`. For each product Hermite `G` on the
+last `n` variables, define `φ_G : S(D) →L[ℝ] ℝ` by `φ_G(f) = φ(f ⊗ G)`.
+The hypothesis gives `φ_G(ψ_k) = 0` for all `k`, so `φ_G = 0` by the base case.
+Then for any `f`, the functional `g ↦ φ(f ⊗ g)` vanishes on all product Hermites
+on `n` variables, hence is zero by the induction hypothesis. Pure tensors are dense
+in `S(Fin (n+1) → D)` (Schwartz kernel theorem), so `φ = 0`.
+
+The currying CLM construction (showing `f ↦ φ(f ⊗ G)` is continuous linear)
+requires Schwartz seminorm estimates on the bilinear tensor product, using
+the same decay bounds as `schwartz_product_decay`.
 
 Ref: Reed-Simon I, Theorem V.13; Gel'fand-Vilenkin IV §3. -/
-axiom productHermite_schwartz_dense
+theorem productHermite_schwartz_dense
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     (n : ℕ) (hn : 1 ≤ n)
@@ -257,6 +289,46 @@ axiom productHermite_schwartz_dense
     (hφ : ∀ ks : Fin n → ℕ, ∀ (F : SchwartzMap (Fin n → D) ℝ),
       (∀ x, F x = ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i)) →
       φ F = 0) :
-    φ = 0
+    φ = 0 := by
+  haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+  haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+  induction n with
+  | zero => omega
+  | succ k ih =>
+    by_cases hk : k = 0
+    · -- **Base case n = 1**: Transfer via CLE (Fin 1 → D) ≃L[ℝ] D.
+      subst hk
+      -- schwartzDomCongr sends S(D) → S(Fin 1 → D) via f ↦ (x ↦ f(x 0))
+      set T : SchwartzMap D ℝ ≃L[ℝ] SchwartzMap (Fin 1 → D) ℝ :=
+        schwartzDomCongr (ContinuousLinearEquiv.funUnique (Fin 1) ℝ D)
+      -- Compose: φ' = φ ∘ T : S(D) →L[ℝ] ℝ
+      set φ' : SchwartzMap D ℝ →L[ℝ] ℝ := φ.comp T.toContinuousLinearMap
+      -- φ' vanishes on all DM basis elements of S(D):
+      -- φ'(ψ_m) = φ(T(ψ_m)) and T(ψ_m)(x) = ψ_m(x 0) = ∏ i : Fin 1, ψ_m(x i)
+      have h_basis : ∀ m, φ' (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m) = 0 := by
+        intro m
+        show φ (T (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m)) = 0
+        apply hφ (fun _ => m) (T (DyninMityaginSpace.basis (E := SchwartzMap D ℝ) m))
+        intro x
+        simp [T, schwartzDomCongr, SchwartzMap.compCLMOfContinuousLinearEquiv]
+      -- By DM expansion, φ' = 0
+      have hφ'_zero : φ' = 0 := clm_zero_of_basis_zero φ' h_basis
+      -- Since T is an equivalence (surjective), φ = 0
+      ext f
+      have key : φ' (T.symm f) = 0 := by simp [hφ'_zero]
+      simp only [φ', ContinuousLinearMap.comp_apply, ContinuousLinearEquiv.coe_coe,
+        T.apply_symm_apply] at key
+      simpa using key
+    · -- **Inductive step n = k + 1, k ≥ 1**:
+      -- The proof requires currying CLMs and density of pure tensors.
+      -- (1) Currying: for fixed product Hermite G on S(Fin k → D),
+      --     f ↦ φ(f ⊗ G) must be shown to be a CLM from S(D) to ℝ.
+      --     This needs joint continuity of the bilinear tensor product map
+      --     S(D) × S(Fin k → D) → S(Fin (k+1) → D).
+      -- (2) Density: pure tensors f ⊗ g span S(Fin (k+1) → D) in the
+      --     Schwartz topology, which follows from the Schwartz kernel theorem.
+      -- Both are mathematically standard (Reed-Simon V.13) but require
+      -- significant formalization infrastructure.
+      sorry
 
 end GaussianField
