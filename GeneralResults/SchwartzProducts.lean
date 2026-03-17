@@ -356,12 +356,10 @@ private lemma productEquiv_symm_basisVec_isProductHermite
   -- schwartzDomCongr composes with prodToEuclidean
   simp only [schwartzDomCongr, ContinuousLinearEquiv.equivOfInverse_apply,
     SchwartzMap.compCLMOfContinuousLinearEquiv_apply, Function.comp_def]
-  -- The proof is a chain of Finset.prod regroupings through the CLE composition.
-  -- Each step is definitional or uses existing simp lemmas.
-  -- Due to the deep CLE nesting (prodToEuclidean = piCongrRight toEuclidean ∘ flattenEuclidean,
-  -- schwartzRapidDecayEquivFin = match on dimension, schwartzDomCongr = compCLM),
-  -- direct simp/unfold is very slow. We sorry this concrete computation.
-  -- The mathematical content is: Finset.prod_equiv finProdFinEquiv + Finset.prod_product'.
+  -- This is a Finset.prod regrouping: ∏_{J<N} h(α_J, y_J) = ∏_{i<n} ∏_{j<d} h(α_{(i,j)}, y_{(i,j)})
+  -- through the product-aware CLE composition. The CLE nesting makes elaboration slow.
+  -- TODO: unfold through schwartzRapidDecayEquivFin + schwartzDomCongr + prodToEuclidean
+  -- and apply Finset.prod_equiv finProdFinEquiv + Finset.prod_product.
   sorry
 
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
