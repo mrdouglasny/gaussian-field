@@ -338,6 +338,30 @@ private lemma productEquiv_symm_basisVec_isProductHermite
     ∃ ks : Fin n → ℕ, ∀ x : Fin n → D,
       ((productRapidDecayEquiv n hn).symm (RapidDecaySeq.basisVec m)).toFun x =
         ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) := by
+  set d := Module.finrank ℝ D with hd_def
+  have hd : 0 < d := Module.finrank_pos
+  set N := n * d with hN_def
+  have hN : 0 < N := Nat.mul_pos hn hd
+  -- The flat multi-index for basisVec m
+  have hN1 : N - 1 + 1 = N := Nat.succ_pred_eq_of_pos hN
+  set α : Fin N → ℕ := hN1 ▸ (multiIndexEquiv (N - 1)).symm m with hα_def
+  -- Define ks via block decomposition of α
+  have hd1 : d - 1 + 1 = d := Nat.succ_pred_eq_of_pos hd
+  set ks : Fin n → ℕ := fun i => (multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i)
+  refine ⟨ks, fun x => ?_⟩
+  -- Unfold the product-aware equiv
+  -- (productRapidDecayEquiv).symm = (schwartzRapidDecayEquivFin N).symm ∘ schwartzDomCongr prodToEuclidean
+  show ((schwartzDomCongr (prodToEuclidean n D))
+    ((schwartzRapidDecayEquivFin N hN).symm (RapidDecaySeq.basisVec m))).toFun x = _
+  -- schwartzDomCongr composes with prodToEuclidean
+  simp only [schwartzDomCongr, ContinuousLinearEquiv.equivOfInverse_apply,
+    SchwartzMap.compCLMOfContinuousLinearEquiv_apply, Function.comp_def]
+  -- The proof is a chain of Finset.prod regroupings through the CLE composition.
+  -- Each step is definitional or uses existing simp lemmas.
+  -- Due to the deep CLE nesting (prodToEuclidean = piCongrRight toEuclidean ∘ flattenEuclidean,
+  -- schwartzRapidDecayEquivFin = match on dimension, schwartzDomCongr = compCLM),
+  -- direct simp/unfold is very slow. We sorry this concrete computation.
+  -- The mathematical content is: Finset.prod_equiv finProdFinEquiv + Finset.prod_product'.
   sorry
 
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
