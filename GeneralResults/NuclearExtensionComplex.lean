@@ -13,6 +13,7 @@ This is the theorem that replaces the axiom in OSreconstruction.
 
 import GeneralResults.SchwartzProducts
 import SchwartzNuclear.NuclearExtension
+import Mathlib.Analysis.Complex.Basic
 
 noncomputable section
 
@@ -191,6 +192,273 @@ private def clmRestrictReal {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ 
     show ↑r * W f = r • W f
     rw [Complex.real_smul]
   cont := W.cont
+
+/-- Scalar-tower instance needed to restrict multilinear maps from `ℂ` to `ℝ`. -/
+private instance instIsScalarTowerSchwartzMapComplex
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D] :
+    IsScalarTower ℝ ℂ (SchwartzMap D ℂ) where
+  smul_assoc r z f := by
+    ext x
+    change ((r : ℂ) * z) * f x = (r : ℂ) * (z * f x)
+    ring
+
+/-- Updating one factor of `complexProductTensor` by a sum distributes over the tensor. -/
+private lemma complexProductTensor_update_add
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    {n : ℕ} (fs : Fin n → SchwartzMap D ℂ) (i : Fin n)
+    (f g : SchwartzMap D ℂ) :
+    complexProductTensor (Function.update fs i (f + g)) =
+      complexProductTensor (Function.update fs i f) +
+        complexProductTensor (Function.update fs i g) := by
+  ext x
+  rw [complexProductTensor_apply]
+  change _ = complexProductTensor (Function.update fs i f) x +
+    complexProductTensor (Function.update fs i g) x
+  rw [complexProductTensor_apply, complexProductTensor_apply]
+  have hfg : (fun j : Fin n => (Function.update fs i (f + g) j) (x j)) =
+      Function.update (fun j : Fin n => fs j (x j)) i ((f + g) (x i)) := by
+    ext j
+    by_cases h : j = i <;> simp [Function.update, h]
+  have hf : (fun j : Fin n => (Function.update fs i f j) (x j)) =
+      Function.update (fun j : Fin n => fs j (x j)) i (f (x i)) := by
+    ext j
+    by_cases h : j = i <;> simp [Function.update, h]
+  have hg : (fun j : Fin n => (Function.update fs i g j) (x j)) =
+      Function.update (fun j : Fin n => fs j (x j)) i (g (x i)) := by
+    ext j
+    by_cases h : j = i <;> simp [Function.update, h]
+  rw [hfg, hf, hg]
+  rw [Finset.prod_update_of_mem (Finset.mem_univ i), Finset.prod_update_of_mem (Finset.mem_univ i),
+    Finset.prod_update_of_mem (Finset.mem_univ i)]
+  simp [add_mul]
+
+/-- Updating one factor of `complexProductTensor` by a scalar multiple pulls the scalar out. -/
+private lemma complexProductTensor_update_smul
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    {n : ℕ} (fs : Fin n → SchwartzMap D ℂ) (i : Fin n)
+    (z : ℂ) (f : SchwartzMap D ℂ) :
+    complexProductTensor (Function.update fs i (z • f)) =
+      z • complexProductTensor (Function.update fs i f) := by
+  ext x
+  rw [complexProductTensor_apply]
+  change _ = z • complexProductTensor (Function.update fs i f) x
+  rw [complexProductTensor_apply]
+  have hz : (fun j : Fin n => (Function.update fs i (z • f) j) (x j)) =
+      Function.update (fun j : Fin n => fs j (x j)) i ((z • f) (x i)) := by
+    ext j
+    by_cases h : j = i <;> simp [Function.update, h]
+  have hf : (fun j : Fin n => (Function.update fs i f j) (x j)) =
+      Function.update (fun j : Fin n => fs j (x j)) i (f (x i)) := by
+    ext j
+    by_cases h : j = i <;> simp [Function.update, h]
+  rw [hz, hf]
+  rw [Finset.prod_update_of_mem (Finset.mem_univ i), Finset.prod_update_of_mem (Finset.mem_univ i)]
+  simp [smul_eq_mul, mul_assoc]
+
+/-- Basis values determine a continuous real multilinear map on a Dynin-Mityagin space. -/
+private theorem continuousMultilinear_eq_of_basis_eq
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [DyninMityaginSpace E] [DyninMityaginSpace.HasBiorthogonalBasis E] :
+    ∀ {n : ℕ},
+      (A B : ContinuousMultilinearMap ℝ (fun _ : Fin n => E) ℝ) ->
+      (∀ ks : Fin n → ℕ,
+        A (fun i => DyninMityaginSpace.basis (E := E) (ks i)) =
+          B (fun i => DyninMityaginSpace.basis (E := E) (ks i))) ->
+      A = B
+  | 0, A, B, h => by
+      ext m
+      have hm : m = Fin.elim0 := by ext i; exact Fin.elim0 i
+      have hbasis :
+          (fun i : Fin 0 => DyninMityaginSpace.basis (E := E) ((fun i => Fin.elim0 i) i)) =
+            Fin.elim0 := by
+        ext i
+        exact Fin.elim0 i
+      rw [hm, ← hbasis]
+      exact h (fun i => Fin.elim0 i)
+  | n + 1, A, B, h => by
+      ext m
+      let A0 : E →L[ℝ] ℝ := {
+        toFun := fun x => A (Fin.cons x (Fin.tail m))
+        map_add' := by
+          intro x y
+          rw [← Fin.update_cons_zero (m 0) (Fin.tail m) (x + y),
+            ← Fin.update_cons_zero (m 0) (Fin.tail m) x,
+            ← Fin.update_cons_zero (m 0) (Fin.tail m) y,
+            Fin.cons_self_tail]
+          simpa using A.map_update_add m 0 x y
+        map_smul' := by
+          intro c x
+          rw [← Fin.update_cons_zero (m 0) (Fin.tail m) (c • x),
+            ← Fin.update_cons_zero (m 0) (Fin.tail m) x,
+            Fin.cons_self_tail]
+          simpa using A.map_update_smul m 0 c x
+        cont := A.cont.comp <| continuous_pi fun
+          | ⟨0, _⟩ => continuous_id
+          | ⟨k + 1, _⟩ => continuous_const }
+      let B0 : E →L[ℝ] ℝ := {
+        toFun := fun x => B (Fin.cons x (Fin.tail m))
+        map_add' := by
+          intro x y
+          rw [← Fin.update_cons_zero (m 0) (Fin.tail m) (x + y),
+            ← Fin.update_cons_zero (m 0) (Fin.tail m) x,
+            ← Fin.update_cons_zero (m 0) (Fin.tail m) y,
+            Fin.cons_self_tail]
+          simpa using B.map_update_add m 0 x y
+        map_smul' := by
+          intro c x
+          rw [← Fin.update_cons_zero (m 0) (Fin.tail m) (c • x),
+            ← Fin.update_cons_zero (m 0) (Fin.tail m) x,
+            Fin.cons_self_tail]
+          simpa using B.map_update_smul m 0 c x
+        cont := B.cont.comp <| continuous_pi fun
+          | ⟨0, _⟩ => continuous_id
+          | ⟨k + 1, _⟩ => continuous_const }
+      have h_basis0 : ∀ k,
+          A0 (DyninMityaginSpace.basis (E := E) k) =
+            B0 (DyninMityaginSpace.basis (E := E) k) := by
+        intro k
+        have hcurried :
+            A.curryLeft (DyninMityaginSpace.basis (E := E) k) =
+              B.curryLeft (DyninMityaginSpace.basis (E := E) k) := by
+          apply continuousMultilinear_eq_of_basis_eq
+          intro ks
+          change
+            A (Fin.cons (DyninMityaginSpace.basis (E := E) k)
+              (fun i => DyninMityaginSpace.basis (E := E) (ks i))) =
+              B (Fin.cons (DyninMityaginSpace.basis (E := E) k)
+                (fun i => DyninMityaginSpace.basis (E := E) (ks i)))
+          have hcons :
+              (fun i : Fin (n + 1) =>
+                DyninMityaginSpace.basis (E := E) (Fin.cases k ks i)) =
+                Fin.cons (DyninMityaginSpace.basis (E := E) k)
+                  (fun i => DyninMityaginSpace.basis (E := E) (ks i)) := by
+            ext i
+            cases i using Fin.cases with
+            | zero => rfl
+            | succ i => rfl
+          rw [← hcons]
+          exact h (Fin.cons k ks)
+        simpa [A0, B0, ContinuousMultilinearMap.curryLeft_apply] using
+          congrArg (fun F => F (Fin.tail m)) hcurried
+      have h0 : A0 = B0 := DyninMityaginSpace.clm_eq_of_basis_eq A0 B0 h_basis0
+      have hm : m = Fin.cons (m 0) (Fin.tail m) := by
+        symm
+        exact Fin.cons_self_tail m
+      rw [hm]
+      simpa [A0, B0, ContinuousMultilinearMap.curryLeft_apply] using
+        congrArg (fun f => f (m 0)) h0
+
+/-- A complex multilinear functional is determined by its values on real embedded tuples. -/
+private theorem multilinear_fun_eq_of_real_eq
+    {E0 E : Type*}
+    [AddCommGroup E0] [Module ℝ E0]
+    [AddCommGroup E] [Module ℂ E]
+    (ι : E0 →ₗ[ℝ] E)
+    (decomp : ∀ f : E, ∃ a b : E0, f = ι a + Complex.I • ι b) :
+    ∀ {n : ℕ},
+      (A B : (Fin n → E) → ℂ) ->
+      (∀ fs i f g,
+        A (Function.update fs i (f + g)) =
+          A (Function.update fs i f) + A (Function.update fs i g)) ->
+      (∀ fs i z f,
+        A (Function.update fs i (z • f)) = z * A (Function.update fs i f)) ->
+      (∀ fs i f g,
+        B (Function.update fs i (f + g)) =
+          B (Function.update fs i f) + B (Function.update fs i g)) ->
+      (∀ fs i z f,
+        B (Function.update fs i (z • f)) = z * B (Function.update fs i f)) ->
+      (∀ gs : Fin n → E0, A (fun i => ι (gs i)) = B (fun i => ι (gs i))) ->
+      ∀ fs : Fin n → E, A fs = B fs
+  | 0, A, B, hAadd, hAsmul, hBadd, hBsmul, hreal, fs => by
+      have hfs : fs = Fin.elim0 := by
+        ext i
+        exact Fin.elim0 i
+      have hgs : (fun i : Fin 0 => ι ((fun i : Fin 0 => Fin.elim0 i) i)) = Fin.elim0 := by
+        ext i
+        exact Fin.elim0 i
+      rw [hfs, ← hgs]
+      exact hreal (fun i => Fin.elim0 i)
+  | n + 1, A, B, hAadd, hAsmul, hBadd, hBsmul, hreal, fs => by
+      let tail : Fin n → E := Fin.tail fs
+      obtain ⟨a, b, hab⟩ := decomp (fs 0)
+      have hAcons_add : ∀ (tail : Fin n → E) (u v : E),
+          A (Fin.cons (u + v) tail) = A (Fin.cons u tail) + A (Fin.cons v tail) := by
+        intro tail u v
+        simpa [Fin.update_cons_zero] using hAadd (Fin.cons (0 : E) tail) 0 u v
+      have hAcons_smul : ∀ (tail : Fin n → E) (z : ℂ) (u : E),
+          A (Fin.cons (z • u) tail) = z * A (Fin.cons u tail) := by
+        intro tail z u
+        simpa [Fin.update_cons_zero] using hAsmul (Fin.cons (0 : E) tail) 0 z u
+      have hBcons_add : ∀ (tail : Fin n → E) (u v : E),
+          B (Fin.cons (u + v) tail) = B (Fin.cons u tail) + B (Fin.cons v tail) := by
+        intro tail u v
+        simpa [Fin.update_cons_zero] using hBadd (Fin.cons (0 : E) tail) 0 u v
+      have hBcons_smul : ∀ (tail : Fin n → E) (z : ℂ) (u : E),
+          B (Fin.cons (z • u) tail) = z * B (Fin.cons u tail) := by
+        intro tail z u
+        simpa [Fin.update_cons_zero] using hBsmul (Fin.cons (0 : E) tail) 0 z u
+      have hRe := multilinear_fun_eq_of_real_eq (ι := ι) (decomp := decomp)
+        (n := n)
+        (A := fun gs : Fin n → E => A (Fin.cons (ι a) gs))
+        (B := fun gs : Fin n → E => B (Fin.cons (ι a) gs))
+        (by
+          intro gs i f g
+          simpa [Fin.cons_update] using hAadd (Fin.cons (ι a) gs) i.succ f g)
+        (by
+          intro gs i z f
+          simpa [Fin.cons_update] using hAsmul (Fin.cons (ι a) gs) i.succ z f)
+        (by
+          intro gs i f g
+          simpa [Fin.cons_update] using hBadd (Fin.cons (ι a) gs) i.succ f g)
+        (by
+          intro gs i z f
+          simpa [Fin.cons_update] using hBsmul (Fin.cons (ι a) gs) i.succ z f)
+        (by
+          intro gs
+          change A (Fin.cons (ι a) (fun i => ι (gs i))) = B (Fin.cons (ι a) (fun i => ι (gs i)))
+          have hcons : (fun i : Fin (n + 1) => ι (Fin.cases a gs i)) =
+              Fin.cons (ι a) (fun i => ι (gs i)) := by
+            ext i
+            cases i using Fin.cases with
+            | zero => rfl
+            | succ i => rfl
+          rw [← hcons]
+          exact hreal (Fin.cons a gs))
+        tail
+      have hIm := multilinear_fun_eq_of_real_eq (ι := ι) (decomp := decomp)
+        (n := n)
+        (A := fun gs : Fin n → E => A (Fin.cons (ι b) gs))
+        (B := fun gs : Fin n → E => B (Fin.cons (ι b) gs))
+        (by
+          intro gs i f g
+          simpa [Fin.cons_update] using hAadd (Fin.cons (ι b) gs) i.succ f g)
+        (by
+          intro gs i z f
+          simpa [Fin.cons_update] using hAsmul (Fin.cons (ι b) gs) i.succ z f)
+        (by
+          intro gs i f g
+          simpa [Fin.cons_update] using hBadd (Fin.cons (ι b) gs) i.succ f g)
+        (by
+          intro gs i z f
+          simpa [Fin.cons_update] using hBsmul (Fin.cons (ι b) gs) i.succ z f)
+        (by
+          intro gs
+          change A (Fin.cons (ι b) (fun i => ι (gs i))) = B (Fin.cons (ι b) (fun i => ι (gs i)))
+          have hcons : (fun i : Fin (n + 1) => ι (Fin.cases b gs i)) =
+              Fin.cons (ι b) (fun i => ι (gs i)) := by
+            ext i
+            cases i using Fin.cases with
+            | zero => rfl
+            | succ i => rfl
+          rw [← hcons]
+          exact hreal (Fin.cons b gs))
+        tail
+      have hfs : fs = Fin.cons (fs 0) tail := by
+        ext i
+        cases i using Fin.cases with
+        | zero => rfl
+        | succ i => rfl
+      rw [hfs, hab, hAcons_add, hBcons_add, hAcons_smul, hBcons_smul, hRe, hIm]
 
 /-! ## The nuclear extension theorem -/
 

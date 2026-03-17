@@ -321,7 +321,7 @@ Unlike the canonical `schwartzRapidDecayEquiv (Fin n → D)` which goes through 
 AoC-chosen `toEuclidean` that may not respect the product structure, this equivalence
 uses `prodToEuclidean` which applies `toEuclidean` per component. This ensures that
 the resulting Hermite basis elements factor as products of per-factor DM basis elements. -/
-private noncomputable def productRapidDecayEquiv
+noncomputable def productRapidDecayEquiv
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D]
     (n : ℕ) (hn : 0 < n) :
@@ -330,6 +330,40 @@ private noncomputable def productRapidDecayEquiv
   have hnd : 0 < n * Module.finrank ℝ D := Nat.mul_pos hn hd
   exact (schwartzDomCongr (prodToEuclidean n D)).symm.trans
     (schwartzRapidDecayEquivFin (n * Module.finrank ℝ D) hnd)
+
+/-- The factor-space basis indices corresponding to the `m`-th basis vector of the
+product-aware rapid-decay equivalence. -/
+noncomputable def productBasisIndices
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D]
+    (n : ℕ) (hn : 0 < n) (m : ℕ) : Fin n → ℕ := by
+  let d := Module.finrank ℝ D
+  have hd : 0 < d := Module.finrank_pos
+  let N := n * d
+  have hN : 0 < N := Nat.mul_pos hn hd
+  let α : Fin N → ℕ := Nat.succ_pred_eq_of_pos hN ▸ (multiIndexEquiv (N - 1)).symm m
+  exact fun i => (multiIndexEquiv (d - 1))
+    (Nat.succ_pred_eq_of_pos hd ▸ blockMultiIndex n d α i)
+
+/-- A block multi-index has `abs` bounded by the total multi-index `abs`. -/
+private lemma blockMultiIndex_abs_le
+    (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
+    (MultiIndex.abs (blockMultiIndex n d α i) : ℝ) ≤ MultiIndex.abs α := by
+  classical
+  let s : Finset (Fin (n * d)) := Finset.univ.image (fun j : Fin d => finProdFinEquiv (i, j))
+  have hs :
+      (∑ j : Fin d, α (finProdFinEquiv (i, j))) = Finset.sum s α := by
+    unfold s
+    rw [Finset.sum_image]
+    intro a _ b _ hab
+    have hpair : (i, a) = (i, b) := finProdFinEquiv.injective hab
+    simpa using congrArg Prod.snd hpair
+  have hnat : MultiIndex.abs (blockMultiIndex n d α i) ≤ MultiIndex.abs α := by
+    simp [MultiIndex.abs, blockMultiIndex, hs]
+    exact Finset.sum_le_sum_of_subset_of_nonneg
+      (by intro x hx; simp)
+      (fun _ _ _ => Nat.zero_le _)
+  exact_mod_cast hnat
 
 /-- **Each basis vector of `RapidDecaySeq`, mapped through the product-aware equiv,
 gives a product Hermite function.**
@@ -368,13 +402,14 @@ B. `Finset.prod_equiv finProdFinEquiv` reindexes the flat product over `Fin N` i
    of `prodToEuclidean`.
 C. `cast_equiv_roundtrip` shows that `multiIndexEquiv.symm ∘ multiIndexEquiv` composed
    with the Fin-casts is the identity, matching each block to a DM basis element. -/
-private lemma productEquiv_symm_basisVec_isProductHermite
+theorem productRapidDecayEquiv_symm_basisVec_isProductHermite
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     (n : ℕ) (hn : 0 < n) (m : ℕ) :
-    ∃ ks : Fin n → ℕ, ∀ x : Fin n → D,
+    ∀ x : Fin n → D,
       ((productRapidDecayEquiv n hn).symm (RapidDecaySeq.basisVec m)).toFun x =
-        ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) := by
+        ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ)
+          (productBasisIndices (D := D) n hn m i) (x i) := by
   set d := Module.finrank ℝ D with hd_def
   have hd : 0 < d := Module.finrank_pos
   set N := n * d with hN_def
@@ -384,8 +419,12 @@ private lemma productEquiv_symm_basisVec_isProductHermite
   set α : Fin N → ℕ := hN1 ▸ (multiIndexEquiv (N - 1)).symm m with hα_def
   -- Define ks via block decomposition of α
   have hd1 : d - 1 + 1 = d := Nat.succ_pred_eq_of_pos hd
-  set ks : Fin n → ℕ := fun i => (multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i)
-  refine ⟨ks, fun x => ?_⟩
+  have hks :
+      productBasisIndices (D := D) n hn m =
+        (fun i => (multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i)) := by
+    ext i
+    simp [productBasisIndices, d, N, α, hd, hN, hd1, hN1]
+  intro x
   -- Unfold the product-aware equiv
   -- (productRapidDecayEquiv).symm = (schwartzRapidDecayEquivFin N).symm ∘ schwartzDomCongr prodToEuclidean
   show ((schwartzDomCongr (prodToEuclidean n D))
@@ -421,18 +460,22 @@ private lemma productEquiv_symm_basisVec_isProductHermite
       ContinuousLinearEquiv.piCongrRight, ContinuousLinearEquiv.piCongrLeft,
       EuclideanSpace.equiv, LinearEquiv.curry]; rfl
   -- Step C: Each DM basis element equals hermiteFunctionNd on the corresponding block.
-  have h_basis : ∀ i : Fin n, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) =
+  have h_basis : ∀ i : Fin n,
+      DyninMityaginSpace.basis (E := SchwartzMap D ℝ)
+        (productBasisIndices (D := D) n hn m i) (x i) =
       hermiteFunctionNd d (blockMultiIndex n d α i) (toEuclidean (x i)) := by
     intro i
     change ((schwartzRapidDecayEquivFin d hd).symm
-      (RapidDecaySeq.basisVec (ks i))) (toEuclidean (x i)) = _
+      (RapidDecaySeq.basisVec (productBasisIndices (D := D) n hn m i))) (toEuclidean (x i)) = _
     rw [equivFin_symm_basisVec]
     show hermiteFunctionNd d (Nat.succ_pred_eq_of_pos hd ▸ (multiIndexEquiv (d - 1)).symm
-      ((multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i))) (toEuclidean (x i)) = _
+      (productBasisIndices (D := D) n hn m i)) (toEuclidean (x i)) = _
+    rw [hks]
     rw [show (hd1 : d - 1 + 1 = d) = Nat.succ_pred_eq_of_pos hd from rfl]
     rw [cast_equiv_roundtrip d hd (blockMultiIndex n d α i)]
   -- Combine: LHS = ∏ hermiteFunctionNd blocks = RHS
   rw [h_lhs, h_blocks]
+  rw [hks]
   congr 1; ext i; exact (h_basis i).symm
 
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
@@ -493,9 +536,8 @@ theorem productHermite_schwartz_dense
       have h_vanish : ∀ m, ψ (RapidDecaySeq.basisVec m) = 0 := by
         intro m
         show φ (equiv.symm (RapidDecaySeq.basisVec m)) = 0
-        obtain ⟨ks, hks⟩ :=
-          productEquiv_symm_basisVec_isProductHermite (D := D) (k + 1) hn' m
-        exact hφ ks _ hks
+        exact hφ (productBasisIndices (D := D) (k + 1) hn' m) _
+          (productRapidDecayEquiv_symm_basisVec_isProductHermite (D := D) (k + 1) hn' m)
       -- By the RapidDecaySeq expansion, ψ = 0
       have hψ : ψ = 0 := by
         ext a
