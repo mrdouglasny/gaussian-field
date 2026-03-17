@@ -225,20 +225,20 @@ variable {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace 
 
 /-- The image of basis vector `m` under `T₁ ⊗ T₂`:
 `Φ(m) = pure(T₁(ψ_a), T₂(ψ_b))` where `(a,b) = unpair(m)`. -/
-private def mapImage (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) (m : ℕ) :
+def mapImage (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) (m : ℕ) :
     NuclearTensorProduct E₁ E₂ :=
   NuclearTensorProduct.pure
     (T₁ (DyninMityaginSpace.basis (Nat.unpair m).1))
     (T₂ (DyninMityaginSpace.basis (Nat.unpair m).2))
 
 /-- Pointwise bound: `|(g m).val n| * (1+n)^j ≤ seminorm_j(g m)`. -/
-private theorem val_le_seminorm (g : RapidDecaySeq) (n j : ℕ) :
+theorem val_le_seminorm (g : RapidDecaySeq) (n j : ℕ) :
     |g.val n| * (1 + (n : ℝ)) ^ j ≤ RapidDecaySeq.rapidDecaySeminorm j g :=
   (g.rapid_decay j).le_tsum n (fun k _ => mul_nonneg (abs_nonneg _) (by positivity))
 
 /-- Polynomial bound on seminorms of `mapImage`.
 `seminorm_k(Φ(m)) ≤ K * (1+m)^S`. -/
-private theorem mapImage_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) (k : ℕ) :
+theorem mapImage_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) (k : ℕ) :
     ∃ K > 0, ∃ S : ℕ, ∀ m,
     RapidDecaySeq.rapidDecaySeminorm k (mapImage T₁ T₂ m) ≤ K * (1 + (m : ℝ)) ^ S := by
   classical
