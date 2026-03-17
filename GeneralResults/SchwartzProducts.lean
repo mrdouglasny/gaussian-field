@@ -285,6 +285,36 @@ private noncomputable def blockMultiIndex (n d : ℕ) (α : Fin (n * d) → ℕ)
     Fin d → ℕ :=
   fun j => α (finProdFinEquiv (i, j))
 
+/-- `schwartzRapidDecayEquivFin d hd` inverse applied to `basisVec m` yields the
+multi-dimensional Hermite function `hermiteFunctionNd d α` where `α` is the multi-index
+corresponding to `m` via `multiIndexEquiv`. Handles both `d = 1` and `d ≥ 2` cases. -/
+private lemma equivFin_symm_basisVec (d : ℕ) (hd : 0 < d) (m : ℕ)
+    (y : EuclideanSpace ℝ (Fin d)) :
+    ((schwartzRapidDecayEquivFin d hd).symm (RapidDecaySeq.basisVec m)) y =
+    hermiteFunctionNd d (Nat.succ_pred_eq_of_pos hd ▸ (multiIndexEquiv (d - 1)).symm m) y := by
+  rcases d with _ | _ | d'
+  · omega
+  · simp only [schwartzRapidDecayEquivFin, ContinuousLinearEquiv.symm_trans_apply,
+      ContinuousLinearEquiv.symm_symm, schwartzDomCongr,
+      ContinuousLinearEquiv.equivOfInverse_apply,
+      SchwartzMap.compCLMOfContinuousLinearEquiv_apply, Function.comp_def]
+    rw [schwartzRapidDecayEquiv1D_symm_apply]
+    simp [RapidDecaySeq.basisVec, hermiteFunctionNd, multiIndexEquiv, euclideanFin1Equiv]
+  · simp only [schwartzRapidDecayEquivFin]
+    rw [schwartzRapidDecayEquivNd_symm_apply]
+    simp [RapidDecaySeq.basisVec]; rfl
+
+/-- Cast roundtrip: applying `multiIndexEquiv.symm ∘ multiIndexEquiv` to a Fin-cast
+multi-index and casting back recovers the original. Uses proof irrelevance and
+the fact that `d - 1 + 1 = d` is definitional for `d = d' + 1`. -/
+private lemma cast_equiv_roundtrip (d : ℕ) (hd : 0 < d) (β : Fin d → ℕ) :
+    (Nat.succ_pred_eq_of_pos hd ▸
+      (multiIndexEquiv (d - 1)).symm ((multiIndexEquiv (d - 1))
+        (Nat.succ_pred_eq_of_pos hd ▸ β)) : Fin d → ℕ) = β := by
+  rw [Equiv.symm_apply_apply]
+  rcases d with _ | d'; · omega
+  change β = β; rfl
+
 /-- **Product-aware CLE from `S(Fin n → D)` to `RapidDecaySeq`.**
 
 Unlike the canonical `schwartzRapidDecayEquiv (Fin n → D)` which goes through an
@@ -330,7 +360,14 @@ products. The Lean formalization requires carefully tracking the CLE composition
 `productRapidDecayEquiv = schwartzDomCongr prodToEuclidean ∘ schwartzRapidDecayEquivFin`
 and matching the `multiIndexEquiv` block structure with `blockMultiIndex`.
 
-sorry: ~50 lines of Finset.prod regrouping through CLE composition. -/
+The proof proceeds in three steps:
+A. `equivFin_symm_basisVec` collapses the Hermite series for `basisVec m` to
+   `hermiteFunctionNd N α (prodToEuclidean n D x)`.
+B. `Finset.prod_equiv finProdFinEquiv` reindexes the flat product over `Fin N` into
+   iterated products `∏_i ∏_j` over `Fin n × Fin d`, using the coordinate property
+   of `prodToEuclidean`.
+C. `cast_equiv_roundtrip` shows that `multiIndexEquiv.symm ∘ multiIndexEquiv` composed
+   with the Fin-casts is the identity, matching each block to a DM basis element. -/
 private lemma productEquiv_symm_basisVec_isProductHermite
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
@@ -356,11 +393,47 @@ private lemma productEquiv_symm_basisVec_isProductHermite
   -- schwartzDomCongr composes with prodToEuclidean
   simp only [schwartzDomCongr, ContinuousLinearEquiv.equivOfInverse_apply,
     SchwartzMap.compCLMOfContinuousLinearEquiv_apply, Function.comp_def]
-  -- This is a Finset.prod regrouping: ∏_{J<N} h(α_J, y_J) = ∏_{i<n} ∏_{j<d} h(α_{(i,j)}, y_{(i,j)})
-  -- through the product-aware CLE composition. The CLE nesting makes elaboration slow.
-  -- TODO: unfold through schwartzRapidDecayEquivFin + schwartzDomCongr + prodToEuclidean
-  -- and apply Finset.prod_equiv finProdFinEquiv + Finset.prod_product.
-  sorry
+  -- Step A: LHS = hermiteFunctionNd N α (prodToEuclidean n D x)
+  -- compCLMOfContinuousLinearEquiv is composition, so toFun evaluates at prodToEuclidean x.
+  -- equivFin_symm_basisVec converts to hermiteFunctionNd via the Hermite series collapse.
+  have h_lhs : ((SchwartzMap.compCLMOfContinuousLinearEquiv ℝ (prodToEuclidean n D))
+      ((schwartzRapidDecayEquivFin N hN).symm (RapidDecaySeq.basisVec m))).toFun x =
+    hermiteFunctionNd N α (prodToEuclidean n D x) :=
+    equivFin_symm_basisVec N hN m (prodToEuclidean n D x)
+  -- Step B: Split ∏_{J<N} into ∏_{i<n} ∏_{j<d} via finProdFinEquiv, matching blocks.
+  have h_blocks : hermiteFunctionNd N α (prodToEuclidean n D x) =
+      ∏ i : Fin n, hermiteFunctionNd d (blockMultiIndex n d α i) (toEuclidean (x i)) := by
+    simp only [hermiteFunctionNd]
+    conv_lhs =>
+      rw [show ∏ i_1 : Fin N, hermiteFunction (α i_1) ((prodToEuclidean n D x) i_1) =
+        ∏ i_1 : Fin n, ∏ j : Fin d, hermiteFunction (α (finProdFinEquiv (i_1, j)))
+          ((prodToEuclidean n D x) (finProdFinEquiv (i_1, j))) from by
+        rw [← Finset.prod_product']
+        apply Finset.prod_equiv finProdFinEquiv.symm (by simp)
+        intro J _; congr 1 <;> exact congrArg _ (finProdFinEquiv.apply_symm_apply J).symm]
+    congr 1; ext i
+    apply Finset.prod_congr rfl; intro j _
+    simp only [blockMultiIndex]
+    congr 1
+    -- Coordinate property: (prodToEuclidean n D x) (finProdFinEquiv (i,j)) = (toEuclidean (x i)) j
+    show (prodToEuclidean n D x) (finProdFinEquiv (i, j)) = (toEuclidean (x i)) j
+    simp [prodToEuclidean, flattenEuclidean, curryCLE,
+      ContinuousLinearEquiv.piCongrRight, ContinuousLinearEquiv.piCongrLeft,
+      EuclideanSpace.equiv, LinearEquiv.curry]; rfl
+  -- Step C: Each DM basis element equals hermiteFunctionNd on the corresponding block.
+  have h_basis : ∀ i : Fin n, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) =
+      hermiteFunctionNd d (blockMultiIndex n d α i) (toEuclidean (x i)) := by
+    intro i
+    change ((schwartzRapidDecayEquivFin d hd).symm
+      (RapidDecaySeq.basisVec (ks i))) (toEuclidean (x i)) = _
+    rw [equivFin_symm_basisVec]
+    show hermiteFunctionNd d (Nat.succ_pred_eq_of_pos hd ▸ (multiIndexEquiv (d - 1)).symm
+      ((multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i))) (toEuclidean (x i)) = _
+    rw [show (hd1 : d - 1 + 1 = d) = Nat.succ_pred_eq_of_pos hd from rfl]
+    rw [cast_equiv_roundtrip d hd (blockMultiIndex n d α i)]
+  -- Combine: LHS = ∏ hermiteFunctionNd blocks = RHS
+  rw [h_lhs, h_blocks]
+  congr 1; ext i; exact (h_basis i).symm
 
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
 
