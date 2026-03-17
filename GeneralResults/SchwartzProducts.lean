@@ -285,32 +285,64 @@ private noncomputable def blockMultiIndex (n d : ℕ) (α : Fin (n * d) → ℕ)
     Fin d → ℕ :=
   fun j => α (finProdFinEquiv (i, j))
 
+/-- **Product-aware CLE from `S(Fin n → D)` to `RapidDecaySeq`.**
+
+Unlike the canonical `schwartzRapidDecayEquiv (Fin n → D)` which goes through an
+AoC-chosen `toEuclidean` that may not respect the product structure, this equivalence
+uses `prodToEuclidean` which applies `toEuclidean` per component. This ensures that
+the resulting Hermite basis elements factor as products of per-factor DM basis elements. -/
+private noncomputable def productRapidDecayEquiv
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D]
+    (n : ℕ) (hn : 0 < n) :
+    SchwartzMap (Fin n → D) ℝ ≃L[ℝ] RapidDecaySeq := by
+  have hd : 0 < Module.finrank ℝ D := Module.finrank_pos
+  have hnd : 0 < n * Module.finrank ℝ D := Nat.mul_pos hn hd
+  exact (schwartzDomCongr (prodToEuclidean n D)).symm.trans
+    (schwartzRapidDecayEquivFin (n * Module.finrank ℝ D) hnd)
+
+/-- **Each basis vector of `RapidDecaySeq`, mapped through the product-aware equiv,
+gives a product Hermite function.**
+
+The proof traces through the product-aware CLE:
+- `(schwartzRapidDecayEquivFin N).symm (basisVec m)` is the multi-dimensional Hermite
+  function `∏_J h_{α_J}(e_J)` on `EuclideanSpace ℝ (Fin N)` where `N = n * finrank ℝ D`
+- `schwartzDomCongr prodToEuclidean` composes with `prodToEuclidean` which arranges
+  Euclidean coordinates in blocks: coordinate `(i,j)` of the flat space corresponds
+  to `toEuclidean(x_i)_j`
+- The product over all flat coordinates splits as `∏_i ∏_j h_{α_{i,j}}(toEuclidean(x_i)_j)`
+- Each inner product `∏_j h_{β_j}(toEuclidean(x_i)_j)` is the DM basis element of `S(D)`
+  at the index corresponding to multi-index `β`
+
+As `m` ranges over `ℕ`, the resulting multi-index `α` ranges over all of `Fin N → ℕ`
+(via `multiIndexEquiv`), so the per-block multi-indices range independently over all
+`Fin (finrank ℝ D) → ℕ`, covering all product Hermite configurations.
+
+sorry: Multi-index block decomposition through `prodToEuclidean` and `multiIndexEquiv`. -/
+private lemma productEquiv_symm_basisVec_isProductHermite
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    (n : ℕ) (hn : 0 < n) (m : ℕ) :
+    ∃ ks : Fin n → ℕ, ∀ x : Fin n → D,
+      ((productRapidDecayEquiv n hn).symm (RapidDecaySeq.basisVec m)).toFun x =
+        ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) := by
+  sorry
+
 /-- Product Hermite functions are dense in Schwartz space on the product domain.
 
 If a continuous linear functional on `S(∏D)` vanishes on all product Hermite functions,
 it is zero.
 
-**Proof** (by induction on `n`):
+**Proof**: Transfer `φ` to `RapidDecaySeq` via the product-aware CLE
+`productRapidDecayEquiv`, which goes through `prodToEuclidean` (applying `toEuclidean`
+per component). By `productEquiv_symm_basisVec_isProductHermite`, each basis vector
+`basisVec m` maps back to a product Hermite function under the inverse CLE.
+The hypothesis `hφ` then gives `(φ ∘ equiv⁻¹)(basisVec m) = 0` for all `m`.
+By the `RapidDecaySeq` expansion (`rapidDecay_expansion`), this functional is zero,
+hence `φ = 0`.
 
-*Base case* (`n = 1`): The product Hermite functions `∏ i : Fin 1, ψ_{k i}(x i)`
-reduce to `ψ_{k 0}(x 0)`. Via the continuous linear equivalence
-`Fin 1 → D ≃L[ℝ] D` (`ContinuousLinearEquiv.funUnique`), the Schwartz domain
-transfer `schwartzDomCongr` sends each DM basis element `ψ_m` of `S(D)` to the
-function `x ↦ ψ_m(x 0)` on `S(Fin 1 → D)`. The hypothesis gives `φ(T(ψ_m)) = 0`,
-i.e., `(φ ∘ T)(ψ_m) = 0` for all `m`. By the DM expansion
-(`clm_zero_of_basis_zero`), `φ ∘ T = 0`. Since `T` is an equivalence, `φ = 0`.
-
-*Inductive step* (`n → n+1`): Uses currying through the splitting
-`Fin (n+1) → D ≃L[ℝ] D × (Fin n → D)`. For each product Hermite `G` on the
-last `n` variables, define `φ_G : S(D) →L[ℝ] ℝ` by `φ_G(f) = φ(f ⊗ G)`.
-The hypothesis gives `φ_G(ψ_k) = 0` for all `k`, so `φ_G = 0` by the base case.
-Then for any `f`, the functional `g ↦ φ(f ⊗ g)` vanishes on all product Hermites
-on `n` variables, hence is zero by the induction hypothesis. Pure tensors are dense
-in `S(Fin (n+1) → D)` (Schwartz kernel theorem), so `φ = 0`.
-
-The currying CLM construction (showing `f ↦ φ(f ⊗ G)` is continuous linear)
-requires Schwartz seminorm estimates on the bilinear tensor product, using
-the same decay bounds as `schwartz_product_decay`.
+*Base case* (`n = 1`): Direct transfer via `ContinuousLinearEquiv.funUnique`
+reduces to the DM basis of `S(D)`, where `clm_zero_of_basis_zero` applies.
 
 Ref: Reed-Simon I, Theorem V.13; Gel'fand-Vilenkin IV §3. -/
 theorem productHermite_schwartz_dense
@@ -346,7 +378,25 @@ theorem productHermite_schwartz_dense
       simp only [φ', ContinuousLinearMap.comp_apply, ContinuousLinearEquiv.coe_coe,
         T.apply_symm_apply] at key
       simpa using key
-    ·
-      sorry
+    · -- case: k ≥ 1, transfer to RapidDecaySeq via product-aware equiv
+      have hn' : 0 < k + 1 := by omega
+      set equiv := productRapidDecayEquiv (D := D) (k + 1) hn'
+      set ψ : RapidDecaySeq →L[ℝ] ℝ := φ.comp equiv.symm.toContinuousLinearMap
+      -- Each basisVec maps to a product Hermite, so φ vanishes on it
+      have h_vanish : ∀ m, ψ (RapidDecaySeq.basisVec m) = 0 := by
+        intro m
+        show φ (equiv.symm (RapidDecaySeq.basisVec m)) = 0
+        obtain ⟨ks, hks⟩ :=
+          productEquiv_symm_basisVec_isProductHermite (D := D) (k + 1) hn' m
+        exact hφ ks _ hks
+      -- By the RapidDecaySeq expansion, ψ = 0
+      have hψ : ψ = 0 := by
+        ext a
+        rw [RapidDecaySeq.rapidDecay_expansion ψ a]
+        simp [h_vanish]
+      -- Transfer back: φ = 0
+      ext f
+      have : ψ (equiv f) = 0 := by rw [hψ]; simp
+      simpa [ψ] using this
 
 end GaussianField
