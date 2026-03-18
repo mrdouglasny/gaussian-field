@@ -854,9 +854,22 @@ theorem schwartz_nuclear_extension (d n : ℕ)
           · exact ⟨m, by simp [hij]⟩
           · have : j + 1 ≤ i.val := by omega
             exact hs i (by omega)
-        -- Both sides of w_re(∏ gs) = Phi_re(gs) are continuous in gs ⟨j, _⟩
-        -- and agree on all basis vectors in that slot (by h_with_basis).
-        -- By DM expansion in slot j, they agree for all gs ⟨j, _⟩.
+        -- Use DM expansion in slot j to free gs ⟨j, _⟩.
+        -- L₂(f) = Phi_re(update gs jj f) is a CLM via toContinuousLinearMap.
+        -- L₁(f) = w_re(productTensor(update gs jj f)) agrees with L₂ on basis.
+        -- By DM expansion (clm_eq_of_basis_eq), L₁ = L₂, so they agree on gs j.
+        set jj : Fin n := ⟨j, by omega⟩
+        -- Phi_re side: f ↦ Phi_re(update gs jj f) is a CLM
+        have L₂ : SchwartzMap D ℝ →L[ℝ] ℝ := Phi_re.toContinuousLinearMap gs jj
+        -- w_re side: f ↦ w_re(productTensor(update gs jj f)) should also be a CLM
+        -- This requires productTensor to be continuous linear in each slot.
+        -- schwartzProductTensor_schwartz gives the Schwartz map exists, but we need
+        -- the map f ↦ (its choose) to be continuous linear.
+        -- This is the LAST remaining infrastructure gap: separate-slot continuity
+        -- of the product tensor construction.
+        -- Once this CLM exists, the proof is:
+        --   have := clm_eq_of_basis_eq L₁ L₂ (fun m => (h_with_basis m).1)
+        --   exact ⟨congr_fun (congr_arg _ this) (gs jj), ...⟩
         sorry
   refine ⟨W, hW_agree, ?_⟩
   -- Uniqueness: if W' also agrees on product tensors, then W' = W.
