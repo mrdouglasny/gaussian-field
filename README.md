@@ -361,6 +361,10 @@ This library provides the concrete functional analysis infrastructure for:
 
 - **[pphi2](https://github.com/mrdouglasny/pphi2)** — Formal construction of the P(Φ)₂ interacting Euclidean QFT via the Glimm-Jaffe/Nelson lattice approach. Uses the Lattice module (lattice Gaussian measure, FKG inequality, discrete Laplacian) and the core Gaussian field API.
 
+- **[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction)** — Osterwalder-Schrader reconstruction theorem and Wightman axioms. gaussian-field's `extension` branch proves two axioms used in `Wightman/WightmanAxioms.lean`:
+  - `schwartz_nuclear_extension` — the Schwartz kernel theorem (proved in `GeneralResults/NuclearExtensionComplex.lean`)
+  - `exists_continuousMultilinear_ofSeparatelyContinuous` — Banach-Steinhaus for multilinear maps (target for future work)
+
 - **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
 
 - **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
