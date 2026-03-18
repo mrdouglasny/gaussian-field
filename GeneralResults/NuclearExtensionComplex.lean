@@ -19,7 +19,7 @@ noncomputable section
 
 open GaussianField Finset
 
-set_option maxHeartbeats 3200000
+set_option maxHeartbeats 6400000
 
 namespace GaussianField
 
@@ -593,7 +593,161 @@ private def slotInsertionCLM
             (s_w.sup (schwartzSeminormFamily ℝ (Fin n → D) ℝ))
               (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose ≤
               C' * (s'.sup (schwartzSeminormFamily ℝ D ℝ)) f := by
-        sorry
+        -- Per-(k,m) pointwise bound via Leibniz rule + chain rule + ‖x‖^k distribution
+        have h_slot : ∀ (km : ℕ × ℕ), ∃ (s_km : Finset (ℕ × ℕ)) (C_km : ℝ), 0 ≤ C_km ∧
+            ∀ (f : SchwartzMap D ℝ) (x : Fin n → D),
+              ‖x‖ ^ km.1 * ‖iteratedFDeriv ℝ km.2
+                (fun x => ∏ i, (Function.update gs jj f) i (x i)) x‖ ≤
+                C_km * (s_km.sup (schwartzSeminormFamily ℝ D ℝ)) f := by
+          intro ⟨k, m⟩
+          have hn' : 0 < n := by omega
+          have hsmooth : ∀ (f : SchwartzMap D ℝ) (i : Fin n),
+              ContDiff ℝ (⊤ : ℕ∞) (fun x : Fin n → D => (Function.update gs jj f) i (x i)) :=
+            fun f i => (Function.update gs jj f i).smooth'.comp
+              ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin n => D) i).contDiff.of_le le_top)
+          have hm : (↑↑m : WithTop ℕ∞) ≤ (↑(⊤ : ℕ∞) : WithTop ℕ∞) := by exact_mod_cast le_top
+          have h_chain : ∀ (g : SchwartzMap D ℝ) (c : ℕ) (i : Fin n) (x : Fin n → D),
+              ‖iteratedFDeriv ℝ c (fun x : Fin n → D => g (x i)) x‖ ≤
+                ‖iteratedFDeriv ℝ c g (x i)‖ := by
+            intro g c i x
+            set L := ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin n => D) i
+            have hL : ‖L‖ ≤ 1 := ContinuousLinearMap.opNorm_le_bound _ zero_le_one
+              (fun y => by simp [one_mul]; exact norm_le_pi_norm y i)
+            change ‖iteratedFDeriv ℝ c (g.toFun ∘ ⇑L) x‖ ≤ ‖iteratedFDeriv ℝ c g.toFun (x i)‖
+            rw [L.iteratedFDeriv_comp_right g.smooth' x (i := c)
+              (show (↑↑c : WithTop ℕ∞) ≤ ↑(⊤ : ℕ∞) from by exact_mod_cast le_top)]
+            calc _ ≤ ‖iteratedFDeriv ℝ c g.toFun (L x)‖ * ∏ _ : Fin c, ‖L‖ :=
+                  ContinuousMultilinearMap.norm_compContinuousLinearMap_le _ _
+              _ ≤ _ * 1 := by gcongr; exact Finset.prod_le_one (fun _ _ => norm_nonneg _) (fun _ _ => hL)
+              _ = _ := by simp [L]
+          have h_count_le : ∀ (p : Sym (Fin n) m), p.val.count jj ≤ m :=
+            fun p => le_trans (Multiset.count_le_card _ _) (le_of_eq p.prop)
+          set s_f : Finset (ℕ × ℕ) := {k, 0} ×ˢ Finset.Icc 0 m
+          have hk_mem : ∀ (p : Sym (Fin n) m), (k, p.val.count jj) ∈ s_f :=
+            fun p => Finset.mem_product.mpr ⟨Finset.mem_insert_self _ _,
+              Finset.mem_Icc.mpr ⟨Nat.zero_le _, h_count_le p⟩⟩
+          have h0_mem : ∀ (p : Sym (Fin n) m), (0, p.val.count jj) ∈ s_f :=
+            fun p => Finset.mem_product.mpr ⟨Finset.mem_insert.mpr (Or.inr (Finset.mem_singleton_self _)),
+              Finset.mem_Icc.mpr ⟨Nat.zero_le _, h_count_le p⟩⟩
+          -- Per-Leibniz-term bound
+          have h_per_p : ∀ (p : Sym (Fin n) m),
+              ∃ (Cp : ℝ), 0 ≤ Cp ∧ ∀ (f : SchwartzMap D ℝ) (x : Fin n → D),
+                ‖x‖ ^ k * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖ ≤
+                  Cp * (s_f.sup (schwartzSeminormFamily ℝ D ℝ)) f := by
+            intro p
+            set A : ℝ := ∏ j ∈ Finset.univ.erase jj, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) (gs j)
+            set B' : ℝ := ∑ i ∈ Finset.univ.erase jj,
+              ((SchwartzMap.seminorm ℝ k (p.val.count i)) (gs i) *
+               ∏ j ∈ (Finset.univ.erase i).erase jj, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) (gs j))
+            refine ⟨A + B', by positivity, fun f x => ?_⟩
+            obtain ⟨j0, _, hj0⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty (fun i => ‖x i‖₊)
+            have h_norm : ‖x‖ = ‖x j0‖ := by
+              rw [Pi.norm_def]; exact congr_arg NNReal.toReal
+                (show Finset.univ.sup (fun b => ‖x b‖₊) = ‖x j0‖₊ from by
+                  rw [← Finset.sup'_eq_sup Finset.univ_nonempty]; exact hj0)
+            set S := (s_f.sup (schwartzSeminormFamily ℝ D ℝ)) f
+            have hS_k : (SchwartzMap.seminorm ℝ k (p.val.count jj)) f ≤ S := by
+              rw [← SchwartzMap.schwartzSeminormFamily_apply ℝ D ℝ k (p.val.count jj)]
+              exact Seminorm.le_def.mp (Finset.le_sup (hk_mem p)) f
+            have hS_0 : (SchwartzMap.seminorm ℝ 0 (p.val.count jj)) f ≤ S := by
+              rw [← SchwartzMap.schwartzSeminormFamily_apply ℝ D ℝ 0 (p.val.count jj)]
+              exact Seminorm.le_def.mp (Finset.le_sup (h0_mem p)) f
+            -- Distribution of ‖x‖^k ≤ ∑ ‖x_i‖^k, then bound each factor by seminorms
+            calc ‖x‖ ^ k * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖
+                ≤ (∑ i, ‖x i‖ ^ k) * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖ := by
+                  gcongr; rw [h_norm]
+                  exact Finset.single_le_sum (f := fun i => ‖x i‖ ^ k) (fun i _ => by positivity) (Finset.mem_univ j0)
+              _ = ∑ i, (‖x i‖ ^ k * ‖iteratedFDeriv ℝ (p.val.count i) ((Function.update gs jj f) i) (x i)‖ *
+                        ∏ j ∈ Finset.univ.erase i, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖) := by
+                  rw [Finset.sum_mul]; congr 1; ext i; rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ i)]; ring
+              _ ≤ ∑ i, ((SchwartzMap.seminorm ℝ k (p.val.count i)) ((Function.update gs jj f) i) *
+                        ∏ j ∈ Finset.univ.erase i, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) ((Function.update gs jj f) j)) :=
+                  Finset.sum_le_sum fun i _ => mul_le_mul
+                    (SchwartzMap.le_seminorm ℝ k _ _ (x i))
+                    (Finset.prod_le_prod (fun j _ => norm_nonneg _) fun j _ => by simpa using SchwartzMap.le_seminorm ℝ 0 _ _ (x j))
+                    (Finset.prod_nonneg fun j _ => norm_nonneg _)
+                    (le_trans (by positivity) (SchwartzMap.le_seminorm ℝ k _ _ (x i)))
+              _ = ((SchwartzMap.seminorm ℝ k (p.val.count jj)) ((Function.update gs jj f) jj) *
+                    ∏ j ∈ Finset.univ.erase jj, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) ((Function.update gs jj f) j)) +
+                  ∑ i ∈ Finset.univ.erase jj, ((SchwartzMap.seminorm ℝ k (p.val.count i)) ((Function.update gs jj f) i) *
+                    ∏ j ∈ Finset.univ.erase i, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) ((Function.update gs jj f) j)) :=
+                  (Finset.add_sum_erase _ _ (Finset.mem_univ jj)).symm
+              _ ≤ S * A + S * B' := by
+                  apply add_le_add
+                  · -- jj term
+                    rw [Function.update_self]
+                    calc _ = (SchwartzMap.seminorm ℝ k (p.val.count jj)) f * A := by
+                          congr 1; simp only [A]; exact Finset.prod_congr rfl fun j hj => by
+                            rw [Finset.mem_erase] at hj; rw [Function.update_of_ne hj.1]
+                      _ ≤ S * A := mul_le_mul_of_nonneg_right hS_k (by positivity)
+                  · -- i ≠ jj terms: factor out sem_0(c_jj)(f) from each
+                    have h_term : ∀ i ∈ Finset.univ.erase jj,
+                        (SchwartzMap.seminorm ℝ k (p.val.count i)) ((Function.update gs jj f) i) *
+                          ∏ j ∈ Finset.univ.erase i, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) ((Function.update gs jj f) j) =
+                        (SchwartzMap.seminorm ℝ 0 (p.val.count jj)) f *
+                          ((SchwartzMap.seminorm ℝ k (p.val.count i)) (gs i) *
+                           ∏ j ∈ (Finset.univ.erase i).erase jj, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) (gs j)) := by
+                      intro i hi; rw [Finset.mem_erase] at hi
+                      rw [Function.update_of_ne hi.1,
+                          ← Finset.mul_prod_erase _ _ (Finset.mem_erase.mpr ⟨hi.1.symm, Finset.mem_univ _⟩),
+                          Function.update_self]
+                      have : ∏ x ∈ (Finset.univ.erase i).erase jj,
+                          (SchwartzMap.seminorm ℝ 0 (p.val.count x)) ((Function.update gs jj f) x) =
+                        ∏ j ∈ (Finset.univ.erase i).erase jj, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) (gs j) :=
+                        Finset.prod_congr rfl fun j hj => by rw [Finset.mem_erase] at hj; rw [Function.update_of_ne hj.1]
+                      rw [this]; ring
+                    calc _ = ∑ i ∈ Finset.univ.erase jj, ((SchwartzMap.seminorm ℝ 0 (p.val.count jj)) f *
+                              ((SchwartzMap.seminorm ℝ k (p.val.count i)) (gs i) *
+                               ∏ j ∈ (Finset.univ.erase i).erase jj, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) (gs j))) :=
+                          Finset.sum_congr rfl h_term
+                      _ = (SchwartzMap.seminorm ℝ 0 (p.val.count jj)) f * B' := (Finset.mul_sum ..).symm
+                      _ ≤ S * B' := mul_le_mul_of_nonneg_right hS_0 (by positivity)
+              _ = (A + B') * S := by ring
+          -- Combine over Leibniz terms
+          choose Cp hCp_nn hCp using h_per_p
+          refine ⟨s_f, ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial * Cp p,
+            Finset.sum_nonneg fun p _ => mul_nonneg (Nat.cast_nonneg _) (hCp_nn p), fun f x => ?_⟩
+          calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ m (fun x => ∏ i, (Function.update gs jj f) i (x i)) x‖
+              ≤ ‖x‖ ^ k * ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+                  ∏ j, ‖iteratedFDeriv ℝ (p.val.count j)
+                    (fun x : Fin n → D => (Function.update gs jj f) j (x j)) x‖ :=
+                mul_le_mul_of_nonneg_left (norm_iteratedFDeriv_prod_le (fun i _ => hsmooth f i) hm) (by positivity)
+            _ ≤ ‖x‖ ^ k * ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+                  ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖ := by
+                gcongr with p _ j _; exact h_chain ((Function.update gs jj f) j) _ j x
+            _ = ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+                  (‖x‖ ^ k * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖) := by
+                rw [Finset.mul_sum]; congr 1; ext p; ring
+            _ ≤ ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+                  (Cp p * (s_f.sup (schwartzSeminormFamily ℝ D ℝ)) f) :=
+                Finset.sum_le_sum fun p _ => mul_le_mul_of_nonneg_left (hCp p f x) (Nat.cast_nonneg _)
+            _ = (∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial * Cp p) *
+                  (s_f.sup (schwartzSeminormFamily ℝ D ℝ)) f := by rw [Finset.sum_mul]; congr 1; ext p; ring
+        -- Combine per-(k,m) bounds over s_w
+        choose s_km C_km hC_nn hC_bound using h_slot
+        refine ⟨s_w.biUnion s_km, ∑ km ∈ s_w, C_km km,
+          Finset.sum_nonneg fun km _ => hC_nn km, fun f => ?_⟩
+        apply Seminorm.finset_sup_apply_le
+          (mul_nonneg (Finset.sum_nonneg fun km _ => hC_nn km) (apply_nonneg _ f))
+        intro km hkm
+        rw [SchwartzMap.schwartzSeminormFamily_apply]
+        apply SchwartzMap.seminorm_le_bound ℝ km.1 km.2 _
+          (mul_nonneg (Finset.sum_nonneg fun km _ => hC_nn km) (apply_nonneg _ f))
+        intro x
+        rw [show iteratedFDeriv ℝ km.2
+            (⇑(schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose) x =
+          iteratedFDeriv ℝ km.2 (fun x => ∏ i, (Function.update gs jj f) i (x i)) x from by
+          congr 1; ext y; exact (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose_spec y]
+        calc ‖x‖ ^ km.1 * ‖iteratedFDeriv ℝ km.2 (fun x => ∏ i, (Function.update gs jj f) i (x i)) x‖
+            ≤ C_km km * ((s_km km).sup (schwartzSeminormFamily ℝ D ℝ)) f := hC_bound km f x
+          _ ≤ C_km km * ((s_w.biUnion s_km).sup (schwartzSeminormFamily ℝ D ℝ)) f :=
+              mul_le_mul_of_nonneg_left
+                (Seminorm.le_def.mp (Finset.sup_mono (Finset.subset_biUnion_of_mem s_km hkm)) f)
+                (hC_nn km)
+          _ ≤ (∑ km' ∈ s_w, C_km km') * ((s_w.biUnion s_km).sup (schwartzSeminormFamily ℝ D ℝ)) f :=
+              mul_le_mul_of_nonneg_right
+                (Finset.single_le_sum (fun x _ => hC_nn x) hkm)
+                (apply_nonneg _ f)
       -- Final combination: ‖w(F_f)‖ ≤ C_w * sup(F_f) ≤ C_w * C' * sup(f)
       obtain ⟨s', C', hC', h_sup⟩ := h_sup_bound
       exact ⟨s', (C_w : ℝ) * C', mul_nonneg C_w.coe_nonneg hC', fun f => by
