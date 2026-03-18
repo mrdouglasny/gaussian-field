@@ -25,7 +25,7 @@ noncomputable section
 
 open GaussianField Finset
 
-set_option maxHeartbeats 1600000
+set_option maxHeartbeats 3200000
 
 namespace GaussianField
 

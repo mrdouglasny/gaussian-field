@@ -512,7 +512,148 @@ theorem schwartz_nuclear_extension (d n : ℕ)
   -- captured by the real-valued infrastructure in NuclearExtension.lean.
   obtain ⟨W, hW_agree⟩ : ∃ (W : SchwartzMap (Fin n → D) ℂ →L[ℂ] ℂ),
       ∀ fs, W (complexProductTensor fs) = Phi fs := by
-    sorry
+    -- ι embeds real Schwartz into complex Schwartz
+    set ι := iotaSchwartz D
+    -- Restrict Phi to real inputs via iotaSchwartz
+    set Phi_r : ContinuousMultilinearMap ℝ (fun _ : Fin n => SchwartzMap D ℝ) ℂ :=
+      (Phi.restrictScalars ℝ).compContinuousLinearMap (fun _ => ι)
+    -- Re/Im parts: ℝ-valued continuous multilinear maps on S(D,ℝ)^n
+    set Phi_re : ContinuousMultilinearMap ℝ (fun _ : Fin n => SchwartzMap D ℝ) ℝ :=
+      Complex.reCLM.compContinuousMultilinearMap Phi_r
+    set Phi_im : ContinuousMultilinearMap ℝ (fun _ : Fin n => SchwartzMap D ℝ) ℝ :=
+      Complex.imCLM.compContinuousMultilinearMap Phi_r
+    -- Handle n = 0 separately
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · -- n = 0: S(Fin 0 → D, ℂ) is essentially ℂ
+      set c := Phi (Fin.elim0 : Fin 0 → SchwartzMap D ℂ)
+      set pt : Fin 0 → D := Fin.elim0
+      set ev : SchwartzMap (Fin 0 → D) ℂ →L[ℂ] ℂ := SchwartzMap.evalCLM ℂ pt
+      refine ⟨c • ev, fun fs => ?_⟩
+      simp only [ContinuousLinearMap.smul_apply, smul_eq_mul]
+      have hfs : fs = Fin.elim0 := by ext i; exact Fin.elim0 i
+      rw [hfs]
+      show c * (complexProductTensor Fin.elim0 pt) = c
+      simp [complexProductTensor_apply, Finset.univ_eq_empty]
+    · -- n ≥ 1: the main case
+      haveI : Inhabited (Fin n) := ⟨⟨0, hn⟩⟩
+      haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+      -- HasBiorthogonalBasis for SchwartzMap D ℝ (needed for basis agreement)
+      haveI : DyninMityaginSpace.HasBiorthogonalBasis (SchwartzMap D ℝ) :=
+        DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
+          (fun (kl : ℕ × ℕ) => SchwartzMap.seminorm ℝ kl.1 kl.2)
+          (schwartz_withSeminorms ℝ D ℝ)
+          (schwartzRapidDecayEquiv D)
+      -- Product-aware equiv for S(∏D, ℝ)
+      set equiv := productRapidDecayEquiv (D := D) n hn
+      set pbi := productBasisIndices (D := D) n hn
+      -- Poly-bounded values for Re and Im parts
+      have hpbi_growth := productBasisIndices_polyGrowth (D := D) n hn
+      have hv_re : PolyBounded (fun m => Phi_re (fun i =>
+          DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (pbi m i))) :=
+        multilinear_on_basis_polyBounded n Phi_re pbi hpbi_growth
+      have hv_im : PolyBounded (fun m => Phi_im (fun i =>
+          DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (pbi m i))) :=
+        multilinear_on_basis_polyBounded n Phi_im pbi hpbi_growth
+      -- Construct CLMs on RapidDecaySeq via clm_of_polyBounded
+      set ψ_re := DyninMityaginSpace.clm_of_polyBounded (E := RapidDecaySeq)
+        (fun m => Phi_re (fun i => DyninMityaginSpace.basis (pbi m i))) hv_re
+      set ψ_im := DyninMityaginSpace.clm_of_polyBounded (E := RapidDecaySeq)
+        (fun m => Phi_im (fun i => DyninMityaginSpace.basis (pbi m i))) hv_im
+      -- Transfer to S(∏D, ℝ) via product-aware equivalence
+      set w_re : SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ :=
+        ψ_re.comp equiv.toContinuousLinearMap
+      set w_im : SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ :=
+        ψ_im.comp equiv.toContinuousLinearMap
+      -- w_re on product-aware basis
+      have hw_re_basis : ∀ m,
+          w_re (equiv.symm (RapidDecaySeq.basisVec m)) =
+            Phi_re (fun i => DyninMityaginSpace.basis (pbi m i)) := by
+        intro m
+        show ψ_re (equiv (equiv.symm (RapidDecaySeq.basisVec m))) = _
+        rw [ContinuousLinearEquiv.apply_symm_apply]
+        exact DyninMityaginSpace.clm_of_polyBounded_basis _ hv_re m
+      have hw_im_basis : ∀ m,
+          w_im (equiv.symm (RapidDecaySeq.basisVec m)) =
+            Phi_im (fun i => DyninMityaginSpace.basis (pbi m i)) := by
+        intro m
+        show ψ_im (equiv (equiv.symm (RapidDecaySeq.basisVec m))) = _
+        rw [ContinuousLinearEquiv.apply_symm_apply]
+        exact DyninMityaginSpace.clm_of_polyBounded_basis _ hv_im m
+      -- Re/Im extraction maps
+      set Re_map : SchwartzMap (Fin n → D) ℂ →L[ℝ] SchwartzMap (Fin n → D) ℝ :=
+        SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.reCLM
+      set Im_map : SchwartzMap (Fin n → D) ℂ →L[ℝ] SchwartzMap (Fin n → D) ℝ :=
+        SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.imCLM
+      -- Build W using complexification of w_re, w_im
+      -- W(f) = (w_re(Re f) - w_im(Im f)) + i*(w_im(Re f) + w_re(Im f))
+      let W : SchwartzMap (Fin n → D) ℂ →L[ℂ] ℂ := {
+        toFun := fun f =>
+          ⟨w_re (Re_map f) - w_im (Im_map f),
+           w_im (Re_map f) + w_re (Im_map f)⟩
+        map_add' := fun f g => by ext <;> simp [map_add] <;> ring
+        map_smul' := fun z f => by
+          have hRe : Re_map (z • f) =
+              z.re • Re_map f - z.im • Im_map f := by
+            ext x; simp [Re_map, Im_map, SchwartzMap.postcompCLM,
+              SchwartzMap.smul_apply, Complex.mul_re]; ring
+          have hIm : Im_map (z • f) =
+              z.im • Re_map f + z.re • Im_map f := by
+            ext x; simp [Re_map, Im_map, SchwartzMap.postcompCLM,
+              SchwartzMap.smul_apply, Complex.mul_im]; ring
+          ext
+          · simp only [Complex.smul_re, Complex.mul_re, RingHom.id_apply, hRe, hIm,
+              map_sub, map_add, ContinuousLinearMap.map_smul]; ring
+          · simp only [Complex.smul_im, Complex.mul_im, RingHom.id_apply, hRe, hIm,
+              map_sub, map_add, ContinuousLinearMap.map_smul]; ring
+        cont := by
+          apply Continuous.complex_mk
+          · exact continuous_sub
+              (w_re.cont.comp (SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.reCLM).cont)
+              (w_im.cont.comp (SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.imCLM).cont)
+          · exact continuous_add
+              (w_im.cont.comp (SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.reCLM).cont)
+              (w_re.cont.comp (SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.imCLM).cont) }
+      -- Agreement on product tensors:
+      -- Uses multilinear_fun_eq_of_real_eq to reduce to real tuples,
+      -- then continuousMultilinear_eq_of_basis_eq to reduce to basis tuples,
+      -- then surjectivity of productBasisIndices + hw_re_basis/hw_im_basis.
+      -- The algebraic verification that both sides expand the same way
+      -- from complex to real inputs is a substantial calculation.
+      refine ⟨W, fun fs => ?_⟩
+      -- Agreement: W(complexProductTensor fs) = Phi fs
+      -- Use multilinear_fun_eq_of_real_eq to reduce to real-embedded tuples
+      -- Define the ℂ-multilinear decomposition:
+      set ι_lin : SchwartzMap D ℝ →ₗ[ℝ] SchwartzMap D ℂ := ι.toLinearMap
+      apply multilinear_fun_eq_of_real_eq (ι := ι_lin)
+        (decomp := fun f => ⟨SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.reCLM f,
+          SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.imCLM f, by
+            ext x; show f x = ↑(Complex.re (f x)) + Complex.I • ↑(Complex.im (f x))
+            rw [smul_eq_mul, mul_comm]; exact (Complex.re_add_im (f x)).symm⟩)
+      -- Multilinearity of W ∘ complexProductTensor:
+      · intro fs i f g
+        simp [complexProductTensor_update_add]
+        show W (complexProductTensor (Function.update fs i f) +
+          complexProductTensor (Function.update fs i g)) =
+          W (complexProductTensor (Function.update fs i f)) +
+            W (complexProductTensor (Function.update fs i g))
+        exact W.map_add _ _
+      · intro fs i z f
+        simp [complexProductTensor_update_smul]
+        show W (z • complexProductTensor (Function.update fs i f)) =
+          z * W (complexProductTensor (Function.update fs i f))
+        rw [W.map_smul]; rfl
+      -- Multilinearity of Phi:
+      · intro fs i f g; exact Phi.map_update_add fs i f g
+      · intro fs i z f; exact Phi.map_update_smul fs i z f
+      -- Agreement on real-embedded tuples: W(complexProductTensor(ι∘gs)) = Phi(ι∘gs)
+      intro gs
+      -- LHS = W(ι(∏ gs i)) by complexProductTensor_ofReal
+      -- = (w_re(∏ gs i), w_im(∏ gs i)) since Re(ι(r)) = r and Im(ι(r)) = 0
+      -- RHS = Phi_r(gs) = (Phi_re(gs), Phi_im(gs))
+      -- So need w_re(F) = Phi_re(gs) and w_im(F) = Phi_im(gs) where F(x) = ∏ gs i (x i)
+      -- This follows from continuousMultilinear_eq_of_basis_eq on the real multilinear maps
+      -- w_re ∘ productTensor vs Phi_re, plus surjectivity of productBasisIndices.
+      sorry
   refine ⟨W, hW_agree, ?_⟩
   -- Uniqueness: if W' also agrees on product tensors, then W' = W.
   intro W' hW'
