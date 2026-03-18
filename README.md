@@ -303,14 +303,15 @@ SchwartzNuclear/   SmoothCircle/             GaussianField/
 
 This library provides the concrete functional analysis infrastructure for:
 
+- **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** — OS axiom verification for the Gaussian free field. Imports gaussian-field for `DyninMityaginSpace (SchwartzMap D ℝ)` (Schwartz space nuclearity via Hermite expansion) and the Gaussian measure construction.
+
 - **[pphi2](https://github.com/mrdouglasny/pphi2)** — Formal construction of the P(Φ)₂ interacting Euclidean QFT via the Glimm-Jaffe/Nelson lattice approach. Uses the Lattice module (lattice Gaussian measure, FKG inequality, discrete Laplacian) and the core Gaussian field API.
+
+- **[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction)** — Osterwalder-Schrader reconstruction theorem and Wightman axioms. The `extension` branch of gaussian-field proves two axioms from `Wightman/WightmanAxioms.lean`: `schwartz_nuclear_extension` and `exists_continuousMultilinear_ofSeparatelyContinuous` (not yet wired in due to Lean version mismatch).
 
 - **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
 
 - **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
-
-- **OSforGFF imports** — files under `OSforGFF*` directories in this workspace are imported snapshots from the separate
-  **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** project.
 
 ## Proof status
 
