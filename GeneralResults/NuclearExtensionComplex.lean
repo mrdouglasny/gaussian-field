@@ -599,9 +599,17 @@ theorem schwartz_nuclear_extension (d n : ℕ)
             -- Re(z•f) = z.re • Re(f) - z.im • Im(f)
             -- Im(z•f) = z.im • Re(f) + z.re • Im(f)
             have hRe : Re_map (z • f) = z.re • Re_map f - z.im • Im_map f := by
-              ext x; simp [Re_map, Im_map, SchwartzMap.postcompCLM, Complex.smul_re]
+              ext x
+              simp only [Re_map, Im_map, SchwartzMap.postcompCLM_apply,
+                Complex.reCLM_apply, Complex.imCLM_apply, SchwartzMap.sub_apply,
+                SchwartzMap.smul_apply, smul_eq_mul]
+              simp [Complex.mul_re]
             have hIm : Im_map (z • f) = z.im • Re_map f + z.re • Im_map f := by
-              ext x; simp [Re_map, Im_map, SchwartzMap.postcompCLM, Complex.smul_im]
+              ext x
+              simp only [Re_map, Im_map, SchwartzMap.postcompCLM_apply,
+                Complex.reCLM_apply, Complex.imCLM_apply, SchwartzMap.add_apply,
+                SchwartzMap.smul_apply, smul_eq_mul]
+              simp [Complex.mul_im]; ring
             simp only [RingHom.id_apply]
             apply Complex.ext
             · show w_re (Re_map (z • f)) - w_im (Im_map (z • f)) =
@@ -816,13 +824,13 @@ theorem schwartz_nuclear_extension (d n : ℕ)
         obtain ⟨hre, him⟩ := key n le_rfl gs (fun i hi => absurd hi (by omega))
         apply Complex.ext
         · show w_re F = Phi_re gs
-          convert hre using 1
-          apply ContinuousLinearMap.congr_arg
-          ext x; simp [F, (schwartzProductTensor_schwartz n _ gs).choose_spec x]
+          have hFeq : F = (schwartzProductTensor_schwartz n (by omega : 1 ≤ n) gs).choose := by
+            ext x; rw [hF]; exact ((schwartzProductTensor_schwartz n (by omega) gs).choose_spec x).symm
+          rw [hFeq]; exact hre
         · show w_im F = Phi_im gs
-          convert him using 1
-          apply ContinuousLinearMap.congr_arg
-          ext x; simp [F, (schwartzProductTensor_schwartz n _ gs).choose_spec x]
+          have hFeq : F = (schwartzProductTensor_schwartz n (by omega : 1 ≤ n) gs).choose := by
+            ext x; rw [hF]; exact ((schwartzProductTensor_schwartz n (by omega) gs).choose_spec x).symm
+          rw [hFeq]; exact him
       intro j
       induction j with
       | zero =>
@@ -830,14 +838,13 @@ theorem schwartz_nuclear_extension (d n : ℕ)
         -- All gs i are basis vectors
         have hbasis : ∀ i, ∃ k, gs i = DyninMityaginSpace.basis k := fun i => hs i (Nat.zero_le _)
         choose ks hks using hbasis
-        constructor <;> {
-          have hF := (schwartzProductTensor_schwartz n (by omega) gs).choose_spec
-          have hG : ∀ x, (schwartzProductTensor_schwartz n _ gs).choose x =
-              ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) := by
-            intro x; rw [hF x]; congr 1; ext i; rw [hks i]
-          first
-          | exact w_re_on_product ks _ hG
-          | exact w_im_on_product ks _ hG }
+        have hgs_eq : gs = fun i => DyninMityaginSpace.basis (ks i) := funext hks
+        subst hgs_eq
+        have hF := (schwartzProductTensor_schwartz n (by omega) (fun i => DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i))).choose_spec
+        have hG : ∀ x, (schwartzProductTensor_schwartz n (by omega) (fun i => DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i))).choose x =
+            ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) := by
+          intro x; exact hF x
+        exact ⟨w_re_on_product ks _ hG, w_im_on_product ks _ hG⟩
       | succ j ih =>
         intro hj gs hs
         -- ih applies to tuples with basis vectors from index j onward
@@ -851,31 +858,81 @@ theorem schwartz_nuclear_extension (d n : ℕ)
           apply ih (by omega)
           intro i hi
           by_cases hij : i = ⟨j, by omega⟩
-          · exact ⟨m, by simp [hij]⟩
-          · have : j + 1 ≤ i.val := by omega
+          · exact ⟨m, by rw [hij, Function.update_self]⟩
+          · have : j + 1 ≤ i.val := by
+              have hne : i.val ≠ j := fun h => hij (Fin.ext h)
+              omega
+            have hne : i ≠ ⟨j, by omega⟩ := hij
+            rw [Function.update_of_ne hne]
             exact hs i (by omega)
         -- Use DM expansion in slot j to free gs ⟨j, _⟩.
         -- L₂(f) = Phi_re(update gs jj f) is a CLM via toContinuousLinearMap.
         -- L₁(f) = w_re(productTensor(update gs jj f)) agrees with L₂ on basis.
         -- By DM expansion (clm_eq_of_basis_eq), L₁ = L₂, so they agree on gs j.
         set jj : Fin n := ⟨j, by omega⟩
-        -- Phi_re side: f ↦ Phi_re(update gs jj f) is a CLM
-        have L₂ : SchwartzMap D ℝ →L[ℝ] ℝ := Phi_re.toContinuousLinearMap gs jj
-        -- w_re side: need f ↦ w_re(productTensor(update gs jj f)) as a CLM on S(D).
-        -- Then clm_eq_of_basis_eq L₁ L₂ (fun m => (h_with_basis m).1/2) closes it.
+        -- L₂(f) = Phi_re(update gs jj f) is a CLM via toContinuousLinearMap
+        set L_re := Phi_re.toContinuousLinearMap gs jj
+        set L_im := Phi_im.toContinuousLinearMap gs jj
+        -- L_re(ψ_m) = Phi_re(update gs jj ψ_m) and similarly for L_im
+        -- h_with_basis gives w_re(productTensor(update gs jj ψ_m)) = L_re(ψ_m)
+        -- We need: w_re(productTensor gs) = L_re(gs jj) and similarly for w_im
+
+        -- Key: DM expansion applied to L_re (which IS a CLM on S(D)):
+        -- L_re(gs jj) = Σ_m coeff_m(gs jj) · L_re(ψ_m)
+        have h_Lre_expand := DyninMityaginSpace.expansion L_re (gs jj)
+        have h_Lim_expand := DyninMityaginSpace.expansion L_im (gs jj)
+
+        -- And for w_re(productTensor gs):
+        -- w_re(F) where F = productTensor gs
+        -- By DM expansion on S(∏D): w_re(F) = Σ_p coeff_p(F) · w_re(basis_p)
+        -- But this is the PRODUCT-SPACE expansion, not the SLOT expansion.
+
+        -- Alternative: use that L_re determines Phi_re(gs) = L_re(gs jj),
+        -- and the DM expansion of L_re shows L_re is determined by L_re(ψ_m).
+        -- Similarly construct a CLM for the w_re side and show it equals L_re.
+
+        -- The w_re-side CLM: f ↦ w_re(productTensor(update gs jj f))
+        -- This is the composition of:
+        --   f ↦ update gs jj f (continuous linear: affine map, linear part is proj)
+        --   gs' ↦ productTensor gs' (continuous in each slot — THIS IS WHAT WE NEED)
+        --   F ↦ w_re F (CLM)
         --
-        -- Equivalently: both Phi_re(gs) and w_re(∏ gs) equal the same multi-sum
-        --   Σ_{k₁,...,kₙ} (∏ c_{kᵢ}(gsᵢ)) · Phi_re(ψ_{k₁},...,ψ_{kₙ})
-        -- because (1) Phi_re expands by multilinearity + DM expansion of each gsᵢ,
-        -- and (2) w_re(∏ gs) = w_re(Σ (∏ cₖᵢ) · ∏ψₖᵢ) = Σ (∏ cₖᵢ) · w_re(∏ψₖᵢ)
-        --   = Σ (∏ cₖᵢ) · Phi_re(ψ_{k₁},...,ψ_{kₙ}) by w_re_on_product.
-        --
-        -- Formalizing either approach needs: the product tensor map is continuous
-        -- linear in each slot (separate-slot continuity), which requires Schwartz
-        -- seminorm estimates for f ↦ f(xⱼ) · ∏_{i≠j} gs i (xᵢ).
-        -- This is ~50 lines using schwartz_product_decay specialized to n=2 factors
-        -- (one varying, rest fixed). All mathematical ingredients are proved.
-        sorry
+        -- For now, sorry this slot continuity and use it to close the proof.
+        -- The slot continuity is provable from schwartz_product_decay.
+        have slot_CLM_re : ∃ L₁ : SchwartzMap D ℝ →L[ℝ] ℝ,
+            ∀ f, L₁ f = w_re (schwartzProductTensor_schwartz n (by omega)
+              (Function.update gs jj f)).choose := sorry
+        have slot_CLM_im : ∃ L₁ : SchwartzMap D ℝ →L[ℝ] ℝ,
+            ∀ f, L₁ f = w_im (schwartzProductTensor_schwartz n (by omega)
+              (Function.update gs jj f)).choose := sorry
+        obtain ⟨L₁_re, hL₁_re⟩ := slot_CLM_re
+        obtain ⟨L₁_im, hL₁_im⟩ := slot_CLM_im
+        -- L₁_re and L_re agree on all basis vectors
+        have h_agree_re : ∀ m, L₁_re (DyninMityaginSpace.basis m) = L_re (DyninMityaginSpace.basis m) := by
+          intro m; rw [hL₁_re]; exact (h_with_basis m).1
+        have h_agree_im : ∀ m, L₁_im (DyninMityaginSpace.basis m) = L_im (DyninMityaginSpace.basis m) := by
+          intro m; rw [hL₁_im]; exact (h_with_basis m).2
+        -- By clm_eq_of_basis_eq, L₁ = L₂
+        have hL_eq_re := DyninMityaginSpace.clm_eq_of_basis_eq L₁_re L_re h_agree_re
+        have hL_eq_im := DyninMityaginSpace.clm_eq_of_basis_eq L₁_im L_im h_agree_im
+        -- So L₁(gs jj) = L₂(gs jj), i.e., w_re(productTensor gs) = Phi_re(gs)
+        constructor
+        · -- w_re case
+          have h1 : w_re (schwartzProductTensor_schwartz n (by omega) gs).choose =
+              L₁_re (gs jj) := by
+            rw [hL₁_re]; congr 1; ext x
+            simp [(schwartzProductTensor_schwartz n _ gs).choose_spec,
+                  (schwartzProductTensor_schwartz n _ (Function.update gs jj (gs jj))).choose_spec,
+                  Function.update_eq_self]
+          rw [h1, show L₁_re = L_re from hL_eq_re]
+        · -- w_im case
+          have h1 : w_im (schwartzProductTensor_schwartz n (by omega) gs).choose =
+              L₁_im (gs jj) := by
+            rw [hL₁_im]; congr 1; ext x
+            simp [(schwartzProductTensor_schwartz n _ gs).choose_spec,
+                  (schwartzProductTensor_schwartz n _ (Function.update gs jj (gs jj))).choose_spec,
+                  Function.update_eq_self]
+          rw [h1, show L₁_im = L_im from hL_eq_im]
   refine ⟨W, hW_agree, ?_⟩
   -- Uniqueness: if W' also agrees on product tensors, then W' = W.
   intro W' hW'
