@@ -363,7 +363,7 @@ This library provides the concrete functional analysis infrastructure for:
 
 - **[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction)** — Osterwalder-Schrader reconstruction theorem and Wightman axioms. gaussian-field's `extension` branch proves two axioms used in `Wightman/WightmanAxioms.lean`:
   - `schwartz_nuclear_extension` — the Schwartz kernel theorem (proved in `GeneralResults/NuclearExtensionComplex.lean`)
-  - `exists_continuousMultilinear_ofSeparatelyContinuous` — Banach-Steinhaus for multilinear maps (target for future work)
+  - `exists_continuousMultilinear_ofSeparatelyContinuous` — Banach-Steinhaus for separately continuous multilinear maps (proved in `GeneralResults/SeparatelyContMultilinear.lean`)
 
 - **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
 
