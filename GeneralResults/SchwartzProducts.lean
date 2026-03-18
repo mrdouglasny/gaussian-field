@@ -262,7 +262,7 @@ private noncomputable def curryCLE (n d : ℕ) :
         ((continuous_apply p.2).comp (continuous_apply p.1)))
 
 /-- Flatten a finite family of Euclidean blocks into one Euclidean space. -/
-private noncomputable def flattenEuclidean (n d : ℕ) :
+noncomputable def flattenEuclidean (n d : ℕ) :
     (Fin n → EuclideanSpace ℝ (Fin d)) ≃L[ℝ] EuclideanSpace ℝ (Fin (n * d)) := by
   let e1 := ContinuousLinearEquiv.piCongrRight
     (fun _ : Fin n => EuclideanSpace.equiv (Fin d) ℝ)
@@ -273,7 +273,7 @@ private noncomputable def flattenEuclidean (n d : ℕ) :
 
 /-- Product-aware Euclidean coordinates on `Fin n → D`, flattening each `toEuclidean D`
 block contiguously. -/
-private noncomputable def prodToEuclidean (n : ℕ) (D : Type*)
+noncomputable def prodToEuclidean (n : ℕ) (D : Type*)
     [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D] :
     (Fin n → D) ≃L[ℝ] EuclideanSpace ℝ (Fin (n * Module.finrank ℝ D)) := by
   exact (ContinuousLinearEquiv.piCongrRight
@@ -281,7 +281,7 @@ private noncomputable def prodToEuclidean (n : ℕ) (D : Type*)
     (flattenEuclidean n (Module.finrank ℝ D))
 
 /-- Restrict a total multi-index on `Fin (n * d)` to the `i`-th block of length `d`. -/
-private noncomputable def blockMultiIndex (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
+noncomputable def blockMultiIndex (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
     Fin d → ℕ :=
   fun j => α (finProdFinEquiv (i, j))
 
@@ -346,7 +346,7 @@ noncomputable def productBasisIndices
     (Nat.succ_pred_eq_of_pos hd ▸ blockMultiIndex n d α i)
 
 /-- A block multi-index has `abs` bounded by the total multi-index `abs`. -/
-private lemma blockMultiIndex_abs_le
+lemma blockMultiIndex_abs_le
     (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
     (MultiIndex.abs (blockMultiIndex n d α i) : ℝ) ≤ MultiIndex.abs α := by
   classical
@@ -364,6 +364,17 @@ private lemma blockMultiIndex_abs_le
       (by intro x hx; simp)
       (fun _ _ _ => Nat.zero_le _)
   exact_mod_cast hnat
+
+/-- **Polynomial growth of `productBasisIndices`.**
+Each per-factor basis index grows polynomially in the flat index `m`.
+Chain: `multiIndexEquiv_symm_growth` → `blockMultiIndex_abs_le` → `multiIndexEquiv_growth`. -/
+theorem productBasisIndices_polyGrowth
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D]
+    (n : ℕ) (hn : 0 < n) :
+    ∃ C > 0, ∃ q : ℕ, ∀ m i,
+      (productBasisIndices (D := D) n hn m i : ℝ) ≤ C * (1 + (m : ℝ)) ^ q := by
+  sorry
 
 /-- **Each basis vector of `RapidDecaySeq`, mapped through the product-aware equiv,
 gives a product Hermite function.**
