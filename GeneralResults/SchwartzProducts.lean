@@ -365,15 +365,67 @@ lemma blockMultiIndex_abs_le
       (fun _ _ _ => Nat.zero_le _)
   exact_mod_cast hnat
 
+/-- Generic polynomial growth for the multiIndexEquiv ∘ blockMultiIndex ∘ multiIndexEquiv.symm chain.
+This is the core bound, stated without reference to `Module.finrank`. -/
+-- The growth bound works abstractly: for any value that equals
+-- multiIndexEquiv(d-1)(cast ▸ blockMultiIndex n d (cast ▸ multiIndexEquiv(N-1).symm m) i),
+-- it is bounded by C * (1+m)^q. We don't need to unfold productBasisIndices at all.
+-- Instead, we prove that productBasisIndices m i = some value v, and bound v.
+-- The key: productBasisIndices is DEFINED as exactly this chain, so `rfl` gives the equality
+-- when Module.finrank ℝ D is concrete. But since it's abstract, we use `change` to
+-- rewrite the goal to the chain applied to Module.finrank ℝ D.
+--
+-- Actually, the simplest fix: add productBasisIndices as an OPAQUE bound.
+-- We know 1 + pbi m i ≤ bound, because pbi is defined as multiIndexEquiv ∘ blockMultiIndex ∘ multiIndexEquiv.symm.
+-- The bound follows regardless of what Module.finrank is — it only needs d > 0.
+-- Core bound for successor dimensions: no Nat.succ_pred casts.
+private theorem generic_pbi_bound (n' d' : ℕ) :
+    ∃ C > 0, ∃ q : ℕ, ∀ (m : ℕ) (i : Fin (n' + 1)),
+      let α := (multiIndexEquiv ((n' + 1) * (d' + 1) - 1)).symm m
+      ((multiIndexEquiv d') (blockMultiIndex (n' + 1) (d' + 1) α i) : ℝ) ≤
+        C * (1 + (m : ℝ)) ^ q := by
+  obtain ⟨C₁, hC₁, k₁, h_symm⟩ := multiIndexEquiv_symm_growth ((n' + 1) * (d' + 1) - 1)
+  obtain ⟨C₂, hC₂, k₂, h_growth⟩ := multiIndexEquiv_growth d'
+  refine ⟨C₂ * C₁ ^ k₂, by positivity, k₁ * k₂, fun m i => ?_⟩
+  set α := (multiIndexEquiv ((n' + 1) * (d' + 1) - 1)).symm m
+  set β_i := blockMultiIndex (n' + 1) (d' + 1) α i
+  have h1 := h_growth β_i
+  have h2 : (MultiIndex.abs β_i : ℝ) ≤ MultiIndex.abs α :=
+    blockMultiIndex_abs_le (n' + 1) (d' + 1) α i
+  have h3 := h_symm m
+  calc ((multiIndexEquiv d') β_i : ℝ)
+      ≤ C₂ * (1 + (MultiIndex.abs β_i : ℝ)) ^ k₂ - 1 := by linarith
+    _ ≤ C₂ * (1 + (MultiIndex.abs α : ℝ)) ^ k₂ := by
+        nlinarith [pow_le_pow_left₀ (by positivity : (0 : ℝ) ≤ 1 + ↑(MultiIndex.abs β_i))
+          (show (1 : ℝ) + ↑(MultiIndex.abs β_i) ≤ 1 + ↑(MultiIndex.abs α) by linarith) k₂]
+    _ ≤ C₂ * (C₁ * (1 + (m : ℝ)) ^ k₁) ^ k₂ := by gcongr
+    _ = C₂ * C₁ ^ k₂ * (1 + (m : ℝ)) ^ (k₁ * k₂) := by rw [mul_pow, ← pow_mul]; ring
+
 /-- **Polynomial growth of `productBasisIndices`.**
-Each per-factor basis index grows polynomially in the flat index `m`.
-Chain: `multiIndexEquiv_symm_growth` → `blockMultiIndex_abs_le` → `multiIndexEquiv_growth`. -/
+Each per-factor basis index grows polynomially in the flat index `m`. -/
 theorem productBasisIndices_polyGrowth
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D]
     (n : ℕ) (hn : 0 < n) :
     ∃ C > 0, ∃ q : ℕ, ∀ m i,
       (productBasisIndices (D := D) n hn m i : ℝ) ≤ C * (1 + (m : ℝ)) ^ q := by
+  -- Case-split n and d into successors to eliminate Nat.succ_pred casts
+  set d := Module.finrank ℝ D
+  have hd : 0 < d := Module.finrank_pos
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, (Nat.succ_pred_eq_of_pos hn).symm⟩
+  obtain ⟨d', hd'⟩ : ∃ d', d = d' + 1 := ⟨d - 1, (Nat.succ_pred_eq_of_pos hd).symm⟩
+  -- Get the uniform bound from generic_pbi_bound
+  obtain ⟨C, hC, q, hbound⟩ := generic_pbi_bound n' d'
+  refine ⟨C, hC, q, fun m i => ?_⟩
+  -- productBasisIndices (D := D) (n'+1) hn m i unfolds (after rcases) to
+  -- multiIndexEquiv d' (Nat.succ_pred ▸ blockMultiIndex (n'+1) (d'+1) (Nat.succ_pred ▸ ...) i)
+  -- The Nat.succ_pred casts are trivial when d = d'+1 and n*d = (n'+1)*(d'+1).
+  -- We need: productBasisIndices m i = multiIndexEquiv d' (blockMultiIndex ... α i)
+  -- This is definitional after subst hd'.
+  -- productBasisIndices unfolds to the generic chain when Module.finrank ℝ D = d' + 1.
+  -- The `rw` on Module.finrank fails (dependent motive). Use `conv` + `rw` instead.
+  -- Blocked by: Module.finrank ℝ D appearing in proof terms inside Nat.succ_pred_eq_of_pos.
+  -- The generic bound (generic_pbi_bound) is fully proved above.
   sorry
 
 /-- **Each basis vector of `RapidDecaySeq`, mapped through the product-aware equiv,
