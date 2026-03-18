@@ -788,10 +788,61 @@ theorem schwartz_nuclear_extension (d n : ℕ)
       -- The mathematical content is fully captured by w_re_on_product/w_im_on_product
       -- (agreement on product Hermite functions) + pbi_surj (surjectivity of
       -- productBasisIndices), which are proved above.
-      apply Complex.ext
-      · show w_re F = Phi_re gs
-        sorry
-      · show w_im F = Phi_im gs
+      -- Induction on j: number of free (non-basis) arguments.
+      -- P(j): for all gs with gs i = basis(ks i) for i ≥ j, w_re(∏ gs) = Phi_re(gs)
+      -- P(0): all basis → proved by w_re_on_product
+      -- P(j) → P(j+1): fix all but slot j, get two CLMs agreeing on basis → equal by DM expansion
+      suffices key : ∀ (j : ℕ) (hj : j ≤ n)
+          (gs : Fin n → SchwartzMap D ℝ)
+          (hs : ∀ i : Fin n, j ≤ i.val → ∃ k, gs i = DyninMityaginSpace.basis k),
+          w_re (schwartzProductTensor_schwartz n (by omega : 1 ≤ n) gs).choose =
+            Phi_re gs ∧
+          w_im (schwartzProductTensor_schwartz n (by omega : 1 ≤ n) gs).choose =
+            Phi_im gs by
+        obtain ⟨hre, him⟩ := key n le_rfl gs (fun i hi => absurd hi (by omega))
+        apply Complex.ext
+        · show w_re F = Phi_re gs
+          convert hre using 1
+          apply ContinuousLinearMap.congr_arg
+          ext x; simp [F, (schwartzProductTensor_schwartz n _ gs).choose_spec x]
+        · show w_im F = Phi_im gs
+          convert him using 1
+          apply ContinuousLinearMap.congr_arg
+          ext x; simp [F, (schwartzProductTensor_schwartz n _ gs).choose_spec x]
+      intro j
+      induction j with
+      | zero =>
+        intro hj gs hs
+        -- All gs i are basis vectors
+        have hbasis : ∀ i, ∃ k, gs i = DyninMityaginSpace.basis k := fun i => hs i (Nat.zero_le _)
+        choose ks hks using hbasis
+        constructor <;> {
+          have hF := (schwartzProductTensor_schwartz n (by omega) gs).choose_spec
+          have hG : ∀ x, (schwartzProductTensor_schwartz n _ gs).choose x =
+              ∏ i, DyninMityaginSpace.basis (E := SchwartzMap D ℝ) (ks i) (x i) := by
+            intro x; rw [hF x]; congr 1; ext i; rw [hks i]
+          first
+          | exact w_re_on_product ks _ hG
+          | exact w_im_on_product ks _ hG }
+      | succ j ih =>
+        intro hj gs hs
+        -- ih applies to tuples with basis vectors from index j onward
+        -- We free slot j by using DM expansion
+        -- For any basis ψ_m in slot j, the tuple satisfies P(j):
+        have h_with_basis : ∀ (m : ℕ),
+            let gs' := Function.update gs ⟨j, by omega⟩ (DyninMityaginSpace.basis m)
+            w_re (schwartzProductTensor_schwartz n (by omega) gs').choose = Phi_re gs' ∧
+            w_im (schwartzProductTensor_schwartz n (by omega) gs').choose = Phi_im gs' := by
+          intro m
+          apply ih (by omega)
+          intro i hi
+          by_cases hij : i = ⟨j, by omega⟩
+          · exact ⟨m, by simp [hij]⟩
+          · have : j + 1 ≤ i.val := by omega
+            exact hs i (by omega)
+        -- Both sides of w_re(∏ gs) = Phi_re(gs) are continuous in gs ⟨j, _⟩
+        -- and agree on all basis vectors in that slot (by h_with_basis).
+        -- By DM expansion in slot j, they agree for all gs ⟨j, _⟩.
         sorry
   refine ⟨W, hW_agree, ?_⟩
   -- Uniqueness: if W' also agrees on product tensors, then W' = W.
