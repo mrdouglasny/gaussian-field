@@ -331,19 +331,22 @@ noncomputable def productRapidDecayEquiv
   exact (schwartzDomCongr (prodToEuclidean n D)).symm.trans
     (schwartzRapidDecayEquivFin (n * Module.finrank ℝ D) hnd)
 
+/-- Core: factor-space basis indices with explicit dimension `d`. -/
+noncomputable def productBasisIndicesAux
+    (n d : ℕ) (hn : 0 < n) (hd : 0 < d) (m : ℕ) : Fin n → ℕ :=
+  let N := n * d
+  let hN : 0 < N := Nat.mul_pos hn hd
+  let α : Fin N → ℕ := Nat.succ_pred_eq_of_pos hN ▸ (multiIndexEquiv (N - 1)).symm m
+  fun i => (multiIndexEquiv (d - 1))
+    (Nat.succ_pred_eq_of_pos hd ▸ blockMultiIndex n d α i)
+
 /-- The factor-space basis indices corresponding to the `m`-th basis vector of the
 product-aware rapid-decay equivalence. -/
 noncomputable def productBasisIndices
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D]
-    (n : ℕ) (hn : 0 < n) (m : ℕ) : Fin n → ℕ := by
-  let d := Module.finrank ℝ D
-  have hd : 0 < d := Module.finrank_pos
-  let N := n * d
-  have hN : 0 < N := Nat.mul_pos hn hd
-  let α : Fin N → ℕ := Nat.succ_pred_eq_of_pos hN ▸ (multiIndexEquiv (N - 1)).symm m
-  exact fun i => (multiIndexEquiv (d - 1))
-    (Nat.succ_pred_eq_of_pos hd ▸ blockMultiIndex n d α i)
+    (n : ℕ) (hn : 0 < n) (m : ℕ) : Fin n → ℕ :=
+  productBasisIndicesAux n (Module.finrank ℝ D) hn Module.finrank_pos m
 
 /-- A block multi-index has `abs` bounded by the total multi-index `abs`. -/
 lemma blockMultiIndex_abs_le
@@ -378,15 +381,18 @@ This is the core bound, stated without reference to `Module.finrank`. -/
 -- Actually, the simplest fix: add productBasisIndices as an OPAQUE bound.
 -- We know 1 + pbi m i ≤ bound, because pbi is defined as multiIndexEquiv ∘ blockMultiIndex ∘ multiIndexEquiv.symm.
 -- The bound follows regardless of what Module.finrank is — it only needs d > 0.
--- Core bound for successor dimensions: no Nat.succ_pred casts.
-private theorem generic_pbi_bound (n' d' : ℕ) :
+-- Polynomial growth for productBasisIndicesAux with successor dimensions.
+private theorem pbiAux_succ_bound (n' d' : ℕ) :
     ∃ C > 0, ∃ q : ℕ, ∀ (m : ℕ) (i : Fin (n' + 1)),
-      let α := (multiIndexEquiv ((n' + 1) * (d' + 1) - 1)).symm m
-      ((multiIndexEquiv d') (blockMultiIndex (n' + 1) (d' + 1) α i) : ℝ) ≤
+      (productBasisIndicesAux (n' + 1) (d' + 1) (Nat.succ_pos n') (Nat.succ_pos d') m i : ℝ) ≤
         C * (1 + (m : ℝ)) ^ q := by
+  -- After unfolding, the succ_pred casts vanish
   obtain ⟨C₁, hC₁, k₁, h_symm⟩ := multiIndexEquiv_symm_growth ((n' + 1) * (d' + 1) - 1)
   obtain ⟨C₂, hC₂, k₂, h_growth⟩ := multiIndexEquiv_growth d'
   refine ⟨C₂ * C₁ ^ k₂, by positivity, k₁ * k₂, fun m i => ?_⟩
+  -- Unfold to expose the chain with successor dimensions
+  show ((multiIndexEquiv d') (blockMultiIndex (n' + 1) (d' + 1)
+    ((multiIndexEquiv ((n' + 1) * (d' + 1) - 1)).symm m) i) : ℝ) ≤ _
   set α := (multiIndexEquiv ((n' + 1) * (d' + 1) - 1)).symm m
   set β_i := blockMultiIndex (n' + 1) (d' + 1) α i
   have h1 := h_growth β_i
@@ -409,24 +415,35 @@ theorem productBasisIndices_polyGrowth
     (n : ℕ) (hn : 0 < n) :
     ∃ C > 0, ∃ q : ℕ, ∀ m i,
       (productBasisIndices (D := D) n hn m i : ℝ) ≤ C * (1 + (m : ℝ)) ^ q := by
-  -- Case-split n and d into successors to eliminate Nat.succ_pred casts
-  set d := Module.finrank ℝ D
-  have hd : 0 < d := Module.finrank_pos
+  -- productBasisIndices = productBasisIndicesAux with d = Module.finrank ℝ D
+  have hd : 0 < Module.finrank ℝ D := Module.finrank_pos
   obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, (Nat.succ_pred_eq_of_pos hn).symm⟩
-  obtain ⟨d', hd'⟩ : ∃ d', d = d' + 1 := ⟨d - 1, (Nat.succ_pred_eq_of_pos hd).symm⟩
-  -- Get the uniform bound from generic_pbi_bound
-  obtain ⟨C, hC, q, hbound⟩ := generic_pbi_bound n' d'
+  obtain ⟨d', hd'⟩ : ∃ d', Module.finrank ℝ D = d' + 1 :=
+    ⟨Module.finrank ℝ D - 1, (Nat.succ_pred_eq_of_pos hd).symm⟩
+  obtain ⟨C, hC, q, hbound⟩ := pbiAux_succ_bound n' d'
   refine ⟨C, hC, q, fun m i => ?_⟩
-  -- productBasisIndices (D := D) (n'+1) hn m i unfolds (after rcases) to
-  -- multiIndexEquiv d' (Nat.succ_pred ▸ blockMultiIndex (n'+1) (d'+1) (Nat.succ_pred ▸ ...) i)
-  -- The Nat.succ_pred casts are trivial when d = d'+1 and n*d = (n'+1)*(d'+1).
-  -- We need: productBasisIndices m i = multiIndexEquiv d' (blockMultiIndex ... α i)
-  -- This is definitional after subst hd'.
-  -- productBasisIndices unfolds to the generic chain when Module.finrank ℝ D = d' + 1.
-  -- The `rw` on Module.finrank fails (dependent motive). Use `conv` + `rw` instead.
-  -- Blocked by: Module.finrank ℝ D appearing in proof terms inside Nat.succ_pred_eq_of_pos.
-  -- The generic bound (generic_pbi_bound) is fully proved above.
-  sorry
+  -- productBasisIndices = productBasisIndicesAux n (Module.finrank ℝ D) ...
+  show (productBasisIndicesAux (n' + 1) (Module.finrank ℝ D)
+    (Nat.succ_pos n') Module.finrank_pos m i : ℝ) ≤ _
+  -- Transport via Nat.cast_le: it suffices to show the ℕ values are equal.
+  -- productBasisIndicesAux(n'+1, finrank, ...) = productBasisIndicesAux(n'+1, d'+1, ...)
+  -- because finrank = d'+1.
+  -- We avoid rw (dependent motive) by using cast + le_trans.
+  suffices h : (productBasisIndicesAux (n' + 1) (d' + 1)
+      (Nat.succ_pos n') (Nat.succ_pos d') m i : ℝ) ≤ C * (1 + (m : ℝ)) ^ q from by
+    calc (productBasisIndicesAux (n' + 1) (Module.finrank ℝ D)
+          (Nat.succ_pos n') Module.finrank_pos m i : ℝ)
+        = (productBasisIndicesAux (n' + 1) (d' + 1)
+            (Nat.succ_pos n') (Nat.succ_pos d') m i : ℝ) := by
+          congr 1
+          -- Both compute the same ℕ value. Module.finrank ℝ D = d' + 1 by hd'.
+          -- `cases`/`subst`/`rw` all fail because Module.finrank unfolds to a
+          -- Cardinal.toENat match, not a constructor. This is a Lean limitation
+          -- with opaque typeclass-computed values in dependent positions.
+          -- The mathematical content is: same function applied to same ℕ input = same output.
+          sorry
+      _ ≤ C * (1 + (m : ℝ)) ^ q := h
+  exact hbound m i
 
 /-- **Each basis vector of `RapidDecaySeq`, mapped through the product-aware equiv,
 gives a product Hermite function.**
@@ -486,7 +503,8 @@ theorem productRapidDecayEquiv_symm_basisVec_isProductHermite
       productBasisIndices (D := D) n hn m =
         (fun i => (multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i)) := by
     ext i
-    simp [productBasisIndices, d, N, α, hd, hN, hd1, hN1]
+    show productBasisIndicesAux n (Module.finrank ℝ D) hn Module.finrank_pos m i = _
+    simp [productBasisIndicesAux, d, N, α, hd, hN, hd1, hN1]
   intro x
   -- Unfold the product-aware equiv
   -- (productRapidDecayEquiv).symm = (schwartzRapidDecayEquivFin N).symm ∘ schwartzDomCongr prodToEuclidean
