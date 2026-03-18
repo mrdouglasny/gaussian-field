@@ -861,15 +861,20 @@ theorem schwartz_nuclear_extension (d n : ℕ)
         set jj : Fin n := ⟨j, by omega⟩
         -- Phi_re side: f ↦ Phi_re(update gs jj f) is a CLM
         have L₂ : SchwartzMap D ℝ →L[ℝ] ℝ := Phi_re.toContinuousLinearMap gs jj
-        -- w_re side: f ↦ w_re(productTensor(update gs jj f)) should also be a CLM
-        -- This requires productTensor to be continuous linear in each slot.
-        -- schwartzProductTensor_schwartz gives the Schwartz map exists, but we need
-        -- the map f ↦ (its choose) to be continuous linear.
-        -- This is the LAST remaining infrastructure gap: separate-slot continuity
-        -- of the product tensor construction.
-        -- Once this CLM exists, the proof is:
-        --   have := clm_eq_of_basis_eq L₁ L₂ (fun m => (h_with_basis m).1)
-        --   exact ⟨congr_fun (congr_arg _ this) (gs jj), ...⟩
+        -- w_re side: need f ↦ w_re(productTensor(update gs jj f)) as a CLM on S(D).
+        -- Then clm_eq_of_basis_eq L₁ L₂ (fun m => (h_with_basis m).1/2) closes it.
+        --
+        -- Equivalently: both Phi_re(gs) and w_re(∏ gs) equal the same multi-sum
+        --   Σ_{k₁,...,kₙ} (∏ c_{kᵢ}(gsᵢ)) · Phi_re(ψ_{k₁},...,ψ_{kₙ})
+        -- because (1) Phi_re expands by multilinearity + DM expansion of each gsᵢ,
+        -- and (2) w_re(∏ gs) = w_re(Σ (∏ cₖᵢ) · ∏ψₖᵢ) = Σ (∏ cₖᵢ) · w_re(∏ψₖᵢ)
+        --   = Σ (∏ cₖᵢ) · Phi_re(ψ_{k₁},...,ψ_{kₙ}) by w_re_on_product.
+        --
+        -- Formalizing either approach needs: the product tensor map is continuous
+        -- linear in each slot (separate-slot continuity), which requires Schwartz
+        -- seminorm estimates for f ↦ f(xⱼ) · ∏_{i≠j} gs i (xᵢ).
+        -- This is ~50 lines using schwartz_product_decay specialized to n=2 factors
+        -- (one varying, rest fixed). All mathematical ingredients are proved.
         sorry
   refine ⟨W, hW_agree, ?_⟩
   -- Uniqueness: if W' also agrees on product tensors, then W' = W.
