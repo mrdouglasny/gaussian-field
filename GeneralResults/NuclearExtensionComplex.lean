@@ -561,13 +561,51 @@ private def slotInsertionCLM
     -- Together: p_{k,m}(F_f) ≤ Σ_{a+b=m} C(m,a)·p_{k,b}(G)·p_{0,a}(f),
     -- giving |w(F_f)| ≤ C_w · C_prod · (s.sup p_D)(f) for some finite s and constant.
     (by
-      -- The bound follows from w's continuity bound and the product tensor estimate.
-      -- For the complete proof, one needs to combine:
-      --   1. w's seminorm bound: |w(F)| ≤ C_w * (s_w.sup p_prod) F
-      --   2. Product tensor bound: (s_w.sup p_prod)(F_f) ≤ C' * (s'.sup p_D) f
-      -- Step 2 requires iterating over the Leibniz rule terms, which is ~80 lines.
-      -- TODO: prove this bound using schwartz_product_decay infrastructure
-      exact sorry)
+      -- Step 1: Extract w's seminorm bound from its continuity.
+      -- The seminorm q(G) := ‖w G‖ on S(∏D, ℝ) is continuous, so by
+      -- `Seminorm.bound_of_continuous` there exist s_w, C_w with q ≤ C_w • s_w.sup p_prod.
+      haveI : Inhabited (Fin n) := ⟨⟨0, by omega⟩⟩
+      haveI : Nontrivial (Fin n → D) := Pi.nontrivial
+      set q := (normSeminorm ℝ ℝ).comp w.toLinearMap with hq_def
+      have hq_cont : Continuous (q : SchwartzMap (Fin n → D) ℝ → ℝ) := by
+        have : (q : SchwartzMap (Fin n → D) ℝ → ℝ) = fun f => ‖w f‖ := by
+          ext f; simp [q, Seminorm.comp_apply, coe_normSeminorm]
+        rw [this]; exact continuous_norm.comp w.continuous
+      obtain ⟨s_w, C_w, _, hq_bound⟩ :=
+        Seminorm.bound_of_continuous (schwartz_withSeminorms ℝ (Fin n → D) ℝ) q hq_cont
+      -- C_w : ℝ≥0, hq_bound : q ≤ C_w • s_w.sup (schwartzSeminormFamily ℝ (Fin n → D) ℝ)
+      have hw_bound : ∀ G : SchwartzMap (Fin n → D) ℝ,
+          ‖w G‖ ≤ (C_w : ℝ) * (s_w.sup (schwartzSeminormFamily ℝ (Fin n → D) ℝ)) G := by
+        intro G
+        have h := hq_bound G
+        simp only [Seminorm.smul_apply, NNReal.smul_def, smul_eq_mul, q,
+          Seminorm.comp_apply, coe_normSeminorm] at h
+        exact h
+      -- Step 2: Product tensor slot-insertion combined seminorm estimate.
+      -- The sup over s_w of Schwartz seminorms of the product tensor (with f in slot jj)
+      -- is bounded by Schwartz seminorms of f. This combines:
+      --   (a) For each (k,m), p_{k,m}(F_f) ≤ C_{k,m} * (s'_{k,m}.sup p_D) f,
+      --       using the Leibniz rule, chain rule for f ∘ proj_jj, and Schwartz decay
+      --       of the fixed factors ∏_{i≠jj} gs i (x i).
+      --   (b) Taking the max over (k,m) ∈ s_w and collecting all index sets.
+      have h_sup_bound : ∃ (s' : Finset (ℕ × ℕ)) (C' : ℝ), 0 ≤ C' ∧
+          ∀ f : SchwartzMap D ℝ,
+            (s_w.sup (schwartzSeminormFamily ℝ (Fin n → D) ℝ))
+              (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose ≤
+              C' * (s'.sup (schwartzSeminormFamily ℝ D ℝ)) f := by
+        sorry
+      -- Final combination: ‖w(F_f)‖ ≤ C_w * sup(F_f) ≤ C_w * C' * sup(f)
+      obtain ⟨s', C', hC', h_sup⟩ := h_sup_bound
+      exact ⟨s', (C_w : ℝ) * C', mul_nonneg C_w.coe_nonneg hC', fun f => by
+        calc ‖w (schwartzProductTensor_schwartz n hn
+                (Function.update gs jj f)).choose‖
+            ≤ (C_w : ℝ) * (s_w.sup (schwartzSeminormFamily ℝ (Fin n → D) ℝ))
+                (schwartzProductTensor_schwartz n hn
+                  (Function.update gs jj f)).choose := hw_bound _
+          _ ≤ (C_w : ℝ) * (C' * (s'.sup (schwartzSeminormFamily ℝ D ℝ)) f) :=
+              mul_le_mul_of_nonneg_left (h_sup f) C_w.coe_nonneg
+          _ = (C_w : ℝ) * C' * (s'.sup (schwartzSeminormFamily ℝ D ℝ)) f :=
+              by ring⟩)
 
 @[simp] private lemma slotInsertionCLM_apply
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
