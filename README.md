@@ -369,8 +369,7 @@ This library provides the concrete functional analysis infrastructure for:
 
 - **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
 
-- **OSforGFF imports** — files under `OSforGFF*` directories in this workspace are imported snapshots from the separate
-  **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** project.
+- **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** — OS axiom verification for the Gaussian free field. Imports gaussian-field's `main` branch for `DyninMityaginSpace (SchwartzMap D ℝ)` (Schwartz space nuclearity via Hermite expansion) and the Gaussian measure construction.
 
 ## Proof status
 
