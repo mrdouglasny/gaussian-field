@@ -30,17 +30,7 @@ equals the 1D characteristic function of ω(∑ tⱼ fⱼ), hence agrees for bot
 By Dynkin's pi-lambda theorem, measures agreeing on all finite-dimensional cylinder
 sets agree on the cylindrical σ-algebra.
 
-## Sorry status
-
-One sorry remains:
-- `pushforward_eq_of_eval_eq` (line ~203): Equal 1D marginals for all `f : E` imply
-  equal pushforward measures on `ℝ^ℕ` via `configBasisEval`. The mathematical content
-  is well-known: matching 1D marginals for all linear combinations of coordinates
-  determines finite-dimensional joint distributions (Cramer-Wold), which determine
-  measures on the product σ-algebra (Kolmogorov extension uniqueness on Polish spaces).
-  Formalization requires a pi-lambda argument on `ℕ → ℝ` using cylinder sets.
-
-## Proved results
+## Proved results (all sorry-free)
 
 - `mgf_eq_of_covariance`: Same covariance implies same MGF for all test functions.
 - `mgf_at_scaled`: The Gaussian MGF identity applied to `t • f` gives
@@ -49,13 +39,18 @@ One sorry remains:
   analytic continuation from real to complex MGF (via Mathlib's
   `eqOn_complexMGF_of_mgf` + `integrableExpSet_id_gaussianReal`) and
   `ext_of_complexMGF_eq`.
-- `gaussian_measure_unique_of_covariance`: The main theorem, modulo
-  `pushforward_eq_of_eval_eq`. The pullback from `ℝ^ℕ` uses
-  `instMeasurableSpaceConfiguration_eq_comap`.
+- `pushforward_eq_of_eval_eq`: Equal 1D marginals for all `f : E` imply equal
+  pushforward measures on `ℝ^ℕ` via `configBasisEval`. Uses Cramér-Wold
+  (`ext_of_charFunDual`) for finite-dimensional marginals and projective limit
+  uniqueness (`IsProjectiveLimit.unique`) for the product σ-algebra.
+- `gaussian_measure_unique_of_covariance`: The main theorem. The pullback from
+  `ℝ^ℕ` uses `instMeasurableSpaceConfiguration_eq_comap`.
 -/
 
 import GaussianField.ConfigurationEmbedding
 import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.MeasureTheory.Constructions.Projective
+import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 
 noncomputable section
 
@@ -212,7 +207,76 @@ theorem pushforward_eq_of_eval_eq
       (configBasisEval (E := E)) μ₁ =
     @Measure.map _ _ instMeasurableSpaceConfiguration _
       (configBasisEval (E := E)) μ₂ := by
-  sorry
+  -- Use projective limit uniqueness for measures on ℕ → ℝ
+  set ν₁ := @Measure.map _ _ instMeasurableSpaceConfiguration _
+    (configBasisEval (E := E)) μ₁
+  set ν₂ := @Measure.map _ _ instMeasurableSpaceConfiguration _
+    (configBasisEval (E := E)) μ₂
+  haveI : IsProbabilityMeasure ν₁ :=
+    Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable
+  haveI : IsProbabilityMeasure ν₂ :=
+    Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable
+  -- Apply projective limit uniqueness: both are projective limits of ν₁'s marginals
+  refine IsProjectiveLimit.unique (P := fun J => ν₁.map (Finset.restrict J))
+    (fun J => rfl) (fun J => ?_)
+  -- Need: ν₂.map (Finset.restrict J) = ν₁.map (Finset.restrict J)
+  simp only [ν₁, ν₂]
+  rw [Measure.map_map (Finset.measurable_restrict J) configBasisEval_measurable,
+      Measure.map_map (Finset.measurable_restrict J) configBasisEval_measurable]
+  -- Apply Cramér-Wold: equal characteristic functions ⟹ equal measures
+  set F : Configuration E → ((j : ↥J) → ℝ) :=
+    Finset.restrict J ∘ configBasisEval (E := E)
+  have hF : @Measurable _ _ instMeasurableSpaceConfiguration MeasurableSpace.pi F :=
+    (Finset.measurable_restrict J).comp configBasisEval_measurable
+  apply Measure.ext_of_charFunDual
+  funext L
+  simp only [charFunDual_apply]
+  -- Change of variables: ∫ v, exp(↑(L v) * I) d(μᵢ.map F) = ∫ ω, exp(↑(L(F ω)) * I) dμᵢ
+  have hg : ∀ (ν : Measure ((j : ↥J) → ℝ)),
+      AEStronglyMeasurable (fun v => Complex.exp (↑(L v) * Complex.I)) ν :=
+    fun _ => (Complex.continuous_exp.comp
+      ((Complex.continuous_ofReal.comp L.continuous).mul continuous_const)).aestronglyMeasurable
+  rw [integral_map hF.aemeasurable (hg _), integral_map hF.aemeasurable (hg _)]
+  -- Key linearity: L(F ω) = ω(f_L) where f_L = ∑ L(eⱼ) • basis j
+  set f_L : E := ∑ j : ↥J,
+    L (Pi.single j 1) • DyninMityaginSpace.basis (↑j : ℕ)
+  suffices hkey : ∀ ω : Configuration E, L (F ω) = ω f_L by
+    simp_rw [hkey]
+    -- From h_eval f_L: the 1D marginals agree, so integrals agree
+    have h_meas : @Measurable _ _ instMeasurableSpaceConfiguration _
+        (fun ω : Configuration E => ω f_L) := configuration_eval_measurable f_L
+    have hg' : ∀ (ν : Measure ℝ),
+        AEStronglyMeasurable (fun x : ℝ => Complex.exp (↑x * Complex.I)) ν :=
+      fun _ => (Complex.continuous_exp.comp
+        (Complex.continuous_ofReal.mul continuous_const)).aestronglyMeasurable
+    rw [show ∫ ω, Complex.exp (↑(ω f_L) * Complex.I) ∂μ₂ =
+        ∫ x, Complex.exp (↑x * Complex.I) ∂(μ₂.map (fun ω : Configuration E => ω f_L)) from
+        (integral_map h_meas.aemeasurable (hg' _)).symm,
+      show ∫ ω, Complex.exp (↑(ω f_L) * Complex.I) ∂μ₁ =
+        ∫ x, Complex.exp (↑x * Complex.I) ∂(μ₁.map (fun ω : Configuration E => ω f_L)) from
+        (integral_map h_meas.aemeasurable (hg' _)).symm,
+      (h_eval f_L).symm]
+  -- Prove the key linearity: L(F ω) = ω(f_L)
+  intro ω
+  -- L v = ∑ j, v j * L(Pi.single j 1) for any v, by decomposition
+  have hL_decomp : ∀ v : (j : ↥J) → ℝ,
+      L v = ∑ j : ↥J, v j * L (Pi.single j 1) := by
+    intro v
+    have hv : v = ∑ j : ↥J, v j • Pi.single (M := fun _ : ↥J => ℝ) j 1 := by
+      ext k
+      simp only [Finset.sum_apply, Pi.smul_apply, Pi.single_apply, smul_eq_mul,
+                  mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
+    conv_lhs => rw [hv]
+    rw [map_sum]; congr 1; ext j; rw [map_smul, smul_eq_mul]
+  -- Apply hL_decomp to F ω
+  change L (F ω) = ω f_L
+  rw [show F ω = (fun j : ↥J => ω (DyninMityaginSpace.basis ↑j)) from by
+    funext j; rfl]
+  rw [hL_decomp]
+  -- RHS: ω(f_L) = ∑ j, L(eⱼ) * ω(basis j) by linearity of ω
+  simp only [f_L, map_sum ω, map_smul ω, smul_eq_mul]
+  -- Both sides: ∑ ω(basis j) * L(eⱼ) = ∑ L(eⱼ) * ω(basis j)
+  congr 1; ext j; ring
 
 /-! ## Main theorem -/
 

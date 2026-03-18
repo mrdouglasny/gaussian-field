@@ -98,7 +98,9 @@ theorem asymMassOperator_eq_symmetric (a mass : ℝ) :
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply,
     smul_eq_mul]
   have h := asymFiniteLaplacian_eq_symmetric N a f x
-  -- The CLM values agree pointwise
-  sorry -- needs connecting CLM.apply to Fun
+  -- The CLM values agree pointwise; the CLMs are defined from their Fun functions
+  show -(asymFiniteLaplacianFun N a a f x) + mass ^ 2 * f x =
+       -(finiteLaplacianFun 2 N a f x) + mass ^ 2 * f x
+  rw [h]
 
 end GaussianField
