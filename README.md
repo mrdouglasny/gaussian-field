@@ -408,6 +408,39 @@ Former axioms have been proved or moved to `future/` as documentation:
 - [Tensor products](docs/tensor-products.md) — concrete construction of `NuclearTensorProduct` via `RapidDecaySeq` and Cantor pairing, `pure`/`lift` API, reindexing, and Schwartz tensor product isomorphisms
 - [Abstract tensor product plan](docs/abstract-tensor-product-plan.md) — roadmap for building completed projective tensor products on Mathlib's `TensorProduct`, proving isomorphism with `RapidDecaySeq`, and the nuclear coincidence theorem
 
+### 4. Schwartz Nuclear Extension Theorem (`extension` branch)
+
+Proves the **Schwartz kernel theorem**: every continuous ℂ-multilinear functional
+on $\mathcal{S}(\mathbb{R}^{d+1}, \mathbb{C})^n$ extends uniquely to a continuous
+ℂ-linear functional on $\mathcal{S}(\mathbb{R}^{n(d+1)}, \mathbb{C})$, agreeing
+on product tensors. This replaces the `schwartz_nuclear_extension` axiom in
+[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction).
+
+**0 sorrys. 0 axioms.** Fully proved in ~2,500 lines across 4 files.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [GeneralResults/SchwartzProducts.lean](GeneralResults/SchwartzProducts.lean) | 632 | Product of Schwartz functions is Schwartz (`schwartzProductTensor_schwartz`), product Hermite density (`productHermite_schwartz_dense`), product-aware CLE (`productRapidDecayEquiv`) |
+| [GeneralResults/NuclearExtensionComplex.lean](GeneralResults/NuclearExtensionComplex.lean) | 1,357 | Complex product tensor, complexification, `schwartz_nuclear_extension` theorem |
+| [SchwartzNuclear/NuclearExtension.lean](SchwartzNuclear/NuclearExtension.lean) | 445 | DyninMityaginSpace extension theorem (`exists_unique_clm_of_polyBounded`), multilinear basis bounds |
+| [SchwartzNuclear/TsumBound.lean](SchwartzNuclear/TsumBound.lean) | 41 | Tsum bound helper |
+
+**Key results:**
+
+| Theorem | Description |
+|---------|-------------|
+| `schwartz_nuclear_extension` | $\exists!\ W : \mathcal{S}(\mathbb{R}^{n(d+1)}, \mathbb{C}) \to_{\mathbb{C}} \mathbb{C}$, agreeing with $\Phi$ on product tensors |
+| `exists_unique_clm_of_polyBounded` | DyninMityaginSpace: $\exists!$ CLM from polynomially-bounded basis values |
+| `multilinear_on_basis_bound` | $|\Phi(\psi_{k_1},\ldots,\psi_{k_n})| \le C \cdot \prod(1+k_i)^s$ from continuity |
+| `schwartzProductTensor_schwartz` | Product $\prod f_i(x_i)$ of Schwartz functions is Schwartz |
+| `productHermite_schwartz_dense` | Product Hermite functions span a dense subspace of $\mathcal{S}(\prod D)$ |
+| `productBasisIndices_polyGrowth` | Per-factor basis indices grow polynomially in the flat index |
+
+**Proof architecture:**
+
+- **Uniqueness**: Product Hermite density (`productHermite_schwartz_dense`) via product-aware CLE, then complexification $W(f) = w(\text{Re}\,f) + i \cdot w(\text{Im}\,f)$
+- **Existence**: Restrict $\Phi$ to real inputs → extract Re/Im parts → `multilinear_on_basis_bound` gives polynomial growth → `exists_unique_clm_of_polyBounded` constructs $w_{\text{re}}, w_{\text{im}}$ → complexify → prove agreement by induction on free arguments using `DyninMityaginSpace.expansion` in each slot
+
 ## Future work
 
 - **New instances**: $C^\infty(S^1)$ is fully proved; remaining targets: $C^\infty(M)$ for compact $M$, half-spaces (see [concrete instances](docs/concrete-instances.md))
