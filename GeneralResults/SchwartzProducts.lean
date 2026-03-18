@@ -436,12 +436,12 @@ theorem productBasisIndices_polyGrowth
         = (productBasisIndicesAux (n' + 1) (d' + 1)
             (Nat.succ_pos n') (Nat.succ_pos d') m i : ℝ) := by
           congr 1
-          -- Both compute the same ℕ value. Module.finrank ℝ D = d' + 1 by hd'.
-          -- `cases`/`subst`/`rw` all fail because Module.finrank unfolds to a
-          -- Cardinal.toENat match, not a constructor. This is a Lean limitation
-          -- with opaque typeclass-computed values in dependent positions.
-          -- The mathematical content is: same function applied to same ℕ input = same output.
-          sorry
+          -- Trick: universally quantify d to make it a free variable, then subst
+          suffices ∀ (d : ℕ) (hd : 0 < d) (hd' : d = d' + 1),
+              productBasisIndicesAux (n' + 1) d (Nat.succ_pos n') hd m i =
+              productBasisIndicesAux (n' + 1) (d' + 1) (Nat.succ_pos n') (Nat.succ_pos d') m i from
+            this _ _ hd'
+          intro d hd hd'; subst hd'; rfl
       _ ≤ C * (1 + (m : ℝ)) ^ q := h
   exact hbound m i
 
