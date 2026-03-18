@@ -460,6 +460,125 @@ private theorem multilinear_fun_eq_of_real_eq
         | succ i => rfl
       rw [hfs, hab, hAcons_add, hBcons_add, hAcons_smul, hBcons_smul, hRe, hIm]
 
+/-- Evaluation of a Schwartz map at a point, as a ℂ-linear CLM.
+`schwartzPointEvalCLM E x₀` maps `f` to `f x₀`. -/
+private def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (x₀ : E) : SchwartzMap E ℂ →L[ℂ] ℂ := by
+  set L : SchwartzMap E ℂ →ₛₗ[RingHom.id ℂ] ℂ :=
+    { toFun := fun f => f x₀, map_add' := fun f g => by simp,
+      map_smul' := fun z f => by simp }
+  have hbdd : Seminorm.IsBounded (schwartzSeminormFamily ℂ E ℂ)
+      (fun _ : Fin 1 => normSeminorm ℂ ℂ) L := by
+    intro i
+    refine ⟨{(0, 0)}, 1, fun f => ?_⟩
+    simp only [Finset.sup_singleton, one_smul, Seminorm.comp_apply, coe_normSeminorm, L]
+    have h := SchwartzMap.le_seminorm ℂ 0 0 f x₀; simp at h
+    calc ‖f x₀‖ ≤ (SchwartzMap.seminorm ℂ 0 0) f := h
+      _ = (schwartzSeminormFamily ℂ E ℂ (0, 0)) f := by
+          unfold schwartzSeminormFamily SchwartzMap.seminorm; simp
+  exact ⟨L, (schwartz_withSeminorms ℂ E ℂ).continuous_of_isBounded
+    (norm_withSeminorms ℂ ℂ) L hbdd⟩
+
+@[simp] private lemma schwartzPointEvalCLM_apply (E : Type*)
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (x₀ : E) (f : SchwartzMap E ℂ) :
+    schwartzPointEvalCLM E x₀ f = f x₀ := rfl
+
+/-- Product tensor is additive in one slot: updating slot `jj` with `f + g`
+gives the sum of the individual product tensors. -/
+private lemma productTensor_update_add
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    {n : ℕ} (hn : 1 ≤ n)
+    (gs : Fin n → SchwartzMap D ℝ) (jj : Fin n)
+    (f g : SchwartzMap D ℝ) :
+    (schwartzProductTensor_schwartz n hn (Function.update gs jj (f + g))).choose =
+    (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose +
+    (schwartzProductTensor_schwartz n hn (Function.update gs jj g)).choose := by
+  ext x
+  rw [(schwartzProductTensor_schwartz n hn (Function.update gs jj (f + g))).choose_spec,
+      SchwartzMap.add_apply,
+      (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose_spec,
+      (schwartzProductTensor_schwartz n hn (Function.update gs jj g)).choose_spec]
+  conv_lhs => rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
+  conv_rhs =>
+    rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj),
+        ← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
+  simp only [Function.update_self, SchwartzMap.add_apply]
+  have htail : ∀ (h : SchwartzMap D ℝ), ∏ i ∈ Finset.univ.erase jj,
+      Function.update gs jj h i (x i) = ∏ i ∈ Finset.univ.erase jj, gs i (x i) := by
+    intro h; apply Finset.prod_congr rfl; intro i hi
+    rw [Function.update_of_ne (Finset.ne_of_mem_erase hi)]
+  rw [htail (f + g), htail f, htail g]; ring
+
+/-- Product tensor is homogeneous in one slot: updating slot `jj` with `a • f`
+gives `a` times the product tensor. -/
+private lemma productTensor_update_smul
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    {n : ℕ} (hn : 1 ≤ n)
+    (gs : Fin n → SchwartzMap D ℝ) (jj : Fin n)
+    (a : ℝ) (f : SchwartzMap D ℝ) :
+    (schwartzProductTensor_schwartz n hn (Function.update gs jj (a • f))).choose =
+    a • (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose := by
+  ext x
+  rw [(schwartzProductTensor_schwartz n hn (Function.update gs jj (a • f))).choose_spec,
+      SchwartzMap.smul_apply, smul_eq_mul,
+      (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose_spec]
+  conv_lhs => rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
+  conv_rhs => rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
+  simp only [Function.update_self, SchwartzMap.smul_apply, smul_eq_mul]
+  have htail : ∀ (h : SchwartzMap D ℝ), ∏ i ∈ Finset.univ.erase jj,
+      Function.update gs jj h i (x i) = ∏ i ∈ Finset.univ.erase jj, gs i (x i) := by
+    intro h; apply Finset.prod_congr rfl; intro i hi
+    rw [Function.update_of_ne (Finset.ne_of_mem_erase hi)]
+  rw [htail (a • f), htail f]; ring
+
+/-- Slot insertion as a CLM: `f ↦ w(productTensor(update gs jj f))`.
+The map `f ↦ productTensor(update gs jj f)` from `S(D,ℝ)` to `S(∏D,ℝ)` is linear
+(proved by `productTensor_update_add/smul`) and continuous (from Schwartz seminorm
+estimates: Leibniz rule + chain rule for `f ∘ proj_jj` + decay of the fixed factors).
+Composing with the CLM `w` gives a CLM `S(D,ℝ) →L[ℝ] ℝ`. -/
+private def slotInsertionCLM
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    {n : ℕ} (hn : 1 ≤ n)
+    (gs : Fin n → SchwartzMap D ℝ) (jj : Fin n)
+    (w : SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ) :
+    SchwartzMap D ℝ →L[ℝ] ℝ :=
+  SchwartzMap.mkCLMtoNormedSpace
+    (fun f => w (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose)
+    (fun f g => by
+      show w _ = w _ + w _
+      rw [productTensor_update_add hn gs jj f g, map_add])
+    (fun a f => by
+      show w _ = a • w _
+      rw [productTensor_update_smul hn gs jj a f, map_smul])
+    -- Continuity bound: each product-space Schwartz seminorm of the product tensor
+    -- (with f in slot jj, fixed gs elsewhere) is bounded by Schwartz seminorms of f.
+    -- This follows from the Leibniz rule for ‖D^m(f∘proj_jj · G)(x)‖, the chain rule
+    -- bound ‖D^a(f∘proj_jj)(x)‖ ≤ ‖D^a f(x jj)‖, the Schwartz decay of the fixed
+    -- factor G(x) = ∏_{i≠jj} gs i (x i), and the projection norm bound ‖x jj‖ ≤ ‖x‖.
+    -- Together: p_{k,m}(F_f) ≤ Σ_{a+b=m} C(m,a)·p_{k,b}(G)·p_{0,a}(f),
+    -- giving |w(F_f)| ≤ C_w · C_prod · (s.sup p_D)(f) for some finite s and constant.
+    (by
+      -- The bound follows from w's continuity bound and the product tensor estimate.
+      -- For the complete proof, one needs to combine:
+      --   1. w's seminorm bound: |w(F)| ≤ C_w * (s_w.sup p_prod) F
+      --   2. Product tensor bound: (s_w.sup p_prod)(F_f) ≤ C' * (s'.sup p_D) f
+      -- Step 2 requires iterating over the Leibniz rule terms, which is ~80 lines.
+      -- TODO: prove this bound using schwartz_product_decay infrastructure
+      exact sorry)
+
+@[simp] private lemma slotInsertionCLM_apply
+    {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+    [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
+    {n : ℕ} (hn : 1 ≤ n)
+    (gs : Fin n → SchwartzMap D ℝ) (jj : Fin n)
+    (w : SchwartzMap (Fin n → D) ℝ →L[ℝ] ℝ) (f : SchwartzMap D ℝ) :
+    slotInsertionCLM hn gs jj w f =
+      w (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose := by
+  simp [slotInsertionCLM, SchwartzMap.mkCLMtoNormedSpace]
+
 /-! ## The nuclear extension theorem -/
 
 /-- **Schwartz nuclear extension theorem.**
@@ -527,8 +646,13 @@ theorem schwartz_nuclear_extension (d n : ℕ)
     -- Handle n = 0 separately
     rcases Nat.eq_zero_or_pos n with rfl | hn
     · -- n = 0: trivial case (unique 0-ary multilinear = constant map)
-      -- This case is straightforward but requires API adjustments; sorry for now
-      exact ⟨sorry, sorry⟩
+      -- W = Phi(Fin.elim0) • eval_pt, where eval_pt evaluates at the unique point.
+      refine ⟨Phi Fin.elim0 • schwartzPointEvalCLM (Fin 0 → D) Fin.elim0, fun fs => ?_⟩
+      -- fs = Fin.elim0 since Fin 0 → X is a subsingleton
+      have hfs : fs = Fin.elim0 := Subsingleton.elim fs Fin.elim0
+      subst hfs
+      simp only [ContinuousLinearMap.smul_apply, smul_eq_mul, schwartzPointEvalCLM_apply,
+        complexProductTensor_apply, Finset.univ_eq_empty, Finset.prod_empty, mul_one]
     · -- n ≥ 1: the main case
       haveI : Inhabited (Fin n) := ⟨⟨0, hn⟩⟩
       haveI : Nontrivial (Fin n → D) := Pi.nontrivial
@@ -897,16 +1021,14 @@ theorem schwartz_nuclear_extension (d n : ℕ)
         --   gs' ↦ productTensor gs' (continuous in each slot — THIS IS WHAT WE NEED)
         --   F ↦ w_re F (CLM)
         --
-        -- For now, sorry this slot continuity and use it to close the proof.
-        -- The slot continuity is provable from schwartz_product_decay.
-        have slot_CLM_re : ∃ L₁ : SchwartzMap D ℝ →L[ℝ] ℝ,
-            ∀ f, L₁ f = w_re (schwartzProductTensor_schwartz n (by omega)
-              (Function.update gs jj f)).choose := sorry
-        have slot_CLM_im : ∃ L₁ : SchwartzMap D ℝ →L[ℝ] ℝ,
-            ∀ f, L₁ f = w_im (schwartzProductTensor_schwartz n (by omega)
-              (Function.update gs jj f)).choose := sorry
-        obtain ⟨L₁_re, hL₁_re⟩ := slot_CLM_re
-        obtain ⟨L₁_im, hL₁_im⟩ := slot_CLM_im
+        -- Slot insertion CLMs: f ↦ w_re/im(productTensor(update gs jj f))
+        -- Linearity is proved; continuity uses a sorry'd Schwartz seminorm bound.
+        set L₁_re := slotInsertionCLM (by omega) gs jj w_re
+        set L₁_im := slotInsertionCLM (by omega) gs jj w_im
+        have hL₁_re : ∀ f, L₁_re f = w_re (schwartzProductTensor_schwartz n (by omega)
+            (Function.update gs jj f)).choose := fun f => slotInsertionCLM_apply _ _ _ _ _
+        have hL₁_im : ∀ f, L₁_im f = w_im (schwartzProductTensor_schwartz n (by omega)
+            (Function.update gs jj f)).choose := fun f => slotInsertionCLM_apply _ _ _ _ _
         -- L₁_re and L_re agree on all basis vectors
         have h_agree_re : ∀ m, L₁_re (DyninMityaginSpace.basis m) = L_re (DyninMityaginSpace.basis m) := by
           intro m; rw [hL₁_re]; exact (h_with_basis m).1
@@ -921,18 +1043,22 @@ theorem schwartz_nuclear_extension (d n : ℕ)
           have h1 : w_re (schwartzProductTensor_schwartz n (by omega) gs).choose =
               L₁_re (gs jj) := by
             rw [hL₁_re]; congr 1; ext x
-            simp [(schwartzProductTensor_schwartz n _ gs).choose_spec,
-                  (schwartzProductTensor_schwartz n _ (Function.update gs jj (gs jj))).choose_spec,
-                  Function.update_eq_self]
+            rw [(schwartzProductTensor_schwartz n (by omega) gs).choose_spec,
+                (schwartzProductTensor_schwartz n (by omega) (Function.update gs jj (gs jj))).choose_spec]
+            simp [Function.update_eq_self]
           rw [h1, show L₁_re = L_re from hL_eq_re]
+          show Phi_re.toContinuousLinearMap gs jj (gs jj) = Phi_re gs
+          rw [ContinuousMultilinearMap.toContinuousLinearMap_apply, Function.update_eq_self]
         · -- w_im case
           have h1 : w_im (schwartzProductTensor_schwartz n (by omega) gs).choose =
               L₁_im (gs jj) := by
             rw [hL₁_im]; congr 1; ext x
-            simp [(schwartzProductTensor_schwartz n _ gs).choose_spec,
-                  (schwartzProductTensor_schwartz n _ (Function.update gs jj (gs jj))).choose_spec,
-                  Function.update_eq_self]
+            rw [(schwartzProductTensor_schwartz n (by omega) gs).choose_spec,
+                (schwartzProductTensor_schwartz n (by omega) (Function.update gs jj (gs jj))).choose_spec]
+            simp [Function.update_eq_self]
           rw [h1, show L₁_im = L_im from hL_eq_im]
+          show Phi_im.toContinuousLinearMap gs jj (gs jj) = Phi_im gs
+          rw [ContinuousMultilinearMap.toContinuousLinearMap_apply, Function.update_eq_self]
   refine ⟨W, hW_agree, ?_⟩
   -- Uniqueness: if W' also agrees on product tensors, then W' = W.
   intro W' hW'
