@@ -596,10 +596,24 @@ theorem schwartz_nuclear_extension (d n : ℕ)
                 (w_im (Re_map f) + w_re (Im_map f)) + (w_im (Re_map g) + w_re (Im_map g))
               simp [map_add]; ring
           map_smul' := fun z f => by
-            -- ℂ-homogeneity: W(z•f) = z * W(f)
-            -- Uses Re(z•f) = z.re * Re(f) - z.im * Im(f) and
-            -- Im(z•f) = z.im * Re(f) + z.re * Im(f), then algebra.
-            sorry
+            -- Re(z•f) = z.re • Re(f) - z.im • Im(f)
+            -- Im(z•f) = z.im • Re(f) + z.re • Im(f)
+            have hRe : Re_map (z • f) = z.re • Re_map f - z.im • Im_map f := by
+              ext x; simp [Re_map, Im_map, SchwartzMap.postcompCLM, Complex.smul_re]
+            have hIm : Im_map (z • f) = z.im • Re_map f + z.re • Im_map f := by
+              ext x; simp [Re_map, Im_map, SchwartzMap.postcompCLM, Complex.smul_im]
+            simp only [RingHom.id_apply]
+            apply Complex.ext
+            · show w_re (Re_map (z • f)) - w_im (Im_map (z • f)) =
+                (z * ⟨w_re (Re_map f) - w_im (Im_map f),
+                      w_im (Re_map f) + w_re (Im_map f)⟩).re
+              rw [hRe, hIm]
+              simp [map_sub, map_add, map_smul, Complex.mul_re, smul_eq_mul]; ring
+            · show w_im (Re_map (z • f)) + w_re (Im_map (z • f)) =
+                (z * ⟨w_re (Re_map f) - w_im (Im_map f),
+                      w_im (Re_map f) + w_re (Im_map f)⟩).im
+              rw [hRe, hIm]
+              simp [map_sub, map_add, map_smul, Complex.mul_im, smul_eq_mul]; ring
           cont := by
             have h_eq : (fun f : SchwartzMap (Fin n → D) ℂ =>
                 (⟨w_re (Re_map f) - w_im (Im_map f),
