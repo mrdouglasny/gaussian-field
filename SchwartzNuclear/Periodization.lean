@@ -64,10 +64,35 @@ and `L > 2T`, the periodization agrees with `h` on `[0, L/2]`.
 
 This is because only the `k = 0` term is nonzero on `[0, L/2]`:
 for `t ∈ [0, L/2]` and `k ≠ 0`, `|t + kL| ≥ L/2 > T`, so `h(t + kL) = 0`. -/
-axiom periodizeCLM_eq_on_large_period (h : SchwartzMap ℝ ℝ) (T : ℝ) (hT : 0 < T)
+theorem periodizeCLM_eq_on_large_period (h : SchwartzMap ℝ ℝ) (T : ℝ) (hT : 0 < T)
     (hsupp : ∀ t, T < |t| → h t = 0)
     (hL_large : L > 2 * T) :
-    ∀ t ∈ Set.Icc 0 (L / 2), (periodizeCLM L h).toFun t = h t
+    ∀ t ∈ Set.Icc 0 (L / 2), (periodizeCLM L h).toFun t = h t := by
+  intro t ht
+  rw [periodizeCLM_apply]
+  have hL_pos := hL.out
+  rw [tsum_eq_single (0 : ℤ)]
+  · simp
+  · intro k hk
+    apply hsupp
+    -- Show T < |t + k * L| for k ≠ 0
+    rcases Int.lt_or_lt_of_ne hk with hk_neg | hk_pos
+    · -- k ≤ -1: t + kL ≤ L/2 + (-1)·L = -L/2 < -T
+      have : k ≤ (-1 : ℤ) := Int.le_sub_one_of_lt hk_neg
+      have hkL : ↑k * L ≤ -L := by
+        have : (k : ℝ) ≤ (-1 : ℝ) := by exact_mod_cast this
+        nlinarith
+      have : t + ↑k * L < -T := by nlinarith [ht.2]
+      rw [abs_of_neg (by linarith)]
+      linarith
+    · -- k ≥ 1: t + kL ≥ 0 + 1·L = L > 2T > T
+      have : (1 : ℤ) ≤ k := hk_pos
+      have hkL : L ≤ ↑k * L := by
+        have : (1 : ℝ) ≤ (k : ℝ) := by exact_mod_cast this
+        nlinarith
+      have htk : T < t + ↑k * L := by nlinarith [ht.1]
+      rw [abs_of_pos (by linarith)]
+      exact htk
 
 /-! ## Intertwining with symmetries -/
 
