@@ -274,29 +274,85 @@ theorem realFourierMultiplierCLM_comp (σ₁ σ₂ : ℝ → ℝ)
   congr 1
   exact SchwartzMap.fourierMultiplierCLM_compL_fourierMultiplierCLM hσ₁ hσ₂
 
-end FourierMultiplierProperties
+/-- **Fourier multiplier commutes with translation (complex side).**
+
+  `M_σ(T_τ f) = T_τ(M_σ f)` on `𝓢(ℝ, ℂ)`
+
+Standard: translation by τ multiplies ℱf by e^{-2πiτp}, which commutes
+with pointwise multiplication by σ(p).
+
+Reference: Stein, *Singular Integrals*, Ch. I. -/
+axiom fourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
+    (hσ : σ.HasTemperateGrowth) (τ : ℝ) (f : SchwartzMap ℝ ℂ) :
+    SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (SchwartzMap.compSubConstCLM ℝ τ f) =
+    SchwartzMap.compSubConstCLM ℝ τ (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f)
+
+/-- **Fourier multiplier with even symbol commutes with reflection (complex side).**
+
+  `M_σ(Θf) = Θ(M_σ f)` on `𝓢(ℝ, ℂ)` when `σ(-p) = σ(p)`
+
+Reflection negates the Fourier variable, and even σ is invariant.
+
+Reference: Stein, *Singular Integrals*, Ch. I. -/
+axiom fourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
+    (hσ : σ.HasTemperateGrowth) (heven : ∀ p, σ (-p) = σ p)
+    (f : SchwartzMap ℝ ℂ) :
+    SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ
+      (SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+        (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f) =
+    SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+      (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv
+      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f)
 
 /-- **Translation equivariance of real Fourier multipliers.**
 
   `M_σ(T_τ f) = T_τ(M_σ f)`
 
-Universal: translation by τ multiplies ℱf by e^{-2πiτp}, which commutes
-with pointwise multiplication by σ(p). -/
-axiom realFourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
+Proved from the complex version `fourierMultiplierCLM_translation_comm`
++ real-valuedness preservation. -/
+theorem realFourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
     (hσ : σ.HasTemperateGrowth) (τ : ℝ) (f : SchwartzMap ℝ ℝ) :
     realFourierMultiplierCLM σ hσ (schwartzTranslation τ f) =
-    schwartzTranslation τ (realFourierMultiplierCLM σ hσ f)
+    schwartzTranslation τ (realFourierMultiplierCLM σ hσ f) := by
+  simp only [realFourierMultiplierCLM, schwartzTranslation]
+  simp only [ContinuousLinearMap.comp_apply]
+  -- LHS: re(M_σ(ofReal(T_τ f))) = re(M_σ(T_τ(ofReal f)))
+  -- schwartzToComplex commutes with translation:
+  have h1 : schwartzToComplex (SchwartzMap.compSubConstCLM ℝ τ f) =
+      SchwartzMap.compSubConstCLM ℝ τ (schwartzToComplex f) := by
+    apply SchwartzMap.ext; intro x; rfl
+  rw [h1, fourierMultiplierCLM_translation_comm σ hσ τ]
+  -- schwartzToReal commutes with translation:
+  apply SchwartzMap.ext; intro x; rfl
 
 /-- **Reflection equivariance of real Fourier multipliers with even symbol.**
 
   `M_σ(Θf) = Θ(M_σ f)` when `σ(-p) = σ(p)`
 
-Reflection negates the Fourier variable, and even σ is invariant. -/
-axiom realFourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
+Proved from the complex version `fourierMultiplierCLM_even_reflection_comm`
++ real-valuedness preservation. -/
+theorem realFourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
     (hσ : σ.HasTemperateGrowth) (heven : ∀ p, σ (-p) = σ p)
     (f : SchwartzMap ℝ ℝ) :
     realFourierMultiplierCLM σ hσ (schwartzReflection f) =
-    schwartzReflection (realFourierMultiplierCLM σ hσ f)
+    schwartzReflection (realFourierMultiplierCLM σ hσ f) := by
+  simp only [realFourierMultiplierCLM, schwartzReflection]
+  simp only [ContinuousLinearMap.comp_apply]
+  -- LHS: re(M_σ(ofReal(Θf)))
+  -- ofReal commutes with reflection (both are function composition):
+  -- schwartzToComplex commutes with reflection:
+  have h1 : schwartzToComplex
+      (SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+        (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f) =
+    SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+      (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv
+      (schwartzToComplex f) := by
+    apply SchwartzMap.ext; intro x; rfl
+  rw [h1, fourierMultiplierCLM_even_reflection_comm σ hσ heven]
+  -- schwartzToReal commutes with reflection:
+  apply SchwartzMap.ext; intro x; rfl
+
+end FourierMultiplierProperties
 
 /-! ## Fourier multiplier CLMs (defined)
 
