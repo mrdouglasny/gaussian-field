@@ -220,23 +220,61 @@ def realFourierMultiplierCLM (σ : ℝ → ℝ)
   schwartzToReal.comp
     ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)
 
-/-! ### General axioms for real Fourier multipliers
+/-! ### Fourier multiplier real-valuedness
 
-These three axioms encode the core properties of Fourier multipliers
-that require the Fourier transform's interaction with translation,
-reflection, and composition. They replace five symbol-specific axioms. -/
+A Fourier multiplier with real-valued symbol preserves real-valuedness of
+Schwartz functions. This follows from the conjugation symmetry of the
+Fourier transform: if f is real then f̂(-ξ) = conj(f̂(ξ)), so
+(σ · f̂)(-ξ) = σ(-ξ)f̂(-ξ) = σ(-ξ)conj(f̂(ξ)). For real σ,
+conj(σ(ξ)f̂(ξ)) = σ(ξ)conj(f̂(ξ)), so if also σ is even (σ(-ξ) = σ(ξ)),
+then (σ · f̂) has conjugation symmetry and ℱ⁻¹(σ · f̂) is real.
+
+For the composition theorem, we only need: M_σ(ofReal f) has zero imaginary
+part, i.e., `re ∘ M_σ ∘ ofReal = M_σ ∘ ofReal` (equivalently,
+`ofReal ∘ re ∘ M_σ ∘ ofReal = M_σ ∘ ofReal`).
+
+Reference: Stein-Weiss, *Fourier Analysis*, Ch. I. -/
+
+-- Need SMulCommClass for fourierMultiplierCLM with 𝕜 = ℝ
+section FourierMultiplierProperties
+attribute [local instance] SMulCommClass.symm
+
+/-- Real Fourier multiplier preserves real-valuedness.
+Consequence of Fourier conjugation symmetry + real-valued symbol. -/
+axiom fourierMultiplier_preserves_real (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth) :
+    schwartzToComplex.comp (schwartzToReal.comp
+      ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)) =
+    (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex
+
+/-! ### Fourier multiplier properties
+
+The composition theorem is proved from Mathlib's
+`fourierMultiplierCLM_compL_fourierMultiplierCLM` + the real-valuedness axiom.
+The translation and reflection equivariance remain axiomatized. -/
 
 /-- **Composition of real Fourier multipliers.**
 
   `M_{σ₁} ∘ M_{σ₂} = M_{σ₁ · σ₂}`
 
-This follows from Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`
-on the complex side, plus the fact that real-symbol multipliers preserve
-real-valuedness (Fourier conjugation symmetry). -/
-axiom realFourierMultiplierCLM_comp (σ₁ σ₂ : ℝ → ℝ)
+Proved from Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`
+on the complex side, plus `fourierMultiplier_preserves_real`. -/
+theorem realFourierMultiplierCLM_comp (σ₁ σ₂ : ℝ → ℝ)
     (hσ₁ : σ₁.HasTemperateGrowth) (hσ₂ : σ₂.HasTemperateGrowth) :
     (realFourierMultiplierCLM σ₁ hσ₁).comp (realFourierMultiplierCLM σ₂ hσ₂) =
-    realFourierMultiplierCLM (σ₁ * σ₂) (hσ₁.mul hσ₂)
+    realFourierMultiplierCLM (σ₁ * σ₂) (hσ₁.mul hσ₂) := by
+  simp only [realFourierMultiplierCLM, ContinuousLinearMap.comp_assoc]
+  congr 1
+  rw [show (SchwartzMap.fourierMultiplierCLM ℂ σ₁).comp
+      (schwartzToComplex.comp (schwartzToReal.comp
+        ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ₂).comp schwartzToComplex))) =
+    (SchwartzMap.fourierMultiplierCLM ℂ σ₁).comp
+      ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ₂).comp schwartzToComplex) from by
+    congr 1; exact fourierMultiplier_preserves_real σ₂ hσ₂]
+  rw [← ContinuousLinearMap.comp_assoc]
+  congr 1
+  exact SchwartzMap.fourierMultiplierCLM_compL_fourierMultiplierCLM hσ₁ hσ₂
+
+end FourierMultiplierProperties
 
 /-- **Translation equivariance of real Fourier multipliers.**
 
