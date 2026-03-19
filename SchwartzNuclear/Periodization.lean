@@ -75,9 +75,17 @@ axiom periodizeCLM_eq_on_large_period (h : SchwartzMap ℝ ℝ) (T : ℝ) (hT : 
 `periodize L (shift_τ h) = circleTranslation L τ (periodize L h)`.
 
 Proof: `Σ_k h(t - τ + kL) = Σ_k h((t - τ) + kL) = (periodize L h)(t - τ)`. -/
-axiom periodizeCLM_comp_schwartzTranslation (τ : ℝ) (h : SchwartzMap ℝ ℝ) :
+theorem periodizeCLM_comp_schwartzTranslation (τ : ℝ) (h : SchwartzMap ℝ ℝ) :
     periodizeCLM L (schwartzTranslation τ h) =
-    circleTranslation L τ (periodizeCLM L h)
+    circleTranslation L τ (periodizeCLM L h) := by
+  apply SmoothMap_Circle.ext; intro t
+  simp only [circleTranslation]
+  show (periodizeCLM L (schwartzTranslation τ h)).toFun t =
+    (periodizeCLM L h).toFun (t - τ)
+  rw [periodizeCLM_apply, periodizeCLM_apply]
+  congr 1; ext k
+  simp [schwartzTranslation_apply]
+  ring
 
 /-- Periodization commutes with time reflection:
 `periodize L (reflect h) = circleReflection L (periodize L h)`
@@ -86,8 +94,19 @@ where `reflect h(t) = h(-t)` and `circleReflection L g(t) = g(-t)`.
 Proof: `Σ_k h(-t + kL) = Σ_k h(-(t - kL)) = Σ_k h(-(t + (-k)L))
 = Σ_j h(-(t + jL)) = (reflect ∘ periodize L)(h)(t)`.
 (Reindex `j = -k`.) -/
-axiom periodizeCLM_comp_schwartzReflection (h : SchwartzMap ℝ ℝ) :
+theorem periodizeCLM_comp_schwartzReflection (h : SchwartzMap ℝ ℝ) :
     periodizeCLM L (schwartzReflection h) =
-    circleReflection L (periodizeCLM L h)
+    circleReflection L (periodizeCLM L h) := by
+  apply SmoothMap_Circle.ext; intro t
+  simp only [circleReflection]
+  show (periodizeCLM L (schwartzReflection h)).toFun t =
+    (periodizeCLM L h).toFun (-t)
+  rw [periodizeCLM_apply, periodizeCLM_apply]
+  -- LHS: Σ_k h(-(t + kL)), RHS: Σ_k h(-t + kL)
+  -- Reindex: substitute j = -k in LHS
+  rw [show (fun k : ℤ => (schwartzReflection h) (t + ↑k * L)) =
+    (fun k : ℤ => h (-(t + ↑k * L))) from by ext k; simp [schwartzReflection]]
+  conv_rhs => rw [← Equiv.tsum_eq (Equiv.neg ℤ)]
+  congr 1; ext k; simp; ring
 
 end GaussianField
