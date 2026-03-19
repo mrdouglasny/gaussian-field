@@ -23,8 +23,6 @@ series sums to give a uniform bound.
 
 ## Main results
 
-- `torusGreen_method_of_images` — decomposition into cylinder + wrap-around
-- `wrapAround_exponentially_suppressed` — each wrap term ≤ C(f) · e^{-m|k|Lt}
 - `cylinderGreen_continuous_seminorm_bound` — G_{Ls}(f, f) ≤ C · q(f)²
 - `torusGreen_uniform_bound` — **key result**: G_{Lt,Ls}(embed f, embed f) ≤ C · q(f)²
   uniformly in Lt ≥ 1
@@ -113,62 +111,6 @@ def asymTorusContinuumGreen (Lt : ℝ) [Fact (0 < Lt)]
     (f g : AsymTorusTestFunction Lt Ls) : ℝ :=
   greenFunctionBilinear mass hmass f g
 
-/-! ## Method of images decomposition
-
-The key identity: the torus Green's function equals the cylinder Green's
-function plus wrap-around terms from periodic images. -/
-
-/-- **Method of images decomposition.**
-
-The torus Green's function applied to periodized cylinder test functions
-decomposes as the cylinder Green's function plus a wrap-around remainder:
-
-  `G_{Lt,Ls}(embed f, embed f) = G_{Ls}(f, f) + wrapAround(Lt, f)`
-
-where `wrapAround(Lt, f) = Σ_{k ≠ 0} ∬ f(x) f(y) G_{Ls}(x - y + (kLt, 0)) dx dy`.
-
-**Proof sketch**: In the spectral representation, the torus Green's function
-restricts Fourier modes in the time direction to the discrete set
-`{2πk/Lt : k ∈ ℤ}`, while the cylinder uses all real frequencies.
-The Poisson summation formula converts the difference between the discrete
-sum and the integral into the sum over image terms `k ≠ 0`. -/
-axiom torusGreen_method_of_images
-    (Lt : ℝ) [Fact (0 < Lt)]
-    (mass : ℝ) (hmass : 0 < mass)
-    (f : CylinderTestFunction Ls) :
-    ∃ wrapAround : ℝ,
-      asymTorusContinuumGreen Ls Lt mass hmass
-        (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) =
-      cylinderGreen Ls mass hmass f f + wrapAround
-
-/-! ## Exponential suppression of wrap-around terms
-
-Each image at distance |k|Lt contributes a term that decays exponentially
-in |k|Lt, controlled by the mass gap of the cylinder theory. -/
-
-/-- **Wrap-around terms are exponentially suppressed.**
-
-For each nonzero image index k, the wrap-around contribution to
-`G_{Lt,Ls}(embed f, embed f)` is bounded by `C(f) · e^{-mass · |k| · Lt}`.
-
-**Proof sketch**: The k-th image term involves the cylinder propagator
-`G_{Ls}((x,t), (y, t + kLt))` evaluated at temporal separation at least
-`|k|Lt - diam_t(supp f)`. The cylinder propagator decays as
-`Σ_n |c_n|² · e^{-ω_n |Δt|} / (2ω_n)` where `ω_n ≥ mass > 0`.
-The dominant term `e^{-mass · |k| · Lt}` controls the bound, with the
-polynomial prefactor absorbed into `C(f)` (which depends on f through
-finitely many Schwartz/Sobolev seminorms). -/
-axiom wrapAround_exponentially_suppressed
-    (Lt : ℝ) [Fact (0 < Lt)]
-    (mass : ℝ) (hmass : 0 < mass)
-    (f : CylinderTestFunction Ls) :
-    ∃ C : ℝ, 0 ≤ C ∧
-    ∀ wrapAround : ℝ,
-      asymTorusContinuumGreen Ls Lt mass hmass
-        (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) =
-      cylinderGreen Ls mass hmass f f + wrapAround →
-      |wrapAround| ≤ C * (2 * Real.exp (-mass * Lt) / (1 - Real.exp (-mass * Lt)))
-
 /-! ## Cylinder Green's function: continuous seminorm bound
 
 The cylinder Green's function `G_{Ls}(f, f)` is bounded by a continuous
@@ -217,23 +159,14 @@ continuous seminorm of the cylinder test function. Together with the
 Nelson-Symanzik convergence `G_{Lt,Ls} → G_{Ls}` as `Lt → ∞`, this
 gives the existence of the thermodynamic limit.
 
-**Proof sketch**:
-1. By `torusGreen_method_of_images`:
-   `G_{Lt,Ls}(embed f, embed f) = G_{Ls}(f, f) + wrapAround`
-
-2. By `cylinderGreen_continuous_seminorm_bound`:
-   `G_{Ls}(f, f) ≤ q(f)²`
-
-3. By `wrapAround_exponentially_suppressed`:
-   `|wrapAround| ≤ C(f) · 2e^{-mLt}/(1 - e^{-mLt})`
-
-4. For `Lt ≥ 1`, the geometric factor `2e^{-mLt}/(1 - e^{-mLt})` is
-   bounded by `2e^{-m}/(1 - e^{-m})`, and `C(f)` is controlled by a
-   continuous seminorm of f (from the bound on the cylinder propagator
-   and the Schwartz decay of f).
-
-5. Combining: `G_{Lt,Ls}(embed f, embed f) ≤ (1 + K) · q(f)²` where
-   `K = 2e^{-m}/(1 - e^{-m})` depends only on the mass. -/
+**Proof sketch** (method of images):
+1. Decompose: `G_{Lt,Ls}(embed f, embed f) = G_{Ls}(f, f) + wrapAround(Lt, f)`
+   where the wrap-around sums over periodic images `k ≠ 0`.
+2. By `cylinderGreen_continuous_seminorm_bound`: `G_{Ls}(f, f) ≤ q(f)²`.
+3. Each image at distance `|k|Lt` contributes `≤ q'(f)² · e^{-m|k|Lt}`,
+   so `|wrapAround| ≤ q'(f)² · 2e^{-mLt}/(1 - e^{-mLt})`.
+4. For `Lt ≥ 1`, bound the geometric factor by `2e^{-m}/(1 - e^{-m})`.
+5. Combining: `G_{Lt,Ls}(embed f, embed f) ≤ (1 + K) · (q+q')(f)²`. -/
 axiom torusGreen_uniform_bound
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ (C : ℝ) (_ : 0 < C) (q : Seminorm ℝ (CylinderTestFunction Ls)),
