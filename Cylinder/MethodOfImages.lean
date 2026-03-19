@@ -56,6 +56,8 @@ geometric series converges uniformly for Lt ≥ 1.
 import Cylinder.GreenFunction
 import Cylinder.Basic
 import Torus.AsymmetricTorus
+import Nuclear.GeneralMapCLM
+import SchwartzNuclear.Periodization
 
 noncomputable section
 
@@ -85,8 +87,13 @@ The periodization `periodize_{Lt} : 𝓢(ℝ) → C∞(S¹_{Lt})` sums the
 translates: `(periodize_{Lt} h)(t) = Σ_{k ∈ ℤ} h(t + kLt)`. This sum
 converges absolutely and uniformly (with all derivatives) because h is
 Schwartz class. -/
-axiom cylinderToTorusEmbed (Lt : ℝ) [Fact (0 < Lt)] :
-    CylinderTestFunction Ls →L[ℝ] AsymTorusTestFunction Lt Ls
+def cylinderToTorusEmbed (Lt : ℝ) [Fact (0 < Lt)] :
+    CylinderTestFunction Ls →L[ℝ] AsymTorusTestFunction Lt Ls :=
+  (nuclearTensorProduct_swapCLM
+    (E₁ := SmoothMap_Circle Ls ℝ) (E₂ := SmoothMap_Circle Lt ℝ)).comp
+  (nuclearTensorProduct_mapCLM_general
+    (ContinuousLinearMap.id ℝ (SmoothMap_Circle Ls ℝ))
+    (periodizeCLM Lt))
 
 /-! ## Torus Green's function on the asymmetric torus
 
