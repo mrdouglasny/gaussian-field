@@ -138,12 +138,21 @@ we have `G_{Ls}(f, f) = ‖T f‖² ≤ ‖T‖² · ‖f‖²`. More precisely,
 `CylinderTestFunction Ls` is a nuclear Fréchet space (not normed), the
 continuity of T means there exists a continuous seminorm p with
 `‖Tf‖ ≤ p(f)`, giving `G_{Ls}(f, f) ≤ p(f)²`. -/
-axiom cylinderGreen_continuous_seminorm_bound
+theorem cylinderGreen_continuous_seminorm_bound
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ (q : Seminorm ℝ (CylinderTestFunction Ls)),
       Continuous q ∧
       ∀ f : CylinderTestFunction Ls,
-        cylinderGreen Ls mass hmass f f ≤ q f ^ 2
+        cylinderGreen Ls mass hmass f f ≤ q f ^ 2 := by
+  -- The seminorm q(f) = ‖Tf‖ where T is the mass operator
+  let T := cylinderMassOperator Ls mass hmass
+  refine ⟨(normSeminorm ℝ ell2').comp T.toLinearMap, ?_, ?_⟩
+  · -- Continuity: q = norm ∘ T, both continuous
+    exact continuous_norm.comp T.cont
+  · -- Bound: G(f,f) = ⟨Tf, Tf⟩ = ‖Tf‖² = q(f)²
+    intro f
+    simp only [cylinderGreen, Seminorm.comp_apply, coe_normSeminorm]
+    exact le_of_eq (real_inner_self_eq_norm_sq (cylinderMassOperator Ls mass hmass f))
 
 /-! ## Uniform bound: the main result for Route B' IR limit
 
