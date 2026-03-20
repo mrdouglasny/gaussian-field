@@ -3,203 +3,140 @@
 ## Overview
 
 The gaussian-field library provides Gaussian free field theory on nuclear spaces,
-lattice field theory infrastructure, and the FKG inequality for use by downstream
-projects (pphi2, OSforGFF).
+lattice field theory infrastructure, the FKG inequality, and cylinder QFT
+infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**0 axioms (+1 skipped), 0 sorries**
+**14 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-03-10.*
+*Updated 2026-03-20.*
 
-## Axiom inventory
+## Active Axiom Inventory (14 axioms)
 
-### Used by pphi2 Normalization (FKG)
+### Nuclear tensor product infrastructure (2 axioms)
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `fkg_from_lattice_condition` | Lattice/FKG | theorem | Hard | Core FKG: lattice condition => correlation inequality (Holley 1974). |
-| `latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure` | GaussianField/Density | theorem | Hard | Master density theorem: field-law pushforward equals normalized density measure. |
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 1 | `nuclearTensorProduct_mapCLM_general` | Nuclear/GeneralMapCLM | NTP functor for CLMs between different DM spaces: $(T_1 \otimes T_2) : \text{NTP}(E_1,E_2) \to \text{NTP}(F_1,F_2)$ |
+| 2 | `nuclearTensorProduct_mapCLM_general_pure` | Nuclear/GeneralMapCLM | Action on pure tensors: $(T_1 \otimes T_2)(\text{pure}(e_1,e_2)) = \text{pure}(T_1 e_1, T_2 e_2)$ |
 
-Density rewrite progress (P0 master theorem path):
-- Added `evalMap` measurability and `latticeGaussianFieldLaw` wrapper in
-  `GaussianField/Density.lean`.
-- Added transport lemmas between `latticeGaussianFieldLaw` and composition with
-  `evalMap` (`Integrable.comp_evalMap_latticeGaussianFieldLaw`,
-  `Integrable.of_comp_evalMap_latticeGaussianFieldLaw`,
-  `integral_latticeGaussianFieldLaw`).
-- Added normalization scaffolding for density measure:
-  `gaussianDensityWeight_measurable`, `gaussianDensityNormConst_eq_lintegral`,
-  `gaussianDensityNormConst_ne_top`, `gaussianDensityNormConst_eq_ofReal_integral`.
-- Replaced density axioms `latticeGaussianMeasure_density_integral` and
-  `integrable_mul_gaussianDensity` with theorem proofs derived from the proved
-  master density law. The old names remain as theorems for compatibility.
+Note: The endomorphism versions (`mapCLM`, `mapCLM_pure`, `mapCLM_id`, `mapCLM_comp`, `swapCLM`, `swapCLM_pure`) are all **proved theorems** in Nuclear/TensorProductFunctorAxioms.lean.
 
-Proved FKG results (no longer axioms):
-- `ahlswede_daykin_ennreal` -- theorem (ENNReal n-dimensional induction)
-- `ahlswede_daykin` -- theorem (Real wrapper via ENNReal bridge)
-- `gaussian_fkg_lattice_condition` -- now a theorem
-- `fkg_perturbed` -- now a theorem
-- `fkg_lattice_gaussian` -- derived from `gaussian_fkg_lattice_condition`
-- `fkg_truncation_dct` -- now a theorem
-- `fkg_truncation_dct_prod` -- now a theorem
-- `integrable_truncation_mul` -- now a theorem
-- `integrable_truncation_prod_mul` -- now a theorem
-- `ad_marginal_preservation_ennreal` -- theorem (fiber-to-marginal AD in ENNReal)
-- removed axiomized AD transport path from `Lattice/FKG`
+### Periodization (2 axioms)
 
-### Infinite lattice (not needed by pphi2)
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 3 | `periodizeCLM` | SchwartzNuclear/Periodization | The periodization CLM $\mathcal{S}(\mathbb{R}) \to C^\infty(S^1_L)$: $(\text{periodize}_L h)(t) = \sum_{k \in \mathbb{Z}} h(t + kL)$ |
+| 4 | `periodizeCLM_apply` | SchwartzNuclear/Periodization | Pointwise formula for periodization as a tsum |
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `latticeEnum_norm_bound` | Lattice/RapidDecayLattice | theorem | Hard | Polynomial inverse bound: ‖enum^{-1}(m)‖ <= C*(1+m)^p (proved by induction on pairing depth). |
-| `latticeEnum_index_bound` | Lattice/RapidDecayLattice | theorem | Hard | Polynomial forward bound: enum(x) <= C*(1+‖x‖)^q (proved by induction on pairing depth). |
-| `latticeRapidDecayEquiv` | Lattice/RapidDecayLattice | theorem | Hard | CLE to RapidDecaySeq (proved using polynomial reindexing bounds; enumeration branch excludes `d=0`). |
+Note: The three properties (`_comp_schwartzTranslation`, `_comp_schwartzReflection`, `_eq_on_large_period`) are all **proved theorems** from the pointwise formula.
 
-### Heat kernel (cylinder QFT, not used by lattice approach)
+### Fourier multiplier properties (3 axioms)
 
-Former axiom `mehlerKernel_eq_series` (Mehler's formula) has been moved to
-`future/mehler_kernel.lean` (not counted as project axiom). `HeatKernel/PositionKernel.lean`
-is off the main build path — it contains 2000+ lines of proved cylinder QFT results
-that depend on this axiom, but none are used by pphi2.
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 5 | `fourierMultiplier_preserves_real` | Cylinder/FourierMultiplier | Even real-valued Fourier multiplier $M_\sigma$ maps real Schwartz functions to real Schwartz functions. Uses Fourier conjugation symmetry. |
+| 6 | `fourierMultiplierCLM_translation_comm` | Cylinder/FourierMultiplier | $M_\sigma(T_\tau f) = T_\tau(M_\sigma f)$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$. Phase factor commutativity. |
+| 7 | `fourierMultiplierCLM_even_reflection_comm` | Cylinder/FourierMultiplier | $M_\sigma(\Theta f) = \Theta(M_\sigma f)$ for even $\sigma$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$ |
 
-Proved heat kernel results (no longer axioms):
-- `circleHeatKernel_pos` -- **proved** (via `HurwitzZeta.cosKernel` + Poisson summation / functional equation). The circleHeatKernel eigenvalue bug (index vs frequency mismatch) was fixed: now uses `fourierFreq n` for the Laplacian eigenvalue.
-- `cylinderEval_summable` -- theorem
-- `integral_norm_tsum_le_tsum_integral_norm` -- theorem
-- `integrable_tsum_of_summable_integral_norm` -- theorem
+Note: The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems** from these + Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`.
 
-Proved heat kernel bilinear form results:
-- `heatKernelBilinear_summable` — summability of heat kernel series for t > 0
-- `heatKernelBilinear_nonneg` — K_t(f,f) ≥ 0
-- `heatKernelBilinear_le_l2` — K_t(f,f) ≤ ⟨f,f⟩_{L²} (proved)
-- `heatKernelBilinear_tendsto_l2` — K_t → L² as t → 0⁺ (dominated convergence, proved)
-- `greenFunctionBilinear_summable` — summability of Green's function series (proved)
-- `greenFunctionBilinear_nonneg` — G(f,f) ≥ 0
-- `greenFunctionBilinear_le` — G(f,f) ≤ (1/mass²)⟨f,f⟩ (proved)
-- `greenFunctionBilinear_pos` — G(f,f) > 0 for f ≠ 0 (proved via Hahn-Banach)
+### Cylinder Green's function (3 axioms)
 
-Remaining sorry:
-- `heatKernelBilinear_tensorProduct`: K_t factors under ⊗. Requires Fubini for tsum + coefficient factorization.
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 8 | `cylinderMassOperator` | Cylinder/GreenFunction | The mass operator $T = A^{-1/2} : \text{CylinderTF}(L) \to \ell^2$. GNS map for the covariance: $\langle Tf, Tg \rangle = G(f,g)$. Decomposes by spatial Fourier mode via `resolventMultiplierCLM`. |
+| 9 | `cylinderGreen_pos` | Cylinder/GreenFunction | $G_L(f,f) > 0$ for $f \neq 0$. Injectivity of the mass operator (resolvent has non-vanishing symbol). |
+| 10 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
-### Torus embedding (continuum limit infrastructure)
+Note: `cylinderGreen_continuous_seminorm_bound` is a **proved theorem** ($G(f,f) = \lVert Tf \rVert^2 \leq q(f)^2$ via `normSeminorm`). The three equivariance corollaries (spatial translation, time translation, time reflection) are **proved theorems** from the general principle + heat semigroup commutation.
 
-Proved torus results:
-- `evalCLM` -- **proved** (tensor product of continuous linear functionals via `lift` + `Seminorm.bound_of_continuous`)
-- `evalCLM_pure` -- **proved** (via `lift_pure`)
-- `circleRestriction` -- CLM sampling smooth periodic functions at lattice points
-- `evalTorusAtSite` -- evaluation of torus test function at lattice site
-- `torusEmbedCLM` -- embedding of lattice fields into Configuration space
+### Cylinder reflection positivity (3 axioms)
 
-Former axioms `configuration_torus_polish` and `configuration_torus_borelSpace` have been
-moved to `future/configuration_torus.lean` (not counted as project axioms). Their intended
-use (Prokhorov's theorem) is now handled by `prokhorov_configuration` in
-`GaussianField/ConfigurationEmbedding.lean`, which works for any `DyninMityaginSpace E`
-without needing Polish/Borel instances on Configuration.
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 11 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
+| 12 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
+| 13 | `cylinderGreen_reflection_strict_positive` | Cylinder/ReflectionPositivity | Strict RP: $G(f, \Theta f) > 0$ for nonzero positive-time $f$. From injectivity of Laplace transform on $(0,\infty)$. |
 
-### Support theorem
+Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity.
 
-Former axioms `not_supported_of_not_hilbertSchmidt` and `supportHilbertSpace_exists`
-have been moved to `future/gaussian_field_axioms.lean` (not counted as project axioms).
-Neither is used by pphi2 or any downstream code.
+### Method of images (1 axiom)
 
-Proved support results:
-- `expected_norm_sq_eq_hs` — theorem: E[Σₙ|ω(eₙ)|²] = Σₙ ‖T(eₙ)‖² via integral_tsum
-- `support_of_hilbertSchmidt` — theorem: HS ⟹ a.e. summable (forward direction via ae_lt_top)
-- `weighted_support` — theorem: weighted-HS ⟹ a.e. weighted-summable (generalized forward direction)
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 14 | `torusGreen_uniform_bound` | Cylinder/MethodOfImages | $G_{L_t,L_s}(\text{embed}\,f, \text{embed}\,f) \leq C \cdot q(f)^2$ uniformly in $L_t \geq 1$. Method of images: torus Green = cylinder Green + exponentially suppressed wrap-around. |
 
-### Hypercontractive estimates
+Note: `cylinderToTorusEmbed` is a **definition** (not axiom), and `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| `gaussian_moment_ratio_bound` | *(removed)* | ~~axiom~~ | Hard | **Eliminated**: proved via double-factorial combinatorics in `HypercontractiveNat.lean`. |
+## Inactive / Future Axioms (not counted)
 
-Proved hypercontractive results (axiom-free):
-- `hypercontractive_1d_even` -- theorem (direct combinatorial proof for even p)
-- `hypercontractive_1d` -- theorem (rpow wrapper, even p)
-- `hypercontractive_gaussianReal` -- theorem (variance scaling)
-- `gaussian_hypercontractive` -- theorem (infinite-dimensional pushforward)
-- `gross_log_sobolev` -- theorem (independent of the above chain)
+| Name | File | Description |
+|------|------|-------------|
+| `schwartz_dyninMityaginSpace_axiom` | GaussianField.lean | Fallback axiom (commented out). Proved instance used instead. |
+| `NuclearSpaceStd` | future/KolmogorovGaussian | Alternative Gaussian construction via Cipollina's framework |
+| `kolmogorov_gaussian_measure` | future/KolmogorovGaussian | Kolmogorov-Minlos existence |
+| `mehlerKernel_eq_series` | future/PositionKernel | Mehler kernel eigenfunction expansion |
 
-### Infrastructure (inactive, for testing only)
+## Proved Results (formerly axioms)
 
-| Item | File | Type | Description |
-|------|------|------|-------------|
-| `schwartz_dyninMityaginSpace_axiom` | GaussianField | commented out | Axiom fallback for Schwartz ≅ Dynin-Mityagin space; the proven instance via `SchwartzNuclear.HermiteTensorProduct` is used instead. Available to swap in for faster build/testing. |
+The following were axioms and are now fully proved theorems:
 
-### Lattice convergence (1D heat kernel)
+### Nuclear tensor products (6 proved)
+- `nuclearTensorProduct_mapCLM` — via Schauder basis coefficient mapping
+- `nuclearTensorProduct_mapCLM_pure` — via DM expansion + `tsum_mul_tsum`
+- `nuclearTensorProduct_mapCLM_id` — via biorthogonality + `tsum_eq_single`
+- `nuclearTensorProduct_mapCLM_comp` — via DM expansion + `mapCLM_pure`
+- `nuclearTensorProduct_swapCLM` — via Cantor pair permutation
+- `nuclearTensorProduct_swapCLM_pure` — via coefficient commutativity
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| ~~`latticeHeatKernelBilinear1d_eq_spectral`~~ | Lattice/CirculantDFT | **PROVED** | Hard | Corrected DFT spectral expansion with /normSq Nyquist fix (`latticeHeatKernelBilinear1d_eq_spectral'`). |
-| ~~`riemann_sum_periodic_tendsto`~~ | Lattice/HeatKernelConvergence1d | **PROVED** | | Riemann sum convergence for continuous periodic functions via uniform continuity + subinterval splitting. |
-| ~~`latticeDFTCoeff1d_uniform_bound`~~ | Lattice/HeatKernelConvergence1d | **PROVED** | | Replaced by flat bound `|c_m| <= sqrt(2L) * ||f||_C0` + eigenvalue lower bound via Jordan's inequality. Convergence uses `exp(-8tm/L^2)` geometric domination instead of `1/(1+m)^2` polynomial decay. |
+### Periodization (3 proved)
+- `periodizeCLM_comp_schwartzTranslation` — from pointwise formula + `ext`
+- `periodizeCLM_comp_schwartzReflection` — from pointwise formula + `Equiv.tsum_eq`
+- `periodizeCLM_eq_on_large_period` — from `tsum_eq_single` + support argument
 
-Proved lattice convergence results:
-- `latticeEigenvalue1d_tendsto` -- eigenvalue convergence via sinc (proved)
-- `latticeEigenvalue1d_tendsto_continuum` -- eigenvalue convergence for general modes (proved)
-- `restriction_times_latticeBasis` -- normalization identity (proved)
-- `riemann_sum_periodic_tendsto` -- Riemann sum convergence for periodic functions (proved)
-- `latticeDFTCoeff1d_tendsto` -- DFT coefficient convergence via Riemann sums (proved)
-- `latticeDFTCoeff1d_flat_bound` -- uniform bound on DFT coefficients (proved)
-- `latticeEigenvalue1d_ge_8m` -- eigenvalue lower bound via Jordan's inequality (proved)
-- `latticeDFTCoeff1d_eq_riemann_sum` -- DFT coefficient equals Riemann sum of f times fourierBasisFun (proved)
-- `latticeDFTCoeff1d_tendsto` -- **proved** (was axiom): DFT coefficient converges to continuum Fourier coefficient via Riemann sum convergence
-- `lattice_heatKernel_tendsto_continuum_1d` -- full 1D heat kernel bilinear form convergence (proved, uses Tannery's theorem / dominated convergence for sums)
+### Fourier multiplier (3 proved)
+- `realFourierMultiplierCLM_comp` — from Mathlib `compL` + `preserves_real`
+- `realFourierMultiplierCLM_translation_comm` — from complex translation comm
+- `realFourierMultiplierCLM_even_reflection_comm` — from complex reflection comm
 
-### Lattice convergence (Green's function)
+### Green's function (1 proved)
+- `cylinderGreen_continuous_seminorm_bound` — $G(f,f) \leq q(f)^2$ via `normSeminorm`
 
-| Item | File | Type | Difficulty | Description |
-|------|------|------|-----------|-------------|
-| ~~`lattice_covariance_pure_eq_2d_spectral`~~ | Lattice/Convergence | **proved** | Medium | Circulant diagonalization via `abstract_spectral_eq_dft_spectral_2d` + pure tensor factoring + `evalCLM_pure`. |
-| ~~`latticeDFTCoeff1d_quadratic_bound`~~ | Lattice/Convergence | **proved** | — | Eliminated: replaced by flat bound + eigenvalue lower bound via Jordan's inequality. |
-| `lattice_green_tendsto_continuum_pure` | Lattice/Convergence | **proved** | — | Convergence for pure tensors via Tannery's theorem on ℕ×ℕ. |
-| ~~`lattice_green_tendsto_continuum`~~ | Lattice/Convergence | **proved** | — | Bilinear extension from pure tensors to general elements via DM expansion + uniform polynomial bound. |
+### Embedding (1 proved)
+- `cylinderToTorusEmbed` — axiom → def (swap ∘ (id ⊗ periodize))
 
-### Green's function invariance
+### Lattice convergence (all proved)
+- `lattice_green_tendsto_continuum_pure` — via Tannery's theorem
+- `lattice_green_tendsto_continuum` — bilinear extension via DM expansion
+- All 1D heat kernel convergence results
 
-Proved Green's function invariance results (no longer axioms):
-- `greenFunctionBilinear_reflection_pure` -- **proved** (mode-partner involution with eigenvalue degeneracy)
-- `greenFunctionBilinear_translation_pure` -- **proved** (coeff_product_paired_translation + tsum_eq_of_paired_involution)
-- `greenFunctionBilinear_invariant_of_pure` -- **proved** (two-step DyninMityaginSpace expansion via greenCLM_left)
+### FKG inequality (all proved)
+- `ahlswede_daykin_ennreal` — ENNReal n-dimensional induction
+- `gaussian_fkg_lattice_condition` — from AD theorem
+- `fkg_perturbed`, `fkg_lattice_gaussian`, `fkg_truncation_dct` — proved chain
 
-### Gaussian field uniqueness
+### Green's function invariance (all proved)
+- `greenFunctionBilinear_reflection_pure` — mode-partner involution
+- `greenFunctionBilinear_translation_pure` — paired translation
+- `greenFunctionBilinear_invariant_of_pure` — DM expansion
 
-Former axiom `measure_unique_of_charFun` has been moved to
-`future/gaussian_field_axioms.lean` (not counted as project axiom).
-Not currently used by any downstream code.
+### Fourier coefficients (all 6 proved)
+- All `fourierCoeffReal_circle{Translation,Reflection}_{zero,cos,sin}` proved
 
-### Fourier translation/reflection
+## Build
 
-Proved Fourier results (no longer axioms):
-- `fourierCoeffReal_circleTranslation_zero` -- **proved** (periodicity of integration via `integral_Icc_comp_sub_of_periodic`)
-- `fourierCoeffReal_circleTranslation_cos` -- **proved** (cos addition formula + integral linearity + periodicity)
-- `fourierCoeffReal_circleTranslation_sin` -- **proved** (sin addition formula + integral linearity + periodicity)
-- `fourierCoeffReal_circleReflection_zero` -- **proved** (periodicity of integration via `integral_Icc_comp_neg_of_periodic`)
-- `fourierCoeffReal_circleReflection_cos` -- **proved** (cosine is even: `fourierBasisFun_even_cos`)
-- `fourierCoeffReal_circleReflection_sin` -- **proved** (sine is odd: `fourierBasisFun_odd_sin`)
+```bash
+lake build
+```
 
-### Nuclear tensor product functors
-
-Proved nuclear tensor product results (no longer axioms):
-- `nuclearTensorProduct_mapCLM` -- **proved** (tensor product of CLMs via Schauder basis coefficient mapping + polynomial growth/decay bounds)
-- `nuclearTensorProduct_mapCLM_pure` -- **proved** (DM expansion + `tsum_mul_tsum_of_summable_norm` + Cantor pairing reindex)
-- `nuclearTensorProduct_mapCLM_id` -- **proved** (biorthogonality collapses sum via `tsum_eq_single`)
-- `nuclearTensorProduct_mapCLM_comp` -- **proved** (DM expansion on basis vectors + `mapCLM_pure` for agreement)
-- `nuclearTensorProduct_swapCLM` -- **proved** (Cantor pair permutation `m ↦ pair(unpair(m).2, unpair(m).1)`, rapid decay via `1+m ≤ 4·(1+σ(m))²`)
-- `nuclearTensorProduct_swapCLM_pure` -- **proved** (commutativity of multiplication on coefficients)
-
-### Summary by file
-
-| File | Axioms | Sorries |
-|------|--------|---------|
-| GaussianField/Properties | 0 | 0 |
-| GaussianField/Support | 0 | 0 |
-| Lattice/Convergence | 0 | 0 |
-| Torus/Restriction | 0 | 0 |
-| Nuclear/TensorProductFunctorAxioms | 0 | 0 |
-| **Total** | **0 (+1 skipped)** | **0** |
+The project depends on Mathlib (fetched automatically by lake).
 
 ## References
 
-- Holley (1974), Fortuin-Kasteleyn-Ginibre (1971) -- FKG inequality
-- Gelfand-Vilenkin, *Generalized Functions Vol. 4* -- nuclear spaces
-- Bogachev, *Gaussian Measures* -- Gaussian measures on Frechet spaces
+- Gel'fand-Vilenkin, *Generalized Functions Vol. 4* — nuclear spaces
+- Bogachev, *Gaussian Measures* — Gaussian measures on Fréchet spaces
+- Holley (1974), Fortuin-Kasteleyn-Ginibre (1971) — FKG inequality
+- Trèves, *Topological Vector Spaces* — tensor product CLMs
+- Stein-Weiss, *Fourier Analysis* — periodization, Fourier multipliers
+- Reed-Simon I — Hilbert-Schmidt operators, resolvent
+- Osterwalder-Schrader (1973, 1975) — OS axioms
