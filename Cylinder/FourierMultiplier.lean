@@ -239,9 +239,16 @@ Reference: Stein-Weiss, *Fourier Analysis*, Ch. I. -/
 section FourierMultiplierProperties
 attribute [local instance] SMulCommClass.symm
 
-/-- Real Fourier multiplier preserves real-valuedness.
-Consequence of Fourier conjugation symmetry + real-valued symbol. -/
-axiom fourierMultiplier_preserves_real (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth) :
+/-- Real **even** Fourier multiplier preserves real-valuedness.
+
+For even σ (σ(-p) = σ(p)), the multiplier M_σ maps real-valued Schwartz
+functions to real-valued Schwartz functions. Requires evenness because:
+ℱ(real f) satisfies conj(ℱf(k)) = ℱf(-k), and for the product
+σ·ℱf to also have this symmetry we need σ(k) = σ(-k).
+
+All physical symbols in the project (resolvent, heat kernel) are even. -/
+axiom fourierMultiplier_preserves_real (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) :
     schwartzToComplex.comp (schwartzToReal.comp
       ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)) =
     (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex
@@ -259,7 +266,8 @@ The translation and reflection equivariance remain axiomatized. -/
 Proved from Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`
 on the complex side, plus `fourierMultiplier_preserves_real`. -/
 theorem realFourierMultiplierCLM_comp (σ₁ σ₂ : ℝ → ℝ)
-    (hσ₁ : σ₁.HasTemperateGrowth) (hσ₂ : σ₂.HasTemperateGrowth) :
+    (hσ₁ : σ₁.HasTemperateGrowth) (hσ₂ : σ₂.HasTemperateGrowth)
+    (hσ₂_even : ∀ p, σ₂ (-p) = σ₂ p) :
     (realFourierMultiplierCLM σ₁ hσ₁).comp (realFourierMultiplierCLM σ₂ hσ₂) =
     realFourierMultiplierCLM (σ₁ * σ₂) (hσ₁.mul hσ₂) := by
   simp only [realFourierMultiplierCLM, ContinuousLinearMap.comp_assoc]
@@ -269,7 +277,7 @@ theorem realFourierMultiplierCLM_comp (σ₁ σ₂ : ℝ → ℝ)
         ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ₂).comp schwartzToComplex))) =
     (SchwartzMap.fourierMultiplierCLM ℂ σ₁).comp
       ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ₂).comp schwartzToComplex) from by
-    congr 1; exact fourierMultiplier_preserves_real σ₂ hσ₂]
+    congr 1; exact fourierMultiplier_preserves_real σ₂ hσ₂ hσ₂_even]
   rw [← ContinuousLinearMap.comp_assoc]
   congr 1
   exact SchwartzMap.fourierMultiplierCLM_compL_fourierMultiplierCLM hσ₁ hσ₂
@@ -448,7 +456,7 @@ theorem heatMultiplierCLM_comp {s t : ℝ} (hs : 0 ≤ s) (ht : 0 ≤ t) :
     (heatMultiplierCLM hs).comp (heatMultiplierCLM ht) =
     heatMultiplierCLM (show 0 ≤ s + t from add_nonneg hs ht) := by
   show (realFourierMultiplierCLM _ _).comp (realFourierMultiplierCLM _ _) = _
-  rw [realFourierMultiplierCLM_comp]
+  rw [realFourierMultiplierCLM_comp _ _ _ _ (fun p => heatSymbol_even t p)]
   congr 1
   ext p
   exact heatSymbol_mul s t p
