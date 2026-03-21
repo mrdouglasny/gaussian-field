@@ -8,7 +8,7 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 **14 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-03-20.*
+*Updated 2026-03-21.*
 
 ## Active Axiom Inventory (14 axioms)
 
@@ -64,7 +64,9 @@ Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 14 | `torusGreen_uniform_bound` | Cylinder/MethodOfImages | $G_{L_t,L_s}(\text{embed}\,f, \text{embed}\,f) \leq C \cdot q(f)^2$ uniformly in $L_t \geq 1$. Method of images: torus Green = cylinder Green + exponentially suppressed wrap-around. |
+| 14 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
+
+Note: `torusGreen_uniform_bound` is now a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. Also proved: `l2InnerProduct_pure`, `l2InnerProduct_swap`, `l2InnerProduct_le_seminorm`.
 
 Note: `cylinderToTorusEmbed` is a **definition** (not axiom), and `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
@@ -101,6 +103,12 @@ The following were axioms and are now fully proved theorems:
 
 ### Green's function (1 proved)
 - `cylinderGreen_continuous_seminorm_bound` — $G(f,f) \leq q(f)^2$ via `normSeminorm`
+
+### Method of images (4 proved)
+- `torusGreen_uniform_bound` — proved from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`
+- `l2InnerProduct_pure` — ℓ² factors for NTP pure tensors (Fubini + Cantor reindex)
+- `l2InnerProduct_swap` — swap preserves ℓ² (permutation reindex)
+- `l2InnerProduct_le_seminorm` — ℓ² bounded by DM seminorm (coeff_decay)
 
 ### Embedding (1 proved)
 - `cylinderToTorusEmbed` — axiom → def (swap ∘ (id ⊗ periodize))
