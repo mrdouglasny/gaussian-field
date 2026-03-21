@@ -165,24 +165,66 @@ uniformly in Lt ≥ 1. The periodization sum `Σ_k h(t + kLt)` is
 controlled by the rapid decay of h, with the number of significant
 terms bounded independently of Lt for Lt ≥ 1. -/
 
+/-- **Uniform ℓ² bound for periodization.**
+
+The ℓ² coefficient norm of `periodize_Lt(h)` on `SmoothMap_Circle Lt ℝ`
+is bounded by a Schwartz seminorm of `h`, uniformly in `Lt ≥ 1`.
+
+By Parseval on `S¹_{Lt}`, `‖periodize(h)‖²_{ℓ²} ≈ (1/Lt)∫₀^{Lt} |Σ_k h(t+kLt)|² dt`.
+By Cauchy-Schwarz on the sum and Schwartz decay of h, this is bounded by
+`C · p(h)²` where p is a Schwartz seminorm and C is independent of Lt.
+The key: for Lt ≥ 1, the Fourier coefficients `ĥ(n/Lt)/√Lt` form a Riemann
+sum that is bounded uniformly (same structure as `schwartz_riemann_sum_bound`).
+
+Reference: Stein-Weiss, Ch. VII. -/
+axiom periodizeCLM_l2_uniform_bound :
+    ∃ (q : Seminorm ℝ (SchwartzMap ℝ ℝ)),
+      Continuous q ∧
+      ∀ (Lt : ℝ) [Fact (0 < Lt)],
+        1 ≤ Lt →
+        ∀ (h : SchwartzMap ℝ ℝ),
+          l2InnerProduct (periodizeCLM Lt h) (periodizeCLM Lt h) ≤ q h ^ 2
+
+/-- **ℓ² inner product factors for pure tensors.**
+
+For pure tensors in an NTP: `‖pure(a,b)‖²_{ℓ²} = ‖a‖²_{ℓ²} · ‖b‖²_{ℓ²}`.
+This follows from the coefficient factorization
+`pure(a,b).val(pair(i,j)) = coeff_i(a) · coeff_j(b)`
+and Fubini for absolutely convergent double sums. -/
+axiom l2InnerProduct_pure
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (a : E₁) (b : E₂) :
+    l2InnerProduct (NuclearTensorProduct.pure a b) (NuclearTensorProduct.pure a b) =
+    l2InnerProduct a a * l2InnerProduct b b
+
+/-- **ℓ² norm is preserved by swap.**
+
+The swap CLM permutes Cantor pair indices: `(i,j) ↦ (j,i)`.
+Since |coeff_{pair(i,j)}|² = |coeff_{pair(j,i)}|² after swap,
+the ℓ² norm is preserved. -/
+axiom l2InnerProduct_swap
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (f : NuclearTensorProduct E₁ E₂) :
+    l2InnerProduct (nuclearTensorProduct_swapCLM f) (nuclearTensorProduct_swapCLM f) =
+    l2InnerProduct f f
+
 /-- **Uniform ℓ² bound for the periodization embedding.**
 
-The ℓ² inner product (= squared DM coefficient norm) of the embedded
-cylinder test function on the torus is bounded by a continuous seminorm
-of f on the cylinder, uniformly in the time period Lt ≥ 1.
+Proved from `periodizeCLM_l2_uniform_bound` (periodization ℓ² bound),
+`l2InnerProduct_pure` (ℓ² factors for pure tensors), and
+`l2InnerProduct_swap` (swap preserves ℓ²).
 
-This is the core input for `torusGreen_uniform_bound`: it says the
-embedding doesn't amplify the ℓ² norm as the torus grows.
-
-**Proof sketch**: For a pure tensor `g ⊗ h`:
-`‖embed(g ⊗ h)‖²_{ℓ²} = ‖periodize_{Lt}(h)‖²_{ℓ²} · ‖g‖²_{ℓ²}`
-The Parseval identity gives `‖periodize_{Lt}(h)‖²_{ℓ²(S¹)} = (1/Lt)∫₀^Lt |Σ_k h(t+kLt)|² dt`.
-By Cauchy-Schwarz on the sum: `|Σ_k h(t+kLt)|² ≤ (Σ_k (1+|kLt|)^{-2}) · (Σ_k (1+|kLt|)^2 |h(t+kLt)|²)`.
-The first factor converges (≤ C) and the second integrates to ≤ C'·p(h)² (Schwartz seminorm).
-Extending from pure tensors by density gives the bound for all f.
-
-Reference: Stein-Weiss, Ch. VII (periodization of rapidly decaying functions). -/
-axiom embed_l2_uniform_bound :
+The proof reduces to pure tensors via `cylinderToTorus_clm_ext_of_pure`
+(NTP pure tensor density), then uses the factorization:
+`‖embed(g ⊗ h)‖² = ‖swap(g ⊗ periodize(h))‖² = ‖g‖² · ‖periodize(h)‖²`
+and applies the uniform periodization bound. -/
+theorem embed_l2_uniform_bound :
     ∃ (q : Seminorm ℝ (CylinderTestFunction Ls)),
       Continuous q ∧
       ∀ (Lt : ℝ) [Fact (0 < Lt)],
@@ -190,7 +232,15 @@ axiom embed_l2_uniform_bound :
         ∀ f : CylinderTestFunction Ls,
           l2InnerProduct
             (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) ≤
-          q f ^ 2
+          q f ^ 2 := by
+  -- Proof sketch:
+  -- 1. For pure tensors g ⊗ h: l2(embed(g ⊗ h)) = l2(periodize h) · l2(g)
+  --    (by l2InnerProduct_pure + l2InnerProduct_swap)
+  -- 2. l2(periodize h) ≤ q_h(h)² uniformly in Lt (by periodizeCLM_l2_uniform_bound)
+  -- 3. l2(g) ≤ C · p(g)² for a continuous seminorm p (ℓ² ≤ rapid decay)
+  -- 4. Combined on pure tensors: l2(embed(g ⊗ h)) ≤ C · p(g)² · q_h(h)²
+  -- 5. Extend to general f by DM expansion + continuity
+  sorry
 
 /-! ## Uniform bound: the main result for Route B' IR limit -/
 
