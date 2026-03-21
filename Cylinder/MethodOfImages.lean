@@ -154,11 +154,45 @@ theorem cylinderGreen_continuous_seminorm_bound
     simp only [cylinderGreen, Seminorm.comp_apply, coe_normSeminorm]
     exact le_of_eq (real_inner_self_eq_norm_sq (cylinderMassOperator Ls mass hmass f))
 
-/-! ## Uniform bound: the main result for Route B' IR limit
+/-! ## Uniform ℓ² bound for embedded functions
 
-Combining the method of images decomposition with the exponential
-suppression of wrap-around terms gives a uniform bound on the torus
-Green's function, valid for all Lt ≥ 1. -/
+The key estimate: the ℓ² norm of `embed f` (on the torus) is bounded
+by a continuous seminorm of `f` (on the cylinder), uniformly in Lt ≥ 1.
+
+This follows from the uniform boundedness of the periodization CLM:
+`periodize_Lt(h)` has ℓ² norm bounded by a Schwartz seminorm of `h`,
+uniformly in Lt ≥ 1. The periodization sum `Σ_k h(t + kLt)` is
+controlled by the rapid decay of h, with the number of significant
+terms bounded independently of Lt for Lt ≥ 1. -/
+
+/-- **Uniform ℓ² bound for the periodization embedding.**
+
+The ℓ² inner product (= squared DM coefficient norm) of the embedded
+cylinder test function on the torus is bounded by a continuous seminorm
+of f on the cylinder, uniformly in the time period Lt ≥ 1.
+
+This is the core input for `torusGreen_uniform_bound`: it says the
+embedding doesn't amplify the ℓ² norm as the torus grows.
+
+**Proof sketch**: For a pure tensor `g ⊗ h`:
+`‖embed(g ⊗ h)‖²_{ℓ²} = ‖periodize_{Lt}(h)‖²_{ℓ²} · ‖g‖²_{ℓ²}`
+The Parseval identity gives `‖periodize_{Lt}(h)‖²_{ℓ²(S¹)} = (1/Lt)∫₀^Lt |Σ_k h(t+kLt)|² dt`.
+By Cauchy-Schwarz on the sum: `|Σ_k h(t+kLt)|² ≤ (Σ_k (1+|kLt|)^{-2}) · (Σ_k (1+|kLt|)^2 |h(t+kLt)|²)`.
+The first factor converges (≤ C) and the second integrates to ≤ C'·p(h)² (Schwartz seminorm).
+Extending from pure tensors by density gives the bound for all f.
+
+Reference: Stein-Weiss, Ch. VII (periodization of rapidly decaying functions). -/
+axiom embed_l2_uniform_bound :
+    ∃ (q : Seminorm ℝ (CylinderTestFunction Ls)),
+      Continuous q ∧
+      ∀ (Lt : ℝ) [Fact (0 < Lt)],
+        1 ≤ Lt →
+        ∀ f : CylinderTestFunction Ls,
+          l2InnerProduct
+            (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) ≤
+          q f ^ 2
+
+/-! ## Uniform bound: the main result for Route B' IR limit -/
 
 /-- **Uniform bound on the torus Green's function (Route B' IR limit).**
 
@@ -169,21 +203,9 @@ a constant `C > 0` such that
 
 for all `f : CylinderTestFunction Ls` and all `Lt ≥ 1`.
 
-This is the key estimate for the IR limit `Lt → ∞` in Route B': it shows
-that the torus two-point function is uniformly bounded (in Lt) by a
-continuous seminorm of the cylinder test function. Together with the
-Nelson-Symanzik convergence `G_{Lt,Ls} → G_{Ls}` as `Lt → ∞`, this
-gives the existence of the thermodynamic limit.
-
-**Proof sketch** (method of images):
-1. Decompose: `G_{Lt,Ls}(embed f, embed f) = G_{Ls}(f, f) + wrapAround(Lt, f)`
-   where the wrap-around sums over periodic images `k ≠ 0`.
-2. By `cylinderGreen_continuous_seminorm_bound`: `G_{Ls}(f, f) ≤ q(f)²`.
-3. Each image at distance `|k|Lt` contributes `≤ q'(f)² · e^{-m|k|Lt}`,
-   so `|wrapAround| ≤ q'(f)² · 2e^{-mLt}/(1 - e^{-mLt})`.
-4. For `Lt ≥ 1`, bound the geometric factor by `2e^{-m}/(1 - e^{-m})`.
-5. Combining: `G_{Lt,Ls}(embed f, embed f) ≤ (1 + K) · (q+q')(f)²`. -/
-axiom torusGreen_uniform_bound
+**Proof**: From `greenFunctionBilinear_le` (G ≤ ℓ²/m²) and
+`embed_l2_uniform_bound` (ℓ² of embed ≤ q²). -/
+theorem torusGreen_uniform_bound
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ (C : ℝ) (_ : 0 < C) (q : Seminorm ℝ (CylinderTestFunction Ls)),
       Continuous q ∧
@@ -192,6 +214,19 @@ axiom torusGreen_uniform_bound
         ∀ f : CylinderTestFunction Ls,
           asymTorusContinuumGreen Ls Lt mass hmass
             (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) ≤
-          C * q f ^ 2
+          C * q f ^ 2 := by
+  obtain ⟨q, hq_cont, hq_bound⟩ := embed_l2_uniform_bound Ls
+  refine ⟨1 / mass ^ 2, by positivity, q, hq_cont, ?_⟩
+  intro Lt _ hLt f
+  -- G_torus(embed f, embed f) ≤ (1/m²) · l2(embed f, embed f)
+  calc asymTorusContinuumGreen Ls Lt mass hmass
+        (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f)
+      = greenFunctionBilinear mass hmass
+        (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) := rfl
+    _ ≤ (1 / mass ^ 2) * l2InnerProduct
+        (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) :=
+      greenFunctionBilinear_le mass hmass _
+    _ ≤ (1 / mass ^ 2) * q f ^ 2 := by
+      gcongr; exact hq_bound Lt hLt f
 
 end GaussianField
