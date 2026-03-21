@@ -191,28 +191,146 @@ For pure tensors in an NTP: `‖pure(a,b)‖²_{ℓ²} = ‖a‖²_{ℓ²} · �
 This follows from the coefficient factorization
 `pure(a,b).val(pair(i,j)) = coeff_i(a) · coeff_j(b)`
 and Fubini for absolutely convergent double sums. -/
-axiom l2InnerProduct_pure
+theorem l2InnerProduct_pure
     {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
     [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
     [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
     (a : E₁) (b : E₂) :
     l2InnerProduct (NuclearTensorProduct.pure a b) (NuclearTensorProduct.pure a b) =
-    l2InnerProduct a a * l2InnerProduct b b
+    l2InnerProduct a a * l2InnerProduct b b := by
+  -- Factor sequences
+  set ca := fun i => DyninMityaginSpace.coeff i a
+  set cb := fun j => DyninMityaginSpace.coeff j b
+  set f₁ : ℕ → ℝ := fun i => ca i * ca i
+  set f₂ : ℕ → ℝ := fun j => cb j * cb j
+  -- Step 1: Show the LHS summand factors through Cantor pairing
+  -- For NTP, coeff m f = f.val m (definitional), and
+  -- (pure a b).val m = ca (unpair m).1 * cb (unpair m).2 (by pure_val)
+  have h_term : ∀ m,
+      DyninMityaginSpace.coeff m (NuclearTensorProduct.pure a b) *
+      DyninMityaginSpace.coeff m (NuclearTensorProduct.pure a b) =
+      f₁ (Nat.unpair m).1 * f₂ (Nat.unpair m).2 := by
+    intro m
+    show (NuclearTensorProduct.pure a b).val m *
+      (NuclearTensorProduct.pure a b).val m =
+      f₁ (Nat.unpair m).1 * f₂ (Nat.unpair m).2
+    simp only [NuclearTensorProduct.pure_val, f₁, f₂]; ring
+  -- Step 2: Rewrite l2InnerProduct as tsum and apply term factorization
+  show ∑' m, DyninMityaginSpace.coeff m (NuclearTensorProduct.pure a b) *
+      DyninMityaginSpace.coeff m (NuclearTensorProduct.pure a b) =
+    (∑' i, ca i * ca i) * (∑' j, cb j * cb j)
+  simp_rw [h_term]
+  -- Step 3: Reindex from ℕ to ℕ × ℕ via Cantor pairing
+  simp_rw [show Nat.unpair = ⇑Nat.pairEquiv.symm from Nat.pairEquiv_symm_apply.symm]
+  rw [Nat.pairEquiv.symm.tsum_eq (fun p : ℕ × ℕ => f₁ p.1 * f₂ p.2)]
+  -- Step 4: Factor the double sum using norm-summability
+  have h1 : Summable (fun i => ‖f₁ i‖) :=
+    (l2InnerProduct_summable a a).norm.congr (fun _ => rfl)
+  have h2 : Summable (fun j => ‖f₂ j‖) :=
+    (l2InnerProduct_summable b b).norm.congr (fun _ => rfl)
+  exact (tsum_mul_tsum_of_summable_norm h1 h2).symm
 
-/-- **ℓ² norm is preserved by swap.**
+/-- Local helper: swap Cantor pair components. -/
+private def pairSwap' (m : ℕ) : ℕ :=
+  Nat.pair (Nat.unpair m).2 (Nat.unpair m).1
 
-The swap CLM permutes Cantor pair indices: `(i,j) ↦ (j,i)`.
-Since |coeff_{pair(i,j)}|² = |coeff_{pair(j,i)}|² after swap,
-the ℓ² norm is preserved. -/
-axiom l2InnerProduct_swap
+private theorem pairSwap'_involutive : Function.Involutive pairSwap' := fun m => by
+  show Nat.pair (Nat.unpair (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1)).2
+    (Nat.unpair (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1)).1 = m
+  rw [Nat.unpair_pair]
+  exact Nat.pair_unpair m
+
+private def pairSwap'Equiv : ℕ ≃ ℕ :=
+  pairSwap'_involutive.toPerm pairSwap'
+
+@[simp] private theorem pairSwap'Equiv_apply (m : ℕ) :
+    pairSwap'Equiv m = pairSwap' m :=
+  congr_fun pairSwap'_involutive.coe_toPerm m
+
+theorem l2InnerProduct_swap
     {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
     [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
     [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
     (f : NuclearTensorProduct E₁ E₂) :
     l2InnerProduct (nuclearTensorProduct_swapCLM f) (nuclearTensorProduct_swapCLM f) =
-    l2InnerProduct f f
+    l2InnerProduct f f := by
+  -- l2InnerProduct g g = ∑' m, g.val m * g.val m (for NTP elements)
+  -- (swapCLM f).val m = f.val (pairSwap' m) (definitional)
+  -- So LHS = ∑' m, f.val(pairSwap' m)² = ∑' m, f.val(m)² = RHS
+  -- by reindexing via the involutive bijection pairSwap'Equiv
+  show ∑' m, (nuclearTensorProduct_swapCLM f).val m *
+      (nuclearTensorProduct_swapCLM f).val m =
+    ∑' m, f.val m * f.val m
+  -- The swap is definitionally f.val(pairSwap' m)
+  have h_eq : ∀ m, (nuclearTensorProduct_swapCLM f).val m = f.val (pairSwap' m) := by
+    intro m; rfl
+  simp_rw [h_eq]
+  -- Reindex by the bijection pairSwap'Equiv
+  rw [← pairSwap'Equiv.tsum_eq]
+  simp only [pairSwap'Equiv_apply, pairSwap'_involutive _]
+
+/-- **ℓ² inner product is bounded by a continuous seminorm squared.**
+
+For any DyninMityaginSpace E: `l2InnerProduct f f ≤ C * q(f)²` where q is
+a continuous seminorm. This follows from coeff_decay at exponent 2:
+`|coeff m f|² ≤ C² * q(f)² / (1+m)⁴`, and `∑ 1/(1+m)⁴ < ∞`. -/
+private theorem l2InnerProduct_le_seminorm
+    {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E] :
+    ∃ (C : ℝ) (_ : 0 < C) (q : Seminorm ℝ E),
+      Continuous q ∧ ∀ f : E, l2InnerProduct f f ≤ C * q f ^ 2 := by
+  -- Get coeff_decay at exponent 2
+  obtain ⟨Cd, hCd, s, hbound⟩ := DyninMityaginSpace.coeff_decay (E := E) 2
+  set q := s.sup DyninMityaginSpace.p
+  have hq_cont : Continuous q := by
+    apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum _ _)
+    show Continuous fun (x : E) =>
+      (Seminorm.coeFnAddMonoidHom ℝ E) (∑ i ∈ s, DyninMityaginSpace.p i) x
+    simp_rw [map_sum, Finset.sum_apply]
+    exact continuous_finset_sum _ fun i _ =>
+      DyninMityaginSpace.h_with.continuous_seminorm i
+  -- Summability of 1/(1+m)^4
+  have h1sq : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
+    have := (summable_nat_add_iff 1).mpr
+      (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
+    exact this.congr (fun m => by push_cast; ring_nf)
+  -- The bounding series ∑ 1/(1+m)^4 converges
+  have h1_4 : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 4) := by
+    have := (summable_nat_add_iff 1).mpr
+      (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 4))
+    exact this.congr (fun m => by push_cast; ring_nf)
+  set S := ∑' m : ℕ, (1 : ℝ) / ((m : ℝ) + 1) ^ 4
+  have hS_pos : 0 < S := h1_4.tsum_pos (fun m => by positivity) 0 (by positivity)
+  refine ⟨Cd ^ 2 * S, by positivity, q, hq_cont, fun f => ?_⟩
+  -- Bound: l2(f,f) = ∑ (coeff m f)² ≤ ∑ (Cd * q f)² / (1+m)⁴
+  show ∑' m, DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f ≤
+    Cd ^ 2 * S * q f ^ 2
+  have h_pw : ∀ m, DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f ≤
+      Cd ^ 2 * q f ^ 2 * (1 / ((m : ℝ) + 1) ^ 4) := by
+    intro m
+    have hm_pos : (0 : ℝ) < 1 + (m : ℝ) := by positivity
+    -- |coeff m f| * (1+m)^2 ≤ Cd * q f
+    have h_abs : |DyninMityaginSpace.coeff m f| ≤ Cd * q f / (1 + (m : ℝ)) ^ 2 := by
+      rw [le_div_iff₀ (pow_pos hm_pos 2)]
+      exact hbound f m
+    -- (coeff m f)^2 ≤ (Cd * q f / (1+m)^2)^2 = Cd² * q(f)² / (1+m)^4
+    have h_sq : DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f =
+        |DyninMityaginSpace.coeff m f| ^ 2 := by
+      nlinarith [sq_nonneg (DyninMityaginSpace.coeff m f),
+                 sq_abs (DyninMityaginSpace.coeff m f)]
+    calc DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f
+        = |DyninMityaginSpace.coeff m f| ^ 2 := h_sq
+      _ ≤ (Cd * q f / (1 + (m : ℝ)) ^ 2) ^ 2 :=
+          sq_le_sq' (by linarith [abs_nonneg (DyninMityaginSpace.coeff m f)]) h_abs
+      _ = Cd ^ 2 * q f ^ 2 * (1 / ((m : ℝ) + 1) ^ 4) := by
+          field_simp; ring
+  calc ∑' m, DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m f
+      ≤ ∑' (m : ℕ), Cd ^ 2 * q f ^ 2 * (1 / ((m : ℝ) + 1) ^ 4) :=
+        (l2InnerProduct_summable f f).tsum_le_tsum h_pw (h1_4.mul_left _)
+    _ = Cd ^ 2 * q f ^ 2 * S := tsum_mul_left
+    _ = Cd ^ 2 * S * q f ^ 2 := by ring
 
 /-- **Uniform ℓ² bound for the periodization embedding.**
 
@@ -220,10 +338,15 @@ Proved from `periodizeCLM_l2_uniform_bound` (periodization ℓ² bound),
 `l2InnerProduct_pure` (ℓ² factors for pure tensors), and
 `l2InnerProduct_swap` (swap preserves ℓ²).
 
-The proof reduces to pure tensors via `cylinderToTorus_clm_ext_of_pure`
-(NTP pure tensor density), then uses the factorization:
-`‖embed(g ⊗ h)‖² = ‖swap(g ⊗ periodize(h))‖² = ‖g‖² · ‖periodize(h)‖²`
-and applies the uniform periodization bound. -/
+For pure tensors g ⊗ h:
+  l2(embed(g ⊗ h)) = l2(swap(pure g (periodize h)))
+                    = l2(pure (periodize h) g)
+                    = l2(periodize h) * l2(g)
+                    ≤ q_h(h)² * C_g * p_g(g)²
+
+Extension to general f requires going inside `nuclearTensorProduct_mapCLM_general`
+(currently axiomatized), specifically to get uniform-in-Lt seminorm bounds on
+`(id ⊗ periodize_Lt) f`. -/
 theorem embed_l2_uniform_bound :
     ∃ (q : Seminorm ℝ (CylinderTestFunction Ls)),
       Continuous q ∧
@@ -233,13 +356,6 @@ theorem embed_l2_uniform_bound :
           l2InnerProduct
             (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) ≤
           q f ^ 2 := by
-  -- Proof sketch:
-  -- 1. For pure tensors g ⊗ h: l2(embed(g ⊗ h)) = l2(periodize h) · l2(g)
-  --    (by l2InnerProduct_pure + l2InnerProduct_swap)
-  -- 2. l2(periodize h) ≤ q_h(h)² uniformly in Lt (by periodizeCLM_l2_uniform_bound)
-  -- 3. l2(g) ≤ C · p(g)² for a continuous seminorm p (ℓ² ≤ rapid decay)
-  -- 4. Combined on pure tensors: l2(embed(g ⊗ h)) ≤ C · p(g)² · q_h(h)²
-  -- 5. Extend to general f by DM expansion + continuity
   sorry
 
 /-! ## Uniform bound: the main result for Route B' IR limit -/
