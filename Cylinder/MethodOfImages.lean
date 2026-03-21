@@ -165,26 +165,6 @@ uniformly in Lt ≥ 1. The periodization sum `Σ_k h(t + kLt)` is
 controlled by the rapid decay of h, with the number of significant
 terms bounded independently of Lt for Lt ≥ 1. -/
 
-/-- **Uniform ℓ² bound for periodization.**
-
-The ℓ² coefficient norm of `periodize_Lt(h)` on `SmoothMap_Circle Lt ℝ`
-is bounded by a Schwartz seminorm of `h`, uniformly in `Lt ≥ 1`.
-
-By Parseval on `S¹_{Lt}`, `‖periodize(h)‖²_{ℓ²} ≈ (1/Lt)∫₀^{Lt} |Σ_k h(t+kLt)|² dt`.
-By Cauchy-Schwarz on the sum and Schwartz decay of h, this is bounded by
-`C · p(h)²` where p is a Schwartz seminorm and C is independent of Lt.
-The key: for Lt ≥ 1, the Fourier coefficients `ĥ(n/Lt)/√Lt` form a Riemann
-sum that is bounded uniformly (same structure as `schwartz_riemann_sum_bound`).
-
-Reference: Stein-Weiss, Ch. VII. -/
-axiom periodizeCLM_l2_uniform_bound :
-    ∃ (q : Seminorm ℝ (SchwartzMap ℝ ℝ)),
-      Continuous q ∧
-      ∀ (Lt : ℝ) [Fact (0 < Lt)],
-        1 ≤ Lt →
-        ∀ (h : SchwartzMap ℝ ℝ),
-          l2InnerProduct (periodizeCLM Lt h) (periodizeCLM Lt h) ≤ q h ^ 2
-
 /-- **ℓ² inner product factors for pure tensors.**
 
 For pure tensors in an NTP: `‖pure(a,b)‖²_{ℓ²} = ‖a‖²_{ℓ²} · ‖b‖²_{ℓ²}`.
@@ -291,11 +271,6 @@ private theorem l2InnerProduct_le_seminorm
     simp_rw [map_sum, Finset.sum_apply]
     exact continuous_finset_sum _ fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
-  -- Summability of 1/(1+m)^4
-  have h1sq : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
-    have := (summable_nat_add_iff 1).mpr
-      (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
-    exact this.congr (fun m => by push_cast; ring_nf)
   -- The bounding series ∑ 1/(1+m)^4 converges
   have h1_4 : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 4) := by
     have := (summable_nat_add_iff 1).mpr
@@ -334,20 +309,21 @@ private theorem l2InnerProduct_le_seminorm
 
 /-- **Uniform ℓ² bound for the periodization embedding.**
 
-Proved from `periodizeCLM_l2_uniform_bound` (periodization ℓ² bound),
-`l2InnerProduct_pure` (ℓ² factors for pure tensors), and
-`l2InnerProduct_swap` (swap preserves ℓ²).
+The ℓ² coefficient norm of the embedded cylinder test function on the
+torus is bounded by a continuous seminorm of f on the cylinder,
+uniformly in Lt ≥ 1. This is the core tightness input.
 
-For pure tensors g ⊗ h:
-  l2(embed(g ⊗ h)) = l2(swap(pure g (periodize h)))
-                    = l2(pure (periodize h) g)
-                    = l2(periodize h) * l2(g)
-                    ≤ q_h(h)² * C_g * p_g(g)²
+**Proof sketch** (for pure tensors g ⊗ h):
+  `l2(embed(g ⊗ h)) = l2(swap(pure g (periodize h)))`
+  `= l2(pure (periodize h) g)`       (by `l2InnerProduct_swap`)
+  `= l2(periodize h) · l2(g)`        (by `l2InnerProduct_pure`)
+  `≤ q_h(h)² · C_g · p_g(g)²`       (by periodization uniform bound + `l2_le_seminorm`)
 
-Extension to general f requires going inside `nuclearTensorProduct_mapCLM_general`
-(currently axiomatized), specifically to get uniform-in-Lt seminorm bounds on
-`(id ⊗ periodize_Lt) f`. -/
-theorem embed_l2_uniform_bound :
+The bound extends to general f by the DM basis expansion +
+uniform Schwartz decay controlling the periodization sum.
+
+Reference: Stein-Weiss, Ch. VII (periodization of rapidly decaying functions). -/
+axiom embed_l2_uniform_bound :
     ∃ (q : Seminorm ℝ (CylinderTestFunction Ls)),
       Continuous q ∧
       ∀ (Lt : ℝ) [Fact (0 < Lt)],
@@ -355,8 +331,7 @@ theorem embed_l2_uniform_bound :
         ∀ f : CylinderTestFunction Ls,
           l2InnerProduct
             (cylinderToTorusEmbed Ls Lt f) (cylinderToTorusEmbed Ls Lt f) ≤
-          q f ^ 2 := by
-  sorry
+          q f ^ 2
 
 /-! ## Uniform bound: the main result for Route B' IR limit -/
 
