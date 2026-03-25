@@ -6,71 +6,54 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**14 axioms, 0 sorries** (active build, excluding `future/`)
+**8 axioms, 0 sorries** (active build, excluding `future/`)
 
 *Updated 2026-03-25.*
 
-## Active Axiom Inventory (14 axioms)
+## Active Axiom Inventory (8 axioms)
 
-### Nuclear tensor product infrastructure (2 axioms)
-
-| # | Name | File | Description |
-|---|------|------|-------------|
-| 1 | `nuclearTensorProduct_mapCLM_general` | Nuclear/GeneralMapCLM | NTP functor for CLMs between different DM spaces: $(T_1 \otimes T_2) : \text{NTP}(E_1,E_2) \to \text{NTP}(F_1,F_2)$ |
-| 2 | `nuclearTensorProduct_mapCLM_general_pure` | Nuclear/GeneralMapCLM | Action on pure tensors: $(T_1 \otimes T_2)(\text{pure}(e_1,e_2)) = \text{pure}(T_1 e_1, T_2 e_2)$ |
-
-Note: The endomorphism versions (`mapCLM`, `mapCLM_pure`, `mapCLM_id`, `mapCLM_comp`, `swapCLM`, `swapCLM_pure`) are all **proved theorems** in Nuclear/TensorProductFunctorAxioms.lean.
-
-### Periodization (2 axioms)
+### Periodization (1 axiom)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 3 | `periodizeCLM` | SchwartzNuclear/Periodization | The periodization CLM $\mathcal{S}(\mathbb{R}) \to C^\infty(S^1_L)$: $(\text{periodize}_L h)(t) = \sum_{k \in \mathbb{Z}} h(t + kL)$ |
-| 4 | `periodizeCLM_apply` | SchwartzNuclear/Periodization | Pointwise formula for periodization as a tsum |
+| 1 | `periodize_sobolevSeminorm_le` | SchwartzNuclear/Periodization | Sobolev seminorm bound: $\lVert \text{periodize}\,h \rVert_{H^k} \leq C \cdot p(h)$ for Schwartz seminorms $p$. Continuity bound for `periodizeCLM`. |
 
-Note: The three properties (`_comp_schwartzTranslation`, `_comp_schwartzReflection`, `_eq_on_large_period`) are all **proved theorems** from the pointwise formula.
+Note: `periodizeCLM` is now a **definition** (was axiom). `periodizeCLM_apply` proved by rfl. `periodize_summable`, `periodize_smooth`, `iteratedFDeriv_mul_schwartz_decay` all **proved**. The three intertwining properties (`_comp_schwartzTranslation`, `_comp_schwartzReflection`, `_eq_on_large_period`) are all **proved theorems**.
 
-### Fourier multiplier properties (4 axioms)
+### Fourier multiplier properties (2 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 5 | `fourierMultiplier_preserves_real` | Cylinder/FourierMultiplier | Even real-valued Fourier multiplier $M_\sigma$ maps real Schwartz functions to real Schwartz functions. Uses Fourier conjugation symmetry. |
-| 6 | `fourierMultiplierCLM_translation_comm` | Cylinder/FourierMultiplier | $M_\sigma(T_\tau f) = T_\tau(M_\sigma f)$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$. Phase factor commutativity. |
-| 7 | `fourierMultiplierCLM_even_reflection_comm` | Cylinder/FourierMultiplier | $M_\sigma(\Theta f) = \Theta(M_\sigma f)$ for even $\sigma$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$ |
-| 7' | `resolventMultiplierCLM_injective` | Cylinder/FourierMultiplier | $R_\omega f = 0 \Rightarrow f = 0$ on $\mathcal{S}(\mathbb{R})$. The resolvent symbol $(p^2+\omega^2)^{-1/2} > 0$ never vanishes, so Fourier injectivity gives the result. |
+| 2 | `fourierMultiplier_preserves_real` | Cylinder/FourierMultiplier | Even real-valued Fourier multiplier $M_\sigma$ maps real Schwartz functions to real Schwartz functions. Uses Fourier conjugation symmetry. |
+| 3 | `fourierMultiplierCLM_even_reflection_comm` | Cylinder/FourierMultiplier | $M_\sigma(\Theta f) = \Theta(M_\sigma f)$ for even $\sigma$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$ |
 
-Note: The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems** from these + Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`.
+Note: `fourierMultiplierCLM_translation_comm` is now a **proved theorem** (Fourier shift + smul_comm). `resolventMultiplierCLM_injective` is a **proved theorem** (Fourier inversion). The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems**.
 
 ### Cylinder Green's function (2 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| ~~8~~ | ~~`cylinderMassOperator`~~ | ~~Cylinder/GreenFunction~~ | **PROVED** — now a def in Cylinder/MassOperatorConstruction.lean. Constructed from `ntpSliceSchwartz` (spatial mode extraction) + `resolventMultiplierCLM` (Fourier multiplier) + `nuclear_ell2_embedding_from_decay`. |
-| 8' | `resolventRDS_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent RDS seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
-| ~~9~~ | ~~`cylinderGreen_pos`~~ | ~~Cylinder/GreenFunction~~ | **PROVED** — from `cylinderMassOperator_injective`, which uses `resolventMultiplierCLM_injective` + CLE injectivity chain. |
-| 10 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
+| 4 | `resolventSchwartz_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
+| 5 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
-Note: `cylinderGreen_continuous_seminorm_bound` is a **proved theorem** ($G(f,f) = \lVert Tf \rVert^2 \leq q(f)^2$ via `normSeminorm`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. The three equivariance corollaries (spatial translation, time translation, time reflection) are **proved theorems** from the general principle + heat semigroup commutation.
+Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
-### Cylinder reflection positivity (3 axioms)
+### Cylinder reflection positivity (2 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 11 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
-| 12 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
-| 13 | `cylinderGreen_reflection_strict_positive` | Cylinder/ReflectionPositivity | Strict RP: $G(f, \Theta f) > 0$ for nonzero positive-time $f$. From injectivity of Laplace transform on $(0,\infty)$. |
+| 6 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
+| 7 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
 
-Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity.
+Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity. `cylinderGreen_reflection_strict_positive` was removed as a dead axiom.
 
 ### Method of images (1 axiom)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 14 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
+| 8 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
 
-Note: `torusGreen_uniform_bound` is now a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. Also proved: `l2InnerProduct_pure`, `l2InnerProduct_swap`, `l2InnerProduct_le_seminorm`.
-
-Note: `cylinderToTorusEmbed` is a **definition** (not axiom), and `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
+Note: `torusGreen_uniform_bound` is a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. `cylinderToTorusEmbed` is a **definition** (not axiom).
 
 ## Inactive / Future Axioms (not counted)
 
@@ -85,7 +68,9 @@ Note: `cylinderToTorusEmbed` is a **definition** (not axiom), and `cylinderGreen
 
 The following were axioms and are now fully proved theorems:
 
-### Nuclear tensor products (6 proved)
+### Nuclear tensor products (8 proved)
+- `nuclearTensorProduct_mapCLM_general` — via Schauder basis coefficient mapping (general version)
+- `nuclearTensorProduct_mapCLM_general_pure` — action on pure tensors (general version)
 - `nuclearTensorProduct_mapCLM` — via Schauder basis coefficient mapping
 - `nuclearTensorProduct_mapCLM_pure` — via DM expansion + `tsum_mul_tsum`
 - `nuclearTensorProduct_mapCLM_id` — via biorthogonality + `tsum_eq_single`
@@ -93,12 +78,16 @@ The following were axioms and are now fully proved theorems:
 - `nuclearTensorProduct_swapCLM` — via Cantor pair permutation
 - `nuclearTensorProduct_swapCLM_pure` — via coefficient commutativity
 
-### Periodization (3 proved)
+### Periodization (5 proved)
+- `periodizeCLM` — axiom → def (now constructed from `periodize_summable` + `periodize_smooth`)
+- `periodizeCLM_apply` — proved by rfl
 - `periodizeCLM_comp_schwartzTranslation` — from pointwise formula + `ext`
 - `periodizeCLM_comp_schwartzReflection` — from pointwise formula + `Equiv.tsum_eq`
 - `periodizeCLM_eq_on_large_period` — from `tsum_eq_single` + support argument
 
-### Fourier multiplier (3 proved)
+### Fourier multiplier (5 proved)
+- `fourierMultiplierCLM_translation_comm` — via Fourier shift theorem + smul_comm
+- `resolventMultiplierCLM_injective` — via Fourier inversion + symbol positivity
 - `realFourierMultiplierCLM_comp` — from Mathlib `compL` + `preserves_real`
 - `realFourierMultiplierCLM_translation_comm` — from complex translation comm
 - `realFourierMultiplierCLM_even_reflection_comm` — from complex reflection comm
