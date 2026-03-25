@@ -8,7 +8,7 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 **14 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-03-21.*
+*Updated 2026-03-25.*
 
 ## Active Axiom Inventory (14 axioms)
 
@@ -44,7 +44,8 @@ Note: The three real versions (`realFourierMultiplierCLM_comp`, `_translation_co
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 8 | `cylinderMassOperator` | Cylinder/GreenFunction | The mass operator $T = A^{-1/2} : \text{CylinderTF}(L) \to \ell^2$. GNS map for the covariance: $\langle Tf, Tg \rangle = G(f,g)$. Decomposes by spatial Fourier mode via `resolventMultiplierCLM`. |
+| ~~8~~ | ~~`cylinderMassOperator`~~ | ~~Cylinder/GreenFunction~~ | **PROVED** — now a def in Cylinder/MassOperatorConstruction.lean. Constructed from `ntpSliceSchwartz` (spatial mode extraction) + `resolventMultiplierCLM` (Fourier multiplier) + `nuclear_ell2_embedding_from_decay`. |
+| 8' | `resolventRDS_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent RDS seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
 | 9 | `cylinderGreen_pos` | Cylinder/GreenFunction | $G_L(f,f) > 0$ for $f \neq 0$. Injectivity of the mass operator (resolvent has non-vanishing symbol). |
 | 10 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
@@ -100,6 +101,12 @@ The following were axioms and are now fully proved theorems:
 - `realFourierMultiplierCLM_comp` — from Mathlib `compL` + `preserves_real`
 - `realFourierMultiplierCLM_translation_comm` — from complex translation comm
 - `realFourierMultiplierCLM_even_reflection_comm` — from complex reflection comm
+
+### Mass operator construction (1 proved + 4 new theorems)
+- `cylinderMassOperator` — axiom → def via `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`
+- `massOperatorCoord` — m-th coordinate functional (def)
+- `massOperatorCoord_decay` — nuclear decay bound (proved from Cantor pairing + coeff_decay + slice a-decay)
+- `cylinderMassOperator_coord/formula` — coordinate access theorems
 
 ### Green's function (1 proved)
 - `cylinderGreen_continuous_seminorm_bound` — $G(f,f) \leq q(f)^2$ via `normSeminorm`
