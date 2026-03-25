@@ -134,30 +134,155 @@ theorem periodizeFun_periodic (h : SchwartzMap ℝ ℝ) :
     ext k; simp [Equiv.addRight]]
   exact Equiv.tsum_eq (Equiv.addRight (1 : ℤ)) (fun j : ℤ => h (t + ↑j * L))
 
+/-- `iteratedFDeriv` of a function that's locally zero vanishes. -/
+private lemma iteratedFDeriv_eq_zero_of_eventuallyEq_zero
+    (f : ℝ → ℝ) (x : ℝ) (m : ℕ) (hf : f =ᶠ[nhds x] 0) :
+    iteratedFDeriv ℝ m f x = 0 := by
+  rw [(hf.iteratedFDeriv ℝ m).eq_of_nhds]; exact congr_fun iteratedFDeriv_zero_fun x
+
+/-- `φ · g` vanishes near `x` when `x ∉ tsupport φ` (since `φ = 0` on the open complement). -/
+private lemma mul_eventuallyEq_zero_outside_tsupport
+    (φ g : ℝ → ℝ) (x : ℝ) (hx : x ∉ tsupport φ) :
+    (fun t => φ t * g t) =ᶠ[nhds x] 0 := by
+  exact Filter.eventuallyEq_iff_exists_mem.mpr
+    ⟨(tsupport φ)ᶜ, (isClosed_tsupport φ).isOpen_compl.mem_nhds hx, fun y hy => by
+      simp [Function.notMem_support.mp (fun h => hy (subset_tsupport φ h))]⟩
+
+/-- Leibniz + Schwartz decay bound on the support of `φ`.
+
+For `x ∈ tsupport φ` and `|x + kL| ≥ 1`, the Leibniz rule gives:
+  `‖D^m(φ · h(·+kL))(x)‖ ≤ Σ_{j≤m} C(m,j) · ‖D^j φ(x)‖ · ‖D^{m-j} h(x+kL)‖`
+Each `‖D^j φ(x)‖` is bounded (continuous on compact `tsupport φ`).
+Each `‖D^{m-j} h(x+kL)‖ ≤ S_{2,m-j} / |x+kL|²` by `SchwartzMap.le_seminorm'`.
+
+Remaining formalization: `iteratedDeriv_fun_mul` + `norm_sum_le` for the Leibniz norm
+bound, `IsCompact.exists_isMaxOn` for `‖D^j φ‖` on compact support,
+`SchwartzMap.le_seminorm'` with `k = 2` for each Schwartz derivative factor. -/
+private theorem iteratedFDeriv_product_bound_on_support
+    (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
+    (hcomp : HasCompactSupport φ) (m : ℕ) :
+    ∃ (C : ℝ), 0 ≤ C ∧ ∀ (k : ℤ) (x : ℝ), x ∈ tsupport φ → |x + ↑k * L| ≥ 1 →
+      ‖iteratedFDeriv ℝ m (fun t => φ t * h (t + ↑k * L)) x‖ ≤
+        C / |x + ↑k * L| ^ 2 := by
+  -- Bounds on φ derivatives (compact support + continuity)
+  have hφ_bound : ∀ j : ℕ, ∃ B : ℝ, 0 ≤ B ∧ ∀ x : ℝ, ‖iteratedDeriv j φ x‖ ≤ B := by
+    intro j
+    obtain ⟨B, hB⟩ := (hcomp.iteratedFDeriv j).exists_bound_of_continuous
+      (hφ.continuous_iteratedFDeriv (WithTop.coe_le_coe.mpr le_top))
+    exact ⟨B, le_trans (norm_nonneg _) (hB 0), fun x => by
+      rw [← norm_iteratedFDeriv_eq_norm_iteratedDeriv]; exact hB x⟩
+  choose B hB_nn hB using hφ_bound
+  -- Schwartz seminorms: ‖y‖^2 * ‖D^n h y‖ ≤ S n
+  set S := fun n => (SchwartzMap.seminorm ℝ 2 n) h
+  have hS_nn : ∀ n, 0 ≤ S n := fun n => apply_nonneg _ _
+  have hSchwartz : ∀ n y, ‖y‖ ^ 2 * ‖iteratedDeriv n (⇑h) y‖ ≤ S n := by
+    intro n y; have := SchwartzMap.le_seminorm ℝ 2 n h y
+    rwa [norm_iteratedFDeriv_eq_norm_iteratedDeriv] at this
+  -- The constant: Σ C(m,i) * B_i * S_{m-i}
+  set C₀ := ∑ i ∈ Finset.range (m + 1), (m.choose i : ℝ) * B i * S (m - i)
+  have hC₀_nn : 0 ≤ C₀ := Finset.sum_nonneg fun i _ =>
+    mul_nonneg (mul_nonneg (Nat.cast_nonneg _) (hB_nn i)) (hS_nn _)
+  refine ⟨C₀, hC₀_nn, ?_⟩
+  intro k x _ hxkL
+  have hxkL_pos : 0 < |x + ↑k * L| := lt_of_lt_of_le one_pos hxkL
+  -- ContDiffAt hypotheses for Leibniz rule
+  have hφ_cda : ContDiffAt ℝ m φ x :=
+    hφ.contDiffAt.of_le (WithTop.coe_le_coe.mpr le_top)
+  have hg_cda : ContDiffAt ℝ m (fun t => h (t + ↑k * L)) x :=
+    ((h.smooth ⊤).comp (contDiff_id.add contDiff_const)).contDiffAt.of_le
+      (WithTop.coe_le_coe.mpr le_top)
+  -- Convert to iteratedDeriv and apply Leibniz rule
+  rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, iteratedDeriv_fun_mul hφ_cda hg_cda]
+  -- Bound each Leibniz term
+  have h_term : ∀ i ∈ Finset.range (m + 1),
+      ‖(m.choose i : ℝ) * iteratedDeriv i φ x *
+        iteratedDeriv (m - i) (fun t => h (t + ↑k * L)) x‖ ≤
+      (m.choose i : ℝ) * B i * S (m - i) / |x + ↑k * L| ^ 2 := by
+    intro i _
+    rw [norm_mul, norm_mul, Real.norm_natCast]
+    -- D^{m-i}(h(· + kL))(x) = D^{m-i} h (x + kL) by translation invariance
+    rw [show iteratedDeriv (m - i) (fun t => h (t + ↑k * L)) x =
+        iteratedDeriv (m - i) (⇑h) (x + ↑k * L) from
+        congrFun (iteratedDeriv_comp_add_const _ _ _) _]
+    -- Schwartz bound: ‖D^{m-i} h y‖ ≤ S(m-i) / |y|^2
+    have h_schwartz_bound : ‖iteratedDeriv (m - i) (⇑h) (x + ↑k * L)‖ ≤
+        S (m - i) / |x + ↑k * L| ^ 2 := by
+      have hle := hSchwartz (m - i) (x + ↑k * L)
+      rw [Real.norm_eq_abs] at hle
+      rwa [le_div_iff₀ (by positivity : (0:ℝ) < |x + ↑k * L| ^ 2), mul_comm]
+    calc (m.choose i : ℝ) * ‖iteratedDeriv i φ x‖ *
+            ‖iteratedDeriv (m - i) (⇑h) (x + ↑k * L)‖
+        ≤ (m.choose i : ℝ) * B i * (S (m - i) / |x + ↑k * L| ^ 2) := by
+          apply mul_le_mul (mul_le_mul_of_nonneg_left (hB i x) (Nat.cast_nonneg _))
+            h_schwartz_bound (norm_nonneg _) (mul_nonneg (Nat.cast_nonneg _) (hB_nn i))
+      _ = (m.choose i : ℝ) * B i * S (m - i) / |x + ↑k * L| ^ 2 := by ring
+  calc ‖∑ i ∈ Finset.range (m + 1), _‖
+      ≤ ∑ i ∈ Finset.range (m + 1), ‖_‖ := norm_sum_le _ _
+    _ ≤ ∑ i ∈ Finset.range (m + 1),
+          (m.choose i : ℝ) * B i * S (m - i) / |x + ↑k * L| ^ 2 :=
+        Finset.sum_le_sum h_term
+    _ = C₀ / |x + ↑k * L| ^ 2 := by rw [← Finset.sum_div]
+
 /-- For a compactly supported C^∞ bump function `φ` and a Schwartz function `h`,
 the iterated Fréchet derivatives of the product `φ · h(· + kL)` decay like `O(1/k²)`
 for large `|k|`.
 
-**Proof outline**: For `x ∉ tsupport φ`, the product vanishes on a neighborhood of `x`,
-so all iterated derivatives are 0. For `x ∈ tsupport φ` (a compact set bounded by `R`),
-the Leibniz rule (`iteratedDeriv_fun_mul`) gives:
-  `‖D^m(φ · h(·+kL))(x)‖ ≤ Σ_{j≤m} C(m,j) · ‖D^j φ(x)‖ · ‖D^{m-j} h(x+kL)‖`
-
-Each `‖D^j φ(x)‖ ≤ Φ_j` (bounded: continuous function on compact support,
-via `IsCompact.exists_isMaxOn`). Each `‖D^{m-j} h(x+kL)‖` is bounded by
-`S_{2,m-j} / |x+kL|²` via `SchwartzMap.le_seminorm'`, where `|x+kL| ≥ |kL| - R > 0`
-for `|k|` large. Combining: `‖D^m(φ · h(·+kL))(x)‖ ≤ C_m / (|kL| - R)² = O(1/k²)`.
-
-The remaining formalization requires assembling `norm_iteratedFDeriv_eq_norm_iteratedDeriv`,
-`iteratedDeriv_fun_mul`, `norm_sum_le`, `IsCompact.exists_isMaxOn`, and
-`SchwartzMap.le_seminorm'`. -/
+The proof case-splits on `x ∈ tsupport φ`:
+- **Outside support**: `φ · h(· + kL)` vanishes on a neighborhood of `x`
+  (via `mul_eventuallyEq_zero_outside_tsupport`), so `iteratedFDeriv = 0`
+  (via `iteratedFDeriv_eq_zero_of_eventuallyEq_zero`).
+- **On support**: `iteratedFDeriv_product_bound_on_support` gives
+  `‖D^m(φ · h(·+kL))(x)‖ ≤ C₀ / |x+kL|²`. Since `|x| ≤ R` and `|kL| > 2R`,
+  `|x+kL| ≥ |kL|/2`, giving `C₀/|x+kL|² ≤ 4C₀/(|k|L)²`. -/
 private theorem iteratedFDeriv_mul_schwartz_decay
     (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hcomp : HasCompactSupport φ) (m : ℕ) :
     ∃ (C : ℝ) (K : ℕ), 0 ≤ C ∧ ∀ (k : ℤ), (K : ℤ) < |k| →
       ∀ x : ℝ, ‖iteratedFDeriv ℝ m (fun t => φ t * h (t + ↑k * L)) x‖ ≤
         C / (↑|k| * L) ^ 2 := by
-  sorry
+  obtain ⟨R, hR⟩ := (Metric.isBounded_iff_subset_closedBall (0 : ℝ)).mp hcomp.isBounded
+  obtain ⟨C₀, hC₀, hbound_supp⟩ :=
+    iteratedFDeriv_product_bound_on_support L h φ hφ hcomp m
+  have hL_pos := hL.out
+  refine ⟨4 * C₀, ⌈(2 * max R 1) / L⌉₊ + 1, by linarith, ?_⟩
+  intro k hkK x
+  by_cases hx : x ∈ tsupport φ
+  · -- On support: use hbound_supp + |x+kL| ≥ |kL|/2
+    have hxR : |x| ≤ R := by
+      have := hR hx; simp [Metric.mem_closedBall, dist_zero_right] at this; exact this
+    -- Step 1: 2 * max R 1 ≤ |k|L (from hkK)
+    have h2M : 2 * max R 1 ≤ (↑|k| : ℝ) * L := by
+      have h1 : (2 * max R 1 / L : ℝ) ≤ ↑(⌈2 * max R 1 / L⌉₊ + 1 : ℕ) := by
+        push_cast; linarith [Nat.le_ceil (2 * max R 1 / L)]
+      have h2 : (↑(⌈2 * max R 1 / L⌉₊ + 1 : ℕ) : ℝ) < (↑|k| : ℝ) := by exact_mod_cast hkK
+      nlinarith [div_mul_cancel₀ (2 * max R 1) (ne_of_gt hL_pos)]
+    -- Step 2: |x + kL| ≥ |k|L/2 (reverse triangle + |x| ≤ R ≤ |k|L/2)
+    have h_abs_kL : |↑k * L| = (↑|k| : ℝ) * L := by
+      rw [abs_mul, abs_of_pos hL_pos]; push_cast; rfl
+    have h_lower : (↑|k| : ℝ) * L / 2 ≤ |x + ↑k * L| := by
+      have h1 : (↑|k| : ℝ) * L ≤ |x + ↑k * L| + |x| := by
+        calc (↑|k| : ℝ) * L = |↑k * L| := h_abs_kL.symm
+          _ = |(x + ↑k * L) + (-x)| := by ring_nf
+          _ ≤ |x + ↑k * L| + |-x| := abs_add_le _ _
+          _ = |x + ↑k * L| + |x| := by rw [abs_neg]
+      linarith [le_max_left R 1]
+    -- Step 3: |x + kL| ≥ 1
+    have h_ge_1 : 1 ≤ |x + ↑k * L| := by linarith [le_max_right R 1]
+    -- Step 4: apply hbound_supp, then bound C₀/|x+kL|² ≤ 4C₀/(|k|L)²
+    calc ‖iteratedFDeriv ℝ m (fun t => φ t * h (t + ↑k * L)) x‖
+        ≤ C₀ / |x + ↑k * L| ^ 2 := hbound_supp k x hx (by linarith)
+      _ ≤ C₀ / ((↑|k| : ℝ) * L / 2) ^ 2 := by
+          have hkL_pos : 0 < (↑|k| : ℝ) * L / 2 := by
+            have : 0 < (↑|k| : ℝ) * L := by linarith [le_max_right R 1]
+            linarith
+          apply div_le_div_of_nonneg_left hC₀ (sq_pos_of_pos hkL_pos)
+            (pow_le_pow_left₀ hkL_pos.le h_lower 2)
+      _ = 4 * C₀ / ((↑|k| : ℝ) * L) ^ 2 := by ring
+  · -- Outside support: product vanishes locally
+    have h0 := iteratedFDeriv_eq_zero_of_eventuallyEq_zero
+      (fun t => φ t * h (t + ↑k * L)) x m
+      (mul_eventuallyEq_zero_outside_tsupport φ (fun t => h (t + ↑k * L)) x hx)
+    simp [h0]; exact div_nonneg (by linarith) (sq_nonneg _)
 
 /-- `C / (|k| * L)²` is summable over `ℤ` (follows from `Σ 1/k²` converging). -/
 private lemma summable_inv_int_sq_mul (C L : ℝ) :
