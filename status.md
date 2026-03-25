@@ -6,11 +6,11 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**8 axioms, 0 sorries** (active build, excluding `future/`)
+**7 axioms, 0 sorries** (active build, excluding `future/`)
 
 *Updated 2026-03-25.*
 
-## Active Axiom Inventory (8 axioms)
+## Active Axiom Inventory (7 axioms)
 
 ### Periodization (1 axiom)
 
@@ -20,14 +20,13 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 Note: `periodizeCLM` is now a **definition** (was axiom). `periodizeCLM_apply` proved by rfl. `periodize_summable`, `periodize_smooth`, `iteratedFDeriv_mul_schwartz_decay` all **proved**. The three intertwining properties (`_comp_schwartzTranslation`, `_comp_schwartzReflection`, `_eq_on_large_period`) are all **proved theorems**.
 
-### Fourier multiplier properties (2 axioms)
+### Fourier multiplier properties (1 axiom)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
 | 2 | `fourierMultiplier_preserves_real` | Cylinder/FourierMultiplier | Even real-valued Fourier multiplier $M_\sigma$ maps real Schwartz functions to real Schwartz functions. Uses Fourier conjugation symmetry. |
-| 3 | `fourierMultiplierCLM_even_reflection_comm` | Cylinder/FourierMultiplier | $M_\sigma(\Theta f) = \Theta(M_\sigma f)$ for even $\sigma$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$ |
 
-Note: `fourierMultiplierCLM_translation_comm` is now a **proved theorem** (Fourier shift + smul_comm). `resolventMultiplierCLM_injective` is a **proved theorem** (Fourier inversion). The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems**.
+Note: `fourierMultiplierCLM_translation_comm` is now a **proved theorem** (Fourier shift + smul_comm). `fourierMultiplierCLM_even_reflection_comm` is now a **proved theorem** (Fourier reflection via linear isometry). `resolventMultiplierCLM_injective` is a **proved theorem** (Fourier inversion). The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems**.
 
 ### Cylinder Green's function (2 axioms)
 
@@ -85,8 +84,9 @@ The following were axioms and are now fully proved theorems:
 - `periodizeCLM_comp_schwartzReflection` — from pointwise formula + `Equiv.tsum_eq`
 - `periodizeCLM_eq_on_large_period` — from `tsum_eq_single` + support argument
 
-### Fourier multiplier (5 proved)
+### Fourier multiplier (6 proved)
 - `fourierMultiplierCLM_translation_comm` — via Fourier shift theorem + smul_comm
+- `fourierMultiplierCLM_even_reflection_comm` — via Fourier reflection (linear isometry) + evenness
 - `resolventMultiplierCLM_injective` — via Fourier inversion + symbol positivity
 - `realFourierMultiplierCLM_comp` — from Mathlib `compL` + `preserves_real`
 - `realFourierMultiplierCLM_translation_comm` — from complex translation comm
