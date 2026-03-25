@@ -154,19 +154,8 @@ theorem cylinderGreen_reflection_positive (mass : ℝ) (hmass : 0 < mass)
   rw [cylinderGreen_reflection_eq_laplaceNorm L mass hmass f hf]
   exact real_inner_self_nonneg
 
-/-- **Strict reflection positivity.**
-
-  `G(f, Θf) > 0` for nonzero positive-time test functions f.
-
-This strengthening of OS3 ensures the reconstructed Hilbert space is
-non-degenerate: distinct test functions give distinct physical states.
-
-It follows from injectivity of the Laplace embedding on positive-time
-functions, which in turn follows from the Laplace transform being
-injective on functions supported on (0, ∞) (a classical theorem). -/
-axiom cylinderGreen_reflection_strict_positive (mass : ℝ) (hmass : 0 < mass)
-    (f : CylinderTestFunction L)
-    (hf : f ∈ cylinderPositiveTimeSubmodule L) (hne : f ≠ 0) :
-    0 < cylinderGreen L mass hmass f (cylinderTimeReflection L f)
+-- NOTE: cylinderGreen_reflection_strict_positive was removed as a dead axiom
+-- (never referenced by any downstream declaration). Strict RP is not needed
+-- for basic OS3 (which only requires nonnegativity, proved above).
 
 end GaussianField
