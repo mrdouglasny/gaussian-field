@@ -40,24 +40,145 @@ namespace GaussianField
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
+/-! ## Periodization: raw function and basic properties -/
+
+/-- The periodization function: `(periodizeFun L h)(t) = Σ_{k ∈ ℤ} h(t + kL)`. -/
+def periodizeFun (h : SchwartzMap ℝ ℝ) (t : ℝ) : ℝ := ∑' (k : ℤ), h (t + k * L)
+
+/-- The sum `Σ_k h(t + kL)` converges absolutely for each `t` when `h` is Schwartz.
+
+**Proof**: By `SchwartzMap.le_seminorm'` with `k = 2, n = 0`:
+`|x|² · ‖h(x)‖ ≤ (seminorm ℝ 2 0) h`, so `‖h(x)‖ ≤ C/|x|²` for `|x| ≥ 1`.
+For fixed `t`, only finitely many `k` have `|t + kL| < 1`; for the rest,
+`‖h(t + kL)‖ ≤ C/|t + kL|² ≤ C'/(1 + |k|)²`, which is summable.
+
+Reference: Grafakos, *Classical Fourier Analysis*, Proposition 3.1.15. -/
+axiom periodize_summable (h : SchwartzMap ℝ ℝ) (t : ℝ) :
+    Summable (fun k : ℤ => h (t + k * L))
+
+/-- The periodized function is periodic with period `L`.
+
+**Proof**: Reindex the sum using `k ↦ k + 1`:
+`Σ_k h(t + L + kL) = Σ_k h(t + (k+1)L) = Σ_j h(t + jL)`.
+Uses `Equiv.tsum_eq` with the equivalence `k ↦ k + 1` on `ℤ`.
+
+Note: `hL` is not needed; periodicity is purely algebraic (reindexing). -/
+theorem periodizeFun_periodic (h : SchwartzMap ℝ ℝ) :
+    Function.Periodic (periodizeFun L h) L := by
+  intro t
+  simp only [periodizeFun]
+  -- Rewrite each term: h(t + L + kL) = h(t + (k+1)L)
+  have h_rw : (fun k : ℤ => h (t + L + ↑k * L)) =
+      (fun k : ℤ => h (t + (↑k + 1) * L)) :=
+    funext fun k => by ring_nf
+  rw [h_rw]
+  -- Reindex with j = k + 1 using Equiv.tsum_eq
+  rw [show (fun k : ℤ => h (t + (↑k + 1) * L)) =
+    (fun k : ℤ => (fun j : ℤ => h (t + ↑j * L)) ((Equiv.addRight (1 : ℤ)) k)) from by
+    ext k; simp [Equiv.addRight]]
+  exact Equiv.tsum_eq (Equiv.addRight (1 : ℤ)) (fun j : ℤ => h (t + ↑j * L))
+
+/-- The periodized sum is smooth (`C∞`).
+
+**Proof sketch**: Each translate `h(· + kL)` is smooth. The sum of iterated
+derivatives `Σ_k h^(n)(t + kL)` converges uniformly on compact sets by
+Schwartz decay (same argument as `periodize_summable` but for `h^(n)` using
+`SchwartzMap.le_seminorm'` with appropriate indices). By the Weierstrass
+M-test for smooth functions (`contDiff_tsum` in Mathlib), the sum is `C∞`.
+
+More precisely, for each `n : ℕ`, the n-th derivative bound
+`‖iteratedFDeriv ℝ n (h(· + kL)) x‖ = ‖iteratedDeriv n h (x + kL)‖` is bounded
+by `(seminorm ℝ 0 n) h` (uniform in `k` and `x`). While this uniform bound
+is not summable over `k`, a locally uniform bound using the decay
+`|x + kL|² · ‖iteratedDeriv n h (x + kL)‖ ≤ (seminorm ℝ 2 n) h`
+gives summability away from a finite set of `k` values, which suffices
+for `contDiff_tsum` applied to truncations.
+
+Reference: Grafakos, *Classical Fourier Analysis*, §3.1.2. -/
+axiom periodize_smooth (h : SchwartzMap ℝ ℝ) :
+    ContDiff ℝ (⊤ : ℕ∞) (periodizeFun L h)
+
+/-- The periodized function as an element of `SmoothMap_Circle L ℝ`. -/
+def periodizeSmoothCircle (h : SchwartzMap ℝ ℝ) : SmoothMap_Circle L ℝ :=
+  ⟨periodizeFun L h, periodizeFun_periodic L h, periodize_smooth L h⟩
+
+@[simp] theorem periodizeSmoothCircle_toFun (h : SchwartzMap ℝ ℝ) (t : ℝ) :
+    (periodizeSmoothCircle L h).toFun t = ∑' (k : ℤ), h (t + k * L) := rfl
+
+/-! ## Linearity of periodization -/
+
+theorem periodizeSmoothCircle_add (f g : SchwartzMap ℝ ℝ) :
+    periodizeSmoothCircle L (f + g) =
+    periodizeSmoothCircle L f + periodizeSmoothCircle L g := by
+  apply SmoothMap_Circle.ext; intro t
+  unfold periodizeSmoothCircle
+  simp only [SmoothMap_Circle.add_apply, SmoothMap_Circle.coe_mk, periodizeFun]
+  simp only [SchwartzMap.add_apply]
+  exact (periodize_summable L f t).tsum_add (periodize_summable L g t)
+
+theorem periodizeSmoothCircle_smul (r : ℝ) (h : SchwartzMap ℝ ℝ) :
+    periodizeSmoothCircle L (r • h) = r • periodizeSmoothCircle L h := by
+  apply SmoothMap_Circle.ext; intro t
+  unfold periodizeSmoothCircle
+  simp only [SmoothMap_Circle.smul_apply, SmoothMap_Circle.coe_mk, periodizeFun]
+  rw [show (fun k : ℤ => (r • h) (t + ↑k * L)) =
+    (fun k : ℤ => r • h (t + ↑k * L)) from by ext k; rfl]
+  rw [tsum_const_smul'' r, smul_eq_mul]
+
+/-- The periodization linear map (without continuity). -/
+def periodizeLM : SchwartzMap ℝ ℝ →ₗ[ℝ] SmoothMap_Circle L ℝ where
+  toFun := periodizeSmoothCircle L
+  map_add' := periodizeSmoothCircle_add L
+  map_smul' r h := by simp [periodizeSmoothCircle_smul]
+
+/-! ## CLM continuity -/
+
+/-- The Sobolev seminorm of the periodized function is bounded by Schwartz seminorms.
+
+For each Sobolev order `k`, we have:
+`sobolevSeminorm k (periodize h) ≤ C_{k,L} · (seminorm ℝ (k+2) k) h`
+
+**Proof sketch**: The k-th derivative of the periodized function satisfies
+`|D^k (periodize h)(t)| = |Σ_j D^k h(t + jL)| ≤ Σ_j |h^(k)(t + jL)|`.
+By `SchwartzMap.le_seminorm'`, `|x|^(k+2) · |h^(k)(x)| ≤ (seminorm ℝ (k+2) k) h`,
+so `|h^(k)(t + jL)| ≤ (seminorm ℝ (k+2) k) h / |t + jL|^(k+2)`.
+The sum `Σ_j 1/|t + jL|^(k+2)` converges (uniformly in `t ∈ [0,L]`) since `k+2 ≥ 2 > 1`.
+
+Reference: Stein-Weiss, Ch. VII, §2. -/
+axiom periodize_sobolevSeminorm_le (k : ℕ) :
+    ∃ (s : Finset (ℕ × ℕ)) (C : ℝ), 0 ≤ C ∧
+      ∀ (h : SchwartzMap ℝ ℝ),
+        SmoothMap_Circle.sobolevSeminorm k (periodizeSmoothCircle L h) ≤
+        C * (s.sup (schwartzSeminormFamily ℝ ℝ ℝ)) h
+
 /-! ## Periodization CLM -/
 
 /-- The periodization map from Schwartz space to smooth periodic functions.
 
 `(periodize L h)(t) = Σ_{k ∈ ℤ} h(t + kL)`
 
-The sum converges absolutely in all Sobolev norms by rapid decay of `h`.
+Constructed as a continuous linear map using:
+- `periodizeSmoothCircle` for the underlying function
+- `periodize_summable` for convergence of the sum
+- `periodize_smooth` for smoothness of the sum
+- `periodize_sobolevSeminorm_le` for continuity (Sobolev-Schwartz bound)
 
-**Proof sketch**: For any Schwartz seminorm `p_{N,n}(h) = sup_t (1+|t|)^N |h^(n)(t)|`:
-- The k-th term satisfies `|h^(n)(t + kL)| ≤ p_{N,n}(h) (1+|t+kL|)^{-N}`
-- For `t ∈ [0, L]`, `|t + kL| ≥ |k|L - L`, so `(1+|t+kL|)^{-N} ≤ C (1+|k|L)^{-N}`
-- The sum `Σ_k (1+|k|L)^{-N}` converges for `N > 1`
-- Sobolev seminorm: `‖periodize L h‖_{H^s} ≤ C_{s,L} · p_{s+2, s}(h)` -/
-axiom periodizeCLM : SchwartzMap ℝ ℝ →L[ℝ] SmoothMap_Circle L ℝ
+The sum converges absolutely in all Sobolev norms by rapid decay of `h`. -/
+def periodizeCLM : SchwartzMap ℝ ℝ →L[ℝ] SmoothMap_Circle L ℝ where
+  toLinearMap := periodizeLM L
+  cont := by
+    apply WithSeminorms.continuous_of_isBounded
+      (schwartz_withSeminorms ℝ ℝ ℝ)
+      SmoothMap_Circle.smoothCircle_withSeminorms
+    intro i
+    obtain ⟨s, C, hC, hbound⟩ := periodize_sobolevSeminorm_le L i
+    refine ⟨s, ⟨C, hC⟩, fun h => ?_⟩
+    simp only [Seminorm.comp_apply, NNReal.smul_def, Seminorm.smul_apply, NNReal.coe_mk]
+    exact hbound h
 
 /-- Pointwise formula for periodization. -/
-axiom periodizeCLM_apply (h : SchwartzMap ℝ ℝ) (t : ℝ) :
-    (periodizeCLM L h).toFun t = ∑' (k : ℤ), h (t + k * L)
+theorem periodizeCLM_apply (h : SchwartzMap ℝ ℝ) (t : ℝ) :
+    (periodizeCLM L h).toFun t = ∑' (k : ℤ), h (t + k * L) := rfl
 
 /-- For compactly supported Schwartz functions with support in `[-T, T]`
 and `L > 2T`, the periodization agrees with `h` on `[0, L/2]`.
