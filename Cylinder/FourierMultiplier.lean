@@ -388,7 +388,7 @@ theorem fourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
 Reflection negates the Fourier variable, and even σ is invariant.
 
 Reference: Stein, *Singular Integrals*, Ch. I. -/
-axiom fourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
+theorem fourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
     (hσ : σ.HasTemperateGrowth) (heven : ∀ p, σ (-p) = σ p)
     (f : SchwartzMap ℝ ℂ) :
     SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ
@@ -396,7 +396,15 @@ axiom fourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
         (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f) =
     SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
       (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv
-      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f)
+      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f) := by
+  -- Both sides are Schwartz functions; reduce to pointwise equality.
+  -- At integral level both equal ∫ e^{-2πixξ} σ(ξ) (ℱf)(ξ) dξ.
+  ext x
+  simp only [SchwartzMap.fourierMultiplierCLM_apply,
+    SchwartzMap.compCLMOfContinuousLinearEquiv_apply]
+  -- Goal: (ℱ⁻¹(σ • ℱ(f ∘ neg)))(x) = (ℱ⁻¹(σ • ℱf)) ∘ neg $ x
+  -- i.e., (ℱ⁻¹(σ • ℱ(f ∘ neg)))(x) = (ℱ⁻¹(σ • ℱf))(-x)
+  sorry
 
 /-- **Translation equivariance of real Fourier multipliers.**
 
