@@ -147,19 +147,19 @@ The key property is that slicing a pure tensor `pure g h` at index `a` yields
 
 /-- Extract the a-th slice: `b ↦ f.val(Nat.pair a b)`.
 This is rapidly decaying because `b ≤ Nat.pair a b`. -/
-private theorem pair_weight_le (a b : ℕ) (k : ℕ) :
+theorem pair_weight_le (a b : ℕ) (k : ℕ) :
     (1 + (b : ℝ)) ^ k ≤ (1 + (Nat.pair a b : ℝ)) ^ k := by
   apply pow_le_pow_left₀ (by positivity)
   have h : b ≤ Nat.pair a b := Nat.right_le_pair a b
   have : (b : ℝ) ≤ (Nat.pair a b : ℝ) := Nat.cast_le (α := ℝ).mpr h
   linarith
 
-private theorem pair_right_injective (a : ℕ) :
+theorem pair_right_injective (a : ℕ) :
     Function.Injective (Nat.pair a) := by
   intro b₁ b₂ h
   exact (Nat.pair_eq_pair.mp h).2
 
-private def ntpExtractSliceFun (a : ℕ) (f : RapidDecaySeq) : RapidDecaySeq where
+def ntpExtractSliceFun (a : ℕ) (f : RapidDecaySeq) : RapidDecaySeq where
   val b := f.val (Nat.pair a b)
   rapid_decay k := by
     set g : ℕ → ℝ := fun m => |f.val m| * (1 + (m : ℝ)) ^ k
@@ -170,7 +170,7 @@ private def ntpExtractSliceFun (a : ℕ) (f : RapidDecaySeq) : RapidDecaySeq whe
       exact mul_le_mul_of_nonneg_left (pair_weight_le a b k) (abs_nonneg _)
     · exact (f.rapid_decay k).comp_injective (pair_right_injective a)
 
-private def ntpExtractSliceLM (a : ℕ) : RapidDecaySeq →ₗ[ℝ] RapidDecaySeq where
+def ntpExtractSliceLM (a : ℕ) : RapidDecaySeq →ₗ[ℝ] RapidDecaySeq where
   toFun := ntpExtractSliceFun a
   map_add' f g := RapidDecaySeq.ext fun b => by
     show (f + g).val (Nat.pair a b) = (ntpExtractSliceFun a f + ntpExtractSliceFun a g).val b
@@ -179,7 +179,7 @@ private def ntpExtractSliceLM (a : ℕ) : RapidDecaySeq →ₗ[ℝ] RapidDecaySe
     show (r • f).val (Nat.pair a b) = (r • ntpExtractSliceFun a f).val b
     simp [ntpExtractSliceFun, RapidDecaySeq.smul_val]
 
-private theorem ntpExtractSliceLM_isBounded (a : ℕ) :
+theorem ntpExtractSliceLM_isBounded (a : ℕ) :
     Seminorm.IsBounded RapidDecaySeq.rapidDecaySeminorm
       RapidDecaySeq.rapidDecaySeminorm (ntpExtractSliceLM a) := by
   intro k
@@ -200,7 +200,7 @@ private theorem ntpExtractSliceLM_isBounded (a : ℕ) :
           (fun m => mul_nonneg (abs_nonneg _) (RapidDecaySeq.weight_nonneg m k))
           (pair_right_injective a)
 
-private def ntpExtractSlice (a : ℕ) : RapidDecaySeq →L[ℝ] RapidDecaySeq where
+def ntpExtractSlice (a : ℕ) : RapidDecaySeq →L[ℝ] RapidDecaySeq where
   toLinearMap := ntpExtractSliceLM a
   cont := WithSeminorms.continuous_of_isBounded
     RapidDecaySeq.rapidDecay_withSeminorms
@@ -208,12 +208,12 @@ private def ntpExtractSlice (a : ℕ) : RapidDecaySeq →L[ℝ] RapidDecaySeq wh
     (ntpExtractSliceLM a) (ntpExtractSliceLM_isBounded a)
 
 @[simp]
-private theorem ntpExtractSlice_val (a : ℕ) (f : RapidDecaySeq) (b : ℕ) :
+theorem ntpExtractSlice_val (a : ℕ) (f : RapidDecaySeq) (b : ℕ) :
     (ntpExtractSlice a f).val b = f.val (Nat.pair a b) := rfl
 
 /-- Compose extraction with `schwartzRapidDecayEquiv1D.symm` to get a CLM
 from `CylinderTestFunction L` to `SchwartzMap ℝ ℝ`. -/
-private def ntpSliceSchwartz (a : ℕ) :
+def ntpSliceSchwartz (a : ℕ) :
     CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ :=
   schwartzRapidDecayEquiv1D.symm.toContinuousLinearMap.comp (ntpExtractSlice a)
 
@@ -226,7 +226,7 @@ For `pure g h`:
   (by `NuclearTensorProduct.pure_val` and `Nat.unpair_pair`)
 - The extracted slice is `b ↦ coeff_a(g) * coeff_b(h) = coeff_a(g) • (equiv h).val b`
 - Applying `equiv.symm` gives `coeff_a(g) • h` -/
-private theorem ntpSliceSchwartz_pure (a : ℕ)
+theorem ntpSliceSchwartz_pure (a : ℕ)
     (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ) :
     ntpSliceSchwartz L a (NuclearTensorProduct.pure g h) =
       DyninMityaginSpace.coeff a g • h := by

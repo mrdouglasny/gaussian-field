@@ -27,7 +27,7 @@ The proof chain uses two layers connecting to the heat semigroup:
 ## Main definitions
 
 - `resolventFreq L mass n` — dispersion relation ω_n = √(λ_n + m²) (defined)
-- `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (axiom)
+- `cylinderMassOperator L mass` — CLM T : CylinderTestFunction L → ℓ² (defined)
 - `cylinderGreen L mass` — bilinear form G_L(f,g) = ⟨Tf, Tg⟩ (defined)
 
 ## Main results
@@ -85,8 +85,7 @@ The DMS basis for 𝓢(ℝ) is Hermite functions, but the resolvent
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II, §X.12
 -/
 
-import Cylinder.FreeHeatSemigroup
-import GaussianField.Construction
+import Cylinder.MassOperatorConstruction
 
 noncomputable section
 
@@ -94,90 +93,8 @@ namespace GaussianField
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
-/-! ## Resolvent frequency (dispersion relation)
-
-For each spatial Fourier mode n on S¹_L with eigenvalue λ_n = (2πk/L)²,
-the dispersion relation gives the effective mass:
-
-  `ω_n = √(λ_n + m²) = √((2πk/L)² + m²)`
-
-This is the frequency that appears in the temporal resolvent kernel
-`exp(-ω_n|t|)/(2ω_n)` and determines the mass gap of the theory. -/
-
-/-- **Dispersion relation on the cylinder.**
-
-  `ω_n = √((2πk/L)² + m²)`
-
-where `k = fourierFreq(n)` is the spatial frequency of the n-th Fourier
-mode on S¹_L. This is the resolvent frequency for the 1D operator
-`-d²/dt² + ω_n²` acting on the temporal Schwartz functions. -/
-def resolventFreq (mass : ℝ) (n : ℕ) : ℝ :=
-  Real.sqrt ((2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 + mass ^ 2)
-
-omit hL in
-/-- The resolvent frequency is strictly positive when mass > 0. -/
-theorem resolventFreq_pos (mass : ℝ) (hmass : 0 < mass) (n : ℕ) :
-    0 < resolventFreq L mass n := by
-  unfold resolventFreq
-  apply Real.sqrt_pos_of_pos
-  positivity
-
-omit hL in
-/-- The square of the resolvent frequency recovers the spatial eigenvalue + mass². -/
-theorem resolventFreq_sq (mass : ℝ) (n : ℕ) :
-    resolventFreq L mass n ^ 2 =
-    (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 + mass ^ 2 := by
-  unfold resolventFreq
-  exact Real.sq_sqrt (add_nonneg (sq_nonneg _) (sq_nonneg _))
-
-omit hL in
-/-- The resolvent frequency is nonneg. -/
-theorem resolventFreq_nonneg (mass : ℝ) (n : ℕ) :
-    0 ≤ resolventFreq L mass n := by
-  unfold resolventFreq
-  exact Real.sqrt_nonneg _
-
-omit hL in
-/-- The resolvent frequency is at least the mass. -/
-theorem resolventFreq_mass_le (mass : ℝ) (hmass : 0 ≤ mass) (n : ℕ) :
-    mass ≤ resolventFreq L mass n := by
-  unfold resolventFreq
-  calc mass = Real.sqrt (mass ^ 2) := (Real.sqrt_sq hmass).symm
-    _ ≤ Real.sqrt ((2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2 + mass ^ 2) := by
-        apply Real.sqrt_le_sqrt; linarith [sq_nonneg (2 * Real.pi * ↑(SmoothMap_Circle.fourierFreq n) / L)]
-
-omit hL in
-/-- The zero mode (n=0) has resolvent frequency equal to the mass. -/
-theorem resolventFreq_zero_mode (mass : ℝ) (hmass : 0 ≤ mass) :
-    resolventFreq L mass 0 = mass := by
-  unfold resolventFreq
-  simp [SmoothMap_Circle.fourierFreq, Real.sqrt_sq hmass]
-
-/-! ## Mass operator (for Gaussian measure construction)
-
-The mass operator `T = A^{-1/2} : CylinderTestFunction L → ℓ²` is the
-square root of the covariance operator, composed with the L² embedding
-into ℓ². It satisfies `⟨Tf, Tg⟩_{ℓ²} = G(f,g)` where G is the Green's
-function (covariance bilinear form).
-
-The mass operator is related to the covariance by `T*T = C` in the L² sense:
-
-  `⟨Tf, Tg⟩_{ℓ²} = ⟨f, Cg⟩_{L²(S¹×ℝ)}`
-
-This factorization is the content of the GNS construction applied to the
-positive definite bilinear form `(f,g) ↦ ⟨f, Cg⟩_{L²}`. -/
-
-/-- **The mass operator** `T = A^{-1/2} : CylinderTestFunction L → ℓ²`.
-
-This is the GNS map for the covariance bilinear form: `⟨Tf, Tg⟩ = ⟨f, Cg⟩_{L²}`.
-It decomposes by spatial Fourier mode: for mode n with dispersion relation
-ω_n = `resolventFreq L mass n`, the temporal component undergoes the
-Fourier multiplier `(p² + ω_n²)^{-1/2}` from `resolventMultiplierCLM`.
-
-Used by `GaussianField.measure T` to construct the Gaussian probability
-measure on `Configuration (CylinderTestFunction L)`. -/
-axiom cylinderMassOperator (mass : ℝ) (hmass : 0 < mass) :
-    CylinderTestFunction L →L[ℝ] ell2'
+-- resolventFreq and cylinderMassOperator are now defined in
+-- Cylinder/MassOperatorConstruction.lean and re-exported here via import.
 
 /-! ## Cylinder Green's function
 
