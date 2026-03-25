@@ -47,14 +47,70 @@ def periodizeFun (h : SchwartzMap ℝ ℝ) (t : ℝ) : ℝ := ∑' (k : ℤ), h 
 
 /-- The sum `Σ_k h(t + kL)` converges absolutely for each `t` when `h` is Schwartz.
 
-**Proof**: By `SchwartzMap.le_seminorm'` with `k = 2, n = 0`:
-`|x|² · ‖h(x)‖ ≤ (seminorm ℝ 2 0) h`, so `‖h(x)‖ ≤ C/|x|²` for `|x| ≥ 1`.
-For fixed `t`, only finitely many `k` have `|t + kL| < 1`; for the rest,
-`‖h(t + kL)‖ ≤ C/|t + kL|² ≤ C'/(1 + |k|)²`, which is summable.
+**Proof**: By `SchwartzMap.norm_pow_mul_le_seminorm` with `k = 2`:
+`‖x‖² · ‖h(x)‖ ≤ (seminorm ℝ 2 0) h`, so `‖h(x)‖ ≤ S/‖x‖²` for `‖x‖ > 0`.
+Split ℤ into positive and negative halves. For `n ≥ ⌈2|t|/L⌉ + 1`,
+`‖t + nL‖ ≥ nL/2`, giving `‖h(t + nL)‖ ≤ 4S/(nL)²`. The bounding series
+`Σ_n 4S/(nL)² = (4S/L²) Σ 1/n²` converges by `Real.summable_one_div_nat_pow`.
 
 Reference: Grafakos, *Classical Fourier Analysis*, Proposition 3.1.15. -/
-axiom periodize_summable (h : SchwartzMap ℝ ℝ) (t : ℝ) :
-    Summable (fun k : ℤ => h (t + k * L))
+theorem periodize_summable (h : SchwartzMap ℝ ℝ) (t : ℝ) :
+    Summable (fun k : ℤ => h (t + k * L)) := by
+  rw [summable_int_iff_summable_nat_and_neg]
+  set S := (SchwartzMap.seminorm ℝ 2 0) h
+  have hL_pos := hL.out
+  have norm_bound : ∀ x : ℝ, ‖x‖ ^ 2 * ‖h x‖ ≤ S :=
+    fun x => SchwartzMap.norm_pow_mul_le_seminorm ℝ h 2 x
+  -- If d ≤ ‖x‖ and d > 0, then ‖h x‖ ≤ S / d²
+  have bound_from_lower (x d : ℝ) (hd : 0 < d) (hxd : d ≤ ‖x‖) :
+      ‖h x‖ ≤ S / d ^ 2 := by
+    rw [le_div_iff₀ (by positivity : (0:ℝ) < d ^ 2)]
+    have : d ^ 2 ≤ ‖x‖ ^ 2 := by
+      nlinarith [sq_nonneg (‖x‖ - d), sq_nonneg ‖x‖, sq_nonneg d]
+    calc ‖h x‖ * d ^ 2 ≤ ‖h x‖ * ‖x‖ ^ 2 := by nlinarith [norm_nonneg (h x)]
+      _ = ‖x‖ ^ 2 * ‖h x‖ := by ring
+      _ ≤ S := norm_bound x
+  -- Threshold: for n ≥ N, nL ≥ 2|t|, so |t ± nL| ≥ nL/2
+  set N := ⌈2 * |t| / L⌉₊ + 1
+  have hN_bound : ∀ n : ℕ, N ≤ n → 2 * |t| ≤ ↑n * L := by
+    intro n hn
+    have hn_cast : (⌈2 * |t| / L⌉₊ : ℝ) + 1 ≤ (n : ℝ) := by exact_mod_cast hn
+    calc 2 * |t| = (2 * |t| / L) * L := by field_simp
+      _ ≤ ↑⌈2 * |t| / L⌉₊ * L := by nlinarith [Nat.le_ceil (2 * |t| / L)]
+      _ ≤ ↑n * L := by nlinarith
+  constructor
+  · -- Positive half: Summable (fun n : ℕ => h (t + ↑n * L))
+    refine Summable.of_norm_bounded_eventually_nat
+      (g := fun n => (4 * S / L ^ 2) * (1 / (n : ℝ) ^ 2))
+      (((Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)).mul_left _) ?_
+    rw [Filter.eventually_atTop]
+    refine ⟨N, fun n hn => ?_⟩
+    have hn_pos : (0 : ℝ) < n := Nat.cast_pos.mpr (by omega)
+    have := hN_bound n hn
+    calc ‖h (t + ↑n * L)‖
+        ≤ S / (↑n * L / 2) ^ 2 := by
+          apply bound_from_lower
+          · positivity
+          · rw [Real.norm_eq_abs, abs_of_nonneg (by nlinarith [neg_abs_le t])]
+            nlinarith [neg_abs_le t]
+      _ = 4 * S / L ^ 2 * (1 / ↑n ^ 2) := by ring
+  · -- Negative half: Summable (fun n : ℕ => h (t + (-↑n) * L))
+    suffices Summable (fun n : ℕ => h (t - ↑n * L)) by
+      convert this using 1; ext n; congr 1; push_cast; ring
+    refine Summable.of_norm_bounded_eventually_nat
+      (g := fun n => (4 * S / L ^ 2) * (1 / (n : ℝ) ^ 2))
+      (((Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)).mul_left _) ?_
+    rw [Filter.eventually_atTop]
+    refine ⟨N, fun n hn => ?_⟩
+    have hn_pos : (0 : ℝ) < n := Nat.cast_pos.mpr (by omega)
+    have := hN_bound n hn
+    calc ‖h (t - ↑n * L)‖
+        ≤ S / (↑n * L / 2) ^ 2 := by
+          apply bound_from_lower
+          · positivity
+          · rw [Real.norm_eq_abs, abs_of_nonpos (by nlinarith [le_abs_self t])]
+            nlinarith [le_abs_self t]
+      _ = 4 * S / L ^ 2 * (1 / ↑n ^ 2) := by ring
 
 /-- The periodized function is periodic with period `L`.
 
