@@ -30,26 +30,27 @@ Note: The endomorphism versions (`mapCLM`, `mapCLM_pure`, `mapCLM_id`, `mapCLM_c
 
 Note: The three properties (`_comp_schwartzTranslation`, `_comp_schwartzReflection`, `_eq_on_large_period`) are all **proved theorems** from the pointwise formula.
 
-### Fourier multiplier properties (3 axioms)
+### Fourier multiplier properties (4 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
 | 5 | `fourierMultiplier_preserves_real` | Cylinder/FourierMultiplier | Even real-valued Fourier multiplier $M_\sigma$ maps real Schwartz functions to real Schwartz functions. Uses Fourier conjugation symmetry. |
 | 6 | `fourierMultiplierCLM_translation_comm` | Cylinder/FourierMultiplier | $M_\sigma(T_\tau f) = T_\tau(M_\sigma f)$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$. Phase factor commutativity. |
 | 7 | `fourierMultiplierCLM_even_reflection_comm` | Cylinder/FourierMultiplier | $M_\sigma(\Theta f) = \Theta(M_\sigma f)$ for even $\sigma$ on $\mathcal{S}(\mathbb{R}, \mathbb{C})$ |
+| 7' | `resolventMultiplierCLM_injective` | Cylinder/FourierMultiplier | $R_\omega f = 0 \Rightarrow f = 0$ on $\mathcal{S}(\mathbb{R})$. The resolvent symbol $(p^2+\omega^2)^{-1/2} > 0$ never vanishes, so Fourier injectivity gives the result. |
 
 Note: The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems** from these + Mathlib's `fourierMultiplierCLM_compL_fourierMultiplierCLM`.
 
-### Cylinder Green's function (3 axioms)
+### Cylinder Green's function (2 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
 | ~~8~~ | ~~`cylinderMassOperator`~~ | ~~Cylinder/GreenFunction~~ | **PROVED** — now a def in Cylinder/MassOperatorConstruction.lean. Constructed from `ntpSliceSchwartz` (spatial mode extraction) + `resolventMultiplierCLM` (Fourier multiplier) + `nuclear_ell2_embedding_from_decay`. |
 | 8' | `resolventRDS_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent RDS seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
-| 9 | `cylinderGreen_pos` | Cylinder/GreenFunction | $G_L(f,f) > 0$ for $f \neq 0$. Injectivity of the mass operator (resolvent has non-vanishing symbol). |
+| ~~9~~ | ~~`cylinderGreen_pos`~~ | ~~Cylinder/GreenFunction~~ | **PROVED** — from `cylinderMassOperator_injective`, which uses `resolventMultiplierCLM_injective` + CLE injectivity chain. |
 | 10 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
-Note: `cylinderGreen_continuous_seminorm_bound` is a **proved theorem** ($G(f,f) = \lVert Tf \rVert^2 \leq q(f)^2$ via `normSeminorm`). The three equivariance corollaries (spatial translation, time translation, time reflection) are **proved theorems** from the general principle + heat semigroup commutation.
+Note: `cylinderGreen_continuous_seminorm_bound` is a **proved theorem** ($G(f,f) = \lVert Tf \rVert^2 \leq q(f)^2$ via `normSeminorm`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. The three equivariance corollaries (spatial translation, time translation, time reflection) are **proved theorems** from the general principle + heat semigroup commutation.
 
 ### Cylinder reflection positivity (3 axioms)
 
@@ -108,8 +109,9 @@ The following were axioms and are now fully proved theorems:
 - `massOperatorCoord_decay` — nuclear decay bound (proved from Cantor pairing + coeff_decay + slice a-decay)
 - `cylinderMassOperator_coord/formula` — coordinate access theorems
 
-### Green's function (1 proved)
+### Green's function (2 proved)
 - `cylinderGreen_continuous_seminorm_bound` — $G(f,f) \leq q(f)^2$ via `normSeminorm`
+- `cylinderGreen_pos` — $G(f,f) > 0$ for $f \neq 0$, via `cylinderMassOperator_injective` (resolvent injectivity + CLE chain)
 
 ### Method of images (4 proved)
 - `torusGreen_uniform_bound` — proved from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`

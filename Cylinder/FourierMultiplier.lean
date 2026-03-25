@@ -386,20 +386,66 @@ def resolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
     SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
   realFourierMultiplierCLM (resolventSymbol ω) (resolventSymbol_hasTemperateGrowth ω hω)
 
+attribute [local instance] SMulCommClass.symm in
 /-- **Injectivity of the resolvent Fourier multiplier.**
 
 The resolvent `R_ω = M_{σ_ω}` with symbol `σ_ω(p) = (p² + ω²)^{-1/2}` is
-injective on 𝓢(ℝ): if `R_ω f = 0` then `f = 0`.
+injective on 𝓢(ℝ): if `R_ω f = R_ω g` then `f = g`.
 
-Proof sketch: `R_ω f = ℱ⁻¹(σ_ω · ℱf) = 0` implies `σ_ω · ℱf = 0` by Fourier
-injectivity. Since `σ_ω(p) > 0` for all p (the symbol never vanishes),
-this gives `ℱf = 0`, hence `f = 0` by Fourier inversion.
-
-Reference: Standard result for elliptic pseudodifferential operators.
-The resolvent `(-Δ + ω²)^{-1/2}` is elliptic of order -1, hence injective
-on 𝓢(ℝ). See e.g. Taylor, *Pseudodifferential Operators*, §0.8. -/
-axiom resolventMultiplierCLM_injective {ω : ℝ} (hω : 0 < ω) :
-    Function.Injective (resolventMultiplierCLM hω)
+Proof: The real multiplier is `re ∘ M_σ ∘ ofReal`. By `fourierMultiplier_preserves_real`,
+even real symbols preserve real-valuedness, so equality of real parts lifts to
+complex equality `M_σ(ofReal f) = M_σ(ofReal g)`. Unfolding `M_σ = 𝓕⁻¹ ∘ (σ·) ∘ 𝓕`
+and applying the Fourier transform (a `ContinuousLinearEquiv` on 𝓢) gives
+`σ · 𝓕(ofReal f) = σ · 𝓕(ofReal g)`. Since `σ(p) > 0` for all p
+(`resolventSymbol_pos`), pointwise cancellation gives `𝓕(ofReal f) = 𝓕(ofReal g)`,
+hence `ofReal f = ofReal g` by Fourier injectivity, hence `f = g`. -/
+theorem resolventMultiplierCLM_injective {ω : ℝ} (hω : 0 < ω) :
+    Function.Injective (resolventMultiplierCLM hω) := by
+  open FourierTransform in
+  intro f g hfg
+  set σ := resolventSymbol ω
+  have hσ := resolventSymbol_hasTemperateGrowth ω hω
+  have hσ_pos := resolventSymbol_pos hω
+  -- Step 1: Lift from real to complex equality using fourierMultiplier_preserves_real
+  have preserves := fourierMultiplier_preserves_real σ hσ (resolventSymbol_even ω)
+  have hMf : schwartzToComplex (schwartzToReal
+      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex f))) =
+    SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex f) := by
+    have := ContinuousLinearMap.ext_iff.mp preserves f
+    simp only [ContinuousLinearMap.comp_apply] at this; exact this
+  have hMg : schwartzToComplex (schwartzToReal
+      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex g))) =
+    SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex g) := by
+    have := ContinuousLinearMap.ext_iff.mp preserves g
+    simp only [ContinuousLinearMap.comp_apply] at this; exact this
+  have hM_eq : SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex f) =
+    SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex g) := by
+    rw [← hMf, ← hMg]; congr 1
+  -- Step 2: Unfold M_σ = 𝓕⁻¹(σ•𝓕·), apply 𝓕 to get σ•𝓕(ofReal f) = σ•𝓕(ofReal g)
+  have hsmul_eq : SchwartzMap.smulLeftCLM ℂ σ (fourier (schwartzToComplex f)) =
+    SchwartzMap.smulLeftCLM ℂ σ (fourier (schwartzToComplex g)) := by
+    -- fourierMultiplierCLM_apply: M_σ h = 𝓕⁻¹(σ • 𝓕 h)
+    simp only [SchwartzMap.fourierMultiplierCLM_apply] at hM_eq
+    -- hM_eq : 𝓕⁻¹(σ•𝓕(ofReal f)) = 𝓕⁻¹(σ•𝓕(ofReal g))
+    -- 𝓕⁻¹ is injective (it's half of a ContinuousLinearEquiv)
+    exact (fourierCLE ℝ (SchwartzMap ℝ ℂ)).symm.injective hM_eq
+  -- Step 3: Cancel σ pointwise using σ(p) > 0
+  have hFourier_eq : fourier (schwartzToComplex f) = fourier (schwartzToComplex g) := by
+    ext x
+    have hpt : (SchwartzMap.smulLeftCLM ℂ σ (fourier (schwartzToComplex f))) x =
+      (SchwartzMap.smulLeftCLM ℂ σ (fourier (schwartzToComplex g))) x :=
+      congr_fun (congr_arg DFunLike.coe hsmul_eq) x
+    rw [SchwartzMap.smulLeftCLM_apply_apply hσ,
+      SchwartzMap.smulLeftCLM_apply_apply hσ] at hpt
+    exact smul_right_injective ℂ (ne_of_gt (hσ_pos x)) hpt
+  -- Step 4: Fourier injectivity → ofReal f = ofReal g
+  have h_ofReal_eq : schwartzToComplex f = schwartzToComplex g :=
+    (fourierCLE ℝ (SchwartzMap ℝ ℂ)).injective hFourier_eq
+  -- Step 5: ofReal injective → f = g
+  ext x
+  have hx := SchwartzMap.ext_iff.mp h_ofReal_eq x
+  simp [schwartzToComplex] at hx
+  exact hx
 
 /-! ### Equivariance axioms -/
 
