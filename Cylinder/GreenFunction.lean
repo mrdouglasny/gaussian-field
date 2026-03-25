@@ -193,8 +193,8 @@ theorem cylinderMassOperator_injective (mass : ℝ) (hmass : 0 < mass) :
   have hTsub : cylinderMassOperator L mass hmass (f - g) = 0 := by
     rw [map_sub, sub_eq_zero]; exact hfg
   -- All coordinates of T(f - g) are zero
-  have hcoord : ∀ n, (cylinderMassOperator L mass hmass (f - g) : ℕ → ℝ) n = 0 := by
-    intro n; simp [hTsub]
+  have hcoord : ∀ n, (cylinderMassOperator L mass hmass (f - g)).val n = 0 := by
+    intro n; rw [hTsub]; rfl
   -- For all a' b': the DM coefficient b' of R_{ω_{a'}}(slice_{a'} (f-g)) = 0
   have hDM : ∀ a' b',
       (schwartzRapidDecayEquiv1D
@@ -225,9 +225,12 @@ theorem cylinderMassOperator_injective (mass : ℝ) (hmass : 0 < mass) :
   -- For all a': ntpExtractSlice a' (f-g) = 0
   have hExtract : ∀ a', ntpExtractSlice a' (f - g) = 0 := by
     intro a'
-    have := hSlice a'
-    simp only [ntpSliceSchwartz, ContinuousLinearMap.comp_apply] at this
-    rwa [ContinuousLinearEquiv.map_eq_zero_iff] at this
+    have h := hSlice a'
+    -- ntpSliceSchwartz = equiv.symm ∘ ntpExtractSlice, so equiv.symm(extract) = 0
+    -- hence extract = equiv(equiv.symm(extract)) = equiv(slice) = equiv(0) = 0
+    rw [← schwartzRapidDecayEquiv1D.apply_symm_apply (ntpExtractSlice a' (f - g))]
+    change schwartzRapidDecayEquiv1D (ntpSliceSchwartz L a' (f - g)) = 0
+    rw [h, map_zero]
   -- f.val m - g.val m = (f - g).val m = (f - g).val (pair a b) = (extract a (f-g)).val b = 0
   have : (ntpExtractSlice a (f - g)).val b = 0 := by
     rw [hExtract a]; rfl
