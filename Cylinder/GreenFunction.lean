@@ -172,16 +172,82 @@ theorem cylinderGreen_continuous_diag (mass : ℝ) (hmass : 0 < mass) :
   exact (cylinderMassOperator L mass hmass).continuous.inner
     (cylinderMassOperator L mass hmass).continuous
 
+/-- The cylinder mass operator is injective.
+
+If `T f = 0` in ℓ² then `f = 0`. The proof works by:
+1. `T f = 0` implies all coordinates `(T f)_m = 0`
+2. For each spatial mode `a`, the resolvent image `R_{ω_a}(slice_a f)` has
+   all DM coefficients zero, hence is zero
+3. By `resolventMultiplierCLM_injective`, each slice `slice_a f = 0`
+4. By `ntpExtractSlice` definition, `f.val(pair(a,b)) = 0` for all `a, b`
+5. By Cantor pairing surjectivity, `f.val m = 0` for all `m`, so `f = 0` -/
+theorem cylinderMassOperator_injective (mass : ℝ) (hmass : 0 < mass) :
+    Function.Injective (cylinderMassOperator L mass hmass) := by
+  intro f g hfg
+  rw [← sub_eq_zero]
+  apply NuclearTensorProduct.ext
+  intro m
+  set a := (Nat.unpair m).1
+  set b := (Nat.unpair m).2
+  -- From hfg: T f = T g, so T(f - g) = 0
+  have hTsub : cylinderMassOperator L mass hmass (f - g) = 0 := by
+    rw [map_sub, sub_eq_zero]; exact hfg
+  -- All coordinates of T(f - g) are zero
+  have hcoord : ∀ n, (cylinderMassOperator L mass hmass (f - g) : ℕ → ℝ) n = 0 := by
+    intro n; simp [hTsub]
+  -- For all a' b': the DM coefficient b' of R_{ω_{a'}}(slice_{a'} (f-g)) = 0
+  have hDM : ∀ a' b',
+      (schwartzRapidDecayEquiv1D
+        (resolventMultiplierCLM (resolventFreq_pos L mass hmass a')
+          (ntpSliceSchwartz L a' (f - g)))).val b' = 0 := by
+    intro a' b'
+    have := hcoord (Nat.pair a' b')
+    rw [cylinderMassOperator_formula] at this
+    simp only [Nat.unpair_pair] at this
+    -- this : DyninMityaginSpace.coeff b' (R_{ω_{a'}}(slice_{a'} (f-g))) = 0
+    -- DyninMityaginSpace.coeff for SchwartzMap ℝ ℝ is (equiv g).val b' by defn
+    exact this
+  -- For all a': R_{ω_{a'}}(slice_{a'} (f-g)) = 0
+  have hResolvent : ∀ a',
+      resolventMultiplierCLM (resolventFreq_pos L mass hmass a')
+        (ntpSliceSchwartz L a' (f - g)) = 0 := by
+    intro a'
+    have hRDS : schwartzRapidDecayEquiv1D
+        (resolventMultiplierCLM (resolventFreq_pos L mass hmass a')
+          (ntpSliceSchwartz L a' (f - g))) = 0 :=
+      RapidDecaySeq.ext (hDM a')
+    exact schwartzRapidDecayEquiv1D.injective (by rw [hRDS, map_zero])
+  -- For all a': slice_{a'} (f-g) = 0
+  have hSlice : ∀ a', ntpSliceSchwartz L a' (f - g) = 0 := by
+    intro a'
+    exact resolventMultiplierCLM_injective (resolventFreq_pos L mass hmass a')
+      (by rw [hResolvent a', map_zero])
+  -- For all a': ntpExtractSlice a' (f-g) = 0
+  have hExtract : ∀ a', ntpExtractSlice a' (f - g) = 0 := by
+    intro a'
+    have := hSlice a'
+    simp only [ntpSliceSchwartz, ContinuousLinearMap.comp_apply] at this
+    rwa [ContinuousLinearEquiv.map_eq_zero_iff] at this
+  -- f.val m - g.val m = (f - g).val m = (f - g).val (pair a b) = (extract a (f-g)).val b = 0
+  have : (ntpExtractSlice a (f - g)).val b = 0 := by
+    rw [hExtract a]; rfl
+  rw [ntpExtractSlice_val] at this
+  rw [show Nat.pair a b = m from Nat.pair_unpair m] at this
+  simpa using this
+
 /-- The cylinder Green's function is strictly positive on nonzero functions.
 
   `G_L(f,f) > 0` for f ≠ 0.
 
-This requires injectivity of the mass operator T, which follows from
-the resolvent `(p² + ω_n²)^{-1/2}` being injective on 𝓢(ℝ) for each
-mode n (since the Fourier multiplier vanishes nowhere). -/
-axiom cylinderGreen_pos (mass : ℝ) (hmass : 0 < mass)
+Proved from injectivity of the mass operator: `G(f,f) = ⟨Tf, Tf⟩ = ‖Tf‖²`,
+and `Tf ≠ 0` when `f ≠ 0` by `cylinderMassOperator_injective`. -/
+theorem cylinderGreen_pos (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L) (hf : f ≠ 0) :
-    0 < cylinderGreen L mass hmass f f
+    0 < cylinderGreen L mass hmass f f := by
+  simp only [cylinderGreen, real_inner_self_eq_norm_sq]
+  exact sq_pos_of_pos (norm_pos_iff.mpr
+    (fun h => hf (cylinderMassOperator_injective L mass hmass
+      (by rw [h, map_zero]))))
 
 /-! ## Heat kernel equivariance principle
 

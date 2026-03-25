@@ -386,6 +386,21 @@ def resolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
     SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
   realFourierMultiplierCLM (resolventSymbol ω) (resolventSymbol_hasTemperateGrowth ω hω)
 
+/-- **Injectivity of the resolvent Fourier multiplier.**
+
+The resolvent `R_ω = M_{σ_ω}` with symbol `σ_ω(p) = (p² + ω²)^{-1/2}` is
+injective on 𝓢(ℝ): if `R_ω f = 0` then `f = 0`.
+
+Proof sketch: `R_ω f = ℱ⁻¹(σ_ω · ℱf) = 0` implies `σ_ω · ℱf = 0` by Fourier
+injectivity. Since `σ_ω(p) > 0` for all p (the symbol never vanishes),
+this gives `ℱf = 0`, hence `f = 0` by Fourier inversion.
+
+Reference: Standard result for elliptic pseudodifferential operators.
+The resolvent `(-Δ + ω²)^{-1/2}` is elliptic of order -1, hence injective
+on 𝓢(ℝ). See e.g. Taylor, *Pseudodifferential Operators*, §0.8. -/
+axiom resolventMultiplierCLM_injective {ω : ℝ} (hω : 0 < ω) :
+    Function.Injective (resolventMultiplierCLM hω)
+
 /-! ### Equivariance axioms -/
 
 /-- The heat multiplier commutes with translation.
