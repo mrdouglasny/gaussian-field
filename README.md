@@ -386,7 +386,10 @@ The 1D lattice-continuum convergence pipeline is fully proved: DFT eigenbasis co
 
 Green's function invariance (reflection, translation) on pure tensors and the bilinear extension are proved in `HeatKernel/GreenInvariance.lean`. Fourier translation/reflection axioms in `SmoothCircle/FourierTranslation.lean` are fully proved.
 
-Current project status is **0 axioms (+1 skipped), 0 sorries** on the main build path.
+The core Gaussian field library has **0 axioms (+1 skipped), 0 sorries**.
+
+The Cylinder QFT infrastructure (used by pphi2, OSforGFF) has **7 axioms, 0 sorries**.
+See [status.md](status.md) for the full axiom inventory.
 
 Former axioms have been proved or moved to `future/` as documentation:
 - [future/gaussian_field_axioms.lean](future/gaussian_field_axioms.lean) — [measure uniqueness, converse support, support Hilbert space](summary/future/gaussian_field_axioms.md)

@@ -32,8 +32,8 @@ Note: `fourierMultiplierCLM_translation_comm` is now a **proved theorem** (Fouri
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 4 | `resolventSchwartz_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
-| 5 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
+| 3 | `resolventSchwartz_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
+| 4 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
 Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
@@ -41,8 +41,8 @@ Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSlice
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 6 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
-| 7 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
+| 5 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
+| 6 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
 
 Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity. `cylinderGreen_reflection_strict_positive` was removed as a dead axiom.
 
@@ -50,7 +50,7 @@ Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 8 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
+| 7 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
 
 Note: `torusGreen_uniform_bound` is a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. `cylinderToTorusEmbed` is a **definition** (not axiom).
 
