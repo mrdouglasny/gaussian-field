@@ -134,25 +134,122 @@ theorem periodizeFun_periodic (h : SchwartzMap ℝ ℝ) :
     ext k; simp [Equiv.addRight]]
   exact Equiv.tsum_eq (Equiv.addRight (1 : ℤ)) (fun j : ℤ => h (t + ↑j * L))
 
+/-- For a compactly supported C^∞ bump function `φ` and a Schwartz function `h`,
+the iterated Fréchet derivatives of the product `φ · h(· + kL)` decay like `O(1/k²)`
+for large `|k|`.
+
+**Proof outline**: For `x ∉ tsupport φ`, the product vanishes on a neighborhood of `x`,
+so all iterated derivatives are 0. For `x ∈ tsupport φ` (a compact set bounded by `R`),
+the Leibniz rule (`iteratedDeriv_fun_mul`) gives:
+  `‖D^m(φ · h(·+kL))(x)‖ ≤ Σ_{j≤m} C(m,j) · ‖D^j φ(x)‖ · ‖D^{m-j} h(x+kL)‖`
+
+Each `‖D^j φ(x)‖ ≤ Φ_j` (bounded: continuous function on compact support,
+via `IsCompact.exists_isMaxOn`). Each `‖D^{m-j} h(x+kL)‖` is bounded by
+`S_{2,m-j} / |x+kL|²` via `SchwartzMap.le_seminorm'`, where `|x+kL| ≥ |kL| - R > 0`
+for `|k|` large. Combining: `‖D^m(φ · h(·+kL))(x)‖ ≤ C_m / (|kL| - R)² = O(1/k²)`.
+
+The remaining formalization requires assembling `norm_iteratedFDeriv_eq_norm_iteratedDeriv`,
+`iteratedDeriv_fun_mul`, `norm_sum_le`, `IsCompact.exists_isMaxOn`, and
+`SchwartzMap.le_seminorm'`. -/
+private theorem iteratedFDeriv_mul_schwartz_decay
+    (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
+    (hcomp : HasCompactSupport φ) (m : ℕ) :
+    ∃ (C : ℝ) (K : ℕ), 0 ≤ C ∧ ∀ (k : ℤ), (K : ℤ) < |k| →
+      ∀ x : ℝ, ‖iteratedFDeriv ℝ m (fun t => φ t * h (t + ↑k * L)) x‖ ≤
+        C / (↑|k| * L) ^ 2 := by
+  sorry
+
+/-- `C / (|k| * L)²` is summable over `ℤ` (follows from `Σ 1/k²` converging). -/
+private lemma summable_inv_int_sq_mul (C L : ℝ) :
+    Summable (fun k : ℤ => C / ((↑|k| : ℝ) * L) ^ 2) := by
+  have heq : (fun k : ℤ => C / ((↑|k| : ℝ) * L) ^ 2) =
+      (fun k : ℤ => (C / L ^ 2) * (1 / (↑|k| : ℝ) ^ 2)) := by ext k; ring
+  rw [heq]; apply Summable.mul_left
+  rw [summable_int_iff_summable_nat_and_neg]
+  refine ⟨?_, ?_⟩ <;> {
+    exact ((Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)).congr
+      fun n => by simp [abs_of_nonneg (Int.natCast_nonneg n), abs_neg]
+  }
+
+/-- The product `φ · h(· + kL)` has `iteratedFDeriv` bounded by a summable function of `k`,
+for cofinitely many `k`. Combines `iteratedFDeriv_mul_schwartz_decay` (the `O(1/k²)` bound)
+with `summable_inv_int_sq_mul` (summability of `1/k²` over `ℤ`). -/
+private theorem bump_periodize_iteratedFDeriv_bound
+    (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
+    (hcomp : HasCompactSupport φ) :
+    ∃ (v : ℕ → ℤ → ℝ), (∀ m, Summable (v m)) ∧
+    ∀ m : ℕ, ∀ᶠ (k : ℤ) in Filter.cofinite,
+      ∀ x : ℝ, ‖iteratedFDeriv ℝ m (fun t => φ t * h (t + ↑k * L)) x‖ ≤ v m k := by
+  choose C K hC hbound using
+    fun m => iteratedFDeriv_mul_schwartz_decay L h φ hφ hcomp m
+  -- v m k = C m / (|k| * L)²
+  set v : ℕ → ℤ → ℝ := fun m k => C m / (↑|k| * L) ^ 2
+  have hv_sum : ∀ m, Summable (v m) := fun m => summable_inv_int_sq_mul (C m) L
+  have hv_cof : ∀ m : ℕ, ∀ᶠ (k : ℤ) in Filter.cofinite,
+      ∀ x : ℝ, ‖iteratedFDeriv ℝ m (fun t => φ t * h (t + ↑k * L)) x‖ ≤ v m k := by
+    intro m; rw [Filter.eventually_cofinite]
+    refine (Set.finite_Icc (-(K m : ℤ)) (K m : ℤ)).subset ?_
+    intro k hk
+    simp only [Set.mem_setOf_eq, not_forall, not_le] at hk
+    obtain ⟨x, hx⟩ := hk
+    rw [Set.mem_Icc]; by_contra habs
+    simp only [not_and_or, not_le] at habs
+    have hkK : (K m : ℤ) < |k| := by
+      rcases habs with h | h
+      · rw [abs_of_neg (by omega : k < 0)]; omega
+      · rw [abs_of_pos (by omega : 0 < k)]; omega
+    exact absurd (hbound m k hkK x) (not_le.mpr hx)
+  exact ⟨v, hv_sum, hv_cof⟩
+
 /-- The periodized sum is smooth (`C∞`).
 
-**Proof sketch**: Each translate `h(· + kL)` is smooth. The sum of iterated
-derivatives `Σ_k h^(n)(t + kL)` converges uniformly on compact sets by
-Schwartz decay (same argument as `periodize_summable` but for `h^(n)` using
-`SchwartzMap.le_seminorm'` with appropriate indices). By the Weierstrass
-M-test for smooth functions (`contDiff_tsum` in Mathlib), the sum is `C∞`.
+**Proof**: We reduce to `ContDiffAt` at each point using `contDiff_iff_contDiffAt`.
+At each `t₀`, we use a smooth bump function `φ` with `φ(t₀) = 1` and compact support
+(from `exists_contDiff_tsupport_subset`). The key observation is:
 
-More precisely, for each `n : ℕ`, the n-th derivative bound
-`‖iteratedFDeriv ℝ n (h(· + kL)) x‖ = ‖iteratedDeriv n h (x + kL)‖` is bounded
-by `(seminorm ℝ 0 n) h` (uniform in `k` and `x`). While this uniform bound
-is not summable over `k`, a locally uniform bound using the decay
-`|x + kL|² · ‖iteratedDeriv n h (x + kL)‖ ≤ (seminorm ℝ 2 n) h`
-gives summability away from a finite set of `k` values, which suffices
-for `contDiff_tsum` applied to truncations.
+  `φ(t) · periodizeFun L h (t) = Σ_k φ(t) · h(t + kL)`
+
+The right side is `ContDiff ℝ ⊤` by `contDiff_tsum_of_eventually`, using the bound from
+`bump_periodize_iteratedFDeriv_bound`: each product `φ · h(· + kL)` is compactly supported,
+so the iterated derivatives have globally summable bounds (via Schwartz decay of `h`).
+
+Since `φ(t₀) = 1 ≠ 0`, we recover `periodizeFun L h = (φ · periodizeFun) · φ⁻¹` near `t₀`,
+which is `ContDiffAt` as a product of smooth functions (`ContDiffAt.mul`, `ContDiffAt.inv`).
 
 Reference: Grafakos, *Classical Fourier Analysis*, §3.1.2. -/
-axiom periodize_smooth (h : SchwartzMap ℝ ℝ) :
-    ContDiff ℝ (⊤ : ℕ∞) (periodizeFun L h)
+theorem periodize_smooth (h : SchwartzMap ℝ ℝ) :
+    ContDiff ℝ (⊤ : ℕ∞) (periodizeFun L h) := by
+  rw [contDiff_iff_contDiffAt]
+  intro t₀
+  -- Get a bump function φ with φ(t₀) = 1 and compact support near t₀
+  obtain ⟨φ, _, hcomp, hsmooth, _, hone⟩ :=
+    exists_contDiff_tsupport_subset
+      (s := Set.Ioo (t₀ - 1) (t₀ + 1)) (n := ⊤) (x := t₀)
+      (Ioo_mem_nhds (by linarith) (by linarith))
+  -- Each term φ(·) * h(· + kL) is C^∞
+  have hterm : ∀ k : ℤ, ContDiff ℝ (⊤ : ℕ∞) (fun t => φ t * h (t + ↑k * L)) := fun k =>
+    ContDiff.mul hsmooth ((h.smooth ⊤).comp (contDiff_id.add contDiff_const))
+  -- Get summable bounds on iterated derivatives
+  obtain ⟨v, hv_sum, hv_bound⟩ := bump_periodize_iteratedFDeriv_bound L h φ hsmooth hcomp
+  -- G(t) = Σ_k φ(t) * h(t + kL) is ContDiff ℝ ⊤
+  have hG_contDiff : ContDiff ℝ (⊤ : ℕ∞) (fun t => ∑' (k : ℤ), φ t * h (t + ↑k * L)) :=
+    contDiff_tsum_of_eventually hterm (fun m _ => hv_sum m) (fun m _ => hv_bound m)
+  -- G(t) = φ(t) * periodizeFun L h t
+  have hG_eq : ∀ t, ∑' (k : ℤ), φ t * h (t + ↑k * L) = φ t * periodizeFun L h t := by
+    intro t; simp only [periodizeFun]; rw [tsum_mul_left]
+  -- φ(t₀) ≠ 0
+  have hφ_ne : φ t₀ ≠ 0 := by rw [hone]; exact one_ne_zero
+  -- On a neighborhood of t₀, φ ≠ 0
+  have hφ_ev : ∀ᶠ t in nhds t₀, φ t ≠ 0 :=
+    hsmooth.continuous.continuousAt.eventually_ne hφ_ne
+  -- periodizeFun = G * φ⁻¹ near t₀
+  have heq : periodizeFun L h =ᶠ[nhds t₀]
+      fun t => (∑' (k : ℤ), φ t * h (t + ↑k * L)) * (φ t)⁻¹ := by
+    filter_upwards [hφ_ev] with t ht
+    rw [hG_eq, mul_comm (φ t) _, mul_assoc, mul_inv_cancel₀ ht, mul_one]
+  -- ContDiffAt of (G * φ⁻¹) at t₀, then transfer to periodizeFun
+  exact (ContDiffAt.mul hG_contDiff.contDiffAt
+    (ContDiffAt.inv hsmooth.contDiffAt hφ_ne)).congr_of_eventuallyEq heq
 
 /-- The periodized function as an element of `SmoothMap_Circle L ℝ`. -/
 def periodizeSmoothCircle (h : SchwartzMap ℝ ℝ) : SmoothMap_Circle L ℝ :=
