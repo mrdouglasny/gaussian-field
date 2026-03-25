@@ -23,14 +23,13 @@ composition remain axiomatized.
 - `resolventSymbol_hasTemperateGrowth` — temperate growth of resolvent symbol (proved)
 - `heatMultiplierCLM_zero` — heat multiplier at t=0 is the identity (proved)
 - `heatMultiplierCLM_comp` — semigroup composition (proved from general comp axiom)
-- `*_translation_comm` — translation equivariance (proved from general axiom)
+- `*_translation_comm` — translation equivariance (proved from general theorem)
 - `*_reflection_comm` — reflection equivariance (proved from general axiom)
 
-## Remaining axioms (3 general properties of `realFourierMultiplierCLM`)
+## Remaining axioms (2 general properties)
 
-- `realFourierMultiplierCLM_comp` — composition of multipliers = multiplier of product
-- `realFourierMultiplierCLM_translation_comm` — translation equivariance
-- `realFourierMultiplierCLM_even_reflection_comm` — reflection equivariance for even symbols
+- `fourierMultiplier_preserves_real` — even real multiplier preserves real-valuedness
+- `fourierMultiplierCLM_even_reflection_comm` — reflection equivariance for even symbols
 
 ## Mathematical background
 
@@ -290,10 +289,97 @@ Standard: translation by τ multiplies ℱf by e^{-2πiτp}, which commutes
 with pointwise multiplication by σ(p).
 
 Reference: Stein, *Singular Integrals*, Ch. I. -/
-axiom fourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
+theorem fourierMultiplierCLM_translation_comm (σ : ℝ → ℝ)
     (hσ : σ.HasTemperateGrowth) (τ : ℝ) (f : SchwartzMap ℝ ℂ) :
     SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (SchwartzMap.compSubConstCLM ℝ τ f) =
-    SchwartzMap.compSubConstCLM ℝ τ (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f)
+    SchwartzMap.compSubConstCLM ℝ τ (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f) := by
+  -- Both sides are Schwartz functions; reduce to pointwise equality.
+  -- At integral level both equal ∫ e^{2πi(x-τ)ξ} σ(ξ) (ℱf)(ξ) dξ.
+  ext x
+  simp only [SchwartzMap.fourierMultiplierCLM_apply, SchwartzMap.compSubConstCLM_apply]
+  -- Goal: (𝓕⁻(σ • 𝓕(T_τ f)))(x) = (𝓕⁻(σ • 𝓕f))(x - τ)
+  -- where 𝓕, 𝓕⁻ are Schwartz-level.
+  -- Bridge to function level using fourierInv_coe and fourier_coe.
+  -- Step 1: The Schwartz coercion commutes with 𝓕⁻
+  -- (⇑(𝓕⁻ g))(x) = (𝓕⁻(⇑g))(x)   [SchwartzMap.fourierInv_coe]
+  -- Step 2: The Schwartz coercion commutes with 𝓕
+  -- ⇑(𝓕 f) = 𝓕(⇑f)              [SchwartzMap.fourier_coe]
+  -- Step 3: The Schwartz coercion commutes with smulLeftCLM
+  -- ⇑(smulLeftCLM ℂ σ g) = fun ξ => σ ξ • g ξ   [smulLeftCLM_apply]
+  -- Combine: (𝓕⁻(σ • 𝓕(T_τ f)))(x) = 𝓕⁻_fun(fun ξ => σ ξ • 𝓕_fun(⇑(T_τ f))(ξ))(x)
+  -- First, rewrite the LHS Schwartz evaluation to function-level 𝓕⁻
+  rw [show ((FourierTransformInv.fourierInv (SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier (SchwartzMap.compSubConstCLM ℝ τ f))) :
+      SchwartzMap ℝ ℂ) : ℝ → ℂ) x =
+    (FourierTransformInv.fourierInv (⇑(SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier (SchwartzMap.compSubConstCLM ℝ τ f))))) x from by
+    exact congr_fun (SchwartzMap.fourierInv_coe _) x]
+  rw [show ((FourierTransformInv.fourierInv (SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier f)) :
+      SchwartzMap ℝ ℂ) : ℝ → ℂ) (x - τ) =
+    (FourierTransformInv.fourierInv (⇑(SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier f)))) (x - τ) from by
+    exact congr_fun (SchwartzMap.fourierInv_coe _) (x - τ)]
+  -- Unfold smulLeftCLM to pointwise multiplication
+  simp only [SchwartzMap.smulLeftCLM_apply hσ]
+  -- Goal: 𝓕⁻_fun(fun ξ => σ ξ • (𝓕_Sw(T_τ f)) ξ)(x)
+  --     = 𝓕⁻_fun(fun ξ => σ ξ • (𝓕_Sw f) ξ)(x - τ)
+  -- Convert Schwartz 𝓕 to function-level 𝓕 using fourier_coe
+  conv_lhs =>
+    arg 1; ext ξ; rw [show ((FourierTransform.fourier
+      (SchwartzMap.compSubConstCLM ℝ τ f) : SchwartzMap ℝ ℂ) : ℝ → ℂ) ξ =
+      (FourierTransform.fourier (⇑(SchwartzMap.compSubConstCLM ℝ τ f) : ℝ → ℂ)) ξ from
+      congr_fun (SchwartzMap.fourier_coe _) ξ]
+  conv_rhs =>
+    arg 1; ext ξ; rw [show ((FourierTransform.fourier f : SchwartzMap ℝ ℂ) : ℝ → ℂ) ξ =
+      (FourierTransform.fourier (⇑f : ℝ → ℂ)) ξ from
+      congr_fun (SchwartzMap.fourier_coe _) ξ]
+  -- Now everything is at function level.
+  -- Goal: 𝓕⁻(fun ξ => σ ξ • 𝓕_fun(⇑(T_τ f)) ξ)(x) = 𝓕⁻(fun ξ => σ ξ • 𝓕_fun(⇑f) ξ)(x - τ)
+  -- Simplify ⇑(T_τ f) = ⇑f ∘ (· + (-τ))
+  have comp_eq : (⇑(SchwartzMap.compSubConstCLM ℝ τ f) : ℝ → ℂ) =
+      (⇑f : ℝ → ℂ) ∘ fun y => y + (-τ) := by
+    ext y; simp [SchwartzMap.compSubConstCLM_apply, sub_eq_add_neg]
+  rw [comp_eq]
+  -- Apply Fourier shift theorem:
+  -- 𝓕_fun(⇑f ∘ (· + (-τ)))(ξ) = 𝐞(⟨-τ, ξ⟩) • 𝓕_fun(⇑f)(ξ)
+  rw [show FourierTransform.fourier ((⇑f : ℝ → ℂ) ∘ fun y => y + (-τ)) =
+    fun ξ => ↑(Real.fourierChar ((innerₗ ℝ) (-τ) ξ)) •
+      FourierTransform.fourier (⇑f : ℝ → ℂ) ξ from
+    VectorFourier.fourierIntegral_comp_add_right Real.fourierChar
+      MeasureTheory.volume (innerₗ ℝ) (⇑f) (-τ)]
+  -- Goal: 𝓕⁻(fun ξ => σ ξ • (𝐞(-τξ) • 𝓕(⇑f) ξ))(x)
+  --     = 𝓕⁻(fun ξ => σ ξ • 𝓕(⇑f) ξ)(x - τ)
+  -- Commute ℝ-scalar σ ξ with ℂ-scalar 𝐞(-τξ):
+  -- σ ξ • (𝐞(-τξ) • g) = 𝐞(-τξ) • (σ ξ • g)
+  simp_rw [smul_comm (σ _) (↑(Real.fourierChar _)) _]
+  -- Goal: 𝓕⁻(fun ξ => 𝐞(-τξ) • (σ ξ • 𝓕(⇑f) ξ))(x)
+  --     = 𝓕⁻(fun ξ => σ ξ • 𝓕(⇑f) ξ)(x - τ)
+  -- Both sides are equal: 𝓕⁻(phase • g)(x) = 𝓕⁻(g)(x - τ)
+  -- Unfold 𝓕⁻ to integral and show integrands are equal.
+  -- 𝓕⁻ uses VectorFourier.fourierIntegral 𝐞 volume (-innerₗ ℝ)
+  -- LHS = ∫ 𝐞(vx) • 𝐞(-vτ) • h(v) dv = ∫ 𝐞(v(x-τ)) • h(v) dv = RHS
+  -- Both sides are VectorFourier integrals. Unfold 𝓕⁻_fun to VectorFourier.
+  -- On ℝ → ℂ: 𝓕⁻ g w = VectorFourier.fourierIntegral 𝐞 vol (-innerₗ ℝ) g w
+  -- Unfold 𝓕⁻ to VectorFourier.fourierIntegral, then to ∫
+  simp only [FourierTransformInv.fourierInv, VectorFourier.fourierIntegral]
+  -- Both sides are ∫ v, (phase) • σ v • 𝓕(⇑f) v.
+  -- Show integrands are pointwise equal.
+  congr 1; ext v
+  -- LHS: 𝐞(a) • (𝐞(b) • (σ v • g v))
+  -- RHS: 𝐞(a') • (σ v • g v)
+  -- Use ← mul_smul: a • (b • x) = (a * b) • x
+  rw [← mul_smul (Real.fourierChar _) (Real.fourierChar _)]
+  -- Now: (𝐞(a) * 𝐞(b)) • (σ v • g v) = 𝐞(a') • (σ v • g v)
+  -- Use ← map_add_eq_mul: 𝐞(a) * 𝐞(b) = 𝐞(a + b)
+  rw [← AddChar.map_add_eq_mul]
+  -- 𝐞(a + b) • (σ v • g v) = 𝐞(a') • (σ v • g v)
+  congr 1
+  -- a + b = a', i.e., -((-innerₗ ℝ)(v)(x)) + (innerₗ ℝ)(-τ)(v) = -((-innerₗ ℝ)(v)(x - τ))
+  congr 1
+  simp only [LinearMap.neg_apply, map_neg, neg_neg]
+  simp only [innerₗ_apply_apply, inner_sub_right, real_inner_comm τ v]
+  linarith
 
 /-- **Fourier multiplier with even symbol commutes with reflection (complex side).**
 
