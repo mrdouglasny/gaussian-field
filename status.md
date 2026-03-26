@@ -6,11 +6,11 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**7 axioms, 0 sorries** (active build, excluding `future/`)
+**6 axioms, 0 sorries** (active build, excluding `future/`)
 
 *Updated 2026-03-25.*
 
-## Active Axiom Inventory (7 axioms)
+## Active Axiom Inventory (6 axioms)
 
 ### Periodization (1 axiom)
 
@@ -20,20 +20,21 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 Note: `periodizeCLM` is now a **definition** (was axiom). `periodizeCLM_apply` proved by rfl. `periodize_summable`, `periodize_smooth`, `iteratedFDeriv_mul_schwartz_decay` all **proved**. The three intertwining properties (`_comp_schwartzTranslation`, `_comp_schwartzReflection`, `_eq_on_large_period`) are all **proved theorems**.
 
-### Fourier multiplier properties (1 axiom)
+### Fourier multiplier properties (0 axioms — all proved)
 
-| # | Name | File | Description |
-|---|------|------|-------------|
-| 2 | `fourierMultiplier_preserves_real` | Cylinder/FourierMultiplier | Even real-valued Fourier multiplier $M_\sigma$ maps real Schwartz functions to real Schwartz functions. Uses Fourier conjugation symmetry. |
-
-Note: `fourierMultiplierCLM_translation_comm` is now a **proved theorem** (Fourier shift + smul_comm). `fourierMultiplierCLM_even_reflection_comm` is now a **proved theorem** (Fourier reflection via linear isometry). `resolventMultiplierCLM_injective` is a **proved theorem** (Fourier inversion). The three real versions (`realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm`) are all **proved theorems**.
+All Fourier multiplier axioms are now **proved theorems**:
+- `fourierMultiplier_preserves_real` — via Fourier conjugation symmetry + integral_neg_eq_self
+- `fourierMultiplierCLM_translation_comm` — via Fourier shift + smul_comm
+- `fourierMultiplierCLM_even_reflection_comm` — via Fourier reflection (linear isometry) + evenness
+- `resolventMultiplierCLM_injective` — via Fourier inversion + symbol positivity
+- `realFourierMultiplierCLM_comp`, `_translation_comm`, `_even_reflection_comm` — from the above
 
 ### Cylinder Green's function (2 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 3 | `resolventSchwartz_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
-| 4 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
+| 2 | `resolventSchwartz_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
+| 3 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
 Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
@@ -41,8 +42,8 @@ Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSlice
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 5 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
-| 6 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
+| 4 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
+| 5 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
 
 Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity. `cylinderGreen_reflection_strict_positive` was removed as a dead axiom.
 
@@ -50,7 +51,7 @@ Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 7 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
+| 6 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
 
 Note: `torusGreen_uniform_bound` is a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. `cylinderToTorusEmbed` is a **definition** (not axiom).
 
@@ -84,7 +85,8 @@ The following were axioms and are now fully proved theorems:
 - `periodizeCLM_comp_schwartzReflection` — from pointwise formula + `Equiv.tsum_eq`
 - `periodizeCLM_eq_on_large_period` — from `tsum_eq_single` + support argument
 
-### Fourier multiplier (6 proved)
+### Fourier multiplier (7 proved)
+- `fourierMultiplier_preserves_real` — via Fourier conjugation symmetry + integral_neg_eq_self
 - `fourierMultiplierCLM_translation_comm` — via Fourier shift theorem + smul_comm
 - `fourierMultiplierCLM_even_reflection_comm` — via Fourier reflection (linear isometry) + evenness
 - `resolventMultiplierCLM_injective` — via Fourier inversion + symbol positivity
