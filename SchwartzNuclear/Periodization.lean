@@ -33,6 +33,7 @@ import SmoothCircle.Nuclear
 import SchwartzNuclear.HermiteNuclear
 import Torus.Symmetry
 import Cylinder.Symmetry
+import Mathlib.Topology.Algebra.InfiniteSum.TsumUniformlyOn
 
 noncomputable section
 
@@ -411,23 +412,307 @@ def periodizeLM : SchwartzMap ℝ ℝ →ₗ[ℝ] SmoothMap_Circle L ℝ where
 
 /-! ## CLM continuity -/
 
-/-- The Sobolev seminorm of the periodized function is bounded by Schwartz seminorms.
+/-- Summable bounds on shifted Schwartz derivatives over compact sets.
+For `K ⊆ [-R, R]` compact, `‖D^m h(t + jL)‖ ≤ u(j)` with `Summable u`.
+Uses `one_add_le_sup_seminorm_apply` for Schwartz decay with order `n + 2 ≥ 2 > 1`. -/
+private lemma schwartz_shifted_summable_bound (h : SchwartzMap ℝ ℝ) (m : ℕ)
+    (K : Set ℝ) (hK : IsCompact K) (n : ℕ) (hn : m ≤ n) :
+    ∃ (u : ℤ → ℝ), Summable u ∧ ∀ (j : ℤ) (t : ℝ), t ∈ K →
+      ‖iteratedDeriv m (⇑h) (t + ↑j * L)‖ ≤ u j := by
+  have hL_pos := hL.out
+  obtain ⟨R, hR_pos, hR⟩ : ∃ R : ℝ, 0 < R ∧ K ⊆ Set.Icc (-R) R := by
+    rcases K.eq_empty_or_nonempty with he | _
+    · exact ⟨1, one_pos, by simp [he]⟩
+    · obtain ⟨R₀, hR₀⟩ := hK.isBounded.subset_ball (0 : ℝ)
+      refine ⟨max R₀ 1, by positivity, fun x hx => ?_⟩
+      have := hR₀ hx; simp [Metric.mem_ball] at this
+      constructor <;> linarith [le_max_left R₀ 1, abs_nonneg x, neg_abs_le x, le_abs_self x]
+  set S := ((Finset.Iic (n + 2, n)).sup fun p => SchwartzMap.seminorm ℝ p.1 p.2) h
+  have hS_bound : ∀ y : ℝ,
+      (1 + ‖y‖) ^ (n + 2) * ‖iteratedDeriv m (⇑h) y‖ ≤ 2 ^ (n + 2) * S := by
+    intro y
+    have := SchwartzMap.one_add_le_sup_seminorm_apply (𝕜 := ℝ)
+      (m := (n + 2, n)) (le_refl _) hn h y
+    rwa [norm_iteratedFDeriv_eq_norm_iteratedDeriv] at this
+  have hcrude : ∀ y : ℝ, ‖iteratedDeriv m (⇑h) y‖ ≤ 2 ^ (n + 2) * S := by
+    intro y
+    have h1 : 1 ≤ (1 + ‖y‖) ^ (n + 2) :=
+      one_le_pow₀ (n := n + 2) (le_add_of_nonneg_right (norm_nonneg _))
+    have h2 := hS_bound y
+    have h3 : 0 ≤ ‖iteratedDeriv m (⇑h) y‖ := norm_nonneg _
+    nlinarith [mul_le_mul_of_nonneg_right h1 h3]
+  set N := ⌈2 * R / L⌉₊ + 1
+  have h_lower : ∀ (j : ℤ) (t : ℝ), t ∈ K → (N : ℤ) < |j| →
+      (↑|j| : ℝ) * L / 2 ≤ ‖t + ↑j * L‖ := by
+    intro j t ht hj
+    have htR : |t| ≤ R := by
+      have := hR ht; simp [Set.mem_Icc] at this; exact abs_le.mpr this
+    have hNj : (↑N : ℝ) < (↑|j| : ℝ) := by exact_mod_cast hj
+    have h2R : 2 * R ≤ (↑|j| : ℝ) * L := by
+      have hN : (2 * R / L : ℝ) ≤ ↑(⌈2 * R / L⌉₊ : ℕ) := Nat.le_ceil _
+      have hN1 : (⌈2 * R / L⌉₊ : ℤ) + 1 ≤ |j| := by omega
+      have hN2 : (↑(⌈2 * R / L⌉₊ : ℕ) : ℝ) + 1 ≤ (↑|j| : ℝ) := by exact_mod_cast hN1
+      have hd := div_mul_cancel₀ (2 * R) (ne_of_gt hL_pos)
+      nlinarith
+    rw [Real.norm_eq_abs]
+    have h_abs_kL : |↑j * L| = (↑|j| : ℝ) * L := by
+      rw [abs_mul, abs_of_pos hL_pos]; push_cast; rfl
+    have : (↑|j| : ℝ) * L ≤ |t + ↑j * L| + |t| := by
+      calc (↑|j| : ℝ) * L = |↑j * L| := h_abs_kL.symm
+        _ = |(t + ↑j * L) + (-t)| := by ring_nf
+        _ ≤ |t + ↑j * L| + |-t| := abs_add_le _ _
+        _ = |t + ↑j * L| + |t| := by rw [abs_neg]
+    linarith
+  set C₁ := 4 ^ (n + 2) * S / L ^ (n + 2)
+  set u : ℤ → ℝ := fun j => if (|j| : ℤ) ≤ N then 2 ^ (n + 2) * S else C₁ / (↑|j| : ℝ) ^ 2
+  refine ⟨u, ?_, ?_⟩
+  · -- Summability: u = finite part + summable tail
+    have htail : Summable (fun j : ℤ => C₁ / (↑|j| : ℝ) ^ 2) := by
+      have := summable_inv_int_sq_mul C₁ 1; simp only [mul_one] at this; exact this
+    exact htail.congr_cofinite (Filter.eventually_cofinite.mpr
+      ((Set.finite_Icc (-(N : ℤ)) N).subset (fun j hj => by
+        simp only [Set.mem_setOf_eq] at hj
+        rw [Set.mem_Icc]
+        by_contra h_abs; push_neg at h_abs
+        apply hj; show _ = u j; simp only [u]
+        exact (if_neg (show ¬ (|j| : ℤ) ≤ ↑N from by
+          rw [not_le]; by_cases hjn : (-↑N : ℤ) ≤ j
+          · exact Int.lt_of_lt_of_le (h_abs hjn) (le_abs_self j)
+          · push_neg at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
+  · -- Bound: ‖D^m h(t+jL)‖ ≤ u(j) for t ∈ K
+    intro j t ht; simp only [u]
+    split_ifs with hj
+    · exact hcrude _
+    · push_neg at hj
+      -- From h_lower: |j|*L/2 ≤ ‖t + j*L‖
+      have h_low := h_lower j t ht hj
+      -- |j| ≥ 1
+      have hj_pos : (0 : ℝ) < (↑|j| : ℝ) := by exact_mod_cast (show 0 < |j| from by omega)
+      have hj_ge1 : (1 : ℝ) ≤ (↑|j| : ℝ) := by exact_mod_cast (show 1 ≤ |j| from by omega)
+      -- (|j|*L/2)^(n+2) ≤ (1+‖y‖)^(n+2)
+      set y := t + ↑j * L
+      have h_denom_pos : (0 : ℝ) < (↑|j| : ℝ) * L / 2 := by positivity
+      have h_base_le : (↑|j| : ℝ) * L / 2 ≤ (1 + ‖y‖) := by linarith [norm_nonneg y]
+      have h_pow_le : ((↑|j| : ℝ) * L / 2) ^ (n + 2) ≤ (1 + ‖y‖) ^ (n + 2) :=
+        pow_le_pow_left₀ h_denom_pos.le h_base_le _
+      -- From hS_bound: (1+‖y‖)^(n+2) * ‖D^m h(y)‖ ≤ 2^(n+2) * S
+      have hbd := hS_bound y
+      -- Therefore ‖D^m h(y)‖ ≤ 2^(n+2) * S / (|j|*L/2)^(n+2)
+      have h_norm_le : ‖iteratedDeriv m (⇑h) y‖ ≤
+          2 ^ (n + 2) * S / ((↑|j| : ℝ) * L / 2) ^ (n + 2) := by
+        rw [le_div_iff₀ (pow_pos h_denom_pos _)]
+        calc ‖iteratedDeriv m (⇑h) y‖ * ((↑|j| : ℝ) * L / 2) ^ (n + 2)
+            ≤ ‖iteratedDeriv m (⇑h) y‖ * (1 + ‖y‖) ^ (n + 2) := by
+              apply mul_le_mul_of_nonneg_left h_pow_le (norm_nonneg _)
+          _ = (1 + ‖y‖) ^ (n + 2) * ‖iteratedDeriv m (⇑h) y‖ := by ring
+          _ ≤ 2 ^ (n + 2) * S := hbd
+      -- |j|^(n+2) ≥ |j|^2 (since |j| ≥ 1 and n+2 ≥ 2)
+      have h_pow_ij : (↑|j| : ℝ) ^ 2 ≤ (↑|j| : ℝ) ^ (n + 2) :=
+        pow_le_pow_right₀ hj_ge1 (by omega)
+      -- Key: show ‖D^m h(y)‖ * |j|^2 * L^(n+2) ≤ 4^(n+2) * S
+      -- Then C₁ / |j|^2 = 4^(n+2)*S / L^(n+2) / |j|^2 and the result follows.
+      have hS_nn : 0 ≤ S := apply_nonneg _ _
+      -- ‖D^m h(y)‖ * (1+‖y‖)^(n+2) ≤ 2^(n+2) * S (from hbd)
+      -- (|j|*L/2)^(n+2) ≤ (1+‖y‖)^(n+2) (from h_pow_le)
+      -- So ‖D^m h(y)‖ * (|j|*L/2)^(n+2) ≤ 2^(n+2) * S
+      have h_mul_bound : ‖iteratedDeriv m (⇑h) y‖ * ((↑|j| : ℝ) * L / 2) ^ (n + 2) ≤
+          2 ^ (n + 2) * S := by
+        have := mul_le_mul_of_nonneg_left h_pow_le (norm_nonneg (iteratedDeriv m (⇑h) y))
+        linarith [mul_comm ((1 + ‖y‖) ^ (n + 2)) (‖iteratedDeriv m (⇑h) y‖)]
+      -- Unfold: (|j|*L/2)^(n+2) = |j|^(n+2) * L^(n+2) / 2^(n+2)
+      -- So ‖‖ * |j|^(n+2) * L^(n+2) / 2^(n+2) ≤ 2^(n+2) * S
+      -- So ‖‖ * |j|^(n+2) * L^(n+2) ≤ 4^(n+2) * S
+      -- Since |j|^2 ≤ |j|^(n+2):
+      -- ‖‖ * |j|^2 * L^(n+2) ≤ 4^(n+2) * S
+      -- i.e. ‖‖ ≤ 4^(n+2) * S / (|j|^2 * L^(n+2)) = C₁ / |j|^2
+      rw [show C₁ / (↑|j| : ℝ) ^ 2 = 4 ^ (n + 2) * S / ((↑|j| : ℝ) ^ 2 * L ^ (n + 2)) by
+        simp only [C₁]; ring]
+      rw [le_div_iff₀ (mul_pos (sq_pos_of_pos hj_pos) (pow_pos hL_pos _))]
+      -- Goal: ‖D^m h(y)‖ * (|j|^2 * L^(n+2)) ≤ 4^(n+2) * S
+      -- From h_mul_bound, after expanding (|j|*L/2)^(n+2):
+      have h2pos : (0 : ℝ) < 2 ^ (n + 2) := pow_pos (by norm_num : (0:ℝ) < 2) _
+      have hLpow : (0 : ℝ) < L ^ (n + 2) := pow_pos hL_pos _
+      have hjpow : (0 : ℝ) < (↑|j| : ℝ) ^ (n + 2) := pow_pos hj_pos _
+      -- (|j|*L/2)^(n+2) * 2^(n+2) = (|j|*L)^(n+2) = |j|^(n+2) * L^(n+2)
+      have hexpand : ((↑|j| : ℝ) * L / 2) ^ (n + 2) * 2 ^ (n + 2) =
+          (↑|j| : ℝ) ^ (n + 2) * L ^ (n + 2) := by
+        rw [div_pow, div_mul_cancel₀ _ (ne_of_gt h2pos)]
+        exact mul_pow _ _ _
+      -- From h_mul_bound * 2^(n+2):
+      -- ‖‖ * |j|^(n+2) * L^(n+2) ≤ 2^(n+2) * S * 2^(n+2) = 4^(n+2) * S
+      have h4eq : 2 ^ (n + 2) * S * 2 ^ (n + 2) = 4 ^ (n + 2) * S := by
+        rw [show (4 : ℝ) = 2 * 2 from by norm_num, mul_pow]; ring
+      calc ‖iteratedDeriv m (⇑h) y‖ * ((↑|j| : ℝ) ^ 2 * L ^ (n + 2))
+          ≤ ‖iteratedDeriv m (⇑h) y‖ * ((↑|j| : ℝ) ^ (n + 2) * L ^ (n + 2)) := by
+            apply mul_le_mul_of_nonneg_left _ (norm_nonneg _)
+            exact mul_le_mul_of_nonneg_right h_pow_ij hLpow.le
+        _ = ‖iteratedDeriv m (⇑h) y‖ * (((↑|j| : ℝ) * L / 2) ^ (n + 2) * 2 ^ (n + 2)) := by
+            rw [hexpand]
+        _ = ‖iteratedDeriv m (⇑h) y‖ * ((↑|j| : ℝ) * L / 2) ^ (n + 2) * 2 ^ (n + 2) := by ring
+        _ ≤ 2 ^ (n + 2) * S * 2 ^ (n + 2) := by
+            apply mul_le_mul_of_nonneg_right h_mul_bound h2pos.le
+        _ = 4 ^ (n + 2) * S := h4eq
 
-For each Sobolev order `k`, we have:
-`sobolevSeminorm k (periodize h) ≤ C_{k,L} · (seminorm ℝ (k+2) k) h`
-
-**Proof sketch**: The k-th derivative of the periodized function satisfies
-`|D^k (periodize h)(t)| = |Σ_j D^k h(t + jL)| ≤ Σ_j |h^(k)(t + jL)|`.
-By `SchwartzMap.le_seminorm'`, `|x|^(k+2) · |h^(k)(x)| ≤ (seminorm ℝ (k+2) k) h`,
-so `|h^(k)(t + jL)| ≤ (seminorm ℝ (k+2) k) h / |t + jL|^(k+2)`.
-The sum `Σ_j 1/|t + jL|^(k+2)` converges (uniformly in `t ∈ [0,L]`) since `k+2 ≥ 2 > 1`.
-
-Reference: Stein-Weiss, Ch. VII, §2. -/
-axiom periodize_sobolevSeminorm_le (k : ℕ) :
+theorem periodize_sobolevSeminorm_le (k : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ), 0 ≤ C ∧
       ∀ (h : SchwartzMap ℝ ℝ),
         SmoothMap_Circle.sobolevSeminorm k (periodizeSmoothCircle L h) ≤
-        C * (s.sup (schwartzSeminormFamily ℝ ℝ ℝ)) h
+        C * (s.sup (schwartzSeminormFamily ℝ ℝ ℝ)) h := by
+  refine ⟨Finset.Iic (k + 2, k), ?_⟩
+  have hL_pos := hL.out
+  set Semi := (Finset.Iic (k + 2, k)).sup (schwartzSeminormFamily ℝ ℝ ℝ)
+  -- Derivative exchange via iteratedDerivWithin_tsum on Set.univ
+  have h_deriv_exchange : ∀ (h : SchwartzMap ℝ ℝ) (x : ℝ),
+      iteratedDeriv k (periodizeFun L h) x =
+        ∑' (j : ℤ), iteratedDeriv k (⇑h) (x + ↑j * L) := by
+    intro h x
+    rw [← iteratedDerivWithin_univ]
+    set f : ℤ → ℝ → ℝ := fun j t => h (t + ↑j * L)
+    conv_lhs => rw [show periodizeFun L h = fun z => ∑' j, f j z from funext fun _ => rfl]
+    rw [iteratedDerivWithin_tsum k isOpen_univ (Set.mem_univ x)
+      (fun t _ => periodize_summable L h t) ?_ ?_]
+    · congr 1; ext j; rw [iteratedDerivWithin_univ]
+      exact congrFun (iteratedDeriv_comp_add_const k (⇑h) (↑j * L)) x
+    · intro m hm1 hmk
+      apply SummableLocallyUniformlyOn_of_locally_bounded isOpen_univ
+      intro K _ hKc
+      obtain ⟨u, hu_sum, hu_bound⟩ := schwartz_shifted_summable_bound L h m K hKc k hmk
+      exact ⟨u, hu_sum, fun j t ht => by
+        rw [iteratedDerivWithin_univ, show iteratedDeriv m (f j) t =
+          iteratedDeriv m (⇑h) (t + ↑j * L) from
+          congrFun (iteratedDeriv_comp_add_const m (⇑h) (↑j * L)) t]
+        exact hu_bound j t ht⟩
+    · intro j m t _ _
+      rw [iteratedDerivWithin_univ]
+      exact ((h.smooth ⊤).comp (contDiff_id.add contDiff_const)).differentiable_iteratedDeriv
+        m (by exact_mod_cast WithTop.coe_lt_top m) |>.differentiableAt
+  -- Norm summability
+  have h_norm_summable : ∀ (h : SchwartzMap ℝ ℝ) (x : ℝ),
+      Summable (fun j : ℤ => ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖) := by
+    intro h x
+    obtain ⟨u, hu_sum, hu_bound⟩ := schwartz_shifted_summable_bound L h k
+      {x} isCompact_singleton k le_rfl
+    exact hu_sum.of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun j => hu_bound j x (Set.mem_singleton _))
+  -- Construct C independent of h
+  set R := max L 1
+  set N := ⌈2 * R / L⌉₊ + 1
+  set A := (2 : ℝ) ^ (k + 2)
+  set B := (4 : ℝ) ^ (k + 2) / L ^ (k + 2)
+  set v : ℤ → ℝ := fun j => if (|j| : ℤ) ≤ N then A else B / (↑|j| : ℝ) ^ 2
+  have hv_sum : Summable v := by
+    have htail : Summable (fun j : ℤ => B / (↑|j| : ℝ) ^ 2) := by
+      have := summable_inv_int_sq_mul B 1; simp only [mul_one] at this; exact this
+    exact htail.congr_cofinite (Filter.eventually_cofinite.mpr
+      ((Set.finite_Icc (-(N : ℤ)) N).subset (fun j hj => by
+        simp only [Set.mem_setOf_eq] at hj
+        rw [Set.mem_Icc]
+        by_contra h_abs; push_neg at h_abs
+        apply hj; show _ = v j; simp only [v]
+        exact (if_neg (show ¬ (|j| : ℤ) ≤ ↑N from by
+          rw [not_le]; by_cases hjn : (-↑N : ℤ) ≤ j
+          · exact Int.lt_of_lt_of_le (h_abs hjn) (le_abs_self j)
+          · push_neg at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
+  set C := ∑' j, v j
+  have hC_nn : 0 ≤ C := tsum_nonneg (fun j => by simp only [v]; split_ifs <;> positivity)
+  refine ⟨C, hC_nn, fun h => ?_⟩
+  apply csSup_le (Set.Nonempty.image _ SmoothMap_Circle.Icc_nonempty)
+  rintro _ ⟨x, hx, rfl⟩
+  show ‖iteratedDeriv k (periodizeFun L h) x‖ ≤ C * Semi h
+  rw [h_deriv_exchange h x]
+  calc ‖∑' (j : ℤ), iteratedDeriv k (⇑h) (x + ↑j * L)‖
+      ≤ ∑' (j : ℤ), ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖ :=
+        norm_tsum_le_tsum_norm (h_norm_summable h x)
+    _ ≤ ∑' (j : ℤ), Semi h * v j := by
+        apply (h_norm_summable h x).tsum_mono (hv_sum.mul_left (Semi h))
+        intro j
+        have hbd := SchwartzMap.one_add_le_sup_seminorm_apply (𝕜 := ℝ)
+          (m := (k + 2, k)) (le_refl _) (le_refl _) h (x + ↑j * L)
+        rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv] at hbd
+        simp only [v]
+        split_ifs with hj
+        · -- crude bound: ‖D^k h(y)‖ ≤ Semi h * A
+          have hbd' : (1 + ‖x + ↑j * L‖) ^ (k + 2) *
+              ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖ ≤ 2 ^ (k + 2) * Semi h := by
+            convert hbd using 2
+          have h1 : 1 ≤ (1 + ‖x + ↑j * L‖) ^ (k + 2) :=
+            one_le_pow₀ (by linarith [norm_nonneg (x + ↑j * L)])
+          linarith [le_mul_of_one_le_left
+            (norm_nonneg (iteratedDeriv k (⇑h) (x + ↑j * L))) h1]
+        · -- tail bound: |j| > N so |x+jL| ≥ |j|L/2
+          push_neg at hj
+          -- Simplify hbd
+          have hbd' : (1 + ‖x + ↑j * L‖) ^ (k + 2) *
+              ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖ ≤ 2 ^ (k + 2) * Semi h := by
+            convert hbd using 2
+          -- |j| ≥ 1
+          have hj_pos : (0 : ℝ) < (↑|j| : ℝ) :=
+            by exact_mod_cast (show 0 < |j| from by omega)
+          have hj_ge1 : (1 : ℝ) ≤ (↑|j| : ℝ) :=
+            by exact_mod_cast (show 1 ≤ |j| from by omega)
+          -- x ∈ [0, L] ⊆ [-R, R]
+          have hxR : |x| ≤ R := by
+            have := hx.1; have := hx.2
+            rw [abs_le]; constructor
+            · linarith [le_max_right L (1 : ℝ)]
+            · exact le_trans (by linarith) (le_max_left L 1)
+          -- 2R ≤ |j|*L
+          have h2R : 2 * R ≤ (↑|j| : ℝ) * L := by
+            have hN : (2 * R / L : ℝ) ≤ ↑(⌈2 * R / L⌉₊ : ℕ) := Nat.le_ceil _
+            have hN1 : (⌈2 * R / L⌉₊ : ℤ) + 1 ≤ |j| := by omega
+            have hN2 : (↑(⌈2 * R / L⌉₊ : ℕ) : ℝ) + 1 ≤ (↑|j| : ℝ) := by exact_mod_cast hN1
+            nlinarith [div_mul_cancel₀ (2 * R) (ne_of_gt hL_pos)]
+          -- |x + jL| ≥ |j|L/2
+          have h_lower : (↑|j| : ℝ) * L / 2 ≤ |x + ↑j * L| := by
+            have h_abs_kL : |↑j * L| = (↑|j| : ℝ) * L := by
+              rw [abs_mul, abs_of_pos hL_pos]; push_cast; rfl
+            have : (↑|j| : ℝ) * L ≤ |x + ↑j * L| + |x| := by
+              calc (↑|j| : ℝ) * L = |↑j * L| := h_abs_kL.symm
+                _ = |(x + ↑j * L) + (-x)| := by ring_nf
+                _ ≤ |x + ↑j * L| + |-x| := abs_add_le _ _
+                _ = |x + ↑j * L| + |x| := by rw [abs_neg]
+            linarith [le_max_left L (1 : ℝ)]
+          set y := x + ↑j * L
+          have h_denom_pos : (0 : ℝ) < (↑|j| : ℝ) * L / 2 := by positivity
+          have h_base_le : (↑|j| : ℝ) * L / 2 ≤ (1 + ‖y‖) := by
+            rw [Real.norm_eq_abs]; linarith [abs_nonneg y]
+          have h_pow_le : ((↑|j| : ℝ) * L / 2) ^ (k + 2) ≤ (1 + ‖y‖) ^ (k + 2) :=
+            pow_le_pow_left₀ h_denom_pos.le h_base_le _
+          have h_pow_ij : (↑|j| : ℝ) ^ 2 ≤ (↑|j| : ℝ) ^ (k + 2) :=
+            pow_le_pow_right₀ hj_ge1 (by omega)
+          -- ‖D^k h(y)‖ * (|j|*L/2)^(k+2) ≤ 2^(k+2) * Semi h
+          have h_mul_bound : ‖iteratedDeriv k (⇑h) y‖ *
+              ((↑|j| : ℝ) * L / 2) ^ (k + 2) ≤ 2 ^ (k + 2) * Semi h := by
+            have := mul_le_mul_of_nonneg_left h_pow_le
+              (norm_nonneg (iteratedDeriv k (⇑h) y))
+            linarith [mul_comm ((1 + ‖y‖) ^ (k + 2)) (‖iteratedDeriv k (⇑h) y‖)]
+          -- Goal: ‖D^k h(y)‖ ≤ Semi h * (B / |j|^2)
+          --      = Semi h * 4^(k+2) / (L^(k+2) * |j|^2)
+          rw [show Semi h * (B / (↑|j| : ℝ) ^ 2) =
+            4 ^ (k + 2) * Semi h / ((↑|j| : ℝ) ^ 2 * L ^ (k + 2)) by
+            simp only [B]; ring]
+          rw [le_div_iff₀ (mul_pos (sq_pos_of_pos hj_pos) (pow_pos hL_pos _))]
+          have h2pos : (0 : ℝ) < 2 ^ (k + 2) := pow_pos (by norm_num : (0:ℝ) < 2) _
+          have hexpand : ((↑|j| : ℝ) * L / 2) ^ (k + 2) * 2 ^ (k + 2) =
+              (↑|j| : ℝ) ^ (k + 2) * L ^ (k + 2) := by
+            rw [div_pow, div_mul_cancel₀ _ (ne_of_gt h2pos)]
+            exact mul_pow _ _ _
+          have h4eq : 2 ^ (k + 2) * Semi h * 2 ^ (k + 2) = 4 ^ (k + 2) * Semi h := by
+            rw [show (4 : ℝ) = 2 * 2 from by norm_num, mul_pow]; ring
+          calc ‖iteratedDeriv k (⇑h) y‖ * ((↑|j| : ℝ) ^ 2 * L ^ (k + 2))
+              ≤ ‖iteratedDeriv k (⇑h) y‖ * ((↑|j| : ℝ) ^ (k + 2) * L ^ (k + 2)) := by
+                apply mul_le_mul_of_nonneg_left _ (norm_nonneg _)
+                exact mul_le_mul_of_nonneg_right h_pow_ij (pow_pos hL_pos _).le
+            _ = ‖iteratedDeriv k (⇑h) y‖ *
+                (((↑|j| : ℝ) * L / 2) ^ (k + 2) * 2 ^ (k + 2)) := by
+                rw [hexpand]
+            _ = ‖iteratedDeriv k (⇑h) y‖ *
+                ((↑|j| : ℝ) * L / 2) ^ (k + 2) * 2 ^ (k + 2) := by ring
+            _ ≤ 2 ^ (k + 2) * Semi h * 2 ^ (k + 2) := by
+                apply mul_le_mul_of_nonneg_right h_mul_bound h2pos.le
+            _ = 4 ^ (k + 2) * Semi h := h4eq
+    _ = Semi h * C := by rw [tsum_mul_left]
+    _ = C * Semi h := by ring
 
 /-! ## Periodization CLM -/
 
