@@ -24,12 +24,12 @@ composition remain axiomatized.
 - `heatMultiplierCLM_zero` — heat multiplier at t=0 is the identity (proved)
 - `heatMultiplierCLM_comp` — semigroup composition (proved from general comp axiom)
 - `*_translation_comm` — translation equivariance (proved from general theorem)
-- `*_reflection_comm` — reflection equivariance (proved from general axiom)
+- `*_reflection_comm` — reflection equivariance (proved from general theorem)
+- `fourierMultiplier_preserves_real` — even real multiplier preserves real-valuedness (proved)
 
-## Remaining axioms (2 general properties)
+## Remaining axioms
 
-- `fourierMultiplier_preserves_real` — even real multiplier preserves real-valuedness
-- `fourierMultiplierCLM_even_reflection_comm` — reflection equivariance for even symbols
+None — all properties are proved.
 
 ## Mathematical background
 
@@ -246,11 +246,106 @@ functions to real-valued Schwartz functions. Requires evenness because:
 σ·ℱf to also have this symmetry we need σ(k) = σ(-k).
 
 All physical symbols in the project (resolvent, heat kernel) are even. -/
-axiom fourierMultiplier_preserves_real (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+theorem fourierMultiplier_preserves_real (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
     (heven : ∀ p, σ (-p) = σ p) :
     schwartzToComplex.comp (schwartzToReal.comp
       ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)) =
-    (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex
+    (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex := by
+  ext f x
+  simp only [ContinuousLinearMap.comp_apply, schwartzToComplex, schwartzToReal,
+    SchwartzMap.postcompCLM_apply, SchwartzMap.fourierMultiplierCLM_apply]
+  rw [Complex.reCLM_apply, Complex.ofRealCLM_apply, ← Complex.conj_eq_iff_re]
+  -- Goal: conj(z) = z where z = (ℱ⁻¹(σ • ℱ(ofReal f)))(x)
+  -- Step 1: Bridge to function-level Fourier transforms
+  set g := SchwartzMap.smulLeftCLM ℂ σ
+    (FourierTransform.fourier ((SchwartzMap.postcompCLM Complex.ofRealCLM) f)) with hg_def
+  have hFI : ((FourierTransformInv.fourierInv g : SchwartzMap ℝ ℂ) : ℝ → ℂ) x =
+      (FourierTransformInv.fourierInv (⇑g : ℝ → ℂ)) x :=
+    congr_fun (SchwartzMap.fourierInv_coe g) x
+  rw [hFI]
+  simp only [hg_def, SchwartzMap.smulLeftCLM_apply hσ]
+  conv_lhs =>
+    arg 2; arg 1; ext ξ; rw [show ((FourierTransform.fourier
+      ((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : SchwartzMap ℝ ℂ) : ℝ → ℂ) ξ =
+      (FourierTransform.fourier
+        (⇑((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : ℝ → ℂ)) ξ from
+      congr_fun (SchwartzMap.fourier_coe _) ξ]
+  conv_rhs =>
+    arg 1; ext ξ; rw [show ((FourierTransform.fourier
+      ((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : SchwartzMap ℝ ℂ) : ℝ → ℂ) ξ =
+      (FourierTransform.fourier
+        (⇑((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : ℝ → ℂ)) ξ from
+      congr_fun (SchwartzMap.fourier_coe _) ξ]
+  have comp_eq : (⇑((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : ℝ → ℂ) =
+      Complex.ofReal ∘ (⇑f : ℝ → ℝ) := by
+    ext y; simp [SchwartzMap.postcompCLM_apply]
+  simp_rw [comp_eq]
+  -- Step 2: Unfold ℱ⁻¹ and ℱ to VectorFourier integrals
+  simp only [FourierTransformInv.fourierInv, VectorFourier.fourierIntegral]
+  change (starRingEnd ℂ) (∫ v,
+    Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+      FourierTransform.fourier (Complex.ofReal ∘ ⇑f) v) = _
+  rw [show (starRingEnd ℂ) (∫ v,
+      Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+        FourierTransform.fourier (Complex.ofReal ∘ ⇑f) v) =
+    ∫ v, (starRingEnd ℂ) (Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+        FourierTransform.fourier (Complex.ofReal ∘ ⇑f) v) from
+    integral_conj.symm]
+  -- Step 3: Prove conjugation symmetry of ℱ for real functions.
+  -- conj(ℱ(ofReal ∘ f)(v)) = ℱ(ofReal ∘ f)(-v)
+  have fourier_conj_neg : ∀ v, (starRingEnd ℂ) (FourierTransform.fourier
+      (Complex.ofReal ∘ ⇑f) v) = FourierTransform.fourier (Complex.ofReal ∘ ⇑f) (-v) := by
+    intro v
+    -- ℱ(ofReal ∘ f)(v) = ∫ y, 𝐞(-⟨y,v⟩) • (ofReal(f(y))) dy
+    simp only [FourierTransform.fourier, VectorFourier.fourierIntegral]
+    -- The ℱ integral uses L = innerₗ ℝ with argument order L y v.
+    rw [show (starRingEnd ℂ) (∫ y, Real.fourierChar (-((innerₗ ℝ) y) v) •
+        (Complex.ofReal ∘ ⇑f) y) =
+      ∫ y, (starRingEnd ℂ) (Real.fourierChar (-((innerₗ ℝ) y) v) •
+        (Complex.ofReal ∘ ⇑f) y) from integral_conj.symm]
+    congr 1; ext y
+    -- conj(𝐞(-⟨y,v⟩) • ofReal(f(y))) = 𝐞(-⟨y,-v⟩) • ofReal(f(y))
+    simp only [Circle.smul_def, smul_eq_mul]
+    rw [map_mul, Circle.starRingEnd_addChar]
+    rw [show (starRingEnd ℂ) ((Complex.ofReal ∘ ⇑f) y) =
+      (Complex.ofReal ∘ ⇑f) y from Complex.conj_ofReal _]
+    congr 1; congr 1; congr 1
+    -- -(-⟨y,v⟩) = -⟨y,-v⟩
+    simp only [map_neg, neg_neg, innerₗ_apply_apply]
+  -- Step 4: Distribute conj through the integrand and use fourier_conj_neg.
+  -- Show LHS integrand at v = RHS integrand at -v, then substitute v → -v.
+  have h_eq : (fun v => (starRingEnd ℂ)
+      (Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+        FourierTransform.fourier (Complex.ofReal ∘ ⇑f) v)) =
+    fun v => (fun w => Real.fourierChar (-((-innerₗ ℝ) w) x) • σ w •
+      FourierTransform.fourier (Complex.ofReal ∘ ⇑f) w) (-v) := by
+    ext v
+    -- conj(𝐞(phase) • σ v • ℱf(v)) = 𝐞(phase(-v)) • σ(-v) • ℱf(-v)
+    -- Convert all smuls to * and distribute conj
+    simp only [Circle.smul_def, smul_eq_mul]
+    -- After Circle.smul_def: ↑(𝐞a) • (σ v • ℱf(v)), smul_eq_mul on outer: ↑(𝐞a) * (σ v • ℱf(v))
+    -- map_mul distributes conj over the outer *.
+    -- RHS still has σ(-v) • ℱf(-v) which uses ℝ-smul.
+    -- Pull conj through the outer * then through the ℝ-smul.
+    rw [map_mul]
+    rw [Circle.starRingEnd_addChar]
+    rw [RCLike.conj_smul, fourier_conj_neg, heven]
+    congr 1; congr 1; congr 1; congr 1
+    -- Phase identity: -(phase(v,x)) = phase(-v,x)
+    simp only [LinearMap.neg_apply, map_neg, neg_neg, innerₗ_apply_apply]
+  -- Extract pointwise from h_eq and rewrite under the integral
+  have h_pt : ∀ v, (starRingEnd ℂ) (Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+      FourierTransform.fourier (Complex.ofReal ∘ ⇑f) v) =
+    Real.fourierChar (-((-innerₗ ℝ) (-v)) x) • σ (-v) •
+      FourierTransform.fourier (Complex.ofReal ∘ ⇑f) (-v) :=
+    fun v => congr_fun h_eq v
+  simp_rw [h_pt]
+  -- Now: ∫ v, 𝐞(phase(-v)) • σ(-v) • ℱf(-v) = ∫ v, 𝐞(phase(v)) • σ(v) • ℱf(v)
+  -- Substitute v → -v using integral_neg_eq_self
+  exact MeasureTheory.integral_neg_eq_self
+    (fun v => Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+      FourierTransform.fourier (Complex.ofReal ∘ ⇑f) v)
+    MeasureTheory.volume
 
 /-! ### Fourier multiplier properties
 
@@ -398,13 +493,91 @@ theorem fourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
       (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv
       (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ f) := by
   -- Both sides are Schwartz functions; reduce to pointwise equality.
-  -- At integral level both equal ∫ e^{-2πixξ} σ(ξ) (ℱf)(ξ) dξ.
   ext x
-  simp only [SchwartzMap.fourierMultiplierCLM_apply,
-    SchwartzMap.compCLMOfContinuousLinearEquiv_apply]
-  -- Goal: (ℱ⁻¹(σ • ℱ(f ∘ neg)))(x) = (ℱ⁻¹(σ • ℱf)) ∘ neg $ x
-  -- i.e., (ℱ⁻¹(σ • ℱ(f ∘ neg)))(x) = (ℱ⁻¹(σ • ℱf))(-x)
-  sorry
+  simp only [SchwartzMap.fourierMultiplierCLM_apply]
+  -- Simplify RHS: Θ(ℱ⁻¹(σ•ℱf))(x) = (ℱ⁻¹(σ•ℱf))(-x)
+  change _ = (FourierTransformInv.fourierInv
+    ((SchwartzMap.smulLeftCLM ℂ σ) (FourierTransform.fourier f))) (-x)
+  -- Bridge LHS Schwartz ℱ⁻¹ to function-level ℱ⁻¹
+  rw [show ((FourierTransformInv.fourierInv (SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier (SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+          (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f))) :
+      SchwartzMap ℝ ℂ) : ℝ → ℂ) x =
+    (FourierTransformInv.fourierInv (⇑(SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier (SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+          (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f))))) x from by
+    exact congr_fun (SchwartzMap.fourierInv_coe _) x]
+  -- Bridge RHS Schwartz ℱ⁻¹ to function-level ℱ⁻¹
+  rw [show ((FourierTransformInv.fourierInv (SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier f)) :
+      SchwartzMap ℝ ℂ) : ℝ → ℂ) (-x) =
+    (FourierTransformInv.fourierInv (⇑(SchwartzMap.smulLeftCLM ℂ σ
+        (FourierTransform.fourier f)))) (-x) from by
+    exact congr_fun (SchwartzMap.fourierInv_coe _) (-x)]
+  -- Unfold smulLeftCLM to pointwise multiplication
+  simp only [SchwartzMap.smulLeftCLM_apply hσ]
+  -- Convert Schwartz ℱ to function-level ℱ using fourier_coe
+  conv_lhs =>
+    arg 1; ext ξ; rw [show ((FourierTransform.fourier
+      (SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+        (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f) :
+      SchwartzMap ℝ ℂ) : ℝ → ℂ) ξ =
+      (FourierTransform.fourier
+        (⇑(SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+          (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f) : ℝ → ℂ)) ξ from
+      congr_fun (SchwartzMap.fourier_coe _) ξ]
+  conv_rhs =>
+    arg 1; ext ξ; rw [show ((FourierTransform.fourier f : SchwartzMap ℝ ℂ) : ℝ → ℂ) ξ =
+      (FourierTransform.fourier (⇑f : ℝ → ℂ)) ξ from
+      congr_fun (SchwartzMap.fourier_coe _) ξ]
+  -- Simplify Θf coercion: ⇑(Θf) = ⇑f ∘ neg
+  have comp_eq : (⇑(SchwartzMap.compCLMOfContinuousLinearEquiv ℝ
+      (LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv f) : ℝ → ℂ) =
+    (⇑f : ℝ → ℂ) ∘ fun y => -y := by
+    ext y; simp [SchwartzMap.compCLMOfContinuousLinearEquiv_apply]
+  rw [comp_eq]
+  -- Apply Fourier-of-reflection:
+  -- ℱ(⇑f ∘ neg)(ξ) = ℱ(⇑f)(neg ξ) = ℱ(⇑f)(-ξ)
+  rw [show FourierTransform.fourier ((⇑f : ℝ → ℂ) ∘ fun y => -y) =
+    fun ξ => FourierTransform.fourier (⇑f : ℝ → ℂ) (-ξ) from by
+    ext ξ
+    rw [show (⇑f : ℝ → ℂ) ∘ (fun y => -y) =
+      (⇑f : ℝ → ℂ) ∘ ⇑(LinearIsometryEquiv.neg ℝ (E := ℝ)) from rfl]
+    rw [Real.fourierIntegral_comp_linearIsometry]
+    simp [LinearIsometryEquiv.neg]]
+  -- Goal: ℱ⁻¹(fun ξ ↦ σ ξ • ℱ(⇑f)(-ξ))(x) = ℱ⁻¹(fun ξ ↦ σ ξ • ℱ(⇑f)(ξ))(-x)
+  -- Use evenness: σ ξ = σ(-ξ), so LHS integrand = σ(-ξ) • ℱ(⇑f)(-ξ)
+  -- Then substitute η = -ξ.
+  -- Unfold ℱ⁻¹ to VectorFourier integral
+  simp only [FourierTransformInv.fourierInv, VectorFourier.fourierIntegral]
+  -- Substitute v ↦ -v on LHS using integral_neg_eq_self.
+  -- Use σ(-v) = σ(v) and phase identity to show integrands match.
+  -- Strategy: rewrite LHS integrand as g(-v), apply integral_neg_eq_self,
+  -- then show g = RHS integrand.
+  -- LHS: ∫ v, 𝐞(phase(v,x)) • σ(v) • ℱf(-v)
+  -- = ∫ v, 𝐞(phase(-v,x)) • σ(-v) • ℱf(v)    [subst v ↦ -v]
+  -- = ∫ v, 𝐞(phase(-v,x)) • σ(v) • ℱf(v)      [σ even]
+  -- = ∫ v, 𝐞(phase(v,-x)) • σ(v) • ℱf(v)       [phase identity]
+  -- = RHS
+  -- Direct approach: show both integrands agree after substitution
+  -- Both sides are integrals. We show LHS = RHS by substituting v ↦ -v.
+  -- Step 1: Rewrite LHS as ∫ g(-v) dv
+  -- Goal: ∫ 𝐞(phase(v,x)) • σ(v) • ℱf(-v) dv = ∫ 𝐞(phase(v,-x)) • σ(v) • ℱf(v) dv
+  -- Strategy: substitute v → -v on LHS using integral_neg_eq_self,
+  -- then simplify using σ even and phase identity.
+  have step1 : ∫ v, Real.fourierChar (-((-innerₗ ℝ) v) x) • σ v •
+      FourierTransform.fourier (⇑f) (-v) =
+    ∫ w, Real.fourierChar (-((-innerₗ ℝ) (-w)) x) • σ (-w) •
+      FourierTransform.fourier (⇑f) w := by
+    have := MeasureTheory.integral_neg_eq_self
+      (fun w => Real.fourierChar (-((-innerₗ ℝ) (-w)) x) • σ (-w) •
+        FourierTransform.fourier (⇑f) w) MeasureTheory.volume
+    -- this : ∫ f(-w) = ∫ f(w). But ∫ f(-w) should equal our LHS.
+    rw [← this]
+    congr 1; ext v; simp only [neg_neg]
+  exact step1.trans (by
+    congr 1; ext v; rw [heven]; congr 2
+    simp only [LinearMap.neg_apply, map_neg, neg_neg, innerₗ_apply_apply])
 
 /-- **Translation equivariance of real Fourier multipliers.**
 
