@@ -73,6 +73,54 @@ namespace GaussianField
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
+/-! ## Laplace transform on Schwartz space
+
+The Laplace transform `L_ω(h) = ∫₀^∞ h(t) e^{-ωt} dt` is a continuous linear
+functional on `𝓢(ℝ)` for each `ω > 0`. The bound `|L_ω(h)| ≤ C · p(h)` holds
+uniformly for `ω ≥ mass > 0` because the exponential factor `e^{-ωt}` only
+helps (it's ≤ 1 on [0,∞) and ≤ e^{-mass·t} for ω ≥ mass). -/
+
+/-- **The Laplace transform functional on Schwartz space** at frequency `ω > 0`.
+
+Evaluates the one-sided Laplace transform: `h ↦ ∫₀^∞ h(t) e^{-ωt} dt`.
+
+This is continuous on `𝓢(ℝ)` because Schwartz functions decay faster than
+any polynomial, making the integral absolutely convergent for any `ω > 0`.
+The bound `|L_ω(h)| ≤ ∫₀^∞ |h(t)| dt ≤ C · p_{2,0}(h)` (using
+`|h(t)| ≤ p_{2,0}(h)/(1+t)²`) shows continuity with respect to the
+Schwartz topology.
+
+Reference: Standard tempered distribution theory; the Laplace transform
+at `ω > 0` is a tempered distribution of order 0 on the positive half-line. -/
+axiom schwartzLaplaceEvalCLM (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →L[ℝ] ℝ
+
+/-- **Specification of `schwartzLaplaceEvalCLM`.**
+
+The Laplace evaluation CLM computes the one-sided Laplace transform:
+  `schwartzLaplaceEvalCLM ω hω h = ∫ t in Ici 0, h t * exp(-ω * t)` -/
+axiom schwartzLaplaceEvalCLM_apply (ω : ℝ) (hω : 0 < ω) (h : SchwartzMap ℝ ℝ) :
+    schwartzLaplaceEvalCLM ω hω h =
+    ∫ t in Set.Ici (0 : ℝ), h.toFun t * Real.exp (-ω * t)
+
+/-- **Uniform Schwartz seminorm bound for the Laplace transform family.**
+
+For each pair of Schwartz seminorm indices `(k, l)`, the functional `L_ω` satisfies
+`|L_ω(h)| ≤ C · (s.sup p)(h)` uniformly in `ω ≥ mass > 0`.
+
+This is immediate from `|L_ω(h)| ≤ ∫₀^∞ |h(t)| dt ≤ C · p_{2,0}(h)`:
+the exponential `e^{-ωt} ≤ 1` for `t ≥ 0, ω > 0`, so the bound is independent
+of `ω`. In fact the bound improves as `ω` grows, but uniformity suffices.
+
+Reference: Standard distribution theory — the Laplace transform at positive
+frequency is a tempered distribution on 𝓢(ℝ) with seminorm bounds independent
+of the frequency parameter. -/
+axiom schwartzLaplace_uniformBound
+    (mass : ℝ) (hmass : 0 < mass) :
+    ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
+    ∀ (ω : ℝ) (hω : mass ≤ ω) (h : SchwartzMap ℝ ℝ),
+      |schwartzLaplaceEvalCLM ω (lt_of_lt_of_le hmass hω) h| ≤
+      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) h
+
 /-! ## Laplace embedding
 
 The Laplace embedding maps test functions to ℓ² via the Laplace-resolved
@@ -88,18 +136,234 @@ and ω_n > 0 for mass > 0. The resulting sequence is in ℓ² because the
 spatial Fourier coefficients of g ∈ C∞(S¹) decay rapidly and the Laplace
 transforms are bounded. -/
 
+/-- The a-th coordinate functional of the Laplace embedding.
+
+For spatial mode `a`, this is:
+  `f ↦ (1/√(2ω_a)) · L_{ω_a}(ntpSliceSchwartz L a f)`
+
+This is a CLM `CylinderTestFunction L →L[ℝ] ℝ` as a composition of:
+- `ntpSliceSchwartz L a : CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ`
+- `schwartzLaplaceEvalCLM ω_a : SchwartzMap ℝ ℝ →L[ℝ] ℝ`
+- scaling by `1/√(2ω_a)` -/
+def laplaceEmbeddingCoord (mass : ℝ) (hmass : 0 < mass) (a : ℕ) :
+    CylinderTestFunction L →L[ℝ] ℝ :=
+  (1 / Real.sqrt (2 * resolventFreq L mass a)) •
+    (schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)).comp
+      (ntpSliceSchwartz L a)
+
+/-- The coordinate functional is the composition of slice, Laplace eval, and scaling. -/
+theorem laplaceEmbeddingCoord_apply (mass : ℝ) (hmass : 0 < mass) (a : ℕ)
+    (f : CylinderTestFunction L) :
+    laplaceEmbeddingCoord L mass hmass a f =
+    (1 / Real.sqrt (2 * resolventFreq L mass a)) *
+    schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+      (ntpSliceSchwartz L a f) := by
+  simp [laplaceEmbeddingCoord, ContinuousLinearMap.smul_apply, smul_eq_mul]
+
+/-- **Decay bound for the Laplace embedding coordinates.**
+
+  `|laplaceEmbeddingCoord a f| ≤ C · p(f) · (1+a)^{-2}`
+
+The proof chains three bounds:
+1. **Laplace uniform bound**: `|L_ω(h)| ≤ C_L · schwartz_p(h)` for `ω ≥ mass`
+2. **Inverse Hermite**: `schwartz_p(equiv⁻¹ g) ≤ C_inv · rds_p(g)`
+3. **Slice decay**: `rds_p(slice_a f) ≤ Z · rds_q(f) · (1+a)^{-4}`
+
+Combined with the `1/√(2ω_a) ≤ 1/√(2·mass)` scaling, this gives `(1+a)^{-4}`
+decay, which is much stronger than the `(1+a)^{-2}` required for ℓ². -/
+theorem laplaceEmbeddingCoord_decay (mass : ℝ) (hmass : 0 < mass) :
+    ∃ (s : Finset (DyninMityaginSpace.ι (E := CylinderTestFunction L))) (C : ℝ) (_ : 0 < C),
+    ∀ (a : ℕ) (f : CylinderTestFunction L),
+      |laplaceEmbeddingCoord L mass hmass a f| ≤
+      (C * (s.sup DyninMityaginSpace.p) f) * (1 + (a : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
+  -- Step 1: Laplace uniform Schwartz bound
+  obtain ⟨s_L, C_L, hC_L, h_laplace⟩ := schwartzLaplace_uniformBound mass hmass
+  -- Step 2: Inverse Hermite bound (Schwartz seminorms of equiv⁻¹ g bounded by RDS seminorms of g)
+  have h_inv_combined :
+      ∃ (s_inv : Finset ℕ) (C_inv : NNReal), C_inv ≠ 0 ∧
+      ∀ g : RapidDecaySeq,
+        (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+          (schwartzRapidDecayEquiv1D.symm g) ≤
+        ↑C_inv * (s_inv.sup RapidDecaySeq.rapidDecaySeminorm) g := by
+    have h_each : ∀ idx : ℕ × ℕ,
+        ∃ (s_j : Finset ℕ) (C_j : NNReal), C_j ≠ 0 ∧
+        ∀ g : RapidDecaySeq,
+          SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) idx.1 idx.2
+            (schwartzRapidDecayEquiv1D.symm g) ≤
+          ↑C_j * (s_j.sup RapidDecaySeq.rapidDecaySeminorm) g := by
+      intro ⟨k', l'⟩
+      set q : Seminorm ℝ RapidDecaySeq :=
+        (SchwartzMap.seminorm ℝ k' l').comp
+          schwartzRapidDecayEquiv1D.symm.toContinuousLinearMap.toLinearMap
+      have hq_cont : Continuous q :=
+        ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨k', l'⟩).comp
+          schwartzRapidDecayEquiv1D.symm.continuous
+      obtain ⟨s, C, hCne, hle⟩ := Seminorm.bound_of_continuous
+        RapidDecaySeq.rapidDecay_withSeminorms q hq_cont
+      exact ⟨s, C, hCne, fun g => Seminorm.le_def.mp hle g⟩
+    choose s_j C_j hC_j h_j using h_each
+    refine ⟨s_L.biUnion s_j,
+      s_L.sum (fun idx => C_j idx) + 1,
+      by simp, fun g => ?_⟩
+    set big_rds := (s_L.biUnion s_j).sup RapidDecaySeq.rapidDecaySeminorm
+    apply Seminorm.finset_sup_apply_le (by positivity)
+    intro idx hidx
+    calc SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) idx.1 idx.2
+          (schwartzRapidDecayEquiv1D.symm g)
+        ≤ ↑(C_j idx) * ((s_j idx).sup RapidDecaySeq.rapidDecaySeminorm) g := h_j idx g
+      _ ≤ ↑(C_j idx) * big_rds g := by
+          apply mul_le_mul_of_nonneg_left _ (by positivity)
+          exact Seminorm.le_def.mp (Finset.sup_mono (Finset.subset_biUnion_of_mem s_j hidx)) g
+      _ ≤ ↑(s_L.sum (fun idx => C_j idx)) * big_rds g := by
+          apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+          push_cast
+          exact_mod_cast Finset.single_le_sum (fun j _ => (C_j j).coe_nonneg) hidx
+      _ ≤ ↑(s_L.sum (fun idx => C_j idx) + 1) * big_rds g := by
+          apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+          push_cast; linarith
+  obtain ⟨s_inv, C_inv, hC_inv_ne, h_inv⟩ := h_inv_combined
+  -- Step 3: Slice extraction decay
+  -- For each k ∈ s_inv, rds_k(slice_a f) ≤ Z * rds_{k+4+2} f * (1+a)^{-4}
+  set Z := ∑' (n : ℕ), ((1 + (n : ℝ)) ^ 2)⁻¹ with hZ
+  have hZ_pos : 0 < Z :=
+    NuclearTensorProduct.summable_inv_one_add_sq.tsum_pos
+      (fun n => by positivity) 0 (by positivity)
+  set s_total := s_inv.image (· + 6) with hs_total
+  have h_slice_decay : ∀ (n : ℕ) (f : CylinderTestFunction L),
+      (s_inv.sup RapidDecaySeq.rapidDecaySeminorm) (ntpExtractSlice n f) ≤
+      Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+      ((1 + (n : ℝ)) ^ 4)⁻¹ := by
+    intro n f
+    apply Seminorm.finset_sup_apply_le (by positivity)
+    intro k hk
+    have h_decay := ntpExtractSlice_a_decay n k 4 f
+    calc RapidDecaySeq.rapidDecaySeminorm k (ntpExtractSlice n f)
+        ≤ Z * RapidDecaySeq.rapidDecaySeminorm (k + 4 + 2) f *
+          ((1 + (n : ℝ)) ^ 4)⁻¹ := h_decay
+      _ ≤ Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (n : ℝ)) ^ 4)⁻¹ := by
+        gcongr
+        exact Seminorm.le_finset_sup_apply (Finset.mem_image.mpr ⟨k, hk, rfl⟩)
+  -- Step 4: Combine everything
+  -- scaling: 1/√(2ω_a) ≤ 1/√(2·mass) since ω_a ≥ mass
+  set scale := 1 / Real.sqrt (2 * mass) with hscale_def
+  have hscale_pos : 0 < scale := by
+    apply div_pos one_pos
+    exact Real.sqrt_pos_of_pos (by positivity)
+  -- Total constant
+  set C_total := scale * C_L * ↑C_inv * Z with hC_total
+  refine ⟨s_total, C_total + 1, by positivity, fun a f => ?_⟩
+  -- Chain:
+  -- |laplaceEmbeddingCoord a f|
+  --   = |1/√(2ω_a)| * |L_{ω_a}(slice_a f)|
+  --   ≤ scale * |L_{ω_a}(slice_a f)|
+  --   ≤ scale * C_L * schwartz_p(slice_a f)
+  --   = scale * C_L * schwartz_p(equiv⁻¹(ntpExtractSlice a f))
+  --   ≤ scale * C_L * C_inv * rds_p(ntpExtractSlice a f)
+  --   ≤ scale * C_L * C_inv * Z * (s_total.sup rds) f * (1+a)^{-4}
+  --   ≤ C_total * p(f) * (1+a)^{-2}  (since (1+a)^{-4} ≤ (1+a)^{-2})
+  rw [laplaceEmbeddingCoord_apply]
+  -- Bound the absolute value of the product
+  have h1 : |1 / Real.sqrt (2 * resolventFreq L mass a)| ≤ scale := by
+    rw [abs_div, abs_one, abs_of_nonneg (Real.sqrt_nonneg _)]
+    apply one_div_le_one_div_of_le (Real.sqrt_pos_of_pos (by positivity))
+    apply Real.sqrt_le_sqrt
+    apply mul_le_mul_of_nonneg_left _ (by positivity : (0 : ℝ) ≤ 2)
+    exact resolventFreq_mass_le L mass hmass.le a
+  -- Bound the Laplace evaluation
+  have hωa := resolventFreq_mass_le L mass hmass.le a
+  have h2 : |schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+      (ntpSliceSchwartz L a f)| ≤
+      C_L * (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+        (ntpSliceSchwartz L a f) :=
+    h_laplace (resolventFreq L mass a) hωa (ntpSliceSchwartz L a f)
+  -- ntpSliceSchwartz = equiv⁻¹ ∘ ntpExtractSlice
+  have h_slice_eq : ntpSliceSchwartz L a f =
+      schwartzRapidDecayEquiv1D.symm (ntpExtractSlice a f) := rfl
+  -- Bound Schwartz seminorms via inverse Hermite
+  have h3 : (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+      (ntpSliceSchwartz L a f) ≤
+      ↑C_inv * (s_inv.sup RapidDecaySeq.rapidDecaySeminorm) (ntpExtractSlice a f) := by
+    rw [h_slice_eq]; exact h_inv (ntpExtractSlice a f)
+  -- Bound slice RDS seminorms via decay
+  have h4 := h_slice_decay a f
+  -- Now chain the bounds
+  have h_abs_prod : |1 / Real.sqrt (2 * resolventFreq L mass a) *
+      schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+        (ntpSliceSchwartz L a f)| ≤
+      scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+      ((1 + (a : ℝ)) ^ 4)⁻¹ := by
+    rw [abs_mul]
+    calc |1 / Real.sqrt (2 * resolventFreq L mass a)| *
+          |schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+            (ntpSliceSchwartz L a f)|
+        ≤ scale * (C_L * (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+            (ntpSliceSchwartz L a f)) := by gcongr
+      _ ≤ scale * (C_L * (↑C_inv * (s_inv.sup RapidDecaySeq.rapidDecaySeminorm)
+            (ntpExtractSlice a f))) := by gcongr
+      _ ≤ scale * (C_L * (↑C_inv * (Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+            ((1 + (a : ℝ)) ^ 4)⁻¹))) := by gcongr
+      _ = scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+            ((1 + (a : ℝ)) ^ 4)⁻¹ := by ring
+  -- (1+a)^{-4} ≤ (1+a)^{-2}
+  have h_pow_le : ((1 + (a : ℝ)) ^ 4)⁻¹ ≤ ((1 + (a : ℝ)) ^ 2)⁻¹ :=
+    inv_anti₀ (by positivity)
+      (pow_le_pow_right₀ (by linarith [Nat.cast_nonneg (α := ℝ) a] : (1 : ℝ) ≤ 1 + (a : ℝ))
+        (by omega))
+  -- Convert rpow to pow
+  rw [show ((-2 : ℤ) : ℝ) = (-2 : ℝ) from by norm_cast,
+      Real.rpow_neg (by positivity : (0 : ℝ) ≤ 1 + (a : ℝ)),
+      show (2 : ℝ) = ((2 : ℕ) : ℝ) from by norm_cast,
+      Real.rpow_natCast]
+  calc |1 / Real.sqrt (2 * resolventFreq L mass a) *
+        schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+          (ntpSliceSchwartz L a f)|
+      ≤ scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 4)⁻¹ := h_abs_prod
+    _ ≤ scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 2)⁻¹ := by gcongr
+    _ = C_total * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 2)⁻¹ := by ring
+    _ ≤ (C_total + 1) * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 2)⁻¹ := by
+      gcongr
+      linarith
+
+/-- Helper: package the decay bound for `nuclear_ell2_embedding_from_decay`. -/
+private def laplaceEmbedding_ell2 (mass : ℝ) (hmass : 0 < mass) :
+    ∃ (j : CylinderTestFunction L →L[ℝ] ell2'),
+      ∀ (f : CylinderTestFunction L) (a : ℕ),
+        (j f : ℕ → ℝ) a = laplaceEmbeddingCoord L mass hmass a f := by
+  obtain ⟨s, C, hC, hdecay⟩ := laplaceEmbeddingCoord_decay L mass hmass
+  exact nuclear_ell2_embedding_from_decay
+    (laplaceEmbeddingCoord L mass hmass) s C hC hdecay
+
 /-- **The Laplace embedding** `Λ : CylinderTestFunction L → ℓ²`.
 
 Maps test functions to ℓ² via the Laplace-resolved spatial Fourier
-decomposition. The n-th component of `Λf` encodes the coupling of the
-n-th spatial Fourier mode to the temporal Laplace transform at the
-corresponding resolvent frequency `ω_n`.
+decomposition. The a-th component of `Λf` encodes the coupling of the
+a-th spatial Fourier mode to the temporal Laplace transform at the
+corresponding resolvent frequency `ω_a`:
 
-This CLM exists because the Laplace transform `h ↦ ∫₀^∞ h(t) e^{-ωt} dt`
-is bounded on 𝓢(ℝ) for each ω > 0, and the spatial Fourier coefficients
-of g ∈ C∞(S¹) are rapidly decaying. -/
-axiom cylinderLaplaceEmbedding (mass : ℝ) (hmass : 0 < mass) :
-    CylinderTestFunction L →L[ℝ] ell2'
+  `(Λf)_a = (1/√(2ω_a)) · L_{ω_a}(slice_a f)`
+
+Constructed from the coordinate functionals `laplaceEmbeddingCoord` via
+`nuclear_ell2_embedding_from_decay`. The coordinates decay like `(1+a)^{-4}`,
+well within the `(1+a)^{-2}` required for ℓ² membership.
+
+Used to prove reflection positivity: `G(f, Θf) = ‖Λf‖² ≥ 0`. -/
+def cylinderLaplaceEmbedding (mass : ℝ) (hmass : 0 < mass) :
+    CylinderTestFunction L →L[ℝ] ell2' :=
+  (laplaceEmbedding_ell2 L mass hmass).choose
+
+/-- The a-th coordinate of the Laplace embedding is the coordinate functional.
+
+  `(Λf)_a = laplaceEmbeddingCoord L mass hmass a f` -/
+theorem cylinderLaplaceEmbedding_coord (mass : ℝ) (hmass : 0 < mass)
+    (f : CylinderTestFunction L) (a : ℕ) :
+    (cylinderLaplaceEmbedding L mass hmass f : ℕ → ℝ) a =
+    laplaceEmbeddingCoord L mass hmass a f :=
+  (laplaceEmbedding_ell2 L mass hmass).choose_spec f a
 
 /-- **Laplace factorization identity.**
 

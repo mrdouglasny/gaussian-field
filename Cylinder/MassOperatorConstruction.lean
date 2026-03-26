@@ -447,7 +447,7 @@ like `(1+a)^{-j₁}` using higher RDS seminorms of `f`.
 
 Uses `|f.val(pair(a,b))| * (1+pair(a,b))^j ≤ rapidDecaySeminorm j f` and
 `(1+pair(a,b))^{j₁+j₂} ≥ (1+a)^{j₁} · (1+b)^{j₂}` to split the decay. -/
-private theorem ntpExtractSlice_a_decay (a : ℕ) (k j₁ : ℕ) (f : RapidDecaySeq) :
+theorem ntpExtractSlice_a_decay (a : ℕ) (k j₁ : ℕ) (f : RapidDecaySeq) :
     RapidDecaySeq.rapidDecaySeminorm k (ntpExtractSlice a f) ≤
     (∑' (n : ℕ), ((1 + (n : ℝ)) ^ 2)⁻¹) *
     RapidDecaySeq.rapidDecaySeminorm (k + j₁ + 2) f *

@@ -6,11 +6,11 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**5 axioms, 0 sorries** (active build, excluding `future/`)
+**7 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-03-25.*
+*Updated 2026-03-26.*
 
-## Active Axiom Inventory (5 axioms)
+## Active Axiom Inventory (7 axioms)
 
 ### Cylinder Green's function (2 axioms)
 
@@ -21,12 +21,21 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
-### Cylinder reflection positivity (2 axioms)
+### Laplace transform on Schwartz space (3 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 3 | `cylinderLaplaceEmbedding` | Cylinder/ReflectionPositivity | The Laplace embedding $\Lambda : \text{CylinderTF}(L) \to \ell^2$. Maps each spatial mode to its Laplace transform at the resolvent frequency. |
-| 4 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
+| 3 | `schwartzLaplaceEvalCLM` | Cylinder/ReflectionPositivity | The Laplace transform $h \mapsto \int_0^\infty h(t) e^{-\omega t}\,dt$ as a CLM $\mathcal{S}(\mathbb{R}) \to \mathbb{R}$ for $\omega > 0$. |
+| 4 | `schwartzLaplaceEvalCLM_apply` | Cylinder/ReflectionPositivity | Specification: evaluates to $\int_0^\infty h(t) e^{-\omega t}\,dt$. |
+| 5 | `schwartzLaplace_uniformBound` | Cylinder/ReflectionPositivity | Uniform Schwartz seminorm bound: $\lvert L_\omega(h)\rvert \leq C \cdot p(h)$ for $\omega \geq m$. |
+
+Note: `cylinderLaplaceEmbedding` is now a **definition** (constructed from `schwartzLaplaceEvalCLM` + `ntpSliceSchwartz` + `nuclear_ell2_embedding_from_decay`).
+
+### Cylinder reflection positivity (1 axiom)
+
+| # | Name | File | Description |
+|---|------|------|-------------|
+| 6 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
 
 Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity. `cylinderGreen_reflection_strict_positive` was removed as a dead axiom.
 
@@ -34,7 +43,7 @@ Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 5 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
+| 7 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
 
 Note: `torusGreen_uniform_bound` is a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. `cylinderToTorusEmbed` is a **definition** (not axiom).
 
@@ -90,6 +99,12 @@ The following were axioms and are now fully proved theorems:
 - `massOperatorCoord` — m-th coordinate functional (def)
 - `massOperatorCoord_decay` — nuclear decay bound (proved from Cantor pairing + coeff_decay + slice a-decay)
 - `cylinderMassOperator_coord/formula` — coordinate access theorems
+
+### Laplace embedding construction (1 proved + 3 new theorems)
+- `cylinderLaplaceEmbedding` — axiom → def via `schwartzLaplaceEvalCLM` + `ntpSliceSchwartz` + `nuclear_ell2_embedding_from_decay`
+- `laplaceEmbeddingCoord` — a-th coordinate functional (def)
+- `laplaceEmbeddingCoord_decay` — nuclear decay bound (proved from uniform Laplace bound + inverse Hermite + slice a-decay)
+- `cylinderLaplaceEmbedding_coord` — coordinate access theorem
 
 ### Green's function (2 proved)
 - `cylinderGreen_continuous_seminorm_bound` — $G(f,f) \leq q(f)^2$ via `normSeminorm`
