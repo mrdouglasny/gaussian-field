@@ -388,7 +388,7 @@ Green's function invariance (reflection, translation) on pure tensors and the bi
 
 The core Gaussian field library has **0 axioms (+1 skipped), 0 sorries**.
 
-The Cylinder QFT infrastructure (used by pphi2, OSforGFF) has **6 axioms, 0 sorries**.
+The Cylinder QFT infrastructure (used by pphi2, OSforGFF) has **5 axioms, 0 sorries**.
 See [status.md](status.md) for the full axiom inventory.
 
 Former axioms have been proved or moved to `future/` as documentation:
