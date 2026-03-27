@@ -284,17 +284,26 @@ giving a clean positive-time half-space $\{t > 0\}$ with no wraparound issues.
 
 | File | Lines | Contents |
 |------|------:|----------|
-| [Cylinder/Basic.lean](Cylinder/Basic.lean) | 75 | `CylinderTestFunction L` $= C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, `Configuration` axioms |
-| [Cylinder/Symmetry.lean](Cylinder/Symmetry.lean) | 320 | Reflection, translation (Schwartz-level and cylinder-level), configuration-level actions, 1D positive-time Schwartz submodule, eval CLM, closedness |
-| [Cylinder/PositiveTime.lean](Cylinder/PositiveTime.lean) | 231 | `cylinderPositiveTimeSubmodule`, `cylinderNegativeTimeSubmodule`, Θ maps P+ into N−, disjointness of Θf from P+, spatial translation preserves P+ |
-| [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 240 | `cylinderMassOperator` $= (-\Delta + m^2)^{-1/2}$ via `spectralCLM`, `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance |
+| [Cylinder/Basic.lean](Cylinder/Basic.lean) | 57 | `CylinderTestFunction L` $= C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, `Configuration` |
+| [Cylinder/Symmetry.lean](Cylinder/Symmetry.lean) | 320 | Reflection, translation (Schwartz-level and cylinder-level), configuration-level actions, eval CLM |
+| [Cylinder/PositiveTime.lean](Cylinder/PositiveTime.lean) | 440 | `cylinderPositiveTimeSubmodule`, NTP slice extraction, spatial mode functionals |
+| [Cylinder/FourierMultiplier.lean](Cylinder/FourierMultiplier.lean) | 829 | Heat/resolvent symbols, `realFourierMultiplierCLM`, preserves-real, translation/reflection comm — **0 axioms** |
+| [Cylinder/FreeHeatSemigroup.lean](Cylinder/FreeHeatSemigroup.lean) | 220 | Heat semigroup commutation with translation/reflection |
+| [Cylinder/MassOperatorConstruction.lean](Cylinder/MassOperatorConstruction.lean) | 694 | `cylinderMassOperator` as def via slice + resolvent + ℓ² embedding, coordinate decay — **1 axiom** |
+| [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 375 | `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance — **1 axiom** |
+| [Cylinder/OneDimGreen.lean](Cylinder/OneDimGreen.lean) | 177 | 1D resolvent kernel factorization and reflection positivity (ported from Phi4) — **0 axioms** |
+| [Cylinder/ReflectionPositivity.lean](Cylinder/ReflectionPositivity.lean) | 425 | Laplace embedding (def), OS3 `cylinderGreen_reflection_positive` (proved) — **4 axioms** |
+| [Cylinder/MethodOfImages.lean](Cylinder/MethodOfImages.lean) | 373 | Torus embedding, ℓ² bounds, `torusGreen_uniform_bound` (proved) — **1 axiom** |
 
 **Key definitions:**
 
 - `CylinderTestFunction L` — nuclear tensor product $C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, inherits `DyninMityaginSpace`
 - `cylinderTimeReflection L` — $\mathrm{id} \otimes \Theta$ where $\Theta f(t) = f(-t)$
 - `cylinderPositiveTimeSubmodule L` — closure of span of $g \otimes h$ with $\mathrm{supp}(h) \subset (0,\infty)$
-- `cylinderMassOperator L mass hmass` — $(-\Delta + m^2)^{-1/2}$ via `spectralCLM` with QFT singular values
+- `cylinderMassOperator L mass hmass` — **def** (not axiom), constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`
+- `cylinderGreen L mass hmass` — $G(f,g) = \langle Tf, Tg \rangle_{\ell^2}$
+- `cylinderLaplaceEmbedding L mass hmass` — **def** (not axiom), Laplace-resolved spatial decomposition to $\ell^2$
+- `realFourierMultiplierCLM σ hσ` — $M_\sigma = \mathrm{re} \circ \mathcal{F}^{-1}(\sigma \cdot \mathcal{F}(\cdot)) \circ \mathrm{ofReal}$ — **0 axioms** (all properties proved)
 - `cylinderGreen L mass hmass` — Green's function $G_L(f,g) = \langle Tf, Tg \rangle_{\ell^2}$
 
 **Proved results:**
