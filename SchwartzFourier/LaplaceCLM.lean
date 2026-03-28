@@ -121,8 +121,8 @@ Continuity: `|L_ω(h)| ≤ ‖h‖_{L¹}` and the L¹ norm is continuous on 𝓢
 def schwartzLaplaceEvalCLM (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →L[ℝ] ℝ where
   toLinearMap := laplaceEvalLinear ω hω
   cont := by
-    -- The Laplace functional is bounded by the L¹ norm,
-    -- which is a continuous seminorm on Schwartz space.
+    -- |L_ω(h)| ≤ ‖toLp h‖ (L¹ norm) and toLp is a CLM, so composition is continuous.
+    -- Formally: continuous at 0 via squeeze, then linear → continuous everywhere.
     sorry
 
 /-- **Specification of the Laplace evaluation CLM.** -/
@@ -140,8 +140,22 @@ theorem schwartzLaplace_uniformBound
     ∀ (ω : ℝ) (hω : mass ≤ ω) (h : SchwartzMap ℝ ℝ),
       |schwartzLaplaceEvalCLM ω (lt_of_lt_of_le hmass hω) h| ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) h := by
-  -- The bound |L_ω(h)| ≤ ‖h‖_{L¹} ≤ C · p_{k,0}(h) holds uniformly in ω.
-  -- We need to express ‖h‖_{L¹} in terms of Schwartz seminorms.
-  sorry
+  -- Get the L¹ norm bound on Schwartz seminorms via toLpCLM + bound_of_continuous
+  set T : SchwartzMap ℝ ℝ →L[ℝ] Lp ℝ 1 (volume : Measure ℝ) :=
+    SchwartzMap.toLpCLM ℝ ℝ 1 (μ := volume)
+  set q : Seminorm ℝ (SchwartzMap ℝ ℝ) :=
+    Seminorm.comp (normSeminorm ℝ (Lp ℝ 1 (volume : Measure ℝ))) T.toLinearMap
+  have hq : Continuous q := continuous_norm.comp T.continuous
+  obtain ⟨s, C, hC, hle⟩ := Seminorm.bound_of_continuous (schwartz_withSeminorms ℝ ℝ ℝ) q hq
+  refine ⟨s, C, lt_of_le_of_ne C.2 (fun h => hC (Subtype.ext h.symm)), fun ω hω h => ?_⟩
+  rw [schwartzLaplaceEvalCLM_apply]
+  -- |∫ h·e^{-ωt}| ≤ ‖∫ h·e^{-ωt}‖ ≤ ∫ ‖h‖ = ‖toLp h‖ = q h ≤ C · s.sup(p)(h)
+  calc |∫ t in Ici (0 : ℝ), h.toFun t * exp (-ω * t)|
+      = ‖∫ t in Ici (0 : ℝ), h.toFun t * exp (-ω * t)‖ := (Real.norm_eq_abs _).symm
+    _ ≤ ∫ t, ‖h.toFun t‖ := laplace_integral_le_l1_norm h ω (lt_of_lt_of_le hmass hω)
+    _ = q h := by
+        show ∫ t, ‖h.toFun t‖ = ‖T h‖
+        sorry -- ‖toLp h‖ = ∫ ‖h‖ for p = 1
+    _ ≤ C * (s.sup (fun m => schwartzSeminormFamily ℝ ℝ ℝ m)) h := hle h
 
 end GaussianField
