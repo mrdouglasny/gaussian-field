@@ -31,6 +31,8 @@ lean_lib «Torus» where
 
 lean_lib «Cylinder» where
 
+lean_lib «SchwartzFourier» where
+
 /-- Build all libraries. Use `lake build All` after mathlib upgrades to catch breakage
 in non-default targets. -/
 lean_lib «All» where
