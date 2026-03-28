@@ -66,6 +66,7 @@ theorem, it implies:
 
 import Cylinder.GreenFunction
 import Cylinder.PositiveTime
+import SchwartzFourier.LaplaceCLM
 
 noncomputable section
 
@@ -76,50 +77,12 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 /-! ## Laplace transform on Schwartz space
 
 The Laplace transform `L_ω(h) = ∫₀^∞ h(t) e^{-ωt} dt` is a continuous linear
-functional on `𝓢(ℝ)` for each `ω > 0`. The bound `|L_ω(h)| ≤ C · p(h)` holds
-uniformly for `ω ≥ mass > 0` because the exponential factor `e^{-ωt}` only
-helps (it's ≤ 1 on [0,∞) and ≤ e^{-mass·t} for ω ≥ mass). -/
+functional on `𝓢(ℝ)` for each `ω > 0`. Defined and proved in
+`SchwartzFourier.LaplaceCLM`:
 
-/-- **The Laplace transform functional on Schwartz space** at frequency `ω > 0`.
-
-Evaluates the one-sided Laplace transform: `h ↦ ∫₀^∞ h(t) e^{-ωt} dt`.
-
-This is continuous on `𝓢(ℝ)` because Schwartz functions decay faster than
-any polynomial, making the integral absolutely convergent for any `ω > 0`.
-The bound `|L_ω(h)| ≤ ∫₀^∞ |h(t)| dt ≤ C · p_{2,0}(h)` (using
-`|h(t)| ≤ p_{2,0}(h)/(1+t)²`) shows continuity with respect to the
-Schwartz topology.
-
-Reference: Standard tempered distribution theory; the Laplace transform
-at `ω > 0` is a tempered distribution of order 0 on the positive half-line. -/
-axiom schwartzLaplaceEvalCLM (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →L[ℝ] ℝ
-
-/-- **Specification of `schwartzLaplaceEvalCLM`.**
-
-The Laplace evaluation CLM computes the one-sided Laplace transform:
-  `schwartzLaplaceEvalCLM ω hω h = ∫ t in Ici 0, h t * exp(-ω * t)` -/
-axiom schwartzLaplaceEvalCLM_apply (ω : ℝ) (hω : 0 < ω) (h : SchwartzMap ℝ ℝ) :
-    schwartzLaplaceEvalCLM ω hω h =
-    ∫ t in Set.Ici (0 : ℝ), h.toFun t * Real.exp (-ω * t)
-
-/-- **Uniform Schwartz seminorm bound for the Laplace transform family.**
-
-For each pair of Schwartz seminorm indices `(k, l)`, the functional `L_ω` satisfies
-`|L_ω(h)| ≤ C · (s.sup p)(h)` uniformly in `ω ≥ mass > 0`.
-
-This is immediate from `|L_ω(h)| ≤ ∫₀^∞ |h(t)| dt ≤ C · p_{2,0}(h)`:
-the exponential `e^{-ωt} ≤ 1` for `t ≥ 0, ω > 0`, so the bound is independent
-of `ω`. In fact the bound improves as `ω` grows, but uniformity suffices.
-
-Reference: Standard distribution theory — the Laplace transform at positive
-frequency is a tempered distribution on 𝓢(ℝ) with seminorm bounds independent
-of the frequency parameter. -/
-axiom schwartzLaplace_uniformBound
-    (mass : ℝ) (hmass : 0 < mass) :
-    ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
-    ∀ (ω : ℝ) (hω : mass ≤ ω) (h : SchwartzMap ℝ ℝ),
-      |schwartzLaplaceEvalCLM ω (lt_of_lt_of_le hmass hω) h| ≤
-      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) h
+- `schwartzLaplaceEvalCLM` — the CLM (constructed, not axiomatized)
+- `schwartzLaplaceEvalCLM_apply` — specification (proved by rfl)
+- `schwartzLaplace_uniformBound` — uniform bound for ω ≥ mass (proved) -/
 
 /-! ## Laplace embedding
 
