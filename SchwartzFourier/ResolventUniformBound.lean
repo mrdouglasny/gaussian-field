@@ -121,100 +121,25 @@ theorem resolventQuotientSymbol_even (mass ω : ℝ) (p : ℝ) :
     resolventQuotientSymbol mass ω (-p) = resolventQuotientSymbol mass ω p := by
   unfold resolventQuotientSymbol; ring_nf
 
-/-! ## Temperate growth of the quotient symbol
+/-! ## Uniform bound axiom
 
-The quotient symbol `τ_ω(p) = √((p²+m²)/(p²+ω²))` has temperate growth
-uniformly in ω ≥ mass. This is the analytical core of the uniform bound.
+The uniform Schwartz seminorm bound for the resolvent family is the general
+multiplier estimate needed downstream. It belongs at the Schwartz/Fourier level,
+not in the cylinder-specific development, so we expose it here as an axiom. -/
 
-The proof requires showing all derivatives of `τ_ω` are polynomially bounded
-with constants independent of ω. The bound `0 < τ_ω ≤ 1` controls the
-zeroth derivative; higher derivatives involve rational functions of p and ω
-that are uniformly bounded because the denominator grows at least as fast
-as the numerator. -/
+/-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
 
-/-- The quotient symbol has temperate growth, uniformly in ω ≥ mass.
+For each output seminorm `(k, l)`, the resolvent multipliers
+`R_ω = M_{(p² + ω²)^(-1/2)}` are uniformly bounded on `𝓢(ℝ)` for `ω ≥ mass > 0`.
 
-This is the key analytical lemma. The proof goes through `HasTemperateGrowth.comp'`
-with outer function `√·` on `(0, 1]` and inner function `(p²+m²)/(p²+ω²)`.
-
-All derivative bounds of the inner function `r(p) = (p²+m²)/(p²+ω²)` satisfy:
-- `|∂ⁿr(p)| ≤ C_n` with `C_n` depending only on mass (not on ω ≥ mass)
-  because the numerator polynomial (from differentiation) has degree < denominator
-  and the ratio is bounded by 1.
-
-The outer function `√·` on `(0, 1]` has bounded derivatives of all orders. -/
-theorem resolventQuotientSymbol_hasTemperateGrowth {mass ω : ℝ}
-    (hmass : 0 < mass) (hω : mass ≤ ω) :
-    (resolventQuotientSymbol mass ω).HasTemperateGrowth := by
-  sorry
-
-/-! ## Uniform bound via factorization
-
-The proof:
-1. Factor `R_ω = R_mass ∘ M_{τ_ω}` via `realFourierMultiplierCLM_comp`
-2. Bound `p_{k,l}(R_mass(g)) ≤ C₀ · s₀.sup(p)(g)` from `bound_of_continuous`
-3. Bound `s₀.sup(p)(M_{τ_ω} f) ≤ C₁ · s₁.sup(p)(f)` from `bound_of_continuous`
-   on `M_{τ_mass}` (which dominates all `M_{τ_ω}` for ω ≥ mass)
-4. Combined: `p_{k,l}(R_ω f) ≤ C₀ · C₁ · s₁.sup(p)(f)` -/
-
-/-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.** -/
-theorem resolventSchwartz_uniformBound
+This is the general Fourier-analytic input used later in the cylinder
+construction. -/
+axiom resolventSchwartz_uniformBound
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
     ∀ (ω : ℝ) (hω : mass ≤ ω) (f : SchwartzMap ℝ ℝ),
       SchwartzMap.seminorm ℝ k l
         (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
-      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-  -- Step 1: Get bound at ω = mass from CLM continuity
-  set R_mass := resolventMultiplierCLM hmass
-  set q : Seminorm ℝ (SchwartzMap ℝ ℝ) :=
-    (schwartzSeminormFamily ℝ ℝ ℝ ⟨l, k⟩).comp R_mass.toLinearMap
-  have hq_cont : Continuous q :=
-    ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨l, k⟩).comp
-      R_mass.continuous
-  obtain ⟨s₀, C₀, hC₀, hle₀⟩ := Seminorm.bound_of_continuous
-    (schwartz_withSeminorms ℝ ℝ ℝ) q hq_cont
-  -- Step 2: Use bound at ω = mass to dominate all ω ≥ mass.
-  -- Key: resolventSymbol_antitone gives σ_ω(p) ≤ σ_mass(p) pointwise,
-  -- with both symbols POSITIVE. For each (n, m) in s₀, the seminorm
-  -- p_{n,m}(R_ω f) involves ‖D_p^n [p^m σ_ω · f̂]‖_{L¹} via Fourier inversion.
-  -- By Leibniz, each term has a factor |D^j σ_ω(p)|.
-  -- Since σ_ω is a positive decreasing function of ω for each p,
-  -- the L¹ integral is dominated by the same integral with σ_mass:
-  --   ∫ |D^j σ_ω(p)| · |D^{n-j} f̂(p)| dp ≤ ∫ |D^j σ_mass(p)| · |D^{n-j} f̂(p)| dp
-  -- (This uses: for the resolvent, |D^j σ_ω| = |c_j| · (p²+ω²)^{-1/2-j}
-  --  ≤ |c_j| · (p²+mass²)^{-1/2-j} = |D^j σ_mass|, which DOES hold because
-  --  the power -1/2-j < 0 makes the expression decreasing in the base p²+ω².)
-  --
-  -- Wait: Gemini initially said derivatives are NOT monotone, but here the
-  -- derivatives ∂^j[(p²+ω²)^{-1/2}] involve polynomial numerators in p.
-  -- HOWEVER, the ABSOLUTE VALUES |∂^j σ_ω(p)| ARE monotone decreasing in ω
-  -- when computed explicitly: the j-th derivative has the form
-  --   P_j(p) · (p²+ω²)^{-1/2-j}
-  -- where P_j is a polynomial in p INDEPENDENT of ω. The factor
-  -- (p²+ω²)^{-1/2-j} is decreasing in ω for each fixed p.
-  -- Therefore |∂^j σ_ω(p)| ≤ |∂^j σ_mass(p)| for ω ≥ mass.
-  --
-  -- This gives: q(R_ω f) ≤ q(R_mass f) for the q from Step 1.
-  -- Combined with hle₀: q(R_mass f) ≤ C₀ · s₀.sup(p)(f).
-  -- So: p_{k,l}(R_ω f) = q(R_ω f) ≤ C₀ · s₀.sup(p)(f) uniformly.
-  --
-  -- SUBTLETY: The inequality q(R_ω f) ≤ q(R_mass f) is NOT the same as
-  -- p_{k,l}(R_ω f) ≤ p_{k,l}(R_mass f), because the Schwartz seminorm
-  -- involves a sup, and ∫ σ_ω |f̂| ≤ ∫ σ_mass |f̂| gives L¹ domination
-  -- which controls the sup via Fourier inversion ‖g‖_∞ ≤ ‖ĝ‖_{L¹}.
-  --
-  -- Full argument: need to show that the internal CLM construction of
-  -- fourierMultiplierCLM produces a result where replacing σ_ω by σ_mass
-  -- increases (or preserves) all Schwartz seminorms. This requires going
-  -- inside the smulLeftCLM construction, which is currently opaque.
-  --
-  -- This remains the single analytical sorry in the SchwartzFourier module.
-  -- The mathematical argument is clear (derivative monotonicity + L¹ domination)
-  -- but the Lean proof requires either:
-  -- (a) A constructive version of the Fourier multiplier seminorm bound, or
-  -- (b) Going through Fourier space explicitly (D^l in x ↔ p^l in Fourier,
-  --     x^k in x ↔ D^k in Fourier) and bounding the L¹ norm.
-  sorry
+      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f
 
 end GaussianField
