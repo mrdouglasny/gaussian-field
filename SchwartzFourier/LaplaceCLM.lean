@@ -121,9 +121,28 @@ Continuity: `|L_ω(h)| ≤ ‖h‖_{L¹}` and the L¹ norm is continuous on 𝓢
 def schwartzLaplaceEvalCLM (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →L[ℝ] ℝ where
   toLinearMap := laplaceEvalLinear ω hω
   cont := by
-    -- |L_ω(h)| ≤ ‖toLp h‖ (L¹ norm) and toLp is a CLM, so composition is continuous.
-    -- Formally: continuous at 0 via squeeze, then linear → continuous everywhere.
-    sorry
+    -- Use WithSeminorms.continuous_of_isBounded: bound target seminorm by Schwartz seminorms.
+    -- Chain: |L f| ≤ ‖toLp f‖ ≤ C · s.sup(p)(f) via toLpCLM + bound_of_continuous.
+    apply (schwartz_withSeminorms ℝ ℝ ℝ).continuous_of_isBounded (norm_withSeminorms ℝ ℝ)
+    intro i
+    set T : SchwartzMap ℝ ℝ →L[ℝ] Lp ℝ 1 (volume : Measure ℝ) :=
+      SchwartzMap.toLpCLM ℝ ℝ 1 (μ := volume)
+    set qT : Seminorm ℝ (SchwartzMap ℝ ℝ) :=
+      (normSeminorm ℝ (Lp ℝ 1 (volume : Measure ℝ))).comp T.toLinearMap
+    have hqT : Continuous qT := continuous_norm.comp T.continuous
+    obtain ⟨s, C, hC, hle⟩ := Seminorm.bound_of_continuous
+      (schwartz_withSeminorms ℝ ℝ ℝ) qT hqT
+    refine ⟨s, C, fun f => le_trans ?_ (hle f)⟩
+    -- ‖L f‖ ≤ ‖T f‖ (Laplace integral bounded by L¹ norm)
+    show ‖(laplaceEvalLinear ω hω) f‖ ≤ ‖T f‖
+    calc ‖(laplaceEvalLinear ω hω) f‖
+        = ‖∫ t in Ici (0 : ℝ), f.toFun t * exp (-ω * t)‖ := rfl
+      _ ≤ ∫ t, ‖f.toFun t‖ := laplace_integral_le_l1_norm f ω hω
+      _ = ‖(T f : Lp ℝ 1 volume)‖ := by
+          rw [SchwartzMap.toLpCLM_apply, L1.norm_eq_integral_norm]
+          exact integral_congr_ae (by
+            filter_upwards [f.coeFn_toLp 1 volume] with t ht
+            simp only [Real.norm_eq_abs]; congr 1; exact ht.symm)
 
 /-- **Specification of the Laplace evaluation CLM.** -/
 theorem schwartzLaplaceEvalCLM_apply (ω : ℝ) (hω : 0 < ω) (h : SchwartzMap ℝ ℝ) :
@@ -153,9 +172,12 @@ theorem schwartzLaplace_uniformBound
   calc |∫ t in Ici (0 : ℝ), h.toFun t * exp (-ω * t)|
       = ‖∫ t in Ici (0 : ℝ), h.toFun t * exp (-ω * t)‖ := (Real.norm_eq_abs _).symm
     _ ≤ ∫ t, ‖h.toFun t‖ := laplace_integral_le_l1_norm h ω (lt_of_lt_of_le hmass hω)
-    _ = q h := by
-        show ∫ t, ‖h.toFun t‖ = ‖T h‖
-        sorry -- ‖toLp h‖ = ∫ ‖h‖ for p = 1
+    _ = ‖(T h : Lp ℝ 1 volume)‖ := by
+        rw [SchwartzMap.toLpCLM_apply, L1.norm_eq_integral_norm]
+        exact integral_congr_ae (by
+          filter_upwards [h.coeFn_toLp 1 volume] with t ht
+          simp only [Real.norm_eq_abs]; congr 1; exact ht.symm)
+    _ = q h := rfl
     _ ≤ C * (s.sup (fun m => schwartzSeminormFamily ℝ ℝ ℝ m)) h := hle h
 
 end GaussianField
