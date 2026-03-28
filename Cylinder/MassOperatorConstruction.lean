@@ -35,6 +35,7 @@ The resulting sequence is in ℓ² because:
 import Cylinder.FreeHeatSemigroup
 import Cylinder.PositiveTime
 import GaussianField.Construction
+import SchwartzFourier.ResolventUniformBound
 
 noncomputable section
 
@@ -183,31 +184,8 @@ private theorem pair_decay_bound_pow (a b : ℕ) :
         pow_le_pow_left₀ (by positivity) (one_add_pair_le a b) 2
     _ = (1 + (a : ℝ)) ^ 4 * (1 + (b : ℝ)) ^ 4 := by ring
 
-/-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
-
-For each pair of Schwartz seminorm indices `(k, l)`, the operator `R_ω` satisfies
-`p_{k,l}(R_ω f) ≤ C · (s.sup p)(f)` uniformly in `ω ≥ mass > 0`.
-
-This is a textbook result in the theory of Fourier multipliers (Hörmander class).
-The resolvent symbol `σ_ω(p) = (p² + ω²)^{-1/2}` has `HasTemperateGrowth` with
-bounds that are monotone decreasing in `ω`:
-
-  `|∂ⁿ σ_ω(p)| ≤ C_n · (p² + ω²)^{-1/2-n} ≤ C_n · (p² + mass²)^{-1/2-n}`
-
-for `ω ≥ mass`. Since the Schwartz seminorm of `M_σ f` depends only on the
-temperate growth bounds of `σ` (via Leibniz rule + polynomial growth), the bounds
-at `ω = mass` dominate all `ω ≥ mass`.
-
-Reference: Stein, *Singular Integrals*, Ch. VI — Fourier multiplier seminorm bounds.
-Glimm-Jaffe §6.1: the resolvent family `{R_ω : ω ≥ mass}` is uniformly bounded
-on 𝓢(ℝ). -/
-axiom resolventSchwartz_uniformBound
-    (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
-    ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
-    ∀ (ω : ℝ) (hω : mass ≤ ω) (f : SchwartzMap ℝ ℝ),
-      SchwartzMap.seminorm ℝ k l
-        (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
-      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f
+/-! The resolvent uniform bound `resolventSchwartz_uniformBound` is now imported
+from `SchwartzFourier.ResolventUniformBound`. -/
 
 omit hL in
 /-- The resolvent multiplier conjugated to RDS has RDS seminorm bounds uniform

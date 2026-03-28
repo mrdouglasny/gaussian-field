@@ -16,7 +16,7 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 1 | `resolventSchwartz_uniformBound` | SchwartzFourier/ResolventUniformBound | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Proof route: factorization $R_\omega = R_m \circ M_{\tau_\omega}$ with proved identity $\sigma_m \cdot \tau_\omega = \sigma_\omega$. |
+| 1 | `resolventSchwartz_uniformBound` | SchwartzFourier/ResolventUniformBound | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Proof route: factorization $R_\omega = R_m \circ M_{\tau_\omega}$ with proved identity $\sigma_m \cdot \tau_\omega = \sigma_\omega$. (Relocated from Cylinder/MassOperatorConstruction.) |
 | 2 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
 Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
