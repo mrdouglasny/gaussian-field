@@ -1,6 +1,6 @@
 # gaussian-field
 
-A Lean 4 / Mathlib library for constructing **centered Gaussian probability measures on duals of nuclear Fréchet spaces**.
+A Lean 4 / Mathlib library providing **function space infrastructure for constructive quantum field theory**, including centered Gaussian probability measures on duals of nuclear Fréchet spaces, nuclear tensor products, lattice field theory, Fourier multiplier theory on Schwartz space, and Osterwalder-Schrader axiom infrastructure on the cylinder $S^1 \times \mathbb{R}$.
 
 Given a nuclear Fréchet space $E$ and a continuous linear map (CLM) $T : E \to H$ to a separable real Hilbert space $H$ (finite- or infinite-dimensional), the library constructs a probability measure $\mu$ on the weak dual $E' = \text{WeakDual}\ \mathbb{R}\ E$ satisfying the characteristic functional identity:
 
@@ -292,7 +292,7 @@ giving a clean positive-time half-space $\{t > 0\}$ with no wraparound issues.
 | [Cylinder/MassOperatorConstruction.lean](Cylinder/MassOperatorConstruction.lean) | 694 | `cylinderMassOperator` as def via slice + resolvent + ℓ² embedding, coordinate decay — **1 axiom** |
 | [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 375 | `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance — **1 axiom** |
 | [Cylinder/OneDimGreen.lean](Cylinder/OneDimGreen.lean) | 177 | 1D resolvent kernel factorization and reflection positivity (ported from Phi4) — **0 axioms** |
-| [Cylinder/ReflectionPositivity.lean](Cylinder/ReflectionPositivity.lean) | 425 | Laplace embedding (def), OS3 `cylinderGreen_reflection_positive` (proved) — **4 axioms** |
+| [Cylinder/ReflectionPositivity.lean](Cylinder/ReflectionPositivity.lean) | 425 | Laplace embedding (def), OS3 `cylinderGreen_reflection_positive` (proved) — **1 axiom** (Laplace CLM now in SchwartzFourier/) |
 | [Cylinder/MethodOfImages.lean](Cylinder/MethodOfImages.lean) | 373 | Torus embedding, ℓ² bounds, `torusGreen_uniform_bound` (proved) — **1 axiom** |
 
 **Key definitions:**
@@ -317,6 +317,24 @@ giving a clean positive-time half-space $\{t > 0\}$ with no wraparound issues.
 | `cylinderGreen_symm` | $G_L(f,g) = G_L(g,f)$ |
 | `cylinderGreen_nonneg` | $G_L(f,f) \geq 0$ |
 | `cylinderGreen_continuous_diag` | $f \mapsto G_L(f,f)$ is continuous |
+
+### 2g. Schwartz Fourier Analysis
+
+Fourier multiplier theory on Schwartz space $\mathcal{S}(\mathbb{R})$: Laplace
+transform as a CLM, resolvent multiplier uniform bounds, and supporting lemmas
+for the cylinder QFT construction.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [SchwartzFourier/LaplaceCLM.lean](SchwartzFourier/LaplaceCLM.lean) | 160 | `schwartzLaplaceEvalCLM` (def), `_apply` (rfl), `schwartzLaplace_uniformBound` (proved) — **0 axioms** |
+| [SchwartzFourier/ResolventUniformBound.lean](SchwartzFourier/ResolventUniformBound.lean) | 145 | Resolvent symbol monotonicity, quotient symbol, factorization identity — **1 axiom** |
+
+**Key results:**
+
+- `schwartzLaplaceEvalCLM ω hω` — Laplace transform $L_\omega(h) = \int_0^\infty h(t) e^{-\omega t}\,dt$ as a CLM $\mathcal{S}(\mathbb{R}) \to \mathbb{R}$, fully constructed (not axiomatized)
+- `schwartzLaplace_uniformBound` — $|L_\omega(h)| \leq C \cdot p(h)$ uniformly in $\omega \geq m$, proved via `SchwartzMap.toLpCLM` + `Seminorm.bound_of_continuous`
+- `resolventSymbol_antitone` — $(p^2+\omega_1^2)^{-1/2} \leq (p^2+\omega_2^2)^{-1/2}$ for $\omega_1 \geq \omega_2$
+- `resolventSymbol_mul_quotient` — factorization $\sigma_m \cdot \tau_\omega = \sigma_\omega$
 
 ### 3. Gaussian Field Construction
 
@@ -358,9 +376,14 @@ SchwartzNuclear/   SmoothCircle/                       GaussianField/
                               ↓                                IsGaussian  Wick
                        GaussianFieldAPI.lean (re-exports for downstream)
 
+SchwartzFourier/ (Fourier analysis on Schwartz space)
+  LaplaceCLM                  (Laplace transform as CLM, 0 axioms)
+  ResolventUniformBound       (resolvent family bounds, 1 axiom)
+
 Cylinder/ (OS axiom infrastructure)
   Basic ← Symmetry ← PositiveTime
                    ← GreenFunction
+  ReflectionPositivity ← SchwartzFourier/LaplaceCLM
   (imports SmoothCircle/Nuclear, SchwartzNuclear, Nuclear/TensorProductFunctorAxioms)
 ```
 
