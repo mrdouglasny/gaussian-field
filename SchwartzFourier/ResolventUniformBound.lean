@@ -174,14 +174,22 @@ theorem resolventSchwartz_uniformBound
       R_mass.continuous
   obtain ⟨s₀, C₀, hC₀, hle₀⟩ := Seminorm.bound_of_continuous
     (schwartz_withSeminorms ℝ ℝ ℝ) q hq_cont
-  -- Step 2: For each ω ≥ mass, M_{τ_ω} is a CLM and its seminorm bound
-  -- can be obtained from M_{τ_mass} = id (since τ_mass = 1).
-  -- Actually use: M_{τ_ω} for any fixed ω is a CLM, and get a uniform bound
-  -- by taking the bound at ω = mass (where τ = 1, so M_τ = id).
-  -- For general ω, the factorization R_ω = R_mass ∘ M_{τ_ω} gives:
-  -- p_{k,l}(R_ω f) ≤ C₀ · s₀.sup(p)(M_{τ_ω} f).
-  -- Then M_{τ_ω} being a CLM gives s₀.sup(p)(M_{τ_ω} f) ≤ C₁ · s₁.sup(p)(f)
-  -- where C₁ comes from the CLM bound of M_{τ_mass} which dominates all ω ≥ mass.
+  -- Step 2: Factor R_ω = R_mass ∘ M_{τ_ω}
+  -- From resolventSymbol_mul_quotient: σ_mass * τ_ω = σ_ω (as functions)
+  -- From realFourierMultiplierCLM_comp: M_{σ_mass} ∘ M_{τ_ω} = M_{σ_mass * τ_ω}
+  -- Therefore R_ω = R_mass ∘ M_{τ_ω}, giving:
+  --   p_{k,l}(R_ω f) = q(M_{τ_ω} f) ≤ C₀ · s₀.sup(p)(M_{τ_ω} f)
+  --
+  -- Step 3: Bound s₀.sup(p)(M_{τ_ω} f) uniformly in ω ≥ mass.
+  -- M_{τ_ω} is a CLM for each ω (τ_ω has HasTemperateGrowth).
+  -- The HasTemperateGrowth constants for τ_ω are ω-independent because:
+  --   τ_ω(p) = √((p²+m²)/(p²+ω²)) ∈ (0,1] with derivatives bounded by
+  --   rational functions whose bounds decrease in ω (denominator grows).
+  -- Therefore the CLM continuity bounds are uniform in ω ≥ mass.
+  --
+  -- Obstacle: Seminorm.bound_of_continuous is nonconstructive.
+  -- A constructive Fourier multiplier seminorm bound (from Mathlib's
+  -- smulLeftCLM internal structure) would close this gap.
   sorry
 
 end GaussianField
