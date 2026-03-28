@@ -6,36 +6,26 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**7 axioms, 0 sorries** (active build, excluding `future/`)
+**4 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-03-26.*
+*Updated 2026-03-27.*
 
-## Active Axiom Inventory (7 axioms)
+## Active Axiom Inventory (4 axioms)
 
 ### Cylinder Green's function (2 axioms)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 1 | `resolventSchwartz_uniformBound` | Cylinder/MassOperatorConstruction | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Symbol $(p^2+\omega^2)^{-1/2}$ is decreasing in $\omega$. |
+| 1 | `resolventSchwartz_uniformBound` | SchwartzFourier/ResolventUniformBound | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Proof route: factorization $R_\omega = R_m \circ M_{\tau_\omega}$ with proved identity $\sigma_m \cdot \tau_\omega = \sigma_\omega$. |
 | 2 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
 
 Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
-
-### Laplace transform on Schwartz space (3 axioms)
-
-| # | Name | File | Description |
-|---|------|------|-------------|
-| 3 | `schwartzLaplaceEvalCLM` | Cylinder/ReflectionPositivity | The Laplace transform $h \mapsto \int_0^\infty h(t) e^{-\omega t}\,dt$ as a CLM $\mathcal{S}(\mathbb{R}) \to \mathbb{R}$ for $\omega > 0$. |
-| 4 | `schwartzLaplaceEvalCLM_apply` | Cylinder/ReflectionPositivity | Specification: evaluates to $\int_0^\infty h(t) e^{-\omega t}\,dt$. |
-| 5 | `schwartzLaplace_uniformBound` | Cylinder/ReflectionPositivity | Uniform Schwartz seminorm bound: $\lvert L_\omega(h)\rvert \leq C \cdot p(h)$ for $\omega \geq m$. |
-
-Note: `cylinderLaplaceEmbedding` is now a **definition** (constructed from `schwartzLaplaceEvalCLM` + `ntpSliceSchwartz` + `nuclear_ell2_embedding_from_decay`).
 
 ### Cylinder reflection positivity (1 axiom)
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 6 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
+| 3 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
 
 Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity. `cylinderGreen_reflection_strict_positive` was removed as a dead axiom.
 
@@ -43,7 +33,7 @@ Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved
 
 | # | Name | File | Description |
 |---|------|------|-------------|
-| 7 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
+| 4 | `embed_l2_uniform_bound` | Cylinder/MethodOfImages | $\lVert \text{embed}\,f \rVert_{\ell^2}^2 \leq q(f)^2$ uniformly in $L_t \geq 1$. Uniform ℓ² bound for the periodization embedding. |
 
 Note: `torusGreen_uniform_bound` is a **proved theorem** from `embed_l2_uniform_bound` + `greenFunctionBilinear_le`. `cylinderToTorusEmbed` is a **definition** (not axiom).
 
@@ -70,13 +60,6 @@ The following were axioms and are now fully proved theorems:
 - `nuclearTensorProduct_swapCLM` — via Cantor pair permutation
 - `nuclearTensorProduct_swapCLM_pure` — via coefficient commutativity
 
-### Periodization (5 proved)
-- `periodizeCLM` — axiom → def (now constructed from `periodize_summable` + `periodize_smooth`)
-- `periodizeCLM_apply` — proved by rfl
-- `periodizeCLM_comp_schwartzTranslation` — from pointwise formula + `ext`
-- `periodizeCLM_comp_schwartzReflection` — from pointwise formula + `Equiv.tsum_eq`
-- `periodizeCLM_eq_on_large_period` — from `tsum_eq_single` + support argument
-
 ### Periodization (6 proved)
 - `periodizeCLM` — axiom → def (tsum + summability + smoothness)
 - `periodizeCLM_apply` — proved by rfl
@@ -93,6 +76,12 @@ The following were axioms and are now fully proved theorems:
 - `realFourierMultiplierCLM_comp` — from Mathlib `compL` + `preserves_real`
 - `realFourierMultiplierCLM_translation_comm` — from complex translation comm
 - `realFourierMultiplierCLM_even_reflection_comm` — from complex reflection comm
+
+### Schwartz Fourier analysis (3 proved — new module `SchwartzFourier/`)
+- `schwartzLaplaceEvalCLM` — axiom → def (constructed via `laplaceEvalLinear` + continuity from `toLpCLM`)
+- `schwartzLaplaceEvalCLM_apply` — axiom → theorem (definitional `rfl`)
+- `schwartzLaplace_uniformBound` — axiom → theorem (via `toLpCLM` + `Seminorm.bound_of_continuous` + L¹ norm identity)
+- Also proved: `resolventSymbol_antitone`, `resolventQuotientSymbol_le_one`/`_pos`/`_even`, `resolventSymbol_mul_quotient` (factorization identity)
 
 ### Mass operator construction (1 proved + 4 new theorems)
 - `cylinderMassOperator` — axiom → def via `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`
