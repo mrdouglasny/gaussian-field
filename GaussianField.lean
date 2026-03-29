@@ -47,24 +47,3 @@ import GaussianField.Hypercontractive
 import GaussianField.Wick
 import GaussianField.Support
 
-/-! ### Axiom fallback (inactive)
-
-Uncomment the block below and replace `import SchwartzNuclear` with
-`import Nuclear.DyninMityagin` to use the axiom version. This is
-safe: the proven instance in `SchwartzNuclear.HermiteTensorProduct`
-establishes the same result as a theorem.
-
-```
-open GaussianField
-
-axiom schwartz_dyninMityaginSpace_axiom -- count_axioms:skip
-    (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] [FiniteDimensional ℝ D]
-    [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
-    DyninMityaginSpace (SchwartzMap D ℝ)
-
-noncomputable instance (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D]
-    [FiniteDimensional ℝ D] [MeasurableSpace D] [BorelSpace D] [Nontrivial D] :
-    DyninMityaginSpace (SchwartzMap D ℝ) :=
-  schwartz_dyninMityaginSpace_axiom D
-```
--/
