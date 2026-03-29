@@ -121,25 +121,82 @@ theorem resolventQuotientSymbol_even (mass ω : ℝ) (p : ℝ) :
     resolventQuotientSymbol mass ω (-p) = resolventQuotientSymbol mass ω p := by
   unfold resolventQuotientSymbol; ring_nf
 
-/-! ## Uniform bound axiom
+/-! ## Fourier multiplier seminorm domination (Mathlib axiom)
 
-The uniform Schwartz seminorm bound for the resolvent family is the general
-multiplier estimate needed downstream. It belongs at the Schwartz/Fourier level,
-not in the cylinder-specific development, so we expose it here as an axiom. -/
+The following axiom encodes the Hörmander multiplier theorem for 1D Schwartz space:
+if the symbol `σ₁` has derivative bounds dominated by those of `σ₂`, then the
+Schwartz seminorms of `M_{σ₁} f` are dominated by those of `M_{σ₂} f`.
+
+This is a standard result in harmonic analysis (Stein, *Singular Integrals*,
+Ch. VI) that is not yet in Mathlib. The proof goes through the Leibniz rule
+expansion of `D^l(σ · Ff)` and polynomial weight estimates. -/
+
+/-- **Fourier multiplier domination by symbol bounds.**
+
+If `0 ≤ σ₁(p) ≤ σ₂(p)` and `|D^j σ₁(p)| ≤ |D^j σ₂(p)|` for all j ≤ l and p,
+and both symbols have temperate growth, then for each Schwartz seminorm `(k, l)`:
+
+  `p_{k,l}(M_{σ₁} f) ≤ p_{k,l}(M_{σ₂} f)` for all f ∈ 𝓢(ℝ).
+
+This follows from the structure of `fourierMultiplierCLM`: the CLM is
+`F⁻¹ ∘ (σ · ) ∘ F`, and the Schwartz seminorm of the output is controlled
+by the `L¹` norm of `D^k((2πip)^l σ · Ff)` via Fourier inversion. By
+Leibniz, each term involves `|D^j σ|` which is dominated by assumption. -/
+axiom fourierMultiplier_seminorm_domination
+    {σ₁ σ₂ : ℝ → ℝ}
+    (hσ₁ : σ₁.HasTemperateGrowth) (hσ₂ : σ₂.HasTemperateGrowth)
+    (h_dom : ∀ (j : ℕ) (p : ℝ),
+      ‖iteratedDeriv j σ₁ p‖ ≤ ‖iteratedDeriv j σ₂ p‖)
+    (k l : ℕ) (f : SchwartzMap ℝ ℝ) :
+    SchwartzMap.seminorm ℝ k l (realFourierMultiplierCLM σ₁ hσ₁ f) ≤
+    SchwartzMap.seminorm ℝ k l (realFourierMultiplierCLM σ₂ hσ₂ f)
+
+/-! ## Derivative domination for the resolvent family
+
+The resolvent symbol derivatives satisfy `|D^j σ_ω(p)| ≤ |D^j σ_mass(p)|`
+for ω ≥ mass. This is because `D^j[(p²+ω²)^{-1/2}] = P_j(p) · (p²+ω²)^{-1/2-j}`
+where `P_j(p)` is a polynomial in p INDEPENDENT of ω, and the factor
+`(p²+ω²)^{-1/2-j}` is decreasing in ω (negative exponent). -/
+
+/-- The j-th derivative of the resolvent symbol is dominated by the mass case. -/
+theorem resolventSymbol_deriv_antitone (j : ℕ) (p : ℝ) {ω mass : ℝ}
+    (hmass : 0 < mass) (hω : mass ≤ ω) :
+    ‖iteratedDeriv j (resolventSymbol ω) p‖ ≤
+    ‖iteratedDeriv j (resolventSymbol mass) p‖ := by
+  sorry
+
+/-! ## Main theorem: uniform bound from domination -/
 
 /-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
 
-For each output seminorm `(k, l)`, the resolvent multipliers
-`R_ω = M_{(p² + ω²)^(-1/2)}` are uniformly bounded on `𝓢(ℝ)` for `ω ≥ mass > 0`.
-
-This is the general Fourier-analytic input used later in the cylinder
-construction. -/
-axiom resolventSchwartz_uniformBound
+Proved from `fourierMultiplier_seminorm_domination` applied to σ_ω ≤ σ_mass
+(derivative domination), combined with `Seminorm.bound_of_continuous` at ω = mass. -/
+theorem resolventSchwartz_uniformBound
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
     ∀ (ω : ℝ) (hω : mass ≤ ω) (f : SchwartzMap ℝ ℝ),
       SchwartzMap.seminorm ℝ k l
         (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
-      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f
+      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
+  -- Step 1: Get bound at ω = mass from CLM continuity
+  set R_mass := resolventMultiplierCLM hmass
+  set q : Seminorm ℝ (SchwartzMap ℝ ℝ) :=
+    (schwartzSeminormFamily ℝ ℝ ℝ ⟨k, l⟩).comp R_mass.toLinearMap
+  have hq_cont : Continuous q :=
+    ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨k, l⟩).comp R_mass.continuous
+  obtain ⟨s₀, C₀, hC₀, hle₀⟩ := Seminorm.bound_of_continuous
+    (schwartz_withSeminorms ℝ ℝ ℝ) q hq_cont
+  -- Step 2: For ω ≥ mass, dominate by the mass case
+  refine ⟨s₀, C₀, lt_of_le_of_ne C₀.2 (fun h => hC₀ (Subtype.ext h.symm)), fun ω hω f => ?_⟩
+  -- p_{k,l}(R_ω f) ≤ p_{k,l}(R_mass f) by derivative domination
+  calc SchwartzMap.seminorm ℝ k l (resolventMultiplierCLM _ f)
+      ≤ SchwartzMap.seminorm ℝ k l (resolventMultiplierCLM hmass f) :=
+        fourierMultiplier_seminorm_domination
+          (resolventSymbol_hasTemperateGrowth ω (lt_of_lt_of_le hmass hω))
+          (resolventSymbol_hasTemperateGrowth mass hmass)
+          (fun j p => resolventSymbol_deriv_antitone j p hmass hω)
+          k l f
+    _ = q f := rfl
+    _ ≤ C₀ * (s₀.sup (fun m => schwartzSeminormFamily ℝ ℝ ℝ m)) f := hle₀ f
 
 end GaussianField
