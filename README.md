@@ -69,6 +69,7 @@ The user provides:
 | `support_of_hilbertSchmidt` | `∀ᵐ` | HS $\Rightarrow$ a.e. finite basis norm |
 | `weighted_support` | `∀ᵐ` | Weighted-HS $\Rightarrow$ a.e. finite weighted basis norm |
 | `expected_norm_sq_eq_hs` | integral identity | $\mathbb{E}[\sum_n |\omega(e_n)|^2] = \sum_n \|T(e_n)\|^2$ |
+| `gaussian_measure_unique_of_covariance` | measure equality | Two centered Gaussian probability measures with the same covariance are equal (conditional on the Cramér-Wold axiom `cramerWold`) |
 
 ### Design notes
 
