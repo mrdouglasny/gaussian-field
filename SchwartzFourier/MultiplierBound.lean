@@ -96,7 +96,13 @@ Then `‖D^j σ_ω‖_∞ = ω^{-1-j} · ‖D^j g‖_∞ ≤ mass^{-1-j} · ‖D
 /-- The resolvent symbol satisfies `σ_ω(p) = ω⁻¹ · g(p/ω)`. -/
 theorem resolventSymbol_scaling {ω : ℝ} (hω : 0 < ω) (p : ℝ) :
     resolventSymbol ω p = ω⁻¹ * resolventSymbol 1 (p / ω) := by
-  sorry
+  change (p ^ 2 + ω ^ 2) ^ (-(1:ℝ)/2) = ω⁻¹ * ((p / ω) ^ 2 + 1 ^ 2) ^ (-(1:ℝ)/2)
+  have hfact : p ^ 2 + ω ^ 2 = ω ^ 2 * ((p / ω) ^ 2 + 1 ^ 2) := by
+    have : ω ≠ 0 := hω.ne'; field_simp
+  rw [hfact, Real.mul_rpow (le_of_lt (sq_pos_of_pos hω)) (by positivity)]
+  congr 1
+  rw [show -(1:ℝ)/2 = -((1:ℝ)/2) from by ring,
+      Real.rpow_neg (sq_nonneg ω), ← Real.sqrt_eq_rpow, Real.sqrt_sq hω.le]
 
 /-- Sup norm of the resolvent symbol: `|σ_ω(p)| ≤ 1/ω` for all p.
 Proof: `(p²+ω²)^{-1/2} ≤ (ω²)^{-1/2} = ω⁻¹` by rpow monotonicity + sqrt. -/
