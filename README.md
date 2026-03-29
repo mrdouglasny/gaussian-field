@@ -276,7 +276,11 @@ AddCircle-based lattice frameworks (Tanimoto).
 `GaussianFieldAPI.lean` collects the public API (Configuration, measure, charFun,
 moments, spectralCLM) for downstream consumers.
 
-### 2f. Cylinder (Osterwalder-Schrader Axioms)
+### 2f. Cylinder (Osterwalder-Schrader Axioms) — *WIP*
+
+> **Work in progress.** This module has axioms and sorries. It is NOT part of the
+> default build target (`lake build` builds only the axiom-free core).
+> Build with `lake build Cylinder` or `lake build All`.
 
 Test function space and symmetry infrastructure for the cylinder $S^1_L \times \mathbb{R}$,
 the natural geometry for the Osterwalder-Schrader axioms. The spatial direction is
@@ -390,7 +394,16 @@ The 1D lattice-continuum convergence pipeline is fully proved: DFT eigenbasis co
 
 Green's function invariance (reflection, translation) on pure tensors and the bilinear extension are proved in `HeatKernel/GreenInvariance.lean`. Fourier translation/reflection axioms in `SmoothCircle/FourierTranslation.lean` are fully proved.
 
-Current project status is **0 axioms (+1 skipped), 0 sorries** on the main build path.
+**Default build target** (`lake build`): **0 axioms, 0 sorries.**
+
+This includes: Nuclear/, SchwartzNuclear/, SmoothCircle/, GaussianField/, Lattice/, HeatKernel/, Torus/, GeneralResults/.
+
+**WIP modules** (not in default build, build with `lake build Cylinder` or `lake build All`):
+
+| Module | Axioms | Sorries | Notes |
+|--------|--------|---------|-------|
+| Cylinder/ | 4 | 1 | OS axiom infrastructure, [proof plan](docs/cylinder-axiom-plan.md) |
+| SchwartzFourier/ | 1 | 2 | Fourier multiplier bounds |
 
 Former axioms have been proved or moved to `future/` as documentation:
 - [future/gaussian_field_axioms.lean](future/gaussian_field_axioms.lean) — [measure uniqueness, converse support, support Hilbert space](summary/future/gaussian_field_axioms.md)

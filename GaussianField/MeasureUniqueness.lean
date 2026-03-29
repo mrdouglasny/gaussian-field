@@ -30,12 +30,10 @@ equals the 1D characteristic function of ω(∑ tⱼ fⱼ), hence agrees for bot
 By Dynkin's pi-lambda theorem, measures agreeing on all finite-dimensional cylinder
 sets agree on the cylindrical σ-algebra.
 
-## Axiom
+## Status
 
-One axiom:
-- `cramerWold`: The Cramér-Wold theorem — two probability measures on `ι → ℝ`
-  agreeing on all 1D marginals under linear projections are equal. This is a
-  standard result following from injectivity of the characteristic function.
+All results fully proved (0 axioms, 0 sorries). The Cramér-Wold theorem
+is proved in `GaussianField/CramerWold.lean` via `charFunDual` injectivity.
 
 ## Proved results
 
@@ -53,27 +51,10 @@ One axiom:
 -/
 
 import GaussianField.ConfigurationEmbedding
+import GaussianField.CramerWold
 import Mathlib.Probability.Distributions.Gaussian.Real
 
 noncomputable section
-
-open MeasureTheory ProbabilityTheory Filter Topology
-open scoped BigOperators
-
-/-- **Cramér-Wold theorem**: Two probability measures on a finite product `ι → ℝ` are equal
-    if they assign the same distribution to every linear functional `x ↦ ∑ i, c i * x i`.
-
-    Proof sketch: The characteristic function `φ_ν(t) = E[exp(i⟨t,X⟩)]` at point `c` equals
-    the 1D characteristic function of `⟨c,X⟩` at 1, via `charFun_map_eq_charFunDual_smul`.
-    Equal 1D distributions for all `c` imply equal characteristic functions, hence equal measures
-    (by `Measure.ext_of_charFun`). -/
-axiom cramerWold {ι : Type*} [Fintype ι]
-    (ν₁ ν₂ : Measure (ι → ℝ))
-    [IsProbabilityMeasure ν₁] [IsProbabilityMeasure ν₂]
-    (h : ∀ c : ι → ℝ,
-      ν₁.map (fun x => ∑ i : ι, c i * x i) =
-      ν₂.map (fun x => ∑ i : ι, c i * x i)) :
-    ν₁ = ν₂
 
 namespace GaussianField
 
