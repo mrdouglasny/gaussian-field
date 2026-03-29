@@ -53,9 +53,14 @@ This is immediate from `norm_fourierIntegral_le_integral_norm`. -/
 /-- Sup norm of inverse Fourier transform bounded by L¹ norm.
 `‖F⁻¹(h)(x)‖ ≤ ∫ ‖h(p)‖ dp` for each x. -/
 theorem norm_fourierInv_le_integral_norm {h : ℝ → ℂ}
-    (hh : Integrable h volume) (x : ℝ) :
+    (_hh : Integrable h volume) (x : ℝ) :
     ‖FourierTransformInv.fourierInv h x‖ ≤ ∫ p, ‖h p‖ := by
-  sorry
+  rw [Real.fourierInv_eq]
+  calc ‖∫ v, Real.fourierChar (inner ℝ v x) • h v‖
+      ≤ ∫ v, ‖Real.fourierChar (inner ℝ v x) • h v‖ := norm_integral_le_integral_norm _
+    _ = ∫ v, ‖h v‖ := by
+        congr 1; ext v
+        rw [Circle.smul_def, norm_smul, Circle.norm_coe, one_mul]
 
 /-! ## Schwartz L¹ bound
 
@@ -79,10 +84,21 @@ theorem resolventSymbol_scaling {ω : ℝ} (hω : 0 < ω) (p : ℝ) :
     resolventSymbol ω p = ω⁻¹ * resolventSymbol 1 (p / ω) := by
   sorry
 
-/-- Sup norm of the resolvent symbol: `|σ_ω(p)| ≤ 1/ω` for all p. -/
+/-- Sup norm of the resolvent symbol: `|σ_ω(p)| ≤ 1/ω` for all p.
+Proof: `(p²+ω²)^{-1/2} ≤ (ω²)^{-1/2} = ω⁻¹` by rpow monotonicity + sqrt. -/
 theorem resolventSymbol_sup (ω : ℝ) (hω : 0 < ω) :
     ∀ p : ℝ, |resolventSymbol ω p| ≤ 1 / ω := by
-  sorry
+  intro p
+  simp only [resolventSymbol]
+  rw [abs_of_nonneg (Real.rpow_nonneg (by positivity) _)]
+  calc (p ^ 2 + ω ^ 2) ^ (-(1:ℝ)/2)
+      ≤ (ω ^ 2) ^ (-(1:ℝ)/2) :=
+        Real.rpow_le_rpow_of_nonpos (sq_pos_of_pos hω)
+          (by linarith [sq_nonneg p]) (by norm_num)
+    _ = ω⁻¹ := by
+        rw [show -(1:ℝ)/2 = -((1:ℝ)/2) from by ring,
+            Real.rpow_neg (sq_nonneg ω), ← Real.sqrt_eq_rpow, Real.sqrt_sq hω.le]
+    _ = 1 / ω := (one_div ω).symm
 
 /-- Sup norm bound uniform in ω ≥ mass: `|σ_ω(p)| ≤ 1/mass`. -/
 theorem resolventSymbol_sup_uniform {mass ω : ℝ} (hmass : 0 < mass) (hω : mass ≤ ω) :
