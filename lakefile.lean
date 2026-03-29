@@ -10,6 +10,8 @@ require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git"
 
 
+lean_lib «GeneralResults» where
+
 lean_lib «Nuclear» where
 
 lean_lib «SchwartzNuclear» where
@@ -28,6 +30,8 @@ lean_lib «Lattice» where
 lean_lib «GaussianFieldAPI» where
 
 lean_lib «Torus» where
+
+lean_lib «Cylinder» where
 
 /-- Build all libraries. Use `lake build All` after mathlib upgrades to catch breakage
 in non-default targets. -/

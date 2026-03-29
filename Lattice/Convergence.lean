@@ -466,17 +466,6 @@ theorem lattice_green_tendsto_continuum_pure
 
 /-! ### Helper lemmas (reproved from GreenInvariance.lean where private) -/
 
-/-- Biorthogonality for `SmoothMap_Circle`: `coeff n (basis m) = δ_{nm}`. -/
-private theorem smoothCircle_coeff_basis (n m : ℕ) :
-    DyninMityaginSpace.coeff (E := SmoothMap_Circle L ℝ) n
-      (DyninMityaginSpace.basis m) = if n = m then 1 else 0 := by
-  show (RapidDecaySeq.coeffCLM n).comp
-    (SmoothMap_Circle.smoothCircleRapidDecayEquiv (L := L)).toContinuousLinearMap
-    ((SmoothMap_Circle.smoothCircleRapidDecayEquiv (L := L)).symm (RapidDecaySeq.basisVec m)) =
-    if n = m then 1 else 0
-  simp [ContinuousLinearMap.comp_apply, ContinuousLinearEquiv.apply_symm_apply,
-    RapidDecaySeq.coeffCLM, RapidDecaySeq.coeffLM, RapidDecaySeq.basisVec]
-
 /-- NTP basis elements are pure tensors (given biorthogonality in each factor). -/
 private theorem ntp_basis_eq_pure (m : ℕ) :
     DyninMityaginSpace.basis

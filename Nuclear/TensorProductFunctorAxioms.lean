@@ -163,6 +163,47 @@ theorem nuclearTensorProduct_swapCLM_pure
     (NuclearTensorProduct.pure e₂ e₁).val m
   simp only [pure_val, pairSwap, Nat.unpair_pair]; ring
 
+set_option maxHeartbeats 800000 in
+/-- **evalCLM commutes with swap.**
+
+For `E₁ = E₂ = E` (same DyninMityaginSpace on both factors):
+  `evalCLM φ₁ φ₂ (swapCLM f) = evalCLM φ₂ φ₁ f`
+
+Proof: Unfold `evalCLM` to its `lift` tsum, substitute the swap, relabel by `pairSwapEquiv`,
+and use `mul_comm` on the `φ₁(ψ_a) * φ₂(ψ_b)` factors. -/
+theorem evalCLM_comp_swapCLM
+    {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
+    (φ₁ φ₂ : E →L[ℝ] ℝ) (f : NuclearTensorProduct E E) :
+    NuclearTensorProduct.evalCLM φ₁ φ₂ (nuclearTensorProduct_swapCLM f) =
+    NuclearTensorProduct.evalCLM φ₂ φ₁ f := by
+  -- Both sides unfold to tsums via the lift definition of evalCLM.
+  -- evalCLM φ₁ φ₂ a = ∑' m, a.val m • compBilin φ₁ φ₂ (basis a') (basis b')
+  -- where (a',b') = unpair(m), and compBilin φ₁ φ₂ e₁ e₂ = φ₁ e₁ * φ₂ e₂ (rfl).
+  set ψ := DyninMityaginSpace.basis (E := E)
+  -- Unfold evalCLM to its lift/tsum definition (compBilin_apply is rfl)
+  show (∑' m, (nuclearTensorProduct_swapCLM f).val m *
+      (φ₁ (ψ (Nat.unpair m).1) * φ₂ (ψ (Nat.unpair m).2))) =
+    ∑' m, f.val m * (φ₂ (ψ (Nat.unpair m).1) * φ₁ (ψ (Nat.unpair m).2))
+  -- LHS: (swapCLM f).val m = f.val(pairSwap m) by definition of swapRapidDecay
+  -- Set h to be the LHS summand
+  set h := fun m => f.val (pairSwap m) *
+    (φ₁ (ψ (Nat.unpair m).1) * φ₂ (ψ (Nat.unpair m).2))
+  -- The LHS tsum equals ∑' m, h m
+  have h_lhs_eq : ∀ m, (nuclearTensorProduct_swapCLM f).val m *
+      (φ₁ (ψ (Nat.unpair m).1) * φ₂ (ψ (Nat.unpair m).2)) = h m := fun _ => rfl
+  simp_rw [h_lhs_eq]
+  -- Relabel: ∑' m, h m = ∑' m, h(pairSwap m) via pairSwapEquiv
+  rw [(pairSwapEquiv.tsum_eq h).symm]
+  -- h(pairSwap m) = f.val(pairSwap(pairSwap m)) * (φ₁(ψ (unpair(pairSwap m)).1) * φ₂(ψ (unpair(pairSwap m)).2))
+  --              = f.val m * (φ₁(ψ (unpair m).2) * φ₂(ψ (unpair m).1))
+  -- since pairSwap is involutive and pairSwap m = pair (unpair m).2 (unpair m).1
+  simp only [pairSwapEquiv_apply, h]
+  congr 1; ext m
+  rw [pairSwap_involutive m]
+  simp only [pairSwap, Nat.unpair_pair]
+  ring
+
 /-! ## Tensor product of CLMs
 
 The key construction: `mapCLM T₁ T₂` acts on `f : NTP E₁ E₂ = RapidDecaySeq` by
@@ -667,6 +708,57 @@ theorem nuclearTensorProduct_mapCLM_comp
   -- Goal: mapImage (T₁∘S₁) (T₂∘S₂) m = mapCLM T₁ T₂ (mapImage S₁ S₂ m)
   simp only [mapImage, ContinuousLinearMap.comp_apply]
   exact (nuclearTensorProduct_mapCLM_pure T₁ T₂ _ _).symm
+
+/-- **evalCLM commutes with mapCLM.**
+
+  `evalCLM φ₁ φ₂ (mapCLM T₁ T₂ f) = evalCLM (φ₁.comp T₁) (φ₂.comp T₂) f`
+
+On pure tensors: `φ₁(T₁ e₁) * φ₂(T₂ e₂)` = `(φ₁∘T₁)(e₁) * (φ₂∘T₂)(e₂)`.
+Extension by `rapidDecay_expansion` + single-space Schauder expansion in mapImage.
+TODO: prove from tsum expansion. -/
+theorem evalCLM_comp_mapCLM
+    {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
+    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
+    {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
+    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
+    (hbasis₁ : ∀ n m, DyninMityaginSpace.coeff (E := E₁) n
+      (DyninMityaginSpace.basis m) = if n = m then 1 else 0)
+    (hbasis₂ : ∀ n m, DyninMityaginSpace.coeff (E := E₂) n
+      (DyninMityaginSpace.basis m) = if n = m then 1 else 0)
+    (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
+    (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+    (f : NuclearTensorProduct E₁ E₂) :
+    NuclearTensorProduct.evalCLM φ₁ φ₂ (nuclearTensorProduct_mapCLM T₁ T₂ f) =
+    NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂) f := by
+  -- Both sides are CLMs in f that agree on basisVec.
+  -- By rapidDecay_expansion, they must agree on all f.
+  have key : ∀ m,
+      (NuclearTensorProduct.evalCLM φ₁ φ₂).comp (nuclearTensorProduct_mapCLM T₁ T₂)
+        (RapidDecaySeq.basisVec m) =
+      NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)
+        (RapidDecaySeq.basisVec m) := by
+    intro m
+    have hbv := NuclearTensorProduct.basisVec_eq_pure hbasis₁ hbasis₂ m
+    simp only [ContinuousLinearMap.comp_apply]
+    rw [hbv, nuclearTensorProduct_mapCLM_pure,
+        NuclearTensorProduct.evalCLM_pure,
+        NuclearTensorProduct.evalCLM_pure]
+    simp only [ContinuousLinearMap.comp_apply]
+  -- Expand both sides via rapidDecay_expansion and apply key
+  have h1 := RapidDecaySeq.rapidDecay_expansion
+    ((NuclearTensorProduct.evalCLM φ₁ φ₂).comp (nuclearTensorProduct_mapCLM T₁ T₂)) f
+  have h2 := RapidDecaySeq.rapidDecay_expansion
+    (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)) f
+  simp only [ContinuousLinearMap.comp_apply] at h1
+  calc (NuclearTensorProduct.evalCLM φ₁ φ₂) (nuclearTensorProduct_mapCLM T₁ T₂ f)
+      = ∑' m, f.val m * (NuclearTensorProduct.evalCLM φ₁ φ₂)
+          (nuclearTensorProduct_mapCLM T₁ T₂ (RapidDecaySeq.basisVec m)) := h1
+    _ = ∑' m, f.val m * (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂))
+          (RapidDecaySeq.basisVec m) := by
+        congr 1; ext m
+        simp only [ContinuousLinearMap.comp_apply] at key
+        congr 1; exact key m
+    _ = (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)) f := h2.symm
 
 end GaussianField
 

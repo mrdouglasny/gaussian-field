@@ -177,17 +177,32 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 63 | `DyninMityaginSpace` instance from the isomorphism |
 | [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 427 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
 
-### 2b. Circle Nuclearity
+### 2b. Circle Analysis
 
 Proves `DyninMityaginSpace (SmoothMap_Circle L ℝ)` (sorry-free) for smooth L-periodic
 functions on the circle via the real Fourier basis and the isomorphism
-`SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq`.
+`SmoothMap_Circle L ℝ ≃L[ℝ] RapidDecaySeq`. Also provides the circle Laplacian
+$-d^2/dx^2$ as a CLM, proves its eigenvalue equation on the Fourier basis, and
+defines the heat semigroup $e^{-t\Delta}$ spectrally.
 
 | File | Lines | Contents |
 |------|------:|----------|
 | [SmoothCircle/Basic.lean](SmoothCircle/Basic.lean) | 845 | Type, seminorms, Fourier basis, orthogonality, coefficients |
 | [SmoothCircle/Nuclear.lean](SmoothCircle/Nuclear.lean) | 824 | IBP decay, CLE, Fourier completeness, `DyninMityaginSpace` instance |
+| [SmoothCircle/Eigenvalues.lean](SmoothCircle/Eigenvalues.lean) | 50 | `HasLaplacianEigenvalues` instance: eigenvalues $(2\pi k/L)^2$ |
+| [SmoothCircle/Laplacian.lean](SmoothCircle/Laplacian.lean) | 226 | `circleLaplacian` CLM $(-d^2/dx^2)$, eigenvalue equation on Fourier basis |
+| [SmoothCircle/HeatSemigroup.lean](SmoothCircle/HeatSemigroup.lean) | 195 | `circleHeatSemigroup` $e^{-t\Delta}$, spectral action, semigroup properties |
+| [SmoothCircle/Restriction.lean](SmoothCircle/Restriction.lean) | 139 | `circleRestriction` CLM: sample at $N$ lattice points with $\sqrt{L/N}$ normalization |
 | [Test.lean](Test.lean) | 358 | End-to-end tests: Gaussian measures on S(ℝ), S(ℝᵈ), C∞(S¹), cylinder, torus, QFT covariance |
+
+**Circle Laplacian and heat semigroup:**
+
+- `derivSCCLM L` — the derivative $d/dx$ as a CLM on `SmoothMap_Circle L ℝ`
+- `circleLaplacian L` — $-d^2/dx^2$ defined as $-(\text{derivSCCLM})^2$
+- `circleLaplacian_fourierBasis` — eigenvalue equation: $(-d^2/dx^2)(\psi_n) = \lambda_n \psi_n$
+- `circleHeatSemigroup L ht` — $e^{-t\Delta}$ defined spectrally via conjugation through the Fourier equivalence
+- `circleHeatSemigroup_fourierBasis` — spectral action: $e^{-t\Delta}(\psi_n) = e^{-t\lambda_n}\psi_n$
+- `circleHeatSemigroup_zero` — identity: $e^{0\cdot\Delta} = \mathrm{id}$
 
 This enables Gaussian fields on the torus T¹ = ℝ/Lℤ and (via tensor products)
 on cylinders S¹×ℝ and higher tori Tᵈ. The test file verifies the full pipeline
@@ -260,6 +275,40 @@ AddCircle-based lattice frameworks (Tanimoto).
 `GaussianFieldAPI.lean` collects the public API (Configuration, measure, charFun,
 moments, spectralCLM) for downstream consumers.
 
+### 2f. Cylinder (Osterwalder-Schrader Axioms)
+
+Test function space and symmetry infrastructure for the cylinder $S^1_L \times \mathbb{R}$,
+the natural geometry for the Osterwalder-Schrader axioms. The spatial direction is
+compact (circle of circumference $L$) while the temporal direction is the full real line,
+giving a clean positive-time half-space $\{t > 0\}$ with no wraparound issues.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [Cylinder/Basic.lean](Cylinder/Basic.lean) | 75 | `CylinderTestFunction L` $= C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, `Configuration` axioms |
+| [Cylinder/Symmetry.lean](Cylinder/Symmetry.lean) | 320 | Reflection, translation (Schwartz-level and cylinder-level), configuration-level actions, 1D positive-time Schwartz submodule, eval CLM, closedness |
+| [Cylinder/PositiveTime.lean](Cylinder/PositiveTime.lean) | 231 | `cylinderPositiveTimeSubmodule`, `cylinderNegativeTimeSubmodule`, Θ maps P+ into N−, disjointness of Θf from P+, spatial translation preserves P+ |
+| [Cylinder/GreenFunction.lean](Cylinder/GreenFunction.lean) | 240 | `cylinderMassOperator` $= (-\Delta + m^2)^{-1/2}$ via `spectralCLM`, `cylinderGreen` $= \langle Tf, Tg \rangle_{\ell^2}$, bilinearity, symmetry, positivity, invariance |
+
+**Key definitions:**
+
+- `CylinderTestFunction L` — nuclear tensor product $C^\infty(S^1_L) \hat\otimes \mathcal{S}(\mathbb{R})$, inherits `DyninMityaginSpace`
+- `cylinderTimeReflection L` — $\mathrm{id} \otimes \Theta$ where $\Theta f(t) = f(-t)$
+- `cylinderPositiveTimeSubmodule L` — closure of span of $g \otimes h$ with $\mathrm{supp}(h) \subset (0,\infty)$
+- `cylinderMassOperator L mass hmass` — $(-\Delta + m^2)^{-1/2}$ via `spectralCLM` with QFT singular values
+- `cylinderGreen L mass hmass` — Green's function $G_L(f,g) = \langle Tf, Tg \rangle_{\ell^2}$
+
+**Proved results:**
+
+| Theorem | Statement |
+|---------|-----------|
+| `cylinderTimeReflection_pos_to_neg` | $\Theta$ maps P+ into N− |
+| `cylinderPositiveTime_disjoint_reflected` | $\Theta f \notin P^+$ for nonzero $f \in P^+$ |
+| `cylinderPositiveTime_spatialTranslation_closed` | Spatial translation preserves P+ |
+| `cylinderGreen_bilinear` | $G_L(rf + g, h) = r \cdot G_L(f,h) + G_L(g,h)$ |
+| `cylinderGreen_symm` | $G_L(f,g) = G_L(g,f)$ |
+| `cylinderGreen_nonneg` | $G_L(f,f) \geq 0$ |
+| `cylinderGreen_continuous_diag` | $f \mapsto G_L(f,f)$ is continuous |
+
 ### 3. Gaussian Field Construction
 
 Given `[DyninMityaginSpace E]` and `T : E →L[ℝ] H`, constructs the centered Gaussian
@@ -285,8 +334,10 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 Nuclear/
   DyninMityagin → NuclearTensorProduct → PointEval
        ↓                ↓
-SchwartzNuclear/   SmoothCircle/             GaussianField/
-  ...              Basic → Nuclear       NuclearFactorization
+SchwartzNuclear/   SmoothCircle/                       GaussianField/
+  ...              Basic → Nuclear → Eigenvalues    NuclearFactorization
+                          ↓    ↓          ↓
+                   Restriction  Laplacian → HeatSemigroup
   HermiteNuclear        ↓                     ↓
        ↓           Test (uses GF)   SpectralTheorem → NuclearSVD → TargetFactorization
   SchwartzTensorProduct                                                ↓
@@ -297,21 +348,28 @@ SchwartzNuclear/   SmoothCircle/             GaussianField/
                      Axioms, PositionKernel                          ↓     ↓
                               ↓                                IsGaussian  Wick
                        GaussianFieldAPI.lean (re-exports for downstream)
+
+Cylinder/ (OS axiom infrastructure)
+  Basic ← Symmetry ← PositiveTime
+                   ← GreenFunction
+  (imports SmoothCircle/Nuclear, SchwartzNuclear, Nuclear/TensorProductFunctorAxioms)
 ```
 
 ## Downstream projects
 
 This library provides the concrete functional analysis infrastructure for:
 
-- **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** — OS axiom verification for the Gaussian free field. Imports gaussian-field for `DyninMityaginSpace (SchwartzMap D ℝ)` (Schwartz space nuclearity via Hermite expansion) and the Gaussian measure construction.
-
 - **[pphi2](https://github.com/mrdouglasny/pphi2)** — Formal construction of the P(Φ)₂ interacting Euclidean QFT via the Glimm-Jaffe/Nelson lattice approach. Uses the Lattice module (lattice Gaussian measure, FKG inequality, discrete Laplacian) and the core Gaussian field API.
 
-- **[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction)** — Osterwalder-Schrader reconstruction theorem and Wightman axioms. The `extension` branch of gaussian-field proves two axioms from `Wightman/WightmanAxioms.lean`: `schwartz_nuclear_extension` and `exists_continuousMultilinear_ofSeparatelyContinuous` (not yet wired in due to Lean version mismatch).
+- **[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction)** — Osterwalder-Schrader reconstruction theorem and Wightman axioms. gaussian-field's `extension` branch proves two axioms used in `Wightman/WightmanAxioms.lean`:
+  - `schwartz_nuclear_extension` — the Schwartz kernel theorem (proved in `GeneralResults/NuclearExtensionComplex.lean`)
+  - `exists_continuousMultilinear_ofSeparatelyContinuous` — Banach-Steinhaus for separately continuous multilinear maps (proved in `GeneralResults/SeparatelyContMultilinear.lean`)
 
 - **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
 
 - **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
+
+- **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** — OS axiom verification for the Gaussian free field. Imports gaussian-field's `main` branch for `DyninMityaginSpace (SchwartzMap D ℝ)` (Schwartz space nuclearity via Hermite expansion) and the Gaussian measure construction.
 
 ## Proof status
 
@@ -352,6 +410,39 @@ Former axioms have been proved or moved to `future/` as documentation:
 - [Generalization plan](docs/generalization-plan.md) — architecture of the `DyninMityaginSpace` typeclass, design decisions, and roadmap for future instances
 - [Tensor products](docs/tensor-products.md) — concrete construction of `NuclearTensorProduct` via `RapidDecaySeq` and Cantor pairing, `pure`/`lift` API, reindexing, and Schwartz tensor product isomorphisms
 - [Abstract tensor product plan](docs/abstract-tensor-product-plan.md) — roadmap for building completed projective tensor products on Mathlib's `TensorProduct`, proving isomorphism with `RapidDecaySeq`, and the nuclear coincidence theorem
+
+### 4. Schwartz Nuclear Extension Theorem (`extension` branch)
+
+Proves the **Schwartz kernel theorem**: every continuous ℂ-multilinear functional
+on $\mathcal{S}(\mathbb{R}^{d+1}, \mathbb{C})^n$ extends uniquely to a continuous
+ℂ-linear functional on $\mathcal{S}(\mathbb{R}^{n(d+1)}, \mathbb{C})$, agreeing
+on product tensors. This replaces the `schwartz_nuclear_extension` axiom in
+[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction).
+
+**0 sorrys. 0 axioms.** Fully proved in ~2,500 lines across 4 files.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [GeneralResults/SchwartzProducts.lean](GeneralResults/SchwartzProducts.lean) | 632 | Product of Schwartz functions is Schwartz (`schwartzProductTensor_schwartz`), product Hermite density (`productHermite_schwartz_dense`), product-aware CLE (`productRapidDecayEquiv`) |
+| [GeneralResults/NuclearExtensionComplex.lean](GeneralResults/NuclearExtensionComplex.lean) | 1,357 | Complex product tensor, complexification, `schwartz_nuclear_extension` theorem |
+| [SchwartzNuclear/NuclearExtension.lean](SchwartzNuclear/NuclearExtension.lean) | 445 | DyninMityaginSpace extension theorem (`exists_unique_clm_of_polyBounded`), multilinear basis bounds |
+| [SchwartzNuclear/TsumBound.lean](SchwartzNuclear/TsumBound.lean) | 41 | Tsum bound helper |
+
+**Key results:**
+
+| Theorem | Description |
+|---------|-------------|
+| `schwartz_nuclear_extension` | $\exists!\ W : \mathcal{S}(\mathbb{R}^{n(d+1)}, \mathbb{C}) \to_{\mathbb{C}} \mathbb{C}$, agreeing with $\Phi$ on product tensors |
+| `exists_unique_clm_of_polyBounded` | DyninMityaginSpace: $\exists!$ CLM from polynomially-bounded basis values |
+| `multilinear_on_basis_bound` | $|\Phi(\psi_{k_1},\ldots,\psi_{k_n})| \le C \cdot \prod(1+k_i)^s$ from continuity |
+| `schwartzProductTensor_schwartz` | Product $\prod f_i(x_i)$ of Schwartz functions is Schwartz |
+| `productHermite_schwartz_dense` | Product Hermite functions span a dense subspace of $\mathcal{S}(\prod D)$ |
+| `productBasisIndices_polyGrowth` | Per-factor basis indices grow polynomially in the flat index |
+
+**Proof architecture:**
+
+- **Uniqueness**: Product Hermite density (`productHermite_schwartz_dense`) via product-aware CLE, then complexification $W(f) = w(\text{Re}\,f) + i \cdot w(\text{Im}\,f)$
+- **Existence**: Restrict $\Phi$ to real inputs → extract Re/Im parts → `multilinear_on_basis_bound` gives polynomial growth → `exists_unique_clm_of_polyBounded` constructs $w_{\text{re}}, w_{\text{im}}$ → complexify → prove agreement by induction on free arguments using `DyninMityaginSpace.expansion` in each slot
 
 ## Future work
 

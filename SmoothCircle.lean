@@ -1,4 +1,7 @@
 import SmoothCircle.Basic
 import SmoothCircle.Eigenvalues
+import SmoothCircle.HeatEquivariance
+import SmoothCircle.HeatSemigroup
+import SmoothCircle.Laplacian
 import SmoothCircle.Nuclear
 import SmoothCircle.Restriction

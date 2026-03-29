@@ -30,7 +30,10 @@ where `r_N` is the circle restriction map (sampling with √(L/N) normalization)
 -/
 
 import Torus.Restriction
+import Torus.Symmetry
 import Lattice.FiniteField
+import Nuclear.TensorProductFunctorAxioms
+import HeatKernel.GreenInvariance
 
 noncomputable section
 
@@ -83,5 +86,78 @@ def torusEmbedCLM (N : ℕ) [NeZero N]
     torusEmbedCLM L N φ f =
     ∑ x : FinLatticeSites 2 N, φ x * evalTorusAtSite L N x f :=
   rfl
+
+/-- Swap of lattice sites: (x₀, x₁) ↦ (x₁, x₀). -/
+def swapSites (N : ℕ) (x : FinLatticeSites 2 N) : FinLatticeSites 2 N :=
+  ![x 1, x 0]
+
+/-- **Equivariance of evalTorusAtSite under coordinate swap.**
+
+  `evalTorusAtSite x (swap f) = evalTorusAtSite (swap_sites x) f`
+
+This is the key identity for proving D4 swap invariance of the
+torus-embedded interacting measure. -/
+theorem evalTorusAtSite_swap (N : ℕ) [NeZero N]
+    (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSite L N x (GaussianField.nuclearTensorProduct_swapCLM f) =
+    evalTorusAtSite L N (swapSites N x) f := by
+  simp only [evalTorusAtSite, swapSites]
+  -- LHS: evalCLM (proj_{x 0} ∘ circRestr) (proj_{x 1} ∘ circRestr) (swapCLM f)
+  -- RHS: evalCLM (proj_{![x 1, x 0] 0} ∘ circRestr) (proj_{![x 1, x 0] 1} ∘ circRestr) f
+  -- Simplify ![x 1, x 0] indices
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+  -- Now: evalCLM (proj_{x 0} ∘ circRestr) (proj_{x 1} ∘ circRestr) (swapCLM f) =
+  --      evalCLM (proj_{x 1} ∘ circRestr) (proj_{x 0} ∘ circRestr) f
+  exact GaussianField.evalCLM_comp_swapCLM _ _ f
+
+/-- Time-reflection of lattice sites: (x₀, x₁) ↦ (-x₀, x₁). -/
+def timeReflectSites (N : ℕ) (x : FinLatticeSites 2 N) : FinLatticeSites 2 N :=
+  ![-x 0, x 1]
+
+/-- **Equivariance of evalTorusAtSite under time reflection.**
+
+  `evalTorusAtSite x (Θ f) = evalTorusAtSite (timeReflectSites x) f`
+
+where `Θ = torusTimeReflection = mapCLM (circleReflection) id`.
+Uses `evalCLM_comp_mapCLM`. -/
+theorem evalTorusAtSite_timeReflection (N : ℕ) [NeZero N]
+    (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSite L N x (nuclearTensorProduct_mapCLM
+      (circleReflection L) (ContinuousLinearMap.id ℝ _) f) =
+    evalTorusAtSite L N (timeReflectSites N x) f := by
+  simp only [evalTorusAtSite, timeReflectSites]
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+  rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
+  simp only [ContinuousLinearMap.comp_id]
+  -- Need: proj_{x 0} ∘ circRestr ∘ circleReflection = proj_{-x 0} ∘ circRestr
+  -- i.e., (circleRestriction (circleReflection g))(x 0) = (circleRestriction g)(-x 0)
+  -- This is a property of circleReflection + circleRestriction
+  sorry
+
+/-- Translation of lattice sites: x ↦ x - (j₁, j₂) in (ℤ/Nℤ)². -/
+def translateSites (N : ℕ) (j₁ j₂ : ℤ) (x : FinLatticeSites 2 N) :
+    FinLatticeSites 2 N :=
+  ![x 0 - (j₁ : ZMod N), x 1 - (j₂ : ZMod N)]
+
+/-- **Equivariance of evalTorusAtSite under lattice translation.**
+
+  `evalTorusAtSite x (T_{(j₁a, j₂a)} f) = evalTorusAtSite (x - (j₁, j₂)) f`
+
+where `a = L/N` is the lattice spacing and `j₁, j₂ ∈ ℤ`.
+Uses `evalCLM_comp_mapCLM` + circle restriction translation property:
+  `circleRestriction(T_{ja} g)(k) = circleRestriction(g)(k - j)` (by L-periodicity). -/
+theorem evalTorusAtSite_latticeTranslation (N : ℕ) [NeZero N]
+    (j₁ j₂ : ℤ) (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSite L N x (nuclearTensorProduct_mapCLM
+      (circleTranslation L (circleSpacing L N * j₁))
+      (circleTranslation L (circleSpacing L N * j₂)) f) =
+    evalTorusAtSite L N (translateSites N j₁ j₂ x) f := by
+  simp only [evalTorusAtSite, translateSites]
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
+  rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
+  -- Need: proj_{x i} ∘ circRestr ∘ T_{ja} = proj_{x i - j} ∘ circRestr
+  -- i.e., circleRestriction(T_{ja} g)(k) = circleRestriction(g)(k - j)
+  -- This uses: T_{ja} g evaluates as g(· - ja), and circlePoint(k) - ja ≡ circlePoint(k-j) mod L
+  sorry
 
 end GaussianField
