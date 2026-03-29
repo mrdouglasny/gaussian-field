@@ -211,7 +211,8 @@ theorem DyninMityaginSpace.exists_unique_clm_of_polyBounded
 
 The axiom in OSreconstruction states:
 ```
-axiom schwartz_nuclear_extension (d n : ℕ)
+-- `schwartz_nuclear_extension` is PROVED in GeneralResults/NuclearExtensionComplex.lean.
+-- The axiom that was here has been removed.
     (Phi : ContinuousMultilinearMap ℂ
       (fun _ : Fin n => SchwartzMap (Fin (d + 1) → ℝ) ℂ) ℂ) :
     ∃! (W : SchwartzMap (Fin n → Fin (d + 1) → ℝ) ℂ →L[ℂ] ℂ),
