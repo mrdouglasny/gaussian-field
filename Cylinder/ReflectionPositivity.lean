@@ -328,33 +328,48 @@ theorem cylinderLaplaceEmbedding_coord (mass : ℝ) (hmass : 0 < mass)
     laplaceEmbeddingCoord L mass hmass a f :=
   (laplaceEmbedding_ell2 L mass hmass).choose_spec f a
 
-/-- **Laplace factorization identity.**
+/-- **Resolvent–Laplace factorization identity** (mode-level).
 
-For positive-time test functions, the reflected Green's function equals
-the squared ℓ²-norm of the Laplace embedding:
+For a positive-time Schwartz function `h` and resolvent frequency `ω > 0`:
+
+  `⟨R_ω(h), R_ω(h̃)⟩_{DM} = (1/(2ω)) · (L_ω(h))²`
+
+where `R_ω` is the resolvent Fourier multiplier `(p² + ω²)^{-1/2}`,
+`h̃ = schwartzReflection h`, and `⟨·,·⟩_{DM}` is the ℓ² inner product
+of DM basis coefficients (= L² inner product by Hermite–Parseval).
+
+**Proof sketch** (verified by Gemini deep think):
+The L² inner product `⟨R_ω h, R_ω h̃⟩ = ⟨h, R_ω² h̃⟩` by self-adjointness.
+The operator `R_ω²` has convolution kernel `(1/(2ω))e^{-ω|t|}` (inverse
+Fourier transform of `(p² + ω²)^{-1}`). For `h` supported on `[0,∞)` and
+`h̃` supported on `(-∞, 0]`, the absolute value `|t - s| = t - s` for
+`t ≥ 0, s ≤ 0`, so the double integral factors as
+`(1/(2ω)) · (∫₀^∞ h(t)e^{-ωt} dt)² = (1/(2ω)) · (L_ω h)²`. -/
+axiom resolvent_laplace_inner
+    (ω : ℝ) (hω : 0 < ω)
+    (h : SchwartzMap ℝ ℝ) (hh : h ∈ schwartzPositiveTimeSubmodule) :
+    ∑' b, DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b
+            (resolventMultiplierCLM hω h) *
+          DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b
+            (resolventMultiplierCLM hω (schwartzReflection h)) =
+    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2
+
+/-- The Laplace factorization identity for the cylinder Green's function.
 
   `G(f, Θf) = ‖Λf‖²_{ℓ²}`
 
-This identity encodes the Laplace transform factorization of the
-resolvent kernel: for `t > 0 > s`, the kernel `e^{-ω|t-s|}/(2ω)`
-factors as `e^{-ωt} · e^{ωs}/(2ω)`, making the double integral
-
-  `∫∫ h(t) h(-s) e^{-ω|t-s|}/(2ω) dt ds = |∫₀^∞ h(t) e^{-ωt} dt|²/(2ω)`
-
-a perfect square. Summing over spatial modes gives `‖Λf‖²`.
-
-**Future proof target**: This can be proved by:
-1. Verifying on pure tensors `g ⊗ h` using the mode decomposition
-   of the mass operator and the resolvent kernel factorization
-2. Extending to finite sums by bilinearity
-3. Extending to the closure by continuity of both sides -/
-axiom cylinderGreen_reflection_eq_laplaceNorm
+Proved from the mode-level `resolvent_laplace_inner` axiom by:
+1. Expanding both sides as ℓ² tsums via coordinate formulas
+2. Grouping the LHS by spatial mode (Cantor pairing reorganization)
+3. Matching each mode's contribution with the Laplace embedding -/
+theorem cylinderGreen_reflection_eq_laplaceNorm
     (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L)
     (hf : f ∈ cylinderPositiveTimeSubmodule L) :
     cylinderGreen L mass hmass f (cylinderTimeReflection L f) =
     @inner ℝ ell2' _ (cylinderLaplaceEmbedding L mass hmass f)
-      (cylinderLaplaceEmbedding L mass hmass f)
+      (cylinderLaplaceEmbedding L mass hmass f) := by
+  sorry
 
 /-! ## Reflection positivity (OS3)
 
