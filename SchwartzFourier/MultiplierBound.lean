@@ -141,7 +141,15 @@ The derivative sup-norms of σ_ω are uniform in ω ≥ mass by the scaling
 
 /-- **The (0,0) case**: sup norm of resolvent multiplier output.
 
-`‖R_ω f‖_∞ ≤ (1/mass) · ∫ |Ff| ≤ (1/mass) · C · p(f)` uniformly in ω ≥ mass. -/
+`‖R_ω f‖_∞ ≤ (1/mass) · ∫ |Ff| ≤ (1/mass) · C · p(f)` uniformly in ω ≥ mass.
+
+Proof route: `p_{0,0}(R_ω f) = sup|R_ω f(x)| = sup|F⁻¹(σ_ω · Ff)(x)|`
+`≤ ∫ |σ_ω · Ff| ≤ (1/mass) · ∫ |Ff| ≤ (1/mass) · C · p(f)`.
+
+Uses `norm_fourierInv_le_integral_norm` (proved) + `resolventSymbol_sup_uniform`
+(proved) + `schwartz_l1_le_seminorm` (proved). The remaining gap is accessing
+the pointwise formula `(R_ω f)(x) = F⁻¹(σ_ω · Ff)(x)` through the
+lift-apply-project chain of `realFourierMultiplierCLM`. -/
 theorem resolventMultiplier_sup_bound
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
