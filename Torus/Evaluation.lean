@@ -43,6 +43,56 @@ open NuclearTensorProduct
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
+/-! ## Circle point periodicity lemmas -/
+
+private lemma zmod_val_neg_add_val_dvd (N : ℕ) [NeZero N] (k : ZMod N) :
+    N ∣ ((-k).val + k.val) := by
+  have h2 := ZMod.val_add (-k) k
+  rw [show -k + k = (0 : ZMod N) from neg_add_cancel k, ZMod.val_zero] at h2
+  exact Nat.dvd_of_mod_eq_zero h2.symm
+
+private lemma zmod_val_sub_intCast_dvd (N : ℕ) [NeZero N] (k : ZMod N) (j : ℤ) :
+    (N : ℤ) ∣ ((k.val : ℤ) - j - ((k - (j : ZMod N)).val : ℤ)) := by
+  rw [← ZMod.intCast_zmod_eq_zero_iff_dvd]; push_cast; simp [ZMod.natCast_val]
+
+private lemma periodic_add_int_mul {f : ℝ → ℝ} {c : ℝ} (hf : Function.Periodic f c)
+    (x : ℝ) (n : ℤ) : f (x + n * c) = f x := by
+  rw [show x + n * c = x - (-n) • c from by simp [zsmul_eq_mul]]
+  exact hf.sub_zsmul_eq (-n)
+
+/-- `g(-circlePoint(k)) = g(circlePoint(-k))` by L-periodicity of smooth circle functions. -/
+private lemma smooth_neg_circlePoint (N : ℕ) [NeZero N]
+    (g : SmoothMap_Circle L ℝ) (k : ZMod N) :
+    g (-(circlePoint L N k)) = g (circlePoint L N (-k)) := by
+  simp only [circlePoint]
+  obtain ⟨m, hm⟩ := zmod_val_neg_add_val_dvd N k
+  have hper : Function.Periodic (⇑g) L := g.periodic'
+  have hN_ne : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
+  have h' : (↑((-k).val) : ℝ) - ↑N * ↑m = -↑(k.val) := by
+    have : (↑((-k).val) : ℝ) + ↑(k.val) = ↑N * ↑m := by exact_mod_cast hm
+    linarith
+  rw [show -(↑(k.val) * L / ↑N) = ↑((-k).val) * L / ↑N - ↑m * L from by
+    field_simp; rw [h']; ring]
+  rw [show (↑m : ℝ) * L = (m : ℕ) • L from (nsmul_eq_mul m L).symm]
+  exact hper.sub_nsmul_eq m
+
+/-- `g(circlePoint(k) - j*spacing) = g(circlePoint(k - j))` by L-periodicity. -/
+private lemma smooth_sub_circlePoint (N : ℕ) [NeZero N]
+    (g : SmoothMap_Circle L ℝ) (k : ZMod N) (j : ℤ) :
+    g (circlePoint L N k - circleSpacing L N * j) =
+    g (circlePoint L N (k - (j : ZMod N))) := by
+  simp only [circlePoint, circleSpacing]
+  obtain ⟨m, hm⟩ := zmod_val_sub_intCast_dvd N k j
+  have hper : Function.Periodic (⇑g) L := g.periodic'
+  have hN_ne : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
+  have arith : (↑(k.val) : ℝ) - (↑j : ℝ) =
+      ↑((k - (↑j : ZMod N)).val) + (↑N : ℝ) * (↑m : ℝ) := by
+    exact_mod_cast
+      (show (↑(k.val) : ℤ) - j = ↑((k - (↑j : ZMod N)).val) + ↑N * m by linarith)
+  rw [show ↑(k.val) * L / ↑N - L / ↑N * ↑j =
+      ↑((k - (↑j : ZMod N)).val) * L / ↑N + ↑m * L from by field_simp; congr 1]
+  exact periodic_add_int_mul hper _ m
+
 /-! ## Torus test function evaluation -/
 
 /-- Evaluation of a torus test function at a lattice site `x ∈ (ℤ/Nℤ)²`.
@@ -129,10 +179,15 @@ theorem evalTorusAtSite_timeReflection (N : ℕ) [NeZero N]
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
   rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
   simp only [ContinuousLinearMap.comp_id]
-  -- Need: proj_{x 0} ∘ circRestr ∘ circleReflection = proj_{-x 0} ∘ circRestr
-  -- i.e., (circleRestriction (circleReflection g))(x 0) = (circleRestriction g)(-x 0)
-  -- This is a property of circleReflection + circleRestriction
-  sorry
+  -- Reduce to: proj_{x 0} ∘ circRestr ∘ circleReflection = proj_{-x 0} ∘ circRestr
+  suffices h : ((ContinuousLinearMap.proj (x 0)).comp (circleRestriction L N)).comp
+      (circleReflection L) =
+    (ContinuousLinearMap.proj (-x 0)).comp (circleRestriction L N) by rw [h]
+  ext g
+  simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.proj_apply,
+    circleRestriction_apply]
+  congr 1
+  exact smooth_neg_circlePoint L N g (x 0)
 
 /-- Translation of lattice sites: x ↦ x - (j₁, j₂) in (ℤ/Nℤ)². -/
 def translateSites (N : ℕ) (j₁ j₂ : ℤ) (x : FinLatticeSites 2 N) :
@@ -155,9 +210,19 @@ theorem evalTorusAtSite_latticeTranslation (N : ℕ) [NeZero N]
   simp only [evalTorusAtSite, translateSites]
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one]
   rw [evalCLM_comp_mapCLM (smoothCircle_coeff_basis L) (smoothCircle_coeff_basis L)]
-  -- Need: proj_{x i} ∘ circRestr ∘ T_{ja} = proj_{x i - j} ∘ circRestr
-  -- i.e., circleRestriction(T_{ja} g)(k) = circleRestriction(g)(k - j)
-  -- This uses: T_{ja} g evaluates as g(· - ja), and circlePoint(k) - ja ≡ circlePoint(k-j) mod L
-  sorry
+  -- Reduce to: proj_{x i} ∘ circRestr ∘ T_{ja} = proj_{x i - j} ∘ circRestr
+  suffices h₁ : ((ContinuousLinearMap.proj (x 0)).comp (circleRestriction L N)).comp
+      (circleTranslation L (circleSpacing L N * j₁)) =
+    (ContinuousLinearMap.proj (x 0 - (j₁ : ZMod N))).comp (circleRestriction L N) by
+    suffices h₂ : ((ContinuousLinearMap.proj (x 1)).comp (circleRestriction L N)).comp
+        (circleTranslation L (circleSpacing L N * j₂)) =
+      (ContinuousLinearMap.proj (x 1 - (j₂ : ZMod N))).comp (circleRestriction L N) by
+      rw [h₁, h₂]
+    ext g; simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.proj_apply,
+      circleRestriction_apply]; congr 1
+    exact smooth_sub_circlePoint L N g (x 1) j₂
+  ext g; simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.proj_apply,
+    circleRestriction_apply]; congr 1
+  exact smooth_sub_circlePoint L N g (x 0) j₁
 
 end GaussianField
