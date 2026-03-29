@@ -46,4 +46,7 @@ import GaussianField.Properties
 import GaussianField.Hypercontractive
 import GaussianField.Wick
 import GaussianField.Support
+import GaussianField.CramerWold
+import GaussianField.ConfigurationEmbedding
+import GaussianField.MeasureUniqueness
 
