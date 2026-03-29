@@ -67,12 +67,26 @@ theorem norm_fourierInv_le_integral_norm {h : ℝ → ℂ}
 Schwartz functions have finite L¹ norm, bounded by Schwartz seminorms. -/
 
 /-- The L¹ norm of a Schwartz function is bounded by Schwartz seminorms.
-Uses `SchwartzMap.integrable` + `SchwartzMap.toLpCLM`. -/
+Uses `SchwartzMap.toLpCLM` + `Seminorm.bound_of_continuous`. -/
 theorem schwartz_l1_le_seminorm :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ), 0 < C ∧
     ∀ f : SchwartzMap ℝ ℝ, ∫ p, ‖f.toFun p‖ ≤
     C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-  sorry
+  set T : SchwartzMap ℝ ℝ →L[ℝ] MeasureTheory.Lp ℝ 1 (volume : MeasureTheory.Measure ℝ) :=
+    SchwartzMap.toLpCLM ℝ ℝ 1 (μ := volume)
+  set qT : Seminorm ℝ (SchwartzMap ℝ ℝ) :=
+    (normSeminorm ℝ (MeasureTheory.Lp ℝ 1 (volume : MeasureTheory.Measure ℝ))).comp T.toLinearMap
+  have hqT : Continuous qT := continuous_norm.comp T.continuous
+  obtain ⟨s, C, hC, hle⟩ := Seminorm.bound_of_continuous (schwartz_withSeminorms ℝ ℝ ℝ) qT hqT
+  refine ⟨s, C, lt_of_le_of_ne C.2 (fun h => hC (Subtype.ext h.symm)), fun f => ?_⟩
+  calc ∫ p, ‖f.toFun p‖
+      = ‖(T f : MeasureTheory.Lp ℝ 1 volume)‖ := by
+        rw [SchwartzMap.toLpCLM_apply, MeasureTheory.L1.norm_eq_integral_norm]
+        exact integral_congr_ae (by
+          filter_upwards [f.coeFn_toLp 1 volume] with t ht
+          simp only [Real.norm_eq_abs]; congr 1; exact ht.symm)
+    _ = qT f := rfl
+    _ ≤ C * (s.sup (fun m => schwartzSeminormFamily ℝ ℝ ℝ m)) f := hle f
 
 /-! ## Resolvent symbol sup-norm bounds
 
