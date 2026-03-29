@@ -663,7 +663,7 @@ private lemma multiIndex_abs_succ_symm (d : ℕ) (n : ℕ) :
 
 /-- The multi-index enumeration has polynomial growth.
 Stated for `MultiIndex (d + 1)` since `multiIndexEquiv d : MultiIndex (d + 1) ≃ ℕ`. -/
-private lemma multiIndexEquiv_growth (d : ℕ) :
+lemma multiIndexEquiv_growth (d : ℕ) :
     ∃ C > 0, ∃ k : ℕ, ∀ α : MultiIndex (d + 1),
       (1 + (multiIndexEquiv d α : ℝ)) ≤ C * (1 + (MultiIndex.abs α : ℝ)) ^ k := by
   induction d with
@@ -725,7 +725,7 @@ private lemma multiIndexEquiv_growth (d : ℕ) :
 
 /-- The inverse of the multi-index enumeration has polynomial growth.
 Stated for `multiIndexEquiv d : MultiIndex (d + 1) ≃ ℕ`. -/
-private lemma multiIndexEquiv_symm_growth (d : ℕ) :
+lemma multiIndexEquiv_symm_growth (d : ℕ) :
     ∃ C > 0, ∃ k : ℕ, ∀ n : ℕ,
       (1 + (MultiIndex.abs ((multiIndexEquiv d).symm n) : ℝ)) ≤ C * (1 + (n : ℝ)) ^ k := by
   induction d with

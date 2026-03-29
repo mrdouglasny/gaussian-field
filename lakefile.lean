@@ -10,6 +10,8 @@ require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git"
 
 
+lean_lib «GeneralResults» where
+
 lean_lib «Nuclear» where
 
 lean_lib «SchwartzNuclear» where

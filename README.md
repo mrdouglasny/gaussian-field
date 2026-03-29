@@ -69,6 +69,7 @@ The user provides:
 | `support_of_hilbertSchmidt` | `∀ᵐ` | HS $\Rightarrow$ a.e. finite basis norm |
 | `weighted_support` | `∀ᵐ` | Weighted-HS $\Rightarrow$ a.e. finite weighted basis norm |
 | `expected_norm_sq_eq_hs` | integral identity | $\mathbb{E}[\sum_n |\omega(e_n)|^2] = \sum_n \|T(e_n)\|^2$ |
+| `gaussian_measure_unique_of_covariance` | measure equality | Two centered Gaussian probability measures with the same covariance are equal (conditional on the Cramér-Wold axiom `cramerWold`) |
 
 ### Design notes
 
@@ -393,12 +394,15 @@ This library provides the concrete functional analysis infrastructure for:
 
 - **[pphi2](https://github.com/mrdouglasny/pphi2)** — Formal construction of the P(Φ)₂ interacting Euclidean QFT via the Glimm-Jaffe/Nelson lattice approach. Uses the Lattice module (lattice Gaussian measure, FKG inequality, discrete Laplacian) and the core Gaussian field API.
 
+- **[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction)** — Osterwalder-Schrader reconstruction theorem and Wightman axioms. gaussian-field's `extension` branch proves two axioms used in `Wightman/WightmanAxioms.lean`:
+  - `schwartz_nuclear_extension` — the Schwartz kernel theorem (proved in `GeneralResults/NuclearExtensionComplex.lean`)
+  - `exists_continuousMultilinear_ofSeparatelyContinuous` — Banach-Steinhaus for separately continuous multilinear maps (proved in `GeneralResults/SeparatelyContMultilinear.lean`)
+
 - **[QFTFramework](https://github.com/mrdouglasny/QFTFramework)** — Abstract QFT axiomatics (`SpacetimeData`, `QFTData`, `OSTheory`). gaussian-field's types fill QFTFramework's abstract slots.
 
 - **[GFF](https://github.com/mrdouglasny/GFF)** — Bridges gaussian-field and QFTFramework to formalize the Gaussian free field on cylinders (S¹_L × ℝ), tori (T²), and flat ℝ^d, with Osterwalder-Schrader axiom verification.
 
-- **OSforGFF imports** — files under `OSforGFF*` directories in this workspace are imported snapshots from the separate
-  **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** project.
+- **[OSforGFF](https://github.com/mrdouglasny/OSforGFF)** — OS axiom verification for the Gaussian free field. Imports gaussian-field's `main` branch for `DyninMityaginSpace (SchwartzMap D ℝ)` (Schwartz space nuclearity via Hermite expansion) and the Gaussian measure construction.
 
 ## Proof status
 
@@ -442,6 +446,39 @@ Former axioms have been proved or moved to `future/` as documentation:
 - [Generalization plan](docs/generalization-plan.md) — architecture of the `DyninMityaginSpace` typeclass, design decisions, and roadmap for future instances
 - [Tensor products](docs/tensor-products.md) — concrete construction of `NuclearTensorProduct` via `RapidDecaySeq` and Cantor pairing, `pure`/`lift` API, reindexing, and Schwartz tensor product isomorphisms
 - [Abstract tensor product plan](docs/abstract-tensor-product-plan.md) — roadmap for building completed projective tensor products on Mathlib's `TensorProduct`, proving isomorphism with `RapidDecaySeq`, and the nuclear coincidence theorem
+
+### 4. Schwartz Nuclear Extension Theorem (`extension` branch)
+
+Proves the **Schwartz kernel theorem**: every continuous ℂ-multilinear functional
+on $\mathcal{S}(\mathbb{R}^{d+1}, \mathbb{C})^n$ extends uniquely to a continuous
+ℂ-linear functional on $\mathcal{S}(\mathbb{R}^{n(d+1)}, \mathbb{C})$, agreeing
+on product tensors. This replaces the `schwartz_nuclear_extension` axiom in
+[OSreconstruction](https://github.com/mrdouglasny/OSreconstruction).
+
+**0 sorrys. 0 axioms.** Fully proved in ~2,500 lines across 4 files.
+
+| File | Lines | Contents |
+|------|------:|----------|
+| [GeneralResults/SchwartzProducts.lean](GeneralResults/SchwartzProducts.lean) | 632 | Product of Schwartz functions is Schwartz (`schwartzProductTensor_schwartz`), product Hermite density (`productHermite_schwartz_dense`), product-aware CLE (`productRapidDecayEquiv`) |
+| [GeneralResults/NuclearExtensionComplex.lean](GeneralResults/NuclearExtensionComplex.lean) | 1,357 | Complex product tensor, complexification, `schwartz_nuclear_extension` theorem |
+| [SchwartzNuclear/NuclearExtension.lean](SchwartzNuclear/NuclearExtension.lean) | 445 | DyninMityaginSpace extension theorem (`exists_unique_clm_of_polyBounded`), multilinear basis bounds |
+| [SchwartzNuclear/TsumBound.lean](SchwartzNuclear/TsumBound.lean) | 41 | Tsum bound helper |
+
+**Key results:**
+
+| Theorem | Description |
+|---------|-------------|
+| `schwartz_nuclear_extension` | $\exists!\ W : \mathcal{S}(\mathbb{R}^{n(d+1)}, \mathbb{C}) \to_{\mathbb{C}} \mathbb{C}$, agreeing with $\Phi$ on product tensors |
+| `exists_unique_clm_of_polyBounded` | DyninMityaginSpace: $\exists!$ CLM from polynomially-bounded basis values |
+| `multilinear_on_basis_bound` | $|\Phi(\psi_{k_1},\ldots,\psi_{k_n})| \le C \cdot \prod(1+k_i)^s$ from continuity |
+| `schwartzProductTensor_schwartz` | Product $\prod f_i(x_i)$ of Schwartz functions is Schwartz |
+| `productHermite_schwartz_dense` | Product Hermite functions span a dense subspace of $\mathcal{S}(\prod D)$ |
+| `productBasisIndices_polyGrowth` | Per-factor basis indices grow polynomially in the flat index |
+
+**Proof architecture:**
+
+- **Uniqueness**: Product Hermite density (`productHermite_schwartz_dense`) via product-aware CLE, then complexification $W(f) = w(\text{Re}\,f) + i \cdot w(\text{Im}\,f)$
+- **Existence**: Restrict $\Phi$ to real inputs → extract Re/Im parts → `multilinear_on_basis_bound` gives polynomial growth → `exists_unique_clm_of_polyBounded` constructs $w_{\text{re}}, w_{\text{im}}$ → complexify → prove agreement by induction on free arguments using `DyninMityaginSpace.expansion` in each slot
 
 ## Future work
 
