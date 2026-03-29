@@ -30,15 +30,12 @@ equals the 1D characteristic function of ω(∑ tⱼ fⱼ), hence agrees for bot
 By Dynkin's pi-lambda theorem, measures agreeing on all finite-dimensional cylinder
 sets agree on the cylindrical σ-algebra.
 
-## Sorry status
+## Axiom
 
-One sorry remains:
-- `pushforward_eq_of_eval_eq` (line ~203): Equal 1D marginals for all `f : E` imply
-  equal pushforward measures on `ℝ^ℕ` via `configBasisEval`. The mathematical content
-  is well-known: matching 1D marginals for all linear combinations of coordinates
-  determines finite-dimensional joint distributions (Cramer-Wold), which determine
-  measures on the product σ-algebra (Kolmogorov extension uniqueness on Polish spaces).
-  Formalization requires a pi-lambda argument on `ℕ → ℝ` using cylinder sets.
+One axiom:
+- `cramerWold`: The Cramér-Wold theorem — two probability measures on `ι → ℝ`
+  agreeing on all 1D marginals under linear projections are equal. This is a
+  standard result following from injectivity of the characteristic function.
 
 ## Proved results
 
@@ -49,15 +46,34 @@ One sorry remains:
   analytic continuation from real to complex MGF (via Mathlib's
   `eqOn_complexMGF_of_mgf` + `integrableExpSet_id_gaussianReal`) and
   `ext_of_complexMGF_eq`.
-- `gaussian_measure_unique_of_covariance`: The main theorem, modulo
-  `pushforward_eq_of_eval_eq`. The pullback from `ℝ^ℕ` uses
-  `instMeasurableSpaceConfiguration_eq_comap`.
+- `pushforward_eq_of_eval_eq`: Equal 1D marginals for all `f : E` imply equal
+  pushforwards to `ℝ^ℕ`. Uses `cramerWold` + `IsProjectiveLimit.unique`.
+- `gaussian_measure_unique_of_covariance`: The main theorem. Pullback from `ℝ^ℕ`
+  uses `instMeasurableSpaceConfiguration_eq_comap`.
 -/
 
 import GaussianField.ConfigurationEmbedding
 import Mathlib.Probability.Distributions.Gaussian.Real
 
 noncomputable section
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open scoped BigOperators
+
+/-- **Cramér-Wold theorem**: Two probability measures on a finite product `ι → ℝ` are equal
+    if they assign the same distribution to every linear functional `x ↦ ∑ i, c i * x i`.
+
+    Proof sketch: The characteristic function `φ_ν(t) = E[exp(i⟨t,X⟩)]` at point `c` equals
+    the 1D characteristic function of `⟨c,X⟩` at 1, via `charFun_map_eq_charFunDual_smul`.
+    Equal 1D distributions for all `c` imply equal characteristic functions, hence equal measures
+    (by `Measure.ext_of_charFun`). -/
+axiom cramerWold {ι : Type*} [Fintype ι]
+    (ν₁ ν₂ : Measure (ι → ℝ))
+    [IsProbabilityMeasure ν₁] [IsProbabilityMeasure ν₂]
+    (h : ∀ c : ι → ℝ,
+      ν₁.map (fun x => ∑ i : ι, c i * x i) =
+      ν₂.map (fun x => ∑ i : ι, c i * x i)) :
+    ν₁ = ν₂
 
 namespace GaussianField
 
@@ -194,14 +210,32 @@ theorem eval_map_eq_of_covariance
 
 /-! ## Step 4: Pushforward equality on ℝ^ℕ -/
 
+/-- Composing restriction to `I` and a linear functional with `configBasisEval` gives
+    evaluation at a linear combination of basis vectors. -/
+private lemma map_restrict_lin_eq
+    (μ : @Measure (Configuration E) instMeasurableSpaceConfiguration)
+    (I : Finset ℕ) (c : ↥I → ℝ) :
+    ((μ.map (configBasisEval (E := E))).map I.restrict).map
+      (fun x : ↥I → ℝ => ∑ i, c i * x i) =
+    μ.map (fun ω : Configuration E =>
+      ω (∑ i : ↥I, c i • DyninMityaginSpace.basis (↑i : ℕ))) := by
+  have h_restrict_meas : Measurable (I.restrict (π := fun _ : ℕ => ℝ)) :=
+    measurable_pi_lambda _ (fun _ => measurable_pi_apply _)
+  have h_lin_meas : Measurable (fun x : ↥I → ℝ => ∑ i, c i * x i) :=
+    Finset.measurable_sum _ (fun i _ => measurable_const.mul (measurable_pi_apply i))
+  rw [Measure.map_map h_lin_meas h_restrict_meas,
+      Measure.map_map (h_lin_meas.comp h_restrict_meas) configBasisEval_measurable]
+  congr 1; ext ω
+  simp only [Function.comp, configBasisEval, Finset.restrict_def]
+  rw [map_sum]; congr 1; ext i; rw [map_smul, smul_eq_mul]
+
 /-- If two probability measures on `Configuration E` have the same 1D marginal
     for every test function f : E, then their pushforwards to ℝ^ℕ via
     `configBasisEval` agree.
 
-    This is the combination of the Cramér-Wold theorem (equal 1D marginals on
-    all linear combinations determine finite-dimensional joint distributions)
-    and Kolmogorov's extension uniqueness (equal finite-dimensional marginals
-    determine measures on the product σ-algebra of a Polish space). -/
+    Uses `cramerWold` (equal 1D marginals of all linear combinations determine
+    finite-dimensional joint distributions) and `IsProjectiveLimit.unique`
+    (equal finite-dimensional marginals determine measures on `ℕ → ℝ`). -/
 theorem pushforward_eq_of_eval_eq
     (μ₁ μ₂ : @Measure (Configuration E) instMeasurableSpaceConfiguration)
     [IsProbabilityMeasure μ₁] [IsProbabilityMeasure μ₂]
@@ -212,7 +246,40 @@ theorem pushforward_eq_of_eval_eq
       (configBasisEval (E := E)) μ₁ =
     @Measure.map _ _ instMeasurableSpaceConfiguration _
       (configBasisEval (E := E)) μ₂ := by
-  sorry
+  set ν₁ := @Measure.map _ _ instMeasurableSpaceConfiguration _
+    (configBasisEval (E := E)) μ₁
+  set ν₂ := @Measure.map _ _ instMeasurableSpaceConfiguration _
+    (configBasisEval (E := E)) μ₂
+  haveI : IsProbabilityMeasure ν₁ :=
+    Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable
+  haveI : IsProbabilityMeasure ν₂ :=
+    Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable
+  -- Projective family from ν₁'s finite-dimensional marginals
+  set P : ∀ I : Finset ℕ, Measure (∀ j : ↥I, ℝ) := fun I => ν₁.map I.restrict
+  have h_restrict_meas : ∀ I : Finset ℕ,
+      Measurable (I.restrict (π := fun _ : ℕ => ℝ)) :=
+    fun I => measurable_pi_lambda _ (fun _ => measurable_pi_apply _)
+  haveI : ∀ I : Finset ℕ, IsFiniteMeasure (P I) := by
+    intro I
+    haveI : IsProbabilityMeasure (P I) :=
+      Measure.isProbabilityMeasure_map (h_restrict_meas I).aemeasurable
+    infer_instance
+  -- ν₁ is a projective limit (by definition of P)
+  have hν₁_proj : IsProjectiveLimit ν₁ P := fun I => rfl
+  -- ν₂ is a projective limit (via Cramér-Wold on each finite-dim marginal)
+  have hν₂_proj : IsProjectiveLimit ν₂ P := by
+    intro I
+    show ν₂.map I.restrict = ν₁.map I.restrict
+    symm
+    haveI : IsProbabilityMeasure (Measure.map I.restrict ν₁) :=
+      Measure.isProbabilityMeasure_map (h_restrict_meas I).aemeasurable
+    haveI : IsProbabilityMeasure (Measure.map I.restrict ν₂) :=
+      Measure.isProbabilityMeasure_map (h_restrict_meas I).aemeasurable
+    apply cramerWold
+    intro c
+    rw [map_restrict_lin_eq μ₁ I c, map_restrict_lin_eq μ₂ I c]
+    exact h_eval _
+  exact IsProjectiveLimit.unique hν₁_proj hν₂_proj
 
 /-! ## Main theorem -/
 
