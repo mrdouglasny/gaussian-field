@@ -164,10 +164,18 @@ uniform derivative bounds: the scaling `σ_ω(p) = ω⁻¹ g(p/ω)` gives
 `|D^j σ_ω(p)| ≤ mass^{-(1+j)} · ‖D^j g‖_∞` (with N = 0 since σ_ω decays).
 Applying `fourierMultiplier_schwartz_bound` yields the uniform seminorm bound. -/
 
-/-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
+/-- **Uniform derivative bounds for the resolvent symbol.**
 
-Derived from `fourierMultiplier_schwartz_bound` using the uniform derivative
-bounds `|D^j σ_ω(p)| ≤ B_j` for `ω ≥ mass > 0`. -/
+From scaling `σ_ω(p) = ω⁻¹ g(p/ω)` where `g(q) = (q²+1)^{-1/2}`:
+  `|D^m σ_ω(p)| = ω^{-(1+m)} |D^m g(p/ω)| ≤ mass^{-(1+m)} · ‖D^m g‖_∞`
+
+This gives a uniform bound `B(mass, deriv_order)` independent of ω ≥ mass. -/
+theorem resolventSymbol_uniform_deriv_bound (mass : ℝ) (hmass : 0 < mass) (deriv_order : ℕ) :
+    ∃ B : ℝ, 0 < B ∧ ∀ (ω : ℝ), mass ≤ ω →
+      ∀ (m : ℕ), m ≤ deriv_order →
+        ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ B * (1 + |p|) ^ (0 : ℝ) := by
+  sorry -- scaling argument: σ_ω(p) = ω⁻¹g(p/ω), derivatives scale as ω^{-(1+m)}
+
 theorem resolventSchwartz_uniformBound
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
@@ -175,9 +183,19 @@ theorem resolventSchwartz_uniformBound
       SchwartzMap.seminorm ℝ k l
         (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-  -- Uniform derivative bound for σ_ω: |D^m σ_ω(p)| ≤ B for ω ≥ mass, all p
-  -- From scaling: σ_ω(p) = ω⁻¹g(p/ω), so |D^m σ_ω| = ω^{-(1+m)}|D^m g(p/ω)|
-  -- ≤ mass^{-(1+m)} · sup|D^m g| ≤ B for each m
-  sorry
+  -- Step 1: Get uniform derivative bounds for the resolvent family
+  obtain ⟨B, hB, h_deriv⟩ := resolventSymbol_uniform_deriv_bound mass hmass (k + l)
+  -- Step 2: Apply the Hörmander multiplier theorem with these bounds
+  obtain ⟨s, C', hC', h_mult⟩ := fourierMultiplier_schwartz_bound k l (k + l) B 0
+  -- Step 3: Package
+  refine ⟨s, C', hC', fun ω hω f => ?_⟩
+  -- resolventMultiplierCLM hω' = realFourierMultiplierCLM (resolventSymbol ω) hσ
+  have hω' := lt_of_lt_of_le hmass hω
+  show SchwartzMap.seminorm ℝ k l (resolventMultiplierCLM hω' f) ≤ _
+  rw [show resolventMultiplierCLM hω' =
+    realFourierMultiplierCLM (resolventSymbol ω)
+      (resolventSymbol_hasTemperateGrowth ω hω') from rfl]
+  exact h_mult (resolventSymbol ω) (resolventSymbol_hasTemperateGrowth ω hω')
+    (h_deriv ω hω) f
 
 end GaussianField
