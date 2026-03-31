@@ -456,7 +456,9 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
     -- inner ℝ a b = a * b for reals
     simp_rw [show ∀ a b : ℝ, @inner ℝ ℝ _ a b = a * b from
       fun a b => by simp [inner, RCLike.re, conj_trivial, mul_comm]]
-    -- Reindex via Nat.pairEquiv: ∑' m, F(unpair m) = ∑' (a,b), F(a,b)
+    -- Reindex: ∑' m, F(unpair m) = ∑' a, ∑' b, F(a,b)
+    -- via Equiv.tsum_eq (Nat.pairEquiv) + Summable.tsum_prod
+    -- Summability from lp.hasSum_inner (ℓ² inner product of Tf and TΘf)
     rw [show (∑' i, DyninMityaginSpace.coeff (Nat.unpair i).2
           (resolventMultiplierCLM _ (ntpSliceSchwartz L (Nat.unpair i).1 f)) *
         DyninMityaginSpace.coeff (Nat.unpair i).2
@@ -471,8 +473,10 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
       (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
       (ntpSliceSchwartz L a f) (ntpSliceSchwartz_positive_time L a f hf)
   · -- Step B: RHS = ∑' a, S a
-    -- Algebra: ↑‖(1/√(2ω)) * L(h)‖² = (1/(2ω)) * L(h)²
-    sorry
+    -- Strip the RCLike.ofReal cast (= id on ℝ), then algebra
+    simp_rw [RCLike.ofReal_real_eq_id, id]
+    congr 1; ext a; simp only [S, Real.norm_eq_abs, sq_abs, mul_pow, div_pow, one_pow]
+    rw [Real.sq_sqrt (by linarith [resolventFreq_pos L mass hmass a] : (0:ℝ) ≤ _)]
 
 /-! ## Reflection positivity (OS3)
 
