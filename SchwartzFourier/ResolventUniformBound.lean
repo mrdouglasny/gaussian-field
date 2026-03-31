@@ -143,7 +143,10 @@ the Fourier multiplier `M_σ` satisfies:
 where `C'` and `q` depend only on `(k, l, deriv_order, B, N)`, not on σ.
 
 This enables uniform bounds for families: if `{σ_ω}` all satisfy the same derivative
-bounds, the same `C'` and `q` work for all ω. -/
+bounds, the same `C'` and `q` work for all ω.
+
+Note: for a useful bound on the `(k,l)`-seminorm, `deriv_order` should be at least `k`
+(the Leibniz rule for `D^k(σ · Ff)` involves derivatives of σ up to order k). -/
 axiom fourierMultiplier_schwartz_bound
     (k l deriv_order : ℕ) (B N : ℝ) :
     ∃ (s : Finset (ℕ × ℕ)) (C' : ℝ), 0 < C' ∧
