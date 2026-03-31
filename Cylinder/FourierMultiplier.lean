@@ -219,6 +219,36 @@ def realFourierMultiplierCLM (σ : ℝ → ℝ)
   schwartzToReal.comp
     ((SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ).comp schwartzToComplex)
 
+/-- **Pointwise evaluation** of the real Fourier multiplier.
+
+`(M_σ f)(x) = re(F⁻¹(σ · F(ofReal ∘ f))(x))`
+
+This unwinds the lift-apply-project chain of `realFourierMultiplierCLM`
+to a concrete expression involving function-level Fourier transforms.
+Key for proving seminorm bounds via integral estimates. -/
+theorem realFourierMultiplierCLM_apply_eq (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+    (realFourierMultiplierCLM σ hσ f) x =
+    Complex.re ((FourierTransformInv.fourierInv
+      (fun p => (σ p : ℂ) * FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p)) x) := by
+  simp only [realFourierMultiplierCLM, ContinuousLinearMap.comp_apply, schwartzToComplex,
+    schwartzToReal, SchwartzMap.postcompCLM_apply, SchwartzMap.fourierMultiplierCLM_apply,
+    Complex.reCLM_apply]
+  congr 1
+  set g := SchwartzMap.smulLeftCLM ℂ σ
+    (FourierTransform.fourier ((SchwartzMap.postcompCLM Complex.ofRealCLM) f))
+  rw [congr_fun (SchwartzMap.fourierInv_coe g) x]
+  have heq : (⇑g : ℝ → ℂ) = fun p => (σ p : ℂ) * FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p := by
+    have h1 := SchwartzMap.smulLeftCLM_apply hσ
+      (FourierTransform.fourier ((SchwartzMap.postcompCLM Complex.ofRealCLM) f))
+    have h2 : (⇑((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : ℝ → ℂ) = Complex.ofReal ∘ ⇑f := by
+      ext y; simp [SchwartzMap.postcompCLM_apply]
+    ext ξ; show (g : ℝ → ℂ) ξ = _
+    rw [show (g : ℝ → ℂ) ξ = σ ξ • (FourierTransform.fourier
+      ((SchwartzMap.postcompCLM Complex.ofRealCLM) f) : SchwartzMap ℝ ℂ) ξ from congr_fun h1 ξ]
+    simp [Complex.real_smul, congr_fun (SchwartzMap.fourier_coe _) ξ, h2]
+  rw [heq]
+
 /-! ### Fourier multiplier real-valuedness
 
 A Fourier multiplier with real-valued symbol preserves real-valuedness of
