@@ -123,16 +123,20 @@ theorem resolventQuotientSymbol_even (mass ω : ℝ) (p : ℝ) :
 
 /-! ## Uniform bound axiom
 
-The uniform Schwartz seminorm bound for the resolvent family is the general
-multiplier estimate needed downstream.
+The (0,0) case `p_{0,0}(R_ω f) ≤ C · q(f)` is proved in MultiplierBound.lean
+via the chain: pointwise eval → Fourier inversion bound → symbol sup bound → L¹ bound.
 
-NOTE: The pointwise derivative domination `|D^j σ_ω(p)| ≤ |D^j σ_mass(p)|`
-is FALSE (counterexample: j=2, p=1, mass=√2, ω=2 — the second derivative
-vanishes at ω=√(2p²) and can grow beyond the mass case). However, the
-SUP NORM bounds `sup_p |D^j σ_ω(p)| ≤ sup_p |D^j σ_mass(p)|` DO hold
-(from the scaling σ_ω(p) = ω⁻¹ g(p/ω), giving ‖D^j σ_ω‖_∞ = ω^{-1-j} ‖D^j g‖_∞).
-The Schwartz seminorm bound follows from the sup-norm bounds via the
-Hörmander multiplier theorem. -/
+The general (k,l) case requires the **Fourier multiplier Schwartz continuity theorem**:
+a smooth symbol with bounded derivatives of all orders gives a continuous operator
+on 𝓢(ℝ), with constants depending only on the derivative bounds.
+
+Two approaches (both require the same general theorem):
+1. **Direct**: Leibniz on `D^k(p^l σ_ω · Ff)` + polynomial growth of `D^j(p^l σ_ω)`
+   absorbed by Schwartz rapid decay of `D^{k-j}(Ff)`.
+2. **Factorization**: `R_ω = R_mass ∘ M_{τ_ω}` where τ_ω = σ_ω/σ_mass ≤ 1 with
+   uniformly bounded derivatives. Apply general multiplier theorem to τ_ω.
+
+See `docs/multiplier-bound-plan.md` for the full strategy (vetted by Gemini). -/
 
 /-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
 
