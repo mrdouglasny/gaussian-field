@@ -441,9 +441,11 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
   simp only [inner_self_eq_norm_sq_to_K, RCLike.re_to_real]
   simp_rw [cylinderMassOperator_formula, cylinderLaplaceEmbedding_coord,
     laplaceEmbeddingCoord_apply, ntpSliceSchwartz_timeReflection]
-  -- LHS: ∑' m, coeff_b(R_ω_a(h_a)) * coeff_b(R_ω_a(Θ h_a)) where (a,b) = unpair m
-  -- RHS: ∑' a, ((1/√(2ω_a)) * L_ω_a(h_a))^2 = ∑' a, (1/(2ω_a)) * (L_ω_a(h_a))^2
-  -- Remaining: Nat.pairEquiv reindexing + resolvent_laplace_inner + algebra
+  -- Both sides are tsums. Show they have the same terms.
+  -- LHS term at m: inner (coeff_b(R(h_a))) (coeff_b(R(Θh_a))) = coeff * coeff
+  -- RHS term at a: ‖(1/√(2ω_a)) * L_ω_a(h_a)‖² = (1/(2ω_a)) * (L_ω_a h_a)²
+  -- These are related by the resolvent_laplace_inner axiom after Cantor reindexing.
+  -- This requires tsum manipulation (Equiv.tsum_eq + Summable.tsum_prod).
   sorry
 
 /-! ## Reflection positivity (OS3)
