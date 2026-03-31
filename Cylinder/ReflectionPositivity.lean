@@ -457,8 +457,6 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
     simp_rw [show ∀ a b : ℝ, @inner ℝ ℝ _ a b = a * b from
       fun a b => by simp [inner, RCLike.re, conj_trivial, mul_comm]]
     -- Reindex: ∑' m, F(unpair m) = ∑' a, ∑' b, F(a,b)
-    -- via Equiv.tsum_eq (Nat.pairEquiv) + Summable.tsum_prod
-    -- Summability from lp.hasSum_inner (ℓ² inner product of Tf and TΘf)
     rw [show (∑' i, DyninMityaginSpace.coeff (Nat.unpair i).2
           (resolventMultiplierCLM _ (ntpSliceSchwartz L (Nat.unpair i).1 f)) *
         DyninMityaginSpace.coeff (Nat.unpair i).2
@@ -467,7 +465,25 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
           (resolventMultiplierCLM (resolventFreq_pos L mass hmass a) (ntpSliceSchwartz L a f)) *
         DyninMityaginSpace.coeff b
           (resolventMultiplierCLM (resolventFreq_pos L mass hmass a)
-            (schwartzReflection (ntpSliceSchwartz L a f))) from by sorry]
+            (schwartzReflection (ntpSliceSchwartz L a f))) from by
+      set F : ℕ × ℕ → ℝ := fun p => DyninMityaginSpace.coeff p.2
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass p.1)
+            (ntpSliceSchwartz L p.1 f)) *
+        DyninMityaginSpace.coeff p.2
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass p.1)
+            (schwartzReflection (ntpSliceSchwartz L p.1 f)))
+      show (∑' m, F (Nat.pairEquiv.symm m)) = ∑' a, ∑' b, F (a, b)
+      rw [Equiv.tsum_eq Nat.pairEquiv.symm]
+      have hF : Summable F := by
+        rw [← Equiv.summable_iff Nat.pairEquiv.symm]
+        have hsm := (lp.hasSum_inner (𝕜 := ℝ) (cylinderMassOperator L mass hmass f)
+          (cylinderMassOperator L mass hmass (cylinderTimeReflection L f))).summable
+        refine hsm.congr fun m => ?_
+        simp only [F, cylinderMassOperator_formula, ntpSliceSchwartz_timeReflection,
+          inner, RCLike.re, conj_trivial, AddMonoidHom.id_apply, Function.comp,
+          Nat.pairEquiv, Equiv.coe_fn_symm_mk]
+        ring
+      exact hF.tsum_prod]
     -- Apply resolvent_laplace_inner for each a
     congr 1; ext a; exact resolvent_laplace_inner
       (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
