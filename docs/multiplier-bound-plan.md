@@ -61,16 +61,36 @@ Gap: connecting via Step 1's pointwise evaluation.
 Fill `resolventSchwartz_uniformBound_direct` (MultiplierBound.lean:177).
 
 The general Schwartz seminorm is `sup_x |x^k · D^l((R_ω f))(x)|`.
-In Fourier domain: `D^l(R_ω f) = R_ω'(f)` where the new symbol is `(2πip)^l · σ_ω(p)`.
-The `x^k` weight translates to `D^k` on the Fourier side.
+In the Fourier domain:
+- `D^l(R_ω f) = F⁻¹((2πip)^l · σ_ω · Ff)`
+- `x^k · F⁻¹(h)(x) = (2πi)^{-k} · F⁻¹(D^k_p h)(x)`
 
-So: `p_{k,l}(R_ω f) = sup_x |F⁻¹(D^k((2πip)^l σ_ω · Ff))(x)|`
-                    `≤ ∫ |D^k((2πip)^l σ_ω · Ff)| dp`
-                    `≤ Σ_j C(k,j) · ‖D^j(p^l σ_ω)‖_∞ · ∫ |D^{k-j}(Ff)| dp`  (Leibniz)
-                    `≤ Σ_j C(k,j) · B_{j,l}/mass^{1+j+l} · C'(k-j) · q(f)`
+So: `p_{k,l}(R_ω f) ≤ C_k · ∫ |D^k_p((2πip)^l σ_ω · Ff)| dp`
 
-**Difficulty:** The Leibniz rule + derivative bounds for `p^l · σ_ω` require induction.
-Can be proved step by step or axiomatized as a sub-lemma.
+Apply Leibniz with `A = p^l · σ_ω` and `B = Ff`:
+`≤ C_k · Σ_j C(k,j) · ∫ |D^j(p^l σ_ω)| · |D^{k-j}(Ff)| dp`
+
+**CRITICAL (Gemini correction):** `D^j(p^l σ_ω)` is NOT bounded in sup norm
+when `l ≥ 1` — it grows like `|p|^{l-1}`. Instead use polynomial growth bound:
+
+`|D^j(p^l σ_ω(p))| ≤ C_{j,l} · (1 + |p|)^{max(0, l-j-1)}`
+
+uniformly in ω ≥ mass. This follows from:
+- `|D^b(σ_ω)(p)| ≤ C'_b · (1+|p|)^{-1-b}` (uniform in ω, from scaling)
+- Leibniz on `p^l · σ_ω`: each term `p^{l-m} · D^{j-m}(σ_ω)` grows like `|p|^{l-j-1}`
+
+Then absorb the polynomial growth against the rapid decay of `D^{k-j}(Ff)`:
+`∫ (1+|p|)^N · |D^{k-j}(Ff)(p)| dp ≤ C · q_{M, k-j}(Ff)`
+
+for M large enough (choose M > N + 1). This is a Schwartz seminorm of Ff,
+hence bounded by a seminorm of f.
+
+**Sub-lemmas needed:**
+1. Uniform polynomial growth bound for `D^j(p^l σ_ω)` (scaling argument)
+2. Weighted L¹ bound for Schwartz functions: `∫ (1+|p|)^N |g| ≤ C · q(g)`
+3. Leibniz rule for products (induction on k)
+
+**Difficulty:** Hard but doable. Each sub-lemma is standard.
 
 ### Step 4: Package into the axiom
 
