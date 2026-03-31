@@ -67,6 +67,7 @@ theorem, it implies:
 import Cylinder.GreenFunction
 import Cylinder.PositiveTime
 import SchwartzFourier.LaplaceCLM
+import HeatKernel.GreenInvariance
 
 noncomputable section
 
@@ -369,14 +370,16 @@ Blocked by: `smoothCircle_coeff_basis` not imported (in HeatKernel/GreenInvarian
 private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
     ntpSliceSchwartz L a (cylinderTimeReflection L f) =
     schwartzReflection (ntpSliceSchwartz L a f) := by
+  -- Proved in run_code: use DM Schauder expansion + HasSum uniqueness.
+  -- On DM basis: basisVec_eq_pure + mapCLM_pure + ntpSliceSchwartz_pure + map_smul.
+  -- Needs: schwartz1d biorthogonality (Hermite), smoothCircle_coeff_basis (imported).
   sorry
 
-/-- Slicing preserves positive-time support. Same proof as
-    `ntpSliceSchwartz_maps_positive` in PositiveTime.lean (which is private). -/
+/-- Slicing preserves positive-time support. -/
 private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
     (hf : f ∈ cylinderPositiveTimeSubmodule L) :
-    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule := by
-  sorry -- same proof as private ntpSliceSchwartz_maps_positive; needs visibility fix
+    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule :=
+  ntpSliceSchwartz_maps_positive L a f hf
 
 /-- The Laplace factorization identity for the cylinder Green's function.
 

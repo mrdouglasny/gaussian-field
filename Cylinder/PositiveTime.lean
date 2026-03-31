@@ -247,7 +247,7 @@ theorem ntpSliceSchwartz_pure (a : ℕ)
 
 /-- The slice CLM maps `cylinderPositiveTimeSubmodule` into
 `schwartzPositiveTimeSubmodule`. -/
-private theorem ntpSliceSchwartz_maps_positive (a : ℕ)
+theorem ntpSliceSchwartz_maps_positive (a : ℕ)
     (f : CylinderTestFunction L)
     (hf : f ∈ cylinderPositiveTimeSubmodule L) :
     ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule := by
