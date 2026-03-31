@@ -135,30 +135,39 @@ symbol sup bound → factor out 1/ω. -/
 section MultiplierBounds
 attribute [local instance] SMulCommClass.symm
 
+/-- Integrability of `σ_ω · Ff` — bounded temperate symbol times Schwartz Fourier transform. -/
+theorem resolventSymbol_mul_fourier_integrable
+    {ω : ℝ} (hω : 0 < ω) (f : SchwartzMap ℝ ℝ) :
+    Integrable (fun p => (↑(resolventSymbol ω p) : ℂ) *
+      FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p) (volume : Measure ℝ) := by
+  set Ff := FourierTransform.fourier ((SchwartzMap.postcompCLM Complex.ofRealCLM) f)
+  set g := SchwartzMap.smulLeftCLM (𝕜 := ℝ) ℂ (resolventSymbol ω) Ff
+  refine g.integrable.congr (Filter.Eventually.of_forall fun p => ?_)
+  show (g : ℝ → ℂ) p = _; simp only [g]
+  rw [congr_fun (SchwartzMap.smulLeftCLM_apply
+    (resolventSymbol_hasTemperateGrowth ω hω) Ff) p]
+  show resolventSymbol ω p • (Ff : ℝ → ℂ) p = _
+  rw [Complex.real_smul]; congr 1
+
 /-- **Pointwise bound** for the resolvent multiplier output.
 
   `|(R_ω f)(x)| ≤ (1/ω) · ∫ ‖F(ofReal ∘ f)(p)‖ dp`
 
-The proof uses `realFourierMultiplierCLM_apply_eq` (Step 1 of the plan). -/
+Uses `realFourierMultiplierCLM_apply_eq` + `resolventSymbol_mul_fourier_integrable`. -/
 theorem resolventMultiplier_pointwise_bound
     {ω : ℝ} (hω : 0 < ω) (f : SchwartzMap ℝ ℝ) (x : ℝ) :
     ‖(resolventMultiplierCLM hω f) x‖ ≤
     (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
   rw [resolventMultiplierCLM, realFourierMultiplierCLM_apply_eq]
-  -- Chain: |re(z)| ≤ |z| ≤ ∫|h| ≤ (1/ω) * ∫|Ff|
   set h := fun p => (↑(resolventSymbol ω p) : ℂ) *
     FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p
-  -- The goal after rw is: ‖re(F⁻¹ h x)‖ ≤ (1/ω) * ∫ ‖Ff‖
-  -- Step 2: ‖re z‖ ≤ ‖z‖
   have h2 : ‖Complex.re (FourierTransformInv.fourierInv h x)‖ ≤
       ‖FourierTransformInv.fourierInv h x‖ := by
     rw [Real.norm_eq_abs]; exact Complex.abs_re_le_norm _
-  -- Step 3: ‖F⁻¹ h (x)‖ ≤ ∫ ‖h‖ (sorry: integrability)
   have h3 : ‖FourierTransformInv.fourierInv h x‖ ≤ ∫ p, ‖h p‖ :=
-    norm_fourierInv_le_integral_norm (by sorry) x
-  -- Step 4: ∫ ‖σ · Ff‖ ≤ (1/ω) * ∫ ‖Ff‖
-  -- Uses: |σ_ω(p)| ≤ 1/ω pointwise, then integral_mono
-  -- Sorry: integrability of σ·Ff and (1/ω)·‖Ff‖ (standard: bounded × Schwartz)
+    norm_fourierInv_le_integral_norm (resolventSymbol_mul_fourier_integrable hω f) x
+  -- Step 3: ∫ ‖σ·Ff‖ ≤ (1/ω) · ∫ ‖Ff‖ by pointwise bound |σ(p)| ≤ 1/ω + integral_mono
+  -- Sorry: needs integrability of (1/ω) * ‖Ff‖ (const * Schwartz norm = integrable)
   have h4 : ∫ p, ‖h p‖ ≤
       (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
     sorry
