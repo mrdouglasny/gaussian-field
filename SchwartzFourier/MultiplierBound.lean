@@ -36,6 +36,7 @@ For the resolvent: `‖D^j σ_ω‖_∞ = ω^{-1-j} ‖D^j g‖_∞ ≤ mass^{-1
 
 import Cylinder.FourierMultiplier
 import SchwartzFourier.LaplaceCLM
+import SchwartzFourier.ResolventUniformBound
 import Mathlib.Analysis.Fourier.Inversion
 
 noncomputable section
@@ -170,7 +171,23 @@ theorem resolventMultiplier_pointwise_bound
   -- Pointwise: ‖σ(p)·z‖ = |σ(p)|·‖z‖ ≤ (1/ω)·‖z‖, then integrate
   have h4 : ∫ p, ‖h p‖ ≤
       (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
-    sorry -- integral_mono with |σ(p)| ≤ 1/ω pointwise
+    have hh : Integrable (fun p => ‖h p‖) := by
+      simpa [h] using (resolventSymbol_mul_fourier_integrable hω f).norm
+    have hFint : Integrable (fun p =>
+        (1 / ω) * ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖) := by
+      simpa using ((show Integrable (fun p =>
+          ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖) from by
+        simpa [Function.comp] using
+          ((FourierTransform.fourier
+            ((SchwartzMap.postcompCLM Complex.ofRealCLM) f)).integrable.norm)).const_mul (1 / ω))
+    have hle : ∀ p, ‖h p‖ ≤
+        (1 / ω) * ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
+      intro p
+      rw [show h p = (↑(resolventSymbol ω p) : ℂ) *
+          FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p by rfl]
+      rw [norm_mul, Complex.norm_real]
+      exact mul_le_mul_of_nonneg_right (resolventSymbol_sup ω hω p) (norm_nonneg _)
+    exact (integral_mono hh hFint hle).trans_eq (by rw [integral_const_mul])
   linarith [h2, h3, h4]
 
 /-! ## Seminorm bounds for the resolvent multiplier
@@ -184,8 +201,8 @@ The general (k,l) case requires Leibniz rule + polynomial growth bounds
 
   `p_{0,0}(R_ω f) ≤ (1/mass) · C · q(f)` uniformly in ω ≥ mass.
 
-Follows from `resolventMultiplier_pointwise_bound` + `schwartz_l1_le_seminorm`.
-Two sorry's remain for integrability of `σ · Ff` (standard).  -/
+Follows from `resolventMultiplier_pointwise_bound` plus an L¹ seminorm bound
+for the Fourier transform of a Schwartz function. -/
 theorem resolventMultiplier_sup_bound
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
@@ -199,13 +216,56 @@ theorem resolventMultiplier_sup_bound
       ∀ f : SchwartzMap ℝ ℝ,
         ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ ≤
         C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-    sorry -- L1 bound on Fourier transform of Schwartz functions
+    set T0 : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℂ :=
+      SchwartzMap.postcompCLM Complex.ofRealCLM
+    set T1 : SchwartzMap ℝ ℂ →L[ℝ] SchwartzMap ℝ ℂ :=
+      FourierTransform.fourierCLM ℝ (SchwartzMap ℝ ℂ)
+    set T : SchwartzMap ℝ ℝ →L[ℝ] MeasureTheory.Lp ℂ 1 (volume : Measure ℝ) :=
+      (SchwartzMap.toLpCLM ℝ ℂ 1 (μ := volume)).comp (T1.comp T0)
+    set qT : Seminorm ℝ (SchwartzMap ℝ ℝ) :=
+      (normSeminorm ℝ (MeasureTheory.Lp ℂ 1 (volume : Measure ℝ))).comp T.toLinearMap
+    have hqT : Continuous qT := continuous_norm.comp T.continuous
+    obtain ⟨s, C, hC, hle⟩ := Seminorm.bound_of_continuous
+      (schwartz_withSeminorms ℝ ℝ ℝ) qT hqT
+    refine ⟨s, C, lt_of_le_of_ne C.2 (fun h => hC (Subtype.ext h.symm)), fun f => ?_⟩
+    calc ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖
+        = ‖(T f : MeasureTheory.Lp ℂ 1 volume)‖ := by
+            rw [show T f = SchwartzMap.toLpCLM ℝ ℂ 1 (μ := volume)
+                (T1 (T0 f)) by rfl]
+            rw [SchwartzMap.toLpCLM_apply, MeasureTheory.L1.norm_eq_integral_norm]
+            exact integral_congr_ae (by
+              filter_upwards [(T1 (T0 f)).coeFn_toLp 1 volume] with t ht
+              have h0 : ⇑((SchwartzMap.postcompCLM Complex.ofRealCLM) f) =
+                  Complex.ofReal ∘ ⇑f := by
+                ext y
+                simp [SchwartzMap.postcompCLM_apply]
+              have hfour : (T1 (T0 f)) t = FourierTransform.fourier (Complex.ofReal ∘ ⇑f) t := by
+                rw [show T1 (T0 f) = FourierTransform.fourier (T0 f) by rfl]
+                rw [congr_fun (SchwartzMap.fourier_coe (T0 f)) t]
+                rw [h0]
+              simp [ht, hfour])
+      _ = qT f := rfl
+      _ ≤ C * (s.sup (fun m => schwartzSeminormFamily ℝ ℝ ℝ m)) f := hle f
   -- Chain: seminorm_le_bound + resolventMultiplier_pointwise_bound + h_F
   -- ∀ x, ‖(R_ω f)(x)‖ ≤ (1/ω)·∫‖Ff‖ ≤ (1/mass)·C_F·q(f)
   refine ⟨s_F, (1 / mass) * C_F, by positivity, fun ω hω f => ?_⟩
   apply SchwartzMap.seminorm_le_bound ℝ 0 0 _ (by positivity)
-  intro x; simp only [pow_zero, one_mul, iteratedFDeriv_zero_apply]
-  sorry -- chain: resolventMultiplier_pointwise_bound + 1/ω ≤ 1/mass + h_F
+  intro x
+  simp only [pow_zero, one_mul]
+  calc
+    ‖iteratedFDeriv ℝ 0 (⇑(resolventMultiplierCLM (lt_of_lt_of_le hmass hω) f)) x‖
+        ≤ (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
+          simpa only [norm_iteratedFDeriv_zero] using
+            resolventMultiplier_pointwise_bound (lt_of_lt_of_le hmass hω) f x
+    _ ≤ (1 / mass) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
+          gcongr
+    _ ≤ (1 / mass) * (C_F *
+          (s_F.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f) := by
+          gcongr
+          exact h_F f
+    _ = ((1 / mass) * C_F) *
+          (s_F.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
+          ring
 
 /-! ## General seminorm bound
 
@@ -227,7 +287,7 @@ theorem resolventSchwartz_uniformBound_direct
       SchwartzMap.seminorm ℝ k l
         (resolventMultiplierCLM (lt_of_lt_of_le hmass hω) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-  sorry
+  exact resolventSchwartz_uniformBound mass hmass k l
 
 end MultiplierBounds
 
