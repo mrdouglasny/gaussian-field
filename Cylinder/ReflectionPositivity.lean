@@ -441,12 +441,38 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
   simp only [inner_self_eq_norm_sq_to_K, RCLike.re_to_real]
   simp_rw [cylinderMassOperator_formula, cylinderLaplaceEmbedding_coord,
     laplaceEmbeddingCoord_apply, ntpSliceSchwartz_timeReflection]
-  -- Both sides are tsums. Show they have the same terms.
-  -- LHS term at m: inner (coeff_b(R(h_a))) (coeff_b(R(Θh_a))) = coeff * coeff
-  -- RHS term at a: ‖(1/√(2ω_a)) * L_ω_a(h_a)‖² = (1/(2ω_a)) * (L_ω_a h_a)²
-  -- These are related by the resolvent_laplace_inner axiom after Cantor reindexing.
-  -- This requires tsum manipulation (Equiv.tsum_eq + Summable.tsum_prod).
-  sorry
+  -- Both sides equal ∑' a, (1/(2ω_a)) * (L_{ω_a}(h_a))²
+  -- LHS via Cantor reindex + resolvent_laplace_inner
+  -- RHS via algebra: ‖c*x‖² = c²*x², (1/√(2ω))² = 1/(2ω)
+  set S := fun a => (1 / (2 * resolventFreq L mass a)) *
+    ((schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a))
+      ((ntpSliceSchwartz L a) f)) ^ 2
+  -- Show both sides = ∑' a, S a
+  -- Step A: LHS = ∑' a, S a (via Cantor reindex + resolvent_laplace_inner)
+  -- Step B: RHS = ∑' a, S a (via algebra)
+  -- Then LHS = RHS by transitivity.
+  trans (∑' a, S a)
+  · -- Step A: LHS = ∑' a, S a
+    -- inner ℝ a b = a * b for reals
+    simp_rw [show ∀ a b : ℝ, @inner ℝ ℝ _ a b = a * b from
+      fun a b => by simp [inner, RCLike.re, conj_trivial, mul_comm]]
+    -- Reindex via Nat.pairEquiv: ∑' m, F(unpair m) = ∑' (a,b), F(a,b)
+    rw [show (∑' i, DyninMityaginSpace.coeff (Nat.unpair i).2
+          (resolventMultiplierCLM _ (ntpSliceSchwartz L (Nat.unpair i).1 f)) *
+        DyninMityaginSpace.coeff (Nat.unpair i).2
+          (resolventMultiplierCLM _ (schwartzReflection (ntpSliceSchwartz L (Nat.unpair i).1 f)))) =
+      ∑' a, ∑' b, DyninMityaginSpace.coeff b
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass a) (ntpSliceSchwartz L a f)) *
+        DyninMityaginSpace.coeff b
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass a)
+            (schwartzReflection (ntpSliceSchwartz L a f))) from by sorry]
+    -- Apply resolvent_laplace_inner for each a
+    congr 1; ext a; exact resolvent_laplace_inner
+      (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+      (ntpSliceSchwartz L a f) (ntpSliceSchwartz_positive_time L a f hf)
+  · -- Step B: RHS = ∑' a, S a
+    -- Algebra: ↑‖(1/√(2ω)) * L(h)‖² = (1/(2ω)) * L(h)²
+    sorry
 
 /-! ## Reflection positivity (OS3)
 
