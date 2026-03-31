@@ -166,11 +166,11 @@ theorem resolventMultiplier_pointwise_bound
     rw [Real.norm_eq_abs]; exact Complex.abs_re_le_norm _
   have h3 : ‖FourierTransformInv.fourierInv h x‖ ≤ ∫ p, ‖h p‖ :=
     norm_fourierInv_le_integral_norm (resolventSymbol_mul_fourier_integrable hω f) x
-  -- Step 3: ∫ ‖σ·Ff‖ ≤ (1/ω) · ∫ ‖Ff‖ by pointwise bound |σ(p)| ≤ 1/ω + integral_mono
-  -- Sorry: needs integrability of (1/ω) * ‖Ff‖ (const * Schwartz norm = integrable)
+  -- Step 3: ∫ ‖σ·Ff‖ ≤ (1/ω) · ∫ ‖Ff‖
+  -- Pointwise: ‖σ(p)·z‖ = |σ(p)|·‖z‖ ≤ (1/ω)·‖z‖, then integrate
   have h4 : ∫ p, ‖h p‖ ≤
       (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
-    sorry
+    sorry -- integral_mono with |σ(p)| ≤ 1/ω pointwise
   linarith [h2, h3, h4]
 
 /-! ## Seminorm bounds for the resolvent multiplier
@@ -193,12 +193,19 @@ theorem resolventMultiplier_sup_bound
       SchwartzMap.seminorm ℝ 0 0
         (resolventMultiplierCLM (lt_of_lt_of_le hmass hω) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-  -- L¹ bound on Schwartz functions: ∫ ‖f‖ ≤ C_L1 * q(f)
-  obtain ⟨s, C_L1, hC_L1, h_L1⟩ := schwartz_l1_le_seminorm
-  -- The L¹ bound for Ff: need ∫ ‖F(ofReal ∘ f)‖ ≤ C' * q'(f)
-  -- This follows from continuity of fourier on Schwartz + schwartz_l1_le_seminorm
-  -- For now, combine pointwise bound with L1 of the Fourier transform
-  sorry
+  -- L¹ bound for Fourier transform: ∫ ‖F(ofReal ∘ f)‖ ≤ C * q(f)
+  -- (the map f ↦ ∫ ‖F(ofReal ∘ f)‖ is continuous: CLM chain + toLpCLM)
+  obtain ⟨s_F, C_F, hC_F, h_F⟩ : ∃ (s : Finset (ℕ × ℕ)) (C : ℝ), 0 < C ∧
+      ∀ f : SchwartzMap ℝ ℝ,
+        ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ ≤
+        C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
+    sorry -- L1 bound on Fourier transform of Schwartz functions
+  -- Chain: seminorm_le_bound + resolventMultiplier_pointwise_bound + h_F
+  -- ∀ x, ‖(R_ω f)(x)‖ ≤ (1/ω)·∫‖Ff‖ ≤ (1/mass)·C_F·q(f)
+  refine ⟨s_F, (1 / mass) * C_F, by positivity, fun ω hω f => ?_⟩
+  apply SchwartzMap.seminorm_le_bound ℝ 0 0 _ (by positivity)
+  intro x; simp only [pow_zero, one_mul, iteratedFDeriv_zero_apply]
+  sorry -- chain: resolventMultiplier_pointwise_bound + 1/ω ≤ 1/mass + h_F
 
 /-! ## General seminorm bound
 
