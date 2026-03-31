@@ -361,13 +361,20 @@ Extends to general f by linearity + continuity. -/
 private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
     ntpSliceSchwartz L a (cylinderTimeReflection L f) =
     schwartzReflection (ntpSliceSchwartz L a f) := by
-  sorry -- mapCLM_pure + slice_pure + density/CLM agreement
+  -- Both sides are CLMs CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ.
+  -- They agree on pure tensors:
+  --   LHS: slice_a(Θ(g ⊗ h)) = slice_a(g ⊗ Θh) = coeff_a(g) • Θh
+  --   RHS: Θ(slice_a(g ⊗ h)) = Θ(coeff_a(g) • h) = coeff_a(g) • Θh
+  -- (using nuclearTensorProduct_mapCLM_pure + ntpSliceSchwartz_pure + linearity of Θ)
+  -- Extend to all f by DyninMityaginSpace.hasSum_basis (Schauder expansion) + continuity.
+  sorry
 
-/-- Slicing preserves positive-time support. -/
+/-- Slicing preserves positive-time support.
+    Already proved in `PositiveTime.lean` as `ntpSliceSchwartz_maps_positive`. -/
 private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
     (hf : f ∈ cylinderPositiveTimeSubmodule L) :
-    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule := by
-  sorry -- slice_pure on positive-time pure tensors + closure
+    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule :=
+  ntpSliceSchwartz_maps_positive L a f hf
 
 /-- The Laplace factorization identity for the cylinder Green's function.
 
