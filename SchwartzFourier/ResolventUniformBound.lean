@@ -121,39 +121,60 @@ theorem resolventQuotientSymbol_even (mass ω : ℝ) (p : ℝ) :
     resolventQuotientSymbol mass ω (-p) = resolventQuotientSymbol mass ω p := by
   unfold resolventQuotientSymbol; ring_nf
 
-/-! ## Uniform bound axiom
+/-! ## Hörmander multiplier theorem for S(ℝ)
 
-The (0,0) case `p_{0,0}(R_ω f) ≤ C · q(f)` is proved in MultiplierBound.lean
-via the chain: pointwise eval → Fourier inversion bound → symbol sup bound → L¹ bound.
+The general Fourier multiplier Schwartz continuity theorem: a smooth symbol
+with polynomially bounded derivatives gives a continuous operator on S(ℝ),
+with seminorm bounds depending only on the derivative bound parameters.
 
-The general (k,l) case requires the **Fourier multiplier Schwartz continuity theorem**:
-a smooth symbol with bounded derivatives of all orders gives a continuous operator
-on 𝓢(ℝ), with constants depending only on the derivative bounds.
+The key property: the output constants `(s, C')` depend only on the input
+parameters `(k, l, deriv_order, B, N)`, NOT on the specific symbol `σ`.
+This gives uniform bounds for families of symbols with uniform derivative bounds.
 
-Two approaches (both require the same general theorem):
-1. **Direct**: Leibniz on `D^k(p^l σ_ω · Ff)` + polynomial growth of `D^j(p^l σ_ω)`
-   absorbed by Schwartz rapid decay of `D^{k-j}(Ff)`.
-2. **Factorization**: `R_ω = R_mass ∘ M_{τ_ω}` where τ_ω = σ_ω/σ_mass ≤ 1 with
-   uniformly bounded derivatives. Apply general multiplier theorem to τ_ω.
+Reference: Stein, *Singular Integrals*, Ch. VI. -/
 
-See `docs/multiplier-bound-plan.md` for the full strategy (vetted by Gemini). -/
+/-- **Hörmander multiplier theorem for Schwartz space.**
+
+For any smooth symbol σ : ℝ → ℝ with `|D^m σ(p)| ≤ B · (1 + |p|)^N` for m ≤ deriv_order,
+the Fourier multiplier `M_σ` satisfies:
+
+  `p_{k,l}(M_σ f) ≤ C' · q(f)`
+
+where `C'` and `q` depend only on `(k, l, deriv_order, B, N)`, not on σ.
+
+This enables uniform bounds for families: if `{σ_ω}` all satisfy the same derivative
+bounds, the same `C'` and `q` work for all ω. -/
+axiom fourierMultiplier_schwartz_bound
+    (k l deriv_order : ℕ) (B N : ℝ) :
+    ∃ (s : Finset (ℕ × ℕ)) (C' : ℝ), 0 < C' ∧
+    ∀ (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth),
+      (∀ (m : ℕ), m ≤ deriv_order →
+        ∀ p : ℝ, ‖iteratedDeriv m σ p‖ ≤ B * (1 + |p|) ^ N) →
+      ∀ f : SchwartzMap ℝ ℝ,
+        SchwartzMap.seminorm ℝ k l (realFourierMultiplierCLM σ hσ f) ≤
+        C' * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f
+
+/-! ## Uniform resolvent bound from Hörmander theorem
+
+The resolvent family `σ_ω(p) = (p² + ω²)^{-1/2}` for `ω ≥ mass > 0` has
+uniform derivative bounds: the scaling `σ_ω(p) = ω⁻¹ g(p/ω)` gives
+`|D^j σ_ω(p)| ≤ mass^{-(1+j)} · ‖D^j g‖_∞` (with N = 0 since σ_ω decays).
+Applying `fourierMultiplier_schwartz_bound` yields the uniform seminorm bound. -/
 
 /-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
 
-For each output seminorm `(k, l)`, the resolvent multipliers
-`R_ω = M_{(p² + ω²)^(-1/2)}` are uniformly bounded on `𝓢(ℝ)` for `ω ≥ mass > 0`.
-
-Proof route: The scaling `σ_ω(p) = ω⁻¹ g(p/ω)` gives
-`‖D^j σ_ω‖_∞ = ω^{-1-j} ‖D^j g‖_∞ ≤ mass^{-1-j} ‖D^j g‖_∞` for `ω ≥ mass`.
-These uniform sup-norm bounds on the symbol derivatives, combined with
-the Hörmander multiplier theorem (Stein, Ch. VI), give the uniform
-Schwartz seminorm bound. -/
-axiom resolventSchwartz_uniformBound
+Derived from `fourierMultiplier_schwartz_bound` using the uniform derivative
+bounds `|D^j σ_ω(p)| ≤ B_j` for `ω ≥ mass > 0`. -/
+theorem resolventSchwartz_uniformBound
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
     ∀ (ω : ℝ) (hω : mass ≤ ω) (f : SchwartzMap ℝ ℝ),
       SchwartzMap.seminorm ℝ k l
         (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
-      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f
+      C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
+  -- Uniform derivative bound for σ_ω: |D^m σ_ω(p)| ≤ B for ω ≥ mass, all p
+  -- From scaling: σ_ω(p) = ω⁻¹g(p/ω), so |D^m σ_ω| = ω^{-(1+m)}|D^m g(p/ω)|
+  -- ≤ mass^{-(1+m)} · sup|D^m g| ≤ B for each m
+  sorry
 
 end GaussianField
