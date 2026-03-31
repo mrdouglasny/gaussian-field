@@ -356,25 +356,27 @@ axiom resolvent_laplace_inner
 
 /-- Slicing commutes with time reflection: `slice_a(Θf) = Θ(slice_a f)`.
 
-For pure tensors: `slice_a(id ⊗ Θ)(g ⊗ h) = coeff_a(g) • Θh = Θ(coeff_a(g) • h)`.
-Extends to general f by linearity + continuity. -/
+**Proof structure** (tested, needs import/visibility fixes):
+1. Both sides are CLMs. By `DyninMityaginSpace.hasSum_basis`, it suffices
+   to check on DM basis vectors (Schauder expansion + HasSum uniqueness).
+2. DM basis of NTP = `pure (basis a') (basis b')` by `basisVec_eq_pure`
+   (needs `smoothCircle_coeff_basis` + `schwartz1d_coeff_basis`).
+3. On pure tensors: `slice_a(Θ(g ⊗ h)) = slice_a(g ⊗ Θh) = coeff_a(g)•Θh`
+   and `Θ(slice_a(g ⊗ h)) = Θ(coeff_a(g)•h) = coeff_a(g)•Θh`. ✓
+
+Blocked by: `smoothCircle_coeff_basis` not imported (in HeatKernel/GreenInvariance),
+`schwartz1d_coeff_basis` not yet proved, and some private definitions. -/
 private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
     ntpSliceSchwartz L a (cylinderTimeReflection L f) =
     schwartzReflection (ntpSliceSchwartz L a f) := by
-  -- Both sides are CLMs CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ.
-  -- They agree on pure tensors:
-  --   LHS: slice_a(Θ(g ⊗ h)) = slice_a(g ⊗ Θh) = coeff_a(g) • Θh
-  --   RHS: Θ(slice_a(g ⊗ h)) = Θ(coeff_a(g) • h) = coeff_a(g) • Θh
-  -- (using nuclearTensorProduct_mapCLM_pure + ntpSliceSchwartz_pure + linearity of Θ)
-  -- Extend to all f by DyninMityaginSpace.hasSum_basis (Schauder expansion) + continuity.
   sorry
 
-/-- Slicing preserves positive-time support.
-    Already proved in `PositiveTime.lean` as `ntpSliceSchwartz_maps_positive`. -/
+/-- Slicing preserves positive-time support. Same proof as
+    `ntpSliceSchwartz_maps_positive` in PositiveTime.lean (which is private). -/
 private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
     (hf : f ∈ cylinderPositiveTimeSubmodule L) :
-    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule :=
-  ntpSliceSchwartz_maps_positive L a f hf
+    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule := by
+  sorry -- same proof as private ntpSliceSchwartz_maps_positive; needs visibility fix
 
 /-- The Laplace factorization identity for the cylinder Green's function.
 
