@@ -164,17 +164,49 @@ uniform derivative bounds: the scaling `σ_ω(p) = ω⁻¹ g(p/ω)` gives
 `|D^j σ_ω(p)| ≤ mass^{-(1+j)} · ‖D^j g‖_∞` (with N = 0 since σ_ω decays).
 Applying `fourierMultiplier_schwartz_bound` yields the uniform seminorm bound. -/
 
-/-- **Uniform derivative bounds for the resolvent symbol.**
+/-- The m-th derivative of `σ_ω` is uniformly bounded in ω ≥ mass and p.
 
-From scaling `σ_ω(p) = ω⁻¹ g(p/ω)` where `g(q) = (q²+1)^{-1/2}`:
-  `|D^m σ_ω(p)| = ω^{-(1+m)} |D^m g(p/ω)| ≤ mass^{-(1+m)} · ‖D^m g‖_∞`
+From scaling `σ_ω(p) = ω⁻¹ g(p/ω)`, the m-th derivative scales as
+`ω^{-(1+m)} (D^m g)(p/ω)`, which is bounded by `mass^{-(1+m)} ‖D^m g‖_∞`.
+For m = 0 this follows from `resolventSymbol_antitone`. -/
+private theorem resolventSymbol_iteratedDeriv_bound
+    (mass : ℝ) (hmass : 0 < mass) (m : ℕ) :
+    ∃ Bm : ℝ, 0 < Bm ∧ ∀ (ω : ℝ), mass ≤ ω →
+      ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ Bm := by
+  cases m with
+  | zero =>
+    refine ⟨1 / mass, by positivity, fun ω hω p => ?_⟩
+    simp only [iteratedDeriv_zero, Real.norm_eq_abs]
+    -- |σ_ω(p)| ≤ σ_mass(p) ≤ (mass²)^{-1/2} = 1/mass
+    have h1 := resolventSymbol_antitone p hmass hω
+    have h2 : resolventSymbol mass p ≤ 1 / mass := by
+      unfold resolventSymbol
+      calc (p ^ 2 + mass ^ 2) ^ (-(1:ℝ)/2)
+          ≤ (mass ^ 2) ^ (-(1:ℝ)/2) :=
+            Real.rpow_le_rpow_of_nonpos (sq_pos_of_pos hmass)
+              (by linarith [sq_nonneg p]) (by norm_num)
+        _ = 1 / mass := by
+            rw [show -(1:ℝ)/2 = -((1:ℝ)/2) from by ring,
+                Real.rpow_neg (sq_nonneg mass), ← Real.sqrt_eq_rpow,
+                Real.sqrt_sq hmass.le]; ring
+    calc |resolventSymbol ω p|
+        = resolventSymbol ω p := abs_of_nonneg (le_of_lt (resolventSymbol_pos (lt_of_lt_of_le hmass hω) p))
+      _ ≤ resolventSymbol mass p := h1
+      _ ≤ 1 / mass := h2
+  | succ n =>
+    -- D^{n+1} σ_ω scales as ω^{-(2+n)} · (D^{n+1} g)(p/ω), bounded by mass^{-(2+n)} · ‖D^{n+1} g‖_∞
+    sorry -- derivative computation via scaling + chain rule
 
-This gives a uniform bound `B(mass, deriv_order)` independent of ω ≥ mass. -/
 theorem resolventSymbol_uniform_deriv_bound (mass : ℝ) (hmass : 0 < mass) (deriv_order : ℕ) :
     ∃ B : ℝ, 0 < B ∧ ∀ (ω : ℝ), mass ≤ ω →
       ∀ (m : ℕ), m ≤ deriv_order →
         ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ B * (1 + |p|) ^ (0 : ℝ) := by
-  sorry -- scaling argument: σ_ω(p) = ω⁻¹g(p/ω), derivatives scale as ω^{-(1+m)}
+  -- Collect bounds for each m ≤ deriv_order, take the max
+  have h_bounds : ∀ m, m ≤ deriv_order →
+      ∃ Bm : ℝ, 0 < Bm ∧ ∀ (ω : ℝ), mass ≤ ω →
+        ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ Bm :=
+    fun m _ => resolventSymbol_iteratedDeriv_bound mass hmass m
+  sorry -- take max of Bm over m ≤ deriv_order, multiply by (1+|p|)^0 = 1
 
 theorem resolventSchwartz_uniformBound
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
