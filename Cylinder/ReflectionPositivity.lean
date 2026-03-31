@@ -370,10 +370,46 @@ Blocked by: `smoothCircle_coeff_basis` not imported (in HeatKernel/GreenInvarian
 private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
     ntpSliceSchwartz L a (cylinderTimeReflection L f) =
     schwartzReflection (ntpSliceSchwartz L a f) := by
-  -- Proved in run_code: use DM Schauder expansion + HasSum uniqueness.
-  -- On DM basis: basisVec_eq_pure + mapCLM_pure + ntpSliceSchwartz_pure + map_smul.
-  -- Needs: schwartz1d biorthogonality (Hermite), smoothCircle_coeff_basis (imported).
-  sorry
+  -- Two CLMs agree iff they agree on DM basis (Schauder expansion + HasSum uniqueness)
+  set T₁ : CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ :=
+    (ntpSliceSchwartz L a).comp (cylinderTimeReflection L)
+  set T₂ : CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ :=
+    schwartzReflection.comp (ntpSliceSchwartz L a)
+  change T₁ f = T₂ f
+  suffices h : T₁ = T₂ from congr_fun (congr_arg _ h) f
+  apply ContinuousLinearMap.ext; intro g
+  have hg := DyninMityaginSpace.hasSum_basis g
+  have h_basis : ∀ m, T₁ (DyninMityaginSpace.basis m) =
+      T₂ (DyninMityaginSpace.basis m) := by
+    intro m
+    simp only [T₁, T₂, ContinuousLinearMap.comp_apply]
+    -- NTP basis = pure of component bases
+    rw [show (DyninMityaginSpace.basis (E := CylinderTestFunction L) m :
+        CylinderTestFunction L) = NuclearTensorProduct.pure
+        (DyninMityaginSpace.basis (Nat.unpair m).1)
+        (DyninMityaginSpace.basis (Nat.unpair m).2) from
+      NuclearTensorProduct.basisVec_eq_pure (smoothCircle_coeff_basis L)
+        DyninMityaginSpace.HasBiorthogonalBasis.coeff_basis m]
+    -- Θ(pure g h) = pure g (Θh)
+    rw [show cylinderTimeReflection L (NuclearTensorProduct.pure _ _) =
+      NuclearTensorProduct.pure _ (schwartzReflection _) from
+      nuclearTensorProduct_mapCLM_pure _ _ _ _]
+    rw [ntpSliceSchwartz_pure, ntpSliceSchwartz_pure, map_smul]
+    simp [ContinuousLinearMap.id_apply]
+  -- HasSum uniqueness: both sums have the same terms (by h_basis), hence same limit
+  have h1 := hg.mapL T₁  -- HasSum (coeff • T₁ basis) (T₁ g)
+  have h2 := hg.mapL T₂  -- HasSum (coeff • T₂ basis) (T₂ g)
+  -- The summand functions are equal:
+  have h_eq : ∀ m, DyninMityaginSpace.coeff m g • T₁ (DyninMityaginSpace.basis m) =
+      DyninMityaginSpace.coeff m g • T₂ (DyninMityaginSpace.basis m) :=
+    fun m => by rw [h_basis m]
+  -- So T₁ g = T₂ g by HasSum.unique
+  -- h1 summand: T₁(c•ψ) = c • T₁(ψ) = c • T₂(ψ) (by map_smul + h_basis)
+  -- h2 summand: T₂(c•ψ) = c • T₂(ψ) (by map_smul)
+  -- So both have summand c • T₂(ψ), hence T₁ g = T₂ g by uniqueness
+  simp only [map_smul] at h1 h2
+  simp_rw [h_basis] at h1
+  exact h1.unique h2
 
 /-- Slicing preserves positive-time support. -/
 private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
