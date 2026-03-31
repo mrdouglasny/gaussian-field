@@ -354,6 +354,21 @@ axiom resolvent_laplace_inner
             (resolventMultiplierCLM hω (schwartzReflection h)) =
     (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2
 
+/-- Slicing commutes with time reflection: `slice_a(Θf) = Θ(slice_a f)`.
+
+For pure tensors: `slice_a(id ⊗ Θ)(g ⊗ h) = coeff_a(g) • Θh = Θ(coeff_a(g) • h)`.
+Extends to general f by linearity + continuity. -/
+private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
+    ntpSliceSchwartz L a (cylinderTimeReflection L f) =
+    schwartzReflection (ntpSliceSchwartz L a f) := by
+  sorry -- mapCLM_pure + slice_pure + density/CLM agreement
+
+/-- Slicing preserves positive-time support. -/
+private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
+    (hf : f ∈ cylinderPositiveTimeSubmodule L) :
+    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule := by
+  sorry -- slice_pure on positive-time pure tensors + closure
+
 /-- The Laplace factorization identity for the cylinder Green's function.
 
   `G(f, Θf) = ‖Λf‖²_{ℓ²}`
@@ -369,6 +384,18 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
     cylinderGreen L mass hmass f (cylinderTimeReflection L f) =
     @inner ℝ ell2' _ (cylinderLaplaceEmbedding L mass hmass f)
       (cylinderLaplaceEmbedding L mass hmass f) := by
+  -- Expand both sides as ℓ² tsums via coordinate formulas
+  simp only [cylinderGreen]
+  rw [lp.inner_eq_tsum (cylinderMassOperator L mass hmass f)
+      (cylinderMassOperator L mass hmass (cylinderTimeReflection L f)),
+      lp.inner_eq_tsum (cylinderLaplaceEmbedding L mass hmass f)
+      (cylinderLaplaceEmbedding L mass hmass f)]
+  simp only [inner_self_eq_norm_sq_to_K, RCLike.re_to_real]
+  simp_rw [cylinderMassOperator_formula, cylinderLaplaceEmbedding_coord,
+    laplaceEmbeddingCoord_apply, ntpSliceSchwartz_timeReflection]
+  -- LHS: ∑' m, coeff_b(R_ω_a(h_a)) * coeff_b(R_ω_a(Θ h_a)) where (a,b) = unpair m
+  -- RHS: ∑' a, ((1/√(2ω_a)) * L_ω_a(h_a))^2 = ∑' a, (1/(2ω_a)) * (L_ω_a(h_a))^2
+  -- Remaining: Nat.pairEquiv reindexing + resolvent_laplace_inner + algebra
   sorry
 
 /-! ## Reflection positivity (OS3)
