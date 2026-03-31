@@ -127,29 +127,56 @@ theorem resolventSymbol_sup_uniform {mass ω : ℝ} (hmass : 0 < mass) (hω : ma
   exact le_trans (resolventSymbol_sup ω (lt_of_lt_of_le hmass hω) p)
     (div_le_div_of_nonneg_left one_pos.le hmass hω)
 
-/-! ## Direct seminorm bound for the resolvent multiplier
+/-! ## Pointwise bound for the resolvent multiplier
 
-For the (0, 0) seminorm (sup norm), the bound is straightforward:
-`‖R_ω f‖_∞ ≤ ‖σ_ω‖_∞ · ‖Ff‖_{L¹} ≤ (1/mass) · C · p(f)`.
+The key chain: pointwise evaluation → |re| ≤ |z| → Fourier inversion bound →
+symbol sup bound → factor out 1/ω. -/
 
-For general (k, l), the bound requires the Leibniz rule for
-`D^k(p^l σ · Ff)` and integration by parts. Each step adds finitely
-many Schwartz seminorms of f and derivative sup-norms of σ.
+section MultiplierBounds
+attribute [local instance] SMulCommClass.symm
 
-The derivative sup-norms of σ_ω are uniform in ω ≥ mass by the scaling
-`‖D^j σ_ω‖_∞ = ω^{-1-j} ‖D^j g‖_∞ ≤ mass^{-1-j} ‖D^j g‖_∞`. -/
+/-- **Pointwise bound** for the resolvent multiplier output.
 
-/-- **The (0,0) case**: sup norm of resolvent multiplier output.
+  `|(R_ω f)(x)| ≤ (1/ω) · ∫ ‖F(ofReal ∘ f)(p)‖ dp`
 
-`‖R_ω f‖_∞ ≤ (1/mass) · ∫ |Ff| ≤ (1/mass) · C · p(f)` uniformly in ω ≥ mass.
+The proof uses `realFourierMultiplierCLM_apply_eq` (Step 1 of the plan). -/
+theorem resolventMultiplier_pointwise_bound
+    {ω : ℝ} (hω : 0 < ω) (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+    ‖(resolventMultiplierCLM hω f) x‖ ≤
+    (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
+  rw [resolventMultiplierCLM, realFourierMultiplierCLM_apply_eq]
+  -- Chain: |re(z)| ≤ |z| ≤ ∫|h| ≤ (1/ω) * ∫|Ff|
+  set h := fun p => (↑(resolventSymbol ω p) : ℂ) *
+    FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p
+  -- The goal after rw is: ‖re(F⁻¹ h x)‖ ≤ (1/ω) * ∫ ‖Ff‖
+  -- Step 2: ‖re z‖ ≤ ‖z‖
+  have h2 : ‖Complex.re (FourierTransformInv.fourierInv h x)‖ ≤
+      ‖FourierTransformInv.fourierInv h x‖ := by
+    rw [Real.norm_eq_abs]; exact Complex.abs_re_le_norm _
+  -- Step 3: ‖F⁻¹ h (x)‖ ≤ ∫ ‖h‖ (sorry: integrability)
+  have h3 : ‖FourierTransformInv.fourierInv h x‖ ≤ ∫ p, ‖h p‖ :=
+    norm_fourierInv_le_integral_norm (by sorry) x
+  -- Step 4: ∫ ‖σ · Ff‖ ≤ (1/ω) * ∫ ‖Ff‖
+  -- Uses: |σ_ω(p)| ≤ 1/ω pointwise, then integral_mono
+  -- Sorry: integrability of σ·Ff and (1/ω)·‖Ff‖ (standard: bounded × Schwartz)
+  have h4 : ∫ p, ‖h p‖ ≤
+      (1 / ω) * ∫ p, ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖ := by
+    sorry
+  linarith [h2, h3, h4]
 
-Proof route: `p_{0,0}(R_ω f) = sup|R_ω f(x)| = sup|F⁻¹(σ_ω · Ff)(x)|`
-`≤ ∫ |σ_ω · Ff| ≤ (1/mass) · ∫ |Ff| ≤ (1/mass) · C · p(f)`.
+/-! ## Seminorm bounds for the resolvent multiplier
 
-Uses `norm_fourierInv_le_integral_norm` (proved) + `resolventSymbol_sup_uniform`
-(proved) + `schwartz_l1_le_seminorm` (proved). The remaining gap is accessing
-the pointwise formula `(R_ω f)(x) = F⁻¹(σ_ω · Ff)(x)` through the
-lift-apply-project chain of `realFourierMultiplierCLM`. -/
+From the pointwise bound, derive Schwartz seminorm bounds.
+The (0,0) case uses `seminorm_le_bound` + `resolventMultiplier_pointwise_bound`.
+The general (k,l) case requires Leibniz rule + polynomial growth bounds
+(see `docs/multiplier-bound-plan.md` for the full strategy). -/
+
+/-- **The (0,0) Schwartz seminorm bound** for the resolvent multiplier.
+
+  `p_{0,0}(R_ω f) ≤ (1/mass) · C · q(f)` uniformly in ω ≥ mass.
+
+Follows from `resolventMultiplier_pointwise_bound` + `schwartz_l1_le_seminorm`.
+Two sorry's remain for integrability of `σ · Ff` (standard).  -/
 theorem resolventMultiplier_sup_bound
     (mass : ℝ) (hmass : 0 < mass) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
@@ -157,23 +184,26 @@ theorem resolventMultiplier_sup_bound
       SchwartzMap.seminorm ℝ 0 0
         (resolventMultiplierCLM (lt_of_lt_of_le hmass hω) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
+  -- L¹ bound on Schwartz functions: ∫ ‖f‖ ≤ C_L1 * q(f)
+  obtain ⟨s, C_L1, hC_L1, h_L1⟩ := schwartz_l1_le_seminorm
+  -- The L¹ bound for Ff: need ∫ ‖F(ofReal ∘ f)‖ ≤ C' * q'(f)
+  -- This follows from continuity of fourier on Schwartz + schwartz_l1_le_seminorm
+  -- For now, combine pointwise bound with L1 of the Fourier transform
   sorry
 
-/-! ## General seminorm bound (axiom for now)
+/-! ## General seminorm bound
 
-The general (k, l) case requires the full Leibniz + integration-by-parts
-chain. Each step is elementary but the Lean formalization involves:
-- D^l of the Fourier multiplier output (Fourier side: multiply by (2πip)^l)
-- x^k weight (Fourier side: D^k)
-- Leibniz for D^k(p^l · σ · Ff)
-- Symbol derivative bounds ‖D^j σ_ω‖_∞ ≤ mass^{-1-j} ‖D^j g‖_∞
-- Schwartz decay of Ff and its derivatives
+The general (k, l) case uses the Fourier-domain identity:
+  `p_{k,l}(R_ω f) ≤ C_k · ∫ |D^k_p((2πip)^l σ_ω · Ff)| dp`
 
-The (0,0) case above shows the pattern. The general case is the same
-argument with more bookkeeping. -/
+and Leibniz + polynomial growth bounds on `D^j(p^l σ_ω)`.
+See `docs/multiplier-bound-plan.md` for the vetted plan (reviewed by Gemini).
 
-/-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.**
-Now a theorem from the direct Fourier analysis bound. -/
+**Key correction:** `D^j(p^l σ_ω)` has polynomial growth `(1+|p|)^{max(0,l-j-1)}`,
+NOT bounded sup norm. The polynomial growth is absorbed by the rapid decay
+of `D^{k-j}(Ff)`. -/
+
+/-- **Uniform Schwartz seminorm bound for the resolvent multiplier family.** -/
 theorem resolventSchwartz_uniformBound_direct
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : ℝ) (_ : 0 < C),
@@ -182,5 +212,7 @@ theorem resolventSchwartz_uniformBound_direct
         (resolventMultiplierCLM (lt_of_lt_of_le hmass hω) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
   sorry
+
+end MultiplierBounds
 
 end GaussianField
