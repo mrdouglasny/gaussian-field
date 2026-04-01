@@ -367,14 +367,33 @@ theorem resolvent_laplace_l2
   -- 1D specialization: no spatial Fourier modes, just temporal.
   congr 1
   -- h vanishes on (-∞,0], h̃ = schwartzReflection h vanishes on [0,∞)
-  have hsupp : ∀ x, x ≤ 0 → h x = 0 := hh
-  have hsupp' : ∀ x, 0 ≤ x → schwartzReflection h x = 0 :=
-    schwartzReflection_positive_to_negative hh
-  -- For t > 0, s < 0: support makes integrand zero elsewhere
-  -- |t-s| = t-s = t + |s|, e^{-ω|t-s|} = e^{-ωt}·e^{ωs}
-  -- The double integral factors as (∫ h(t)e^{-ωt}dt)·(∫ h̃(s)e^{ωs}ds)
-  -- = (∫ h(t)e^{-ωt}dt)² since ∫ h̃(s)e^{ωs}ds = ∫ h(u)e^{-ωu}du (sub u=-s)
-  sorry
+  -- Key sub-lemma: inner integral simplifies for t > 0
+  have h_inner : ∀ t, 0 < t →
+      ∫ s, Real.exp (-ω * |t - s|) * (schwartzReflection h) s =
+      Real.exp (-ω * t) * ∫ u, h u * Real.exp (-ω * u) := by
+    sorry -- support of h̃ on (-∞,0] + |t-s|=t-s for t>0,s<0 + sub u=-s
+  -- Rewrite L_ω h as full integral (h vanishes on (-∞,0])
+  have hL_eq : (schwartzLaplaceEvalCLM ω hω h) = ∫ t, h t * Real.exp (-ω * t) := by
+    show ∫ t in Set.Ici (0 : ℝ), h t * Real.exp (-ω * t) = _
+    rw [← MeasureTheory.integral_indicator measurableSet_Ici]
+    apply MeasureTheory.integral_congr_ae; filter_upwards with t
+    by_cases ht : 0 ≤ t
+    · simp [Set.indicator_of_mem (Set.mem_Ici.mpr ht)]
+    · push_neg at ht
+      have : t ∉ Set.Ici (0 : ℝ) := by simp; linarith
+      simp [this, hh t (le_of_lt ht)]
+  rw [hL_eq]; set L := ∫ u, h u * Real.exp (-ω * u)
+  -- The integrand is ae equal to h(t) * exp(-ωt) * L
+  have h_ae : ∀ᵐ t, h t * ∫ s, Real.exp (-ω * |t - s|) * (schwartzReflection h) s =
+      h t * Real.exp (-ω * t) * L := by
+    filter_upwards with t
+    by_cases ht : t ≤ 0
+    · simp [hh t ht]
+    · push_neg at ht; rw [h_inner t ht, mul_assoc]
+  rw [MeasureTheory.integral_congr_ae h_ae]
+  rw [show ∫ t, h t * Real.exp (-ω * t) * L = L * ∫ t, h t * Real.exp (-ω * t) from by
+    rw [← MeasureTheory.integral_const_mul]; congr 1; ext t; ring]
+  ring
 
 /-- The DM coefficient inner product version, derived from the L² version
 via `dm_parseval`. -/
