@@ -68,6 +68,7 @@ import Cylinder.GreenFunction
 import Cylinder.PositiveTime
 import SchwartzFourier.LaplaceCLM
 import HeatKernel.GreenInvariance
+import SchwartzNuclear.HermiteHilbertBasis
 
 noncomputable section
 
@@ -329,31 +330,33 @@ theorem cylinderLaplaceEmbedding_coord (mass : ℝ) (hmass : 0 < mass)
     laplaceEmbeddingCoord L mass hmass a f :=
   (laplaceEmbedding_ell2 L mass hmass).choose_spec f a
 
-/-- **Resolvent–Laplace factorization identity** (mode-level).
+/-- **L² resolvent-reflection identity** (the analytical heart).
 
-For a positive-time Schwartz function `h` and resolvent frequency `ω > 0`:
+  `∫ (R_ω h)(t) · (R_ω h̃)(t) dt = (1/(2ω)) · (L_ω h)²`
 
-  `⟨R_ω(h), R_ω(h̃)⟩_{DM} = (1/(2ω)) · (L_ω(h))²`
+This is the L² version of `resolvent_laplace_inner`, obtained after
+applying `dm_parseval`. The proof requires:
+1. Self-adjointness of R_ω: `⟨R h, R h̃⟩ = ⟨h, R² h̃⟩`
+2. R_ω² convolution kernel: `(R² g)(t) = (1/(2ω)) ∫ e^{-ω|t-s|} g(s) ds`
+3. Support factorization: |t-s| = t-s for t ≥ 0, s ≤ 0 -/
+axiom resolvent_laplace_l2
+    (ω : ℝ) (hω : 0 < ω)
+    (h : SchwartzMap ℝ ℝ) (hh : h ∈ schwartzPositiveTimeSubmodule) :
+    ∫ t, (resolventMultiplierCLM hω h) t *
+         (resolventMultiplierCLM hω (schwartzReflection h)) t =
+    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2
 
-where `R_ω` is the resolvent Fourier multiplier `(p² + ω²)^{-1/2}`,
-`h̃ = schwartzReflection h`, and `⟨·,·⟩_{DM}` is the ℓ² inner product
-of DM basis coefficients (= L² inner product by Hermite–Parseval).
-
-**Proof sketch** (verified by Gemini deep think):
-The L² inner product `⟨R_ω h, R_ω h̃⟩ = ⟨h, R_ω² h̃⟩` by self-adjointness.
-The operator `R_ω²` has convolution kernel `(1/(2ω))e^{-ω|t|}` (inverse
-Fourier transform of `(p² + ω²)^{-1}`). For `h` supported on `[0,∞)` and
-`h̃` supported on `(-∞, 0]`, the absolute value `|t - s| = t - s` for
-`t ≥ 0, s ≤ 0`, so the double integral factors as
-`(1/(2ω)) · (∫₀^∞ h(t)e^{-ωt} dt)² = (1/(2ω)) · (L_ω h)²`. -/
-axiom resolvent_laplace_inner
+/-- The DM coefficient inner product version, derived from the L² version
+via `dm_parseval`. -/
+theorem resolvent_laplace_inner
     (ω : ℝ) (hω : 0 < ω)
     (h : SchwartzMap ℝ ℝ) (hh : h ∈ schwartzPositiveTimeSubmodule) :
     ∑' b, DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b
             (resolventMultiplierCLM hω h) *
           DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b
             (resolventMultiplierCLM hω (schwartzReflection h)) =
-    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2
+    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2 := by
+  rw [dm_parseval, resolvent_laplace_l2 ω hω h hh]
 
 /-- Slicing commutes with time reflection: `slice_a(Θf) = Θ(slice_a f)`.
 
