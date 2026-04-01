@@ -119,11 +119,12 @@ rw [hFI]
 simp only [SchwartzMap.smulLeftCLM_apply hσ]
 ```
 
-## Estimated Effort
+## Status (updated 2026-03-31)
 
-- Step 1: Small (30 min) — pattern already demonstrated
-- Step 2: Medium (2-3 hours) — chain existing lemmas
-- Step 3: Hard (1-2 days) — Leibniz rule induction
-- Step 4: Small (30 min) — packaging
+- Step 1: **DONE** — `realFourierMultiplierCLM_apply_eq`
+- Step 2: **DONE** — `resolventMultiplier_pointwise_bound`, `resolventMultiplier_sup_bound`
+- Step 3: **DONE** (by codex) — `resolventSymbol_uniform_deriv_bound` via scaling + chain rule
+- Step 4: **DONE** — `resolventSchwartz_uniformBound` derives from `fourierMultiplier_schwartz_bound`
 
-Step 2 alone gives the (0,0) case which is already useful.
+All sorries in SchwartzFourier/ are filled. The only remaining axiom is
+`fourierMultiplier_schwartz_bound` (the general Hörmander theorem).

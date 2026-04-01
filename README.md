@@ -402,8 +402,8 @@ This includes: Nuclear/, SchwartzNuclear/, SmoothCircle/, GaussianField/, Lattic
 
 | Module | Axioms | Sorries | Notes |
 |--------|--------|---------|-------|
-| Cylinder/ | 4 | 1 | OS axiom infrastructure, [proof plan](docs/cylinder-axiom-plan.md) |
-| SchwartzFourier/ | 1 | 2 | Fourier multiplier bounds |
+| Cylinder/ | 3 | 0 | OS axiom infrastructure, [proof plan](docs/cylinder-axiom-plan.md) |
+| SchwartzFourier/ | 1 | 0 | Hörmander multiplier theorem (general, Mathlib-ready) |
 
 Former axioms have been proved or moved to `future/` as documentation:
 - [future/gaussian_field_axioms.lean](future/gaussian_field_axioms.lean) — [measure uniqueness, converse support, support Hilbert space](summary/future/gaussian_field_axioms.md)
