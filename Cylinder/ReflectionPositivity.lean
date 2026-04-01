@@ -362,11 +362,18 @@ theorem resolvent_laplace_l2
     (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2 := by
   -- Step 1: Apply resolvent_plancherel
   rw [resolvent_plancherel ω hω h (schwartzReflection h)]
-  -- Step 2: The double integral factors via exp_factorization_reflection + support
-  -- h supported on [0,∞), schwartzReflection h supported on (-∞,0]
-  -- For t ≥ 0, s ≤ 0: |t-s| = t-s, so e^{-ω|t-s|} = e^{-ωt} · e^{ωs}
-  -- The integral factors as (∫₀^∞ h(t)e^{-ωt}dt) · (∫₋∞^0 h(-s)e^{ωs}ds)
-  -- = (L_ω h) · (L_ω h) = (L_ω h)²
+  -- Step 2: Show the double integral = (L_ω h)²
+  -- Ported from OSforGFF/OS/OS3_CovarianceRP.lean (factorization_to_squared_norm_direct)
+  -- 1D specialization: no spatial Fourier modes, just temporal.
+  congr 1
+  -- h vanishes on (-∞,0], h̃ = schwartzReflection h vanishes on [0,∞)
+  have hsupp : ∀ x, x ≤ 0 → h x = 0 := hh
+  have hsupp' : ∀ x, 0 ≤ x → schwartzReflection h x = 0 :=
+    schwartzReflection_positive_to_negative hh
+  -- For t > 0, s < 0: support makes integrand zero elsewhere
+  -- |t-s| = t-s = t + |s|, e^{-ω|t-s|} = e^{-ωt}·e^{ωs}
+  -- The double integral factors as (∫ h(t)e^{-ωt}dt)·(∫ h̃(s)e^{ωs}ds)
+  -- = (∫ h(t)e^{-ωt}dt)² since ∫ h̃(s)e^{ωs}ds = ∫ h(u)e^{-ωu}du (sub u=-s)
   sorry
 
 /-- The DM coefficient inner product version, derived from the L² version
