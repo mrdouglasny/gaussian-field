@@ -330,21 +330,44 @@ theorem cylinderLaplaceEmbedding_coord (mass : ℝ) (hmass : 0 < mass)
     laplaceEmbeddingCoord L mass hmass a f :=
   (laplaceEmbedding_ell2 L mass hmass).choose_spec f a
 
-/-- **L² resolvent-reflection identity** (the analytical heart).
+/-- **Resolvent Plancherel identity**: the L² inner product of resolvent outputs
+equals the integral of the squared symbol times the squared Fourier transform.
+
+  `∫ (R_ω h)(t) · (R_ω g)(t) dt = ∫ σ_ω(p)² · (Fh)(p) · (Fg)(p) dp`
+
+This is Plancherel for the specific operator R_ω. The general Plancherel
+theorem (not yet in Mathlib) would give this immediately. For a single
+self-adjoint operator with bounded symbol, it can also be proved via:
+the resolvent squared R_ω² has convolution kernel `(1/(2ω))e^{-ω|t|}`
+(Fourier transform of `(p²+ω²)⁻¹`, proved in OSforGFF as `fourier_lorentzian_1d`).
+
+References: OSforGFF/General/FourierTransforms.lean, OSforGFF/Covariance/Parseval.lean -/
+axiom resolvent_plancherel
+    (ω : ℝ) (hω : 0 < ω)
+    (h g : SchwartzMap ℝ ℝ) :
+    ∫ t, (resolventMultiplierCLM hω h) t * (resolventMultiplierCLM hω g) t =
+    (1 / (2 * ω)) * ∫ t, h t * ∫ s, Real.exp (-ω * |t - s|) * g s
+
+/-- **L² resolvent-reflection identity.**
 
   `∫ (R_ω h)(t) · (R_ω h̃)(t) dt = (1/(2ω)) · (L_ω h)²`
 
-This is the L² version of `resolvent_laplace_inner`, obtained after
-applying `dm_parseval`. The proof requires:
-1. Self-adjointness of R_ω: `⟨R h, R h̃⟩ = ⟨h, R² h̃⟩`
-2. R_ω² convolution kernel: `(R² g)(t) = (1/(2ω)) ∫ e^{-ω|t-s|} g(s) ds`
-3. Support factorization: |t-s| = t-s for t ≥ 0, s ≤ 0 -/
-axiom resolvent_laplace_l2
+Proved from `resolvent_plancherel` + `exp_factorization_reflection` +
+positive-time support of h. -/
+theorem resolvent_laplace_l2
     (ω : ℝ) (hω : 0 < ω)
     (h : SchwartzMap ℝ ℝ) (hh : h ∈ schwartzPositiveTimeSubmodule) :
     ∫ t, (resolventMultiplierCLM hω h) t *
          (resolventMultiplierCLM hω (schwartzReflection h)) t =
-    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2
+    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2 := by
+  -- Step 1: Apply resolvent_plancherel
+  rw [resolvent_plancherel ω hω h (schwartzReflection h)]
+  -- Step 2: The double integral factors via exp_factorization_reflection + support
+  -- h supported on [0,∞), schwartzReflection h supported on (-∞,0]
+  -- For t ≥ 0, s ≤ 0: |t-s| = t-s, so e^{-ω|t-s|} = e^{-ωt} · e^{ωs}
+  -- The integral factors as (∫₀^∞ h(t)e^{-ωt}dt) · (∫₋∞^0 h(-s)e^{ωs}ds)
+  -- = (L_ω h) · (L_ω h) = (L_ω h)²
+  sorry
 
 /-- The DM coefficient inner product version, derived from the L² version
 via `dm_parseval`. -/
