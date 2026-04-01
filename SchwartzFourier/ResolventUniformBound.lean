@@ -160,53 +160,100 @@ axiom fourierMultiplier_schwartz_bound
 /-! ## Uniform resolvent bound from Hörmander theorem
 
 The resolvent family `σ_ω(p) = (p² + ω²)^{-1/2}` for `ω ≥ mass > 0` has
-uniform derivative bounds: the scaling `σ_ω(p) = ω⁻¹ g(p/ω)` gives
-`|D^j σ_ω(p)| ≤ mass^{-(1+j)} · ‖D^j g‖_∞` (with N = 0 since σ_ω decays).
-Applying `fourierMultiplier_schwartz_bound` yields the uniform seminorm bound. -/
+uniform polynomial derivative bounds. The scaling identity
+`σ_ω(p) = ω⁻¹ · σ₁(ω⁻¹ p)` reduces all derivative estimates to the fixed symbol
+`σ₁`, and `σ₁` already has temperate growth by
+`resolventSymbol_hasTemperateGrowth`. Applying
+`fourierMultiplier_schwartz_bound` then yields the uniform seminorm bound. -/
 
-/-- The m-th derivative of `σ_ω` is uniformly bounded in ω ≥ mass and p.
+/-- Scaling identity for the resolvent symbol. -/
+private theorem resolventSymbol_scaling' {ω : ℝ} (hω : 0 < ω) :
+    resolventSymbol ω = fun p => ω⁻¹ * resolventSymbol 1 (ω⁻¹ * p) := by
+  funext p
+  unfold resolventSymbol
+  have hfact : p ^ 2 + ω ^ 2 = ω ^ 2 * ((ω⁻¹ * p) ^ 2 + 1 ^ 2) := by
+    have hω0 : ω ≠ 0 := hω.ne'
+    field_simp [hω0]
+  rw [hfact, Real.mul_rpow (le_of_lt (sq_pos_of_pos hω)) (by positivity)]
+  congr 1
+  rw [show -(1 : ℝ) / 2 = -((1 : ℝ) / 2) by ring,
+    Real.rpow_neg (sq_nonneg ω), ← Real.sqrt_eq_rpow, Real.sqrt_sq hω.le]
 
-From scaling `σ_ω(p) = ω⁻¹ g(p/ω)`, the m-th derivative scales as
-`ω^{-(1+m)} (D^m g)(p/ω)`, which is bounded by `mass^{-(1+m)} ‖D^m g‖_∞`.
-For m = 0 this follows from `resolventSymbol_antitone`. -/
-private theorem resolventSymbol_iteratedDeriv_bound
-    (mass : ℝ) (hmass : 0 < mass) (m : ℕ) :
-    ∃ Bm : ℝ, 0 < Bm ∧ ∀ (ω : ℝ), mass ≤ ω →
-      ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ Bm := by
-  cases m with
-  | zero =>
-    refine ⟨1 / mass, by positivity, fun ω hω p => ?_⟩
-    simp only [iteratedDeriv_zero, Real.norm_eq_abs]
-    -- |σ_ω(p)| ≤ σ_mass(p) ≤ (mass²)^{-1/2} = 1/mass
-    have h1 := resolventSymbol_antitone p hmass hω
-    have h2 : resolventSymbol mass p ≤ 1 / mass := by
-      unfold resolventSymbol
-      calc (p ^ 2 + mass ^ 2) ^ (-(1:ℝ)/2)
-          ≤ (mass ^ 2) ^ (-(1:ℝ)/2) :=
-            Real.rpow_le_rpow_of_nonpos (sq_pos_of_pos hmass)
-              (by linarith [sq_nonneg p]) (by norm_num)
-        _ = 1 / mass := by
-            rw [show -(1:ℝ)/2 = -((1:ℝ)/2) from by ring,
-                Real.rpow_neg (sq_nonneg mass), ← Real.sqrt_eq_rpow,
-                Real.sqrt_sq hmass.le]; ring
-    calc |resolventSymbol ω p|
-        = resolventSymbol ω p := abs_of_nonneg (le_of_lt (resolventSymbol_pos (lt_of_lt_of_le hmass hω) p))
-      _ ≤ resolventSymbol mass p := h1
-      _ ≤ 1 / mass := h2
-  | succ n =>
-    -- D^{n+1} σ_ω scales as ω^{-(2+n)} · (D^{n+1} g)(p/ω), bounded by mass^{-(2+n)} · ‖D^{n+1} g‖_∞
-    sorry -- derivative computation via scaling + chain rule
+/-- Scaling of iterated derivatives of the resolvent symbol. -/
+private theorem iteratedDeriv_resolventSymbol_scaling {ω : ℝ} (hω : 0 < ω) (m : ℕ) :
+    iteratedDeriv m (resolventSymbol ω) =
+      fun p => ω⁻¹ * (ω⁻¹) ^ m * iteratedDeriv m (resolventSymbol 1) (ω⁻¹ * p) := by
+  have hcontTop := (resolventSymbol_hasTemperateGrowth 1 zero_lt_one).1
+  have hcont : ContDiff ℝ m (resolventSymbol 1) := hcontTop.of_le
+    (show (m : WithTop ℕ∞) ≤ ((⊤ : ℕ∞) : WithTop ℕ∞) by
+      exact_mod_cast (show (m : ℕ∞) ≤ (⊤ : ℕ∞) from le_top))
+  funext p
+  rw [resolventSymbol_scaling' hω]
+  rw [iteratedDeriv_const_mul_field]
+  rw [iteratedDeriv_comp_const_mul hcont ω⁻¹]
+  ring
 
 theorem resolventSymbol_uniform_deriv_bound (mass : ℝ) (hmass : 0 < mass) (deriv_order : ℕ) :
-    ∃ B : ℝ, 0 < B ∧ ∀ (ω : ℝ), mass ≤ ω →
+    ∃ (B : ℝ) (N : ℕ), 0 < B ∧ ∀ (ω : ℝ), mass ≤ ω →
       ∀ (m : ℕ), m ≤ deriv_order →
-        ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ B * (1 + |p|) ^ (0 : ℝ) := by
-  -- Collect bounds for each m ≤ deriv_order, take the max
-  have h_bounds : ∀ m, m ≤ deriv_order →
-      ∃ Bm : ℝ, 0 < Bm ∧ ∀ (ω : ℝ), mass ≤ ω →
-        ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ Bm :=
-    fun m _ => resolventSymbol_iteratedDeriv_bound mass hmass m
-  sorry -- take max of Bm over m ≤ deriv_order, multiply by (1+|p|)^0 = 1
+        ∀ p : ℝ, ‖iteratedDeriv m (resolventSymbol ω) p‖ ≤ B * (1 + |p|) ^ (N : ℝ) := by
+  have hσ1 := resolventSymbol_hasTemperateGrowth 1 zero_lt_one
+  obtain ⟨k, C, hC, hσ1_bound⟩ := hσ1.norm_iteratedFDeriv_le_uniform deriv_order
+  let A : ℝ := max 1 (1 / mass)
+  have hA : 1 ≤ A := le_max_left _ _
+  have hA_nonneg : 0 ≤ A := le_trans zero_le_one hA
+  have hAω : ∀ ω : ℝ, mass ≤ ω → 1 / ω ≤ A := by
+    intro ω hω
+    exact le_trans (div_le_div_of_nonneg_left one_pos.le hmass hω) (le_max_right _ _)
+  refine ⟨(C + 1) * A ^ (deriv_order + 1 + k), k, ?_, ?_⟩
+  · have hA_pos : 0 < A := lt_of_lt_of_le zero_lt_one hA
+    positivity
+  · intro ω hω m hm p
+    have hω' : 0 < ω := lt_of_lt_of_le hmass hω
+    have hσ1p : ‖iteratedDeriv m (resolventSymbol 1) (ω⁻¹ * p)‖ ≤
+        C * (1 + |ω⁻¹ * p|) ^ k := by
+      simpa [Real.norm_eq_abs, norm_iteratedFDeriv_eq_norm_iteratedDeriv] using
+        hσ1_bound m hm (ω⁻¹ * p)
+    have hωinv_le : ω⁻¹ ≤ A := by
+      simpa [one_div] using hAω ω hω
+    have hp_scale : 1 + |ω⁻¹ * p| ≤ A * (1 + |p|) := by
+      calc
+        1 + |ω⁻¹ * p| = 1 + ω⁻¹ * |p| := by
+          rw [abs_mul, abs_of_pos (inv_pos.mpr hω')]
+        _ ≤ A + A * |p| := by
+          gcongr
+        _ = A * (1 + |p|) := by ring
+    have hp_pow : (1 + |ω⁻¹ * p|) ^ k ≤ (A * (1 + |p|)) ^ k := by
+      gcongr
+    have hωpow : (ω⁻¹) ^ (m + 1) ≤ A ^ (deriv_order + 1) := by
+      calc
+        (ω⁻¹) ^ (m + 1) ≤ A ^ (m + 1) := by
+          gcongr
+        _ ≤ A ^ (deriv_order + 1) := by
+          exact pow_le_pow_right₀ hA (Nat.succ_le_succ hm)
+    have hAkpow : A ^ k ≤ A ^ (deriv_order + 1 + k) := by
+      exact pow_le_pow_right₀ hA (Nat.le_add_left k (deriv_order + 1))
+    have hAk : A ^ k * (1 + |p|) ^ (k : ℝ) ≤ A ^ (deriv_order + 1 + k) * (1 + |p|) ^ (k : ℝ) := by
+      exact mul_le_mul_of_nonneg_right hAkpow (by positivity)
+    calc
+      ‖iteratedDeriv m (resolventSymbol ω) p‖
+          = (ω⁻¹) ^ (m + 1) * ‖iteratedDeriv m (resolventSymbol 1) (ω⁻¹ * p)‖ := by
+              rw [iteratedDeriv_resolventSymbol_scaling hω' m]
+              rw [norm_mul, norm_mul, Real.norm_eq_abs, Real.norm_eq_abs]
+              have habsω : |ω| = ω := abs_of_pos hω'
+              simp [habsω, abs_of_pos (inv_pos.mpr hω'), pow_succ, mul_assoc]
+              ring
+      _ ≤ (ω⁻¹) ^ (m + 1) * (C * (1 + |ω⁻¹ * p|) ^ k) := by
+            gcongr
+      _ ≤ A ^ (deriv_order + 1) * (C * (A * (1 + |p|)) ^ k) := by
+            gcongr
+      _ = C * A ^ (deriv_order + 1 + k) * (1 + |p|) ^ (k : ℝ) := by
+            rw [mul_pow]
+            rw [show (1 + |p|) ^ k = (1 + |p|) ^ (k : ℝ) by rw [Real.rpow_natCast]]
+            ring
+      _ ≤ (C + 1) * A ^ (deriv_order + 1 + k) * (1 + |p|) ^ (k : ℝ) := by
+            gcongr
+            linarith
 
 theorem resolventSchwartz_uniformBound
     (mass : ℝ) (hmass : 0 < mass) (k l : ℕ) :
@@ -216,9 +263,9 @@ theorem resolventSchwartz_uniformBound
         (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
   -- Step 1: Get uniform derivative bounds for the resolvent family
-  obtain ⟨B, hB, h_deriv⟩ := resolventSymbol_uniform_deriv_bound mass hmass (k + l)
+  obtain ⟨B, N, hB, h_deriv⟩ := resolventSymbol_uniform_deriv_bound mass hmass (k + l)
   -- Step 2: Apply the Hörmander multiplier theorem with these bounds
-  obtain ⟨s, C', hC', h_mult⟩ := fourierMultiplier_schwartz_bound k l (k + l) B 0
+  obtain ⟨s, C', hC', h_mult⟩ := fourierMultiplier_schwartz_bound k l (k + l) B N
   -- Step 3: Package
   refine ⟨s, C', hC', fun ω hω f => ?_⟩
   -- resolventMultiplierCLM hω' = realFourierMultiplierCLM (resolventSymbol ω) hσ
