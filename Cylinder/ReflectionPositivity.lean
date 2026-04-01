@@ -371,7 +371,19 @@ theorem resolvent_laplace_l2
   have h_inner : ∀ t, 0 < t →
       ∫ s, Real.exp (-ω * |t - s|) * (schwartzReflection h) s =
       Real.exp (-ω * t) * ∫ u, h u * Real.exp (-ω * u) := by
-    sorry -- support of h̃ on (-∞,0] + |t-s|=t-s for t>0,s<0 + sub u=-s
+    intro t ht
+    simp only [show ∀ s, schwartzReflection h s = h (-s) from fun s => rfl]
+    have h_eq : ∀ s, Real.exp (-ω * |t - s|) * h (-s) =
+        Real.exp (-ω * t) * (Real.exp (ω * s) * h (-s)) := by
+      intro s; by_cases hs : 0 ≤ s
+      · simp [hh (-s) (by linarith)]
+      · push_neg at hs; rw [show |t - s| = t - s from abs_of_pos (by linarith),
+          show Real.exp (-ω * (t - s)) = Real.exp (-ω * t) * Real.exp (ω * s) from by
+            rw [← Real.exp_add]; congr 1; ring]; ring
+    simp_rw [h_eq, MeasureTheory.integral_const_mul]; congr 1
+    rw [show (fun s => Real.exp (ω * s) * h (-s)) =
+      ((fun u => h u * Real.exp (-ω * u)) ∘ Neg.neg) from by ext s; simp; ring]
+    rw [← MeasureTheory.integral_sub_left_eq_self _ MeasureTheory.volume 0]; simp
   -- Rewrite L_ω h as full integral (h vanishes on (-∞,0])
   have hL_eq : (schwartzLaplaceEvalCLM ω hω h) = ∫ t, h t * Real.exp (-ω * t) := by
     show ∫ t in Set.Ici (0 : ℝ), h t * Real.exp (-ω * t) = _
