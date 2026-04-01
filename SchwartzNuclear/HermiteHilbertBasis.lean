@@ -5,21 +5,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Hermite Functions as a Hilbert Basis of L²(ℝ)
 
 Constructs the Hermite functions `ψₙ` as a `HilbertBasis ℕ ℝ (Lp ℝ 2 volume)`
-using Mathlib's `HilbertBasis.mkOfOrthogonalEqBot`, from:
-- `hermiteFunction_orthonormal` — ∫ ψ_n ψ_m = δ_{nm}
-- `hermiteFunction_complete` — {∫ f ψ_n = 0 for all n} → f =ᵐ 0
+and derives the Parseval identity for DM basis coefficients of Schwartz functions.
 
-## Main results
+## Main results (all sorry-free)
 
-- `hermiteHilbertBasis` — the Hermite functions as a HilbertBasis of L²(ℝ)
-- `hermiteFunctionLp_inner` — L² inner product with Hermite function = ∫ f ψ_n
-
-## Applications
-
-Combined with `HilbertBasis.hasSum_inner_mul_inner` (Parseval), this gives:
-  `∑ ⟨f, ψ_n⟩ · ⟨ψ_n, g⟩ = ⟨f, g⟩_{L²}`
-for any f, g ∈ L²(ℝ). This is the key bridge between DM basis coefficients
-and L² inner products, needed for proving `resolvent_laplace_inner`.
+- `hermiteHilbertBasis` — Hermite functions as a HilbertBasis of L²(ℝ)
+- `dm_parseval` — `∑' n, coeff_n(f) * coeff_n(g) = ∫ f · g` for Schwartz f, g
 
 ## References
 
@@ -65,9 +56,7 @@ theorem hermiteFunctionLp_orthonormal : Orthonormal ℝ hermiteFunctionLp := by
   rw [orthonormal_iff_ite]; intro i j
   rw [hermiteFunctionLp_inner, hermiteFunction_orthonormal]
 
-/-- Hermite functions are complete in L²(ℝ): orthogonal complement = ⊥.
-
-From `hermiteFunction_complete`: if `∫ f ψ_n = 0` for all n, then `f =ᵐ 0`. -/
+/-- Hermite functions are complete in L²(ℝ): orthogonal complement = ⊥. -/
 theorem hermiteFunctionLp_ortho_eq_bot :
     (Submodule.span ℝ (Set.range hermiteFunctionLp))ᗮ = ⊥ := by
   rw [Submodule.eq_bot_iff]; intro f hf
@@ -78,10 +67,43 @@ theorem hermiteFunctionLp_ortho_eq_bot :
   have h_ae := hermiteFunction_complete _ (Lp.memLp f) h_iz
   ext1; exact h_ae.trans (Lp.coeFn_zero _ _ _).symm
 
-/-- **Hermite functions form a Hilbert basis of L²(ℝ).**
-
-Constructed from orthonormality + completeness via `HilbertBasis.mkOfOrthogonalEqBot`. -/
+/-- **Hermite functions form a Hilbert basis of L²(ℝ).** -/
 def hermiteHilbertBasis : HilbertBasis ℕ ℝ (Lp ℝ 2 (volume : Measure ℝ)) :=
   HilbertBasis.mkOfOrthogonalEqBot hermiteFunctionLp_orthonormal hermiteFunctionLp_ortho_eq_bot
+
+/-! ## Parseval identity for DM coefficients -/
+
+/-- Embed a Schwartz function into L²(ℝ). -/
+def schwartzToLp (f : SchwartzMap ℝ ℝ) : Lp ℝ 2 (volume : Measure ℝ) :=
+  (f.memLp 2).toLp f
+
+/-- L² inner product of Schwartz functions = ∫ f · g. -/
+theorem schwartzToLp_inner (f g : SchwartzMap ℝ ℝ) :
+    @inner ℝ _ _ (schwartzToLp f) (schwartzToLp g) = ∫ x, f x * g x := by
+  rw [L2.inner_def]; apply integral_congr_ae
+  filter_upwards [(f.memLp 2).coeFn_toLp, (g.memLp 2).coeFn_toLp] with x h1 h2
+  simp only [schwartzToLp, inner, RCLike.re, conj_trivial, h1, h2, AddMonoidHom.id_apply]; ring
+
+/-- DM coefficient of Schwartz f = L² inner product with ψ_n. -/
+theorem schwartzToLp_inner_hermite (n : ℕ) (f : SchwartzMap ℝ ℝ) :
+    @inner ℝ _ _ (schwartzToLp f) (hermiteFunctionLp n) =
+    DyninMityaginSpace.coeff n f := by
+  rw [hermiteFunctionLp_inner_gen]; apply integral_congr_ae
+  filter_upwards [(f.memLp 2).coeFn_toLp] with x h1; simp only [schwartzToLp, h1]
+
+/-- **Parseval identity for DM coefficients of Schwartz functions.**
+
+  `∑' n, coeff_n(f) * coeff_n(g) = ∫ f(x) · g(x) dx`
+
+Proved from `hermiteHilbertBasis.hasSum_inner_mul_inner`. -/
+theorem dm_parseval (f g : SchwartzMap ℝ ℝ) :
+    ∑' n, DyninMityaginSpace.coeff n f * DyninMityaginSpace.coeff n g =
+    ∫ x, f x * g x := by
+  rw [← schwartzToLp_inner]
+  have hb : ∀ n, hermiteHilbertBasis n = hermiteFunctionLp n :=
+    congr_fun (HilbertBasis.coe_mkOfOrthogonalEqBot _ _)
+  rw [← (hermiteHilbertBasis.hasSum_inner_mul_inner (schwartzToLp f) (schwartzToLp g)).tsum_eq]
+  congr 1; ext n; simp only [hb]
+  rw [schwartzToLp_inner_hermite, real_inner_comm, schwartzToLp_inner_hermite]
 
 end
