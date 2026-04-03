@@ -219,7 +219,7 @@ theorem circleLaplacian_fourierBasis (n : ℕ) :
       have hk : k = SmoothMap_Circle.fourierFreq (1 + m) := by
         simp only [SmoothMap_Circle.fourierFreq, Nat.add_comm 1 m]; rfl
       rw [hk]
-      ring
+      ring_nf
     · -- Sine case
       rw [deriv_deriv_eq_of_hasDerivAt (hasDerivAt_sin_phase L k)
         (hasDerivAt_deriv_sin L k x)]
@@ -227,6 +227,6 @@ theorem circleLaplacian_fourierBasis (n : ℕ) :
       have hk : k = SmoothMap_Circle.fourierFreq (1 + m) := by
         simp only [SmoothMap_Circle.fourierFreq, Nat.add_comm 1 m]; rfl
       rw [hk]
-      ring
+      ring_nf
 
 end GaussianField
