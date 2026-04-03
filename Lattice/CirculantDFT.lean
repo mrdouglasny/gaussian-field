@@ -300,33 +300,35 @@ theorem symmetric_second_diff_bound (f : SmoothMap_Circle L ℝ) (x h : ℝ) :
   · simp; linarith [SmoothMap_Circle.sobolevSeminorm_nonneg (L := L) 2 f]
   -- For t > 0, apply the Lagrange Taylor remainder with n = 1
   have hlt_fwd : x < x + t := by linarith
-  have hf_cd2 : ContDiffOn ℝ (↑(1 + 1 : ℕ)) (⇑f) (Set.Icc x (x + t)) :=
+  have hf_cd2 : ContDiffOn ℝ (↑(1 + 1 : ℕ)) (⇑f) (Set.uIcc x (x + t)) :=
     f.smooth.contDiffOn.of_le (WithTop.coe_le_coe.mpr le_top)
-  obtain ⟨c₁, hc₁, hc₁_eq⟩ := taylor_mean_remainder_lagrange_iteratedDeriv hlt_fwd hf_cd2
+  obtain ⟨c₁, hc₁, hc₁_eq⟩ := taylor_mean_remainder_lagrange_iteratedDeriv hlt_fwd.ne hf_cd2
   -- Backward direction: expand g(s) = f(x-s) on [0, t]
   have hg_cd2 : ContDiffOn ℝ (↑(1 + 1 : ℕ))
-      (fun s => (f : ℝ → ℝ) (x - s)) (Set.Icc 0 t) := by
+      (fun s => (f : ℝ → ℝ) (x - s)) (Set.uIcc 0 t) := by
     apply ContDiffOn.of_le _ (WithTop.coe_le_coe.mpr le_top)
     exact (f.smooth.comp ((contDiff_const.sub contDiff_id).of_le le_top)).contDiffOn
-  obtain ⟨c₂, hc₂, hc₂_eq⟩ := taylor_mean_remainder_lagrange_iteratedDeriv ht_pos hg_cd2
+  obtain ⟨c₂, hc₂, hc₂_eq⟩ := taylor_mean_remainder_lagrange_iteratedDeriv ht_pos.ne hg_cd2
   -- Simplify taylorWithinEval at n=1
-  have hP₁ : taylorWithinEval (⇑f) 1 (Set.Icc x (x + t)) x (x + t) =
-      f x + (x + t - x) * derivWithin (⇑f) (Set.Icc x (x + t)) x := by
+  have hP₁ : taylorWithinEval (⇑f) 1 (Set.uIcc x (x + t)) x (x + t) =
+      f x + (x + t - x) * derivWithin (⇑f) (Set.uIcc x (x + t)) x := by
     rw [taylorWithinEval_succ, taylor_within_zero_eval]
     simp [iteratedDerivWithin_one, smul_eq_mul]
-  have hQ₁ : taylorWithinEval (fun s => (f : ℝ → ℝ) (x - s)) 1 (Set.Icc 0 t) 0 t =
+  have hQ₁ : taylorWithinEval (fun s => (f : ℝ → ℝ) (x - s)) 1 (Set.uIcc 0 t) 0 t =
       (f : ℝ → ℝ) (x - 0) + (t - 0) *
-        derivWithin (fun s => (f : ℝ → ℝ) (x - s)) (Set.Icc 0 t) 0 := by
+        derivWithin (fun s => (f : ℝ → ℝ) (x - s)) (Set.uIcc 0 t) 0 := by
     rw [taylorWithinEval_succ, taylor_within_zero_eval]
     simp [iteratedDerivWithin_one, smul_eq_mul]
   -- derivWithin on smooth functions = deriv
-  have hDW_f : derivWithin (⇑f) (Set.Icc x (x + t)) x = deriv (⇑f) x :=
+  have hDW_f : derivWithin (⇑f) (Set.uIcc x (x + t)) x = deriv (⇑f) x :=
     (f.smooth.differentiable (by simp)).differentiableAt.derivWithin
-      (uniqueDiffOn_Icc hlt_fwd x (Set.left_mem_Icc.mpr hlt_fwd.le))
-  have hDW_g : derivWithin (fun s => (f : ℝ → ℝ) (x - s)) (Set.Icc 0 t) 0 =
+      ((uniqueDiffOn_Icc (by simp [hlt_fwd]; linarith)) x
+        ⟨min_le_left _ _, le_max_left _ _⟩)
+  have hDW_g : derivWithin (fun s => (f : ℝ → ℝ) (x - s)) (Set.uIcc 0 t) 0 =
       -deriv (⇑f) x := by
-    have hud : UniqueDiffWithinAt ℝ (Set.Icc 0 t) 0 :=
-      uniqueDiffOn_Icc ht_pos 0 (Set.left_mem_Icc.mpr ht_pos.le)
+    have hud : UniqueDiffWithinAt ℝ (Set.uIcc 0 t) 0 :=
+      (uniqueDiffOn_Icc (by simp [ht_pos])) 0
+        ⟨min_le_left _ _, le_max_left _ _⟩
     have hg_diff : DifferentiableAt ℝ (fun s => (f : ℝ → ℝ) (x - s)) 0 :=
       ((f.smooth.comp ((contDiff_const.sub contDiff_id).of_le le_top)).differentiable
         (by simp)).differentiableAt
