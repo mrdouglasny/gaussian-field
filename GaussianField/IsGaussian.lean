@@ -105,7 +105,7 @@ lemma weakDual_clm_eq_eval (L : (WeakDual ℝ E) →L[ℝ] ℝ) :
     -- We have -1 < n * L ω < 1 and 1 < n * |L ω|, contradiction
     by_cases h : 0 ≤ L ω
     · rw [abs_of_nonneg h] at h1; linarith
-    · push_neg at h; rw [abs_of_neg h] at h1; linarith
+    · push Not at h; rw [abs_of_neg h] at h1; linarith
   -- Step 3: Reformulate as iInf of kernels ≤ kernel of L
   have h_iInf : ⨅ i : I, LinearMap.ker (ev ↑i) ≤ LinearMap.ker L.toLinearMap := by
     intro ω hω

@@ -100,7 +100,7 @@ private lemma lowerSemicontinuous_second_moment
   -- For y < 0: the set is empty since ∫ (ω f)^2 ≥ 0
   by_cases hy : y < 0
   · exact absurd (hu_mem 0) (not_le.mpr (lt_of_lt_of_le hy (integral_nonneg (fun _ => sq_nonneg _))))
-  push_neg at hy
+  push Not at hy
   -- Now y ≥ 0
   -- Step 1: Pointwise convergence of (ω (u n))^2 → (ω f₀)^2
   have h_ptwise : ∀ ω' : Configuration E,
@@ -300,7 +300,7 @@ private theorem uniform_bound_from_pointwise
     -- For all c, so ∫(ω f)² = 0
     have h_zero : ∫ ω, (ω f) ^ 2 ∂(μ i) = 0 := by
       by_contra h_ne
-      push_neg at h_ne
+      push Not at h_ne
       have h_pos : 0 < ∫ ω, (ω f) ^ 2 ∂(μ i) :=
         lt_of_le_of_ne (integral_nonneg (fun ω => sq_nonneg _)) (Ne.symm h_ne)
       -- Choose c large enough that c² * ∫(ω f)² > 2n

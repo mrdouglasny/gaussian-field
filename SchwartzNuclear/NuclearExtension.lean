@@ -155,7 +155,7 @@ private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv :
   set S := ∑' m : ℕ, (1 : ℝ) / ((m : ℝ) + 1) ^ 2
   intro _
   refine ⟨s, ⟨Cv * Cc * S, by positivity⟩, fun f => ?_⟩
-  simp only [Seminorm.comp_apply, NNReal.smul_def, smul_eq_mul, coe_normSeminorm,
+  simp only [Seminorm.comp_apply, coe_normSeminorm,
     Real.norm_eq_abs, extensionLM, LinearMap.coe_mk, AddHom.coe_mk]
   set a := fun m => DyninMityaginSpace.coeff (E := E) m f * v m
   set w := fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2

@@ -573,7 +573,7 @@ theorem fourierMultiplierCLM_even_reflection_comm (σ : ℝ → ℝ)
     ext ξ
     rw [show (⇑f : ℝ → ℂ) ∘ (fun y => -y) =
       (⇑f : ℝ → ℂ) ∘ ⇑(LinearIsometryEquiv.neg ℝ (E := ℝ)) from rfl]
-    rw [Real.fourierIntegral_comp_linearIsometry]
+    rw [Real.fourier_comp_linearIsometry]
     simp [LinearIsometryEquiv.neg]]
   -- Goal: ℱ⁻¹(fun ξ ↦ σ ξ • ℱ(⇑f)(-ξ))(x) = ℱ⁻¹(fun ξ ↦ σ ξ • ℱ(⇑f)(ξ))(-x)
   -- Use evenness: σ ξ = σ(-ξ), so LHS integrand = σ(-ξ) • ℱ(⇑f)(-ξ)

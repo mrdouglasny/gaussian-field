@@ -504,15 +504,14 @@ theorem productRapidDecayEquiv_symm_basisVec_isProductHermite
         (fun i => (multiIndexEquiv (d - 1)) (hd1 ▸ blockMultiIndex n d α i)) := by
     ext i
     show productBasisIndicesAux n (Module.finrank ℝ D) hn Module.finrank_pos m i = _
-    simp [productBasisIndicesAux, d, N, α, hd, hN, hd1, hN1]
+    simp [productBasisIndicesAux, d, N, α]
   intro x
   -- Unfold the product-aware equiv
   -- (productRapidDecayEquiv).symm = (schwartzRapidDecayEquivFin N).symm ∘ schwartzDomCongr prodToEuclidean
   show ((schwartzDomCongr (prodToEuclidean n D))
     ((schwartzRapidDecayEquivFin N hN).symm (RapidDecaySeq.basisVec m))).toFun x = _
   -- schwartzDomCongr composes with prodToEuclidean
-  simp only [schwartzDomCongr, ContinuousLinearEquiv.equivOfInverse_apply,
-    SchwartzMap.compCLMOfContinuousLinearEquiv_apply, Function.comp_def]
+  simp only [schwartzDomCongr, ContinuousLinearEquiv.equivOfInverse_apply]
   -- Step A: LHS = hermiteFunctionNd N α (prodToEuclidean n D x)
   -- compCLMOfContinuousLinearEquiv is composition, so toFun evaluates at prodToEuclidean x.
   -- equivFin_symm_basisVec converts to hermiteFunctionNd via the Hermite series collapse.

@@ -311,7 +311,7 @@ theorem prokhorov_configuration_pushforward
                   ← ENNReal.ofReal_add (NNReal.coe_nonneg _) (by linarith),
                   (show (↑ε : ℝ) + (1 - ↑ε) = 1 from by ring), ENNReal.ofReal_one]
             exact h1.symm ▸ le_refl 1
-          · push_neg at h
+          · push Not at h
             have h1 : (1 : ENNReal) ≤ ↑ε := by
               rw [← ENNReal.ofReal_one, ← ENNReal.ofReal_coe_nnreal]
               exact ENNReal.ofReal_le_ofReal h.le
@@ -493,7 +493,7 @@ theorem prokhorov_configuration
       have h1 := ENNReal.toReal_mono h_ne_top hν_lim_L
       by_cases hδ1 : δ ≤ 1
       · rw [ENNReal.toReal_ofReal (by linarith)] at h1; linarith
-      · push_neg at hδ1; linarith [ENNReal.toReal_nonneg (a := ν_lim L)]
+      · push Not at hδ1; linarith [ENNReal.toReal_nonneg (a := ν_lim L)]
     -- ∫ g d(map e μ(φ n)) → ∫ g dν_lim
     have hg_conv : Tendsto (fun n =>
         ∫ x, g x ∂(Measure.map configBasisEval (μ (φ n)))) atTop

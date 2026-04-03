@@ -331,7 +331,7 @@ lemma log_sobolev_1d {σsq : ℝ} (hσ : 0 < σsq) :
           have := sq_log_div_le hσ (x := x)
           linarith
         · -- Case x²/σ² < 1: log < 0
-          push_neg at hle
+          push Not at hle
           have hlog_neg : Real.log (x ^ 2 / σsq) < 0 :=
             Real.log_neg hrat hle
           rw [abs_of_neg hlog_neg]

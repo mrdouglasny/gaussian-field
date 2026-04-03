@@ -491,7 +491,7 @@ private theorem integral_period_change_var_int (n : ℤ) (hn : n ≠ 0) (f : ℝ
       (2 * Real.pi * n / L)⁻¹ * ∫ x in (0 : ℝ)..(2 * Real.pi * n), f x := by
   set c := 2 * Real.pi * n / L
   have hc : c ≠ 0 := by
-    simp only [c, ne_eq, div_eq_zero_iff]; push_neg
+    simp only [c, ne_eq, div_eq_zero_iff]; push Not
     exact ⟨mul_ne_zero (mul_ne_zero two_ne_zero (ne_of_gt Real.pi_pos)) (Int.cast_ne_zero.mpr hn),
       ne_of_gt hL.out⟩
   have h_rw : ∀ x : ℝ, 2 * Real.pi * ↑n * x / L = c * x := fun x => by

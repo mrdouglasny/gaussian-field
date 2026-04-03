@@ -178,7 +178,7 @@ private theorem hasEigenvector_aux
       (continuous_norm.tendsto x₀).comp hx_conv
     have hge : 1 ≤ ‖x₀‖ := by
       by_contra h
-      push_neg at h
+      push Not at h
       have hlt : α * ‖x₀‖ < α := by nlinarith
       have h_ub : Tendsto (fun n => α * ‖x (φ n)‖) atTop (nhds (α * ‖x₀‖)) :=
         hx_norm_conv.const_mul α
@@ -203,7 +203,7 @@ private theorem hasEigenvector_aux
     rw [hT2x0]; module
   have hne_ep_em : ep ≠ 0 ∨ em ≠ 0 := by
     by_contra h
-    push_neg at h
+    push Not at h
     have : ep - em = ((2 : ℝ) * α) • x₀ := by simp [hep_def, hem_def]; module
     rw [h.1, h.2, sub_zero] at this
     have := smul_eq_zero.mp this.symm
@@ -269,7 +269,7 @@ theorem compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot
     by_contra hT_W_ne
     obtain ⟨v, hv_ne⟩ : ∃ v : ↥W, T_W v ≠ 0 := by
       by_contra h
-      push_neg at h
+      push Not at h
       exact hT_W_ne (ContinuousLinearMap.ext (fun v => h v))
     haveI : Nontrivial W := by
       refine ⟨⟨v, 0, ?_⟩⟩
@@ -398,7 +398,7 @@ private theorem eigenvector_basis
           show (T : E →ₗ[ℝ] E) ((‖w‖⁻¹ : ℝ) • w) = 0 • ((‖w‖⁻¹ : ℝ) • w)
           rw [zero_smul, map_smul, hTw_all w hw, smul_zero])⟩)
         (by rw [norm_smul, norm_inv, norm_norm, inv_mul_cancel₀ hw_norm_ne])
-    · push_neg at hTw_all; obtain ⟨v, hv, hTv_ne⟩ := hTw_all
+    · push Not at hTw_all; obtain ⟨v, hv, hTv_ne⟩ := hTw_all
       set T_W := (T.comp W.subtypeL).codRestrict W (fun ⟨u, hu⟩ => hT_orth_inv u hu)
       have instCS_W : CompleteSpace ↥W :=
         Submodule.instOrthogonalCompleteSpace (Submodule.span ℝ S)

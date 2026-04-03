@@ -377,7 +377,7 @@ theorem resolvent_laplace_l2
         Real.exp (-ω * t) * (Real.exp (ω * s) * h (-s)) := by
       intro s; by_cases hs : 0 ≤ s
       · simp [hh (-s) (by linarith)]
-      · push_neg at hs; rw [show |t - s| = t - s from abs_of_pos (by linarith),
+      · push Not at hs; rw [show |t - s| = t - s from abs_of_pos (by linarith),
           show Real.exp (-ω * (t - s)) = Real.exp (-ω * t) * Real.exp (ω * s) from by
             rw [← Real.exp_add]; congr 1; ring]; ring
     simp_rw [h_eq, MeasureTheory.integral_const_mul]; congr 1
@@ -391,7 +391,7 @@ theorem resolvent_laplace_l2
     apply MeasureTheory.integral_congr_ae; filter_upwards with t
     by_cases ht : 0 ≤ t
     · simp [Set.indicator_of_mem (Set.mem_Ici.mpr ht)]
-    · push_neg at ht
+    · push Not at ht
       have : t ∉ Set.Ici (0 : ℝ) := by simp; linarith
       simp [this, hh t (le_of_lt ht)]
   rw [hL_eq]; set L := ∫ u, h u * Real.exp (-ω * u)
@@ -401,7 +401,7 @@ theorem resolvent_laplace_l2
     filter_upwards with t
     by_cases ht : t ≤ 0
     · simp [hh t ht]
-    · push_neg at ht; rw [h_inner t ht, mul_assoc]
+    · push Not at ht; rw [h_inner t ht, mul_assoc]
   rw [MeasureTheory.integral_congr_ae h_ae]
   rw [show ∫ t, h t * Real.exp (-ω * t) * L = L * ∫ t, h t * Real.exp (-ω * t) from by
     rw [← MeasureTheory.integral_const_mul]; congr 1; ext t; ring]
@@ -502,7 +502,7 @@ theorem cylinderGreen_reflection_eq_laplaceNorm
       (cylinderMassOperator L mass hmass (cylinderTimeReflection L f)),
       lp.inner_eq_tsum (cylinderLaplaceEmbedding L mass hmass f)
       (cylinderLaplaceEmbedding L mass hmass f)]
-  simp only [inner_self_eq_norm_sq_to_K, RCLike.re_to_real]
+  simp only [inner_self_eq_norm_sq_to_K]
   simp_rw [cylinderMassOperator_formula, cylinderLaplaceEmbedding_coord,
     laplaceEmbeddingCoord_apply, ntpSliceSchwartz_timeReflection]
   -- Both sides equal ∑' a, (1/(2ω_a)) * (L_{ω_a}(h_a))²

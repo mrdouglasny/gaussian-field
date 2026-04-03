@@ -112,7 +112,7 @@ theorem orthonormal_countable' {E : Type*} [NormedAddCommGroup E] [InnerProductS
       simp [he.2 hij, he.2 (Ne.symm hij), he.1 i, he.1 j]; ring
     have h_ge : ‖e i - e j‖ ≥ Real.sqrt 2 := by
       by_contra h_lt
-      push_neg at h_lt
+      push Not at h_lt
       have := sq_lt_sq' (by linarith [norm_nonneg (e i - e j)]) h_lt
       rw [Real.sq_sqrt (by norm_num : (2 : ℝ) ≥ 0)] at this; linarith
     linarith [dist_triangle_left (e i) (e j) z, dist_eq_norm (e i) (e j),

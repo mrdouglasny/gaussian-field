@@ -36,7 +36,7 @@ theorem exp_factorization_reflection (μ : ℝ) (x y : ℝ) (hx : 0 ≤ x) (hy :
   congr 1; ring
 
 /-- Variant with absolute value on y: `e^{-μ(x + |y|)} = e^{-μx} · e^{-μ|y|}`. -/
-theorem exp_factorization_reflection' (μ : ℝ) (x y : ℝ) (hx : 0 ≤ x) (hy : y ≤ 0) :
+theorem exp_factorization_reflection' (μ : ℝ) (x y : ℝ) (_hx : 0 ≤ x) (_hy : y ≤ 0) :
     Real.exp (-μ * (x + |y|)) = Real.exp (-μ * x) * Real.exp (-μ * |y|) := by
   rw [← Real.exp_add]; congr 1; ring
 

@@ -322,7 +322,7 @@ theorem symmetric_second_diff_bound (f : SmoothMap_Circle L ℝ) (x h : ℝ) :
   -- derivWithin on smooth functions = deriv
   have hDW_f : derivWithin (⇑f) (Set.uIcc x (x + t)) x = deriv (⇑f) x :=
     (f.smooth.differentiable (by simp)).differentiableAt.derivWithin
-      ((uniqueDiffOn_Icc (by simp [hlt_fwd]; linarith)) x
+      ((uniqueDiffOn_Icc (by simp; linarith)) x
         ⟨min_le_left _ _, le_max_left _ _⟩)
   have hDW_g : derivWithin (fun s => (f : ℝ → ℝ) (x - s)) (Set.uIcc 0 t) 0 =
       -deriv (⇑f) x := by
@@ -1174,7 +1174,7 @@ theorem latticeFourierNormSq_pos (N : ℕ) [NeZero N] (m : ℕ) (hm : m < N) :
     by_cases hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N
     · -- Nyquist: n must be even (n odd → fourierFreq = (n+1)/2, so N = n+1, contradicting hm)
       have hn_even : n % 2 = 0 := by
-        by_contra h; push_neg at h
+        by_contra h; push Not at h
         simp [SmoothMap_Circle.fourierFreq] at hNyq; omega
       -- φ(0) = √(2/N) * cos(0) = √(2/N) > 0, so φ(0)² > 0
       have h0 : 0 < latticeFourierBasisFun N (n + 1) (0 : ZMod N) ^ 2 := by
@@ -1216,7 +1216,7 @@ theorem latticeFourierNormSq_ge_one (N : ℕ) [NeZero N] (m : ℕ) (hm : m < N) 
   | succ n =>
     by_cases hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N
     · have hn_even : n % 2 = 0 := by
-        by_contra h; push_neg at h
+        by_contra h; push Not at h
         simp [SmoothMap_Circle.fourierFreq] at hNyq; omega
       rw [latticeFourierNormSq_nyquist N n hm hn_even hNyq]; norm_num
     · rw [latticeFourierNormSq_eq_one N (n + 1) (by omega) hm hNyq]

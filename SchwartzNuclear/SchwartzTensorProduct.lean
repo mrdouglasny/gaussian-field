@@ -346,10 +346,9 @@ theorem schwartzPointwiseProduct_apply (d : ℕ)
       a.val (Nat.unpair n).1 * b.val (Nat.unpair n).2 := by
     intro n
     simp only [NuclearTensorProduct.pure_val,
-      DyninMityaginSpace.coeff, schwartz_dyninMityaginSpace_euclidean,
-      schwartz_dyninMityaginSpace_1D, DyninMityaginSpace.ofRapidDecayEquiv,
+      DyninMityaginSpace.coeff,
       RapidDecaySeq.coeffCLM, ContinuousLinearMap.comp_apply,
-      ContinuousLinearMap.coe_coe, RapidDecaySeq.coeffLM]
+      RapidDecaySeq.coeffLM]
     rfl
   simp_rw [h_pure, hermiteFunctionNd_unpair]
   -- Goal: ∑' n, (a.val i * b.val j) * (Phi_i(init x) * psi_j(last x)) = f(init x) * g(last x)

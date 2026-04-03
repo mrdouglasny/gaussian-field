@@ -120,7 +120,7 @@ theorem chebyshev_integral_inequality (μ : Measure ℝ) [IsProbabilityMeasure �
     intro x y
     by_cases h : x ≤ y
     · exact mul_nonneg_of_nonpos_of_nonpos (sub_nonpos.mpr (hf h)) (sub_nonpos.mpr (hg h))
-    · push_neg at h
+    · push Not at h
       exact mul_nonneg (sub_nonneg.mpr (hf (le_of_lt h))) (sub_nonneg.mpr (hg (le_of_lt h)))
   -- ∫∫ (f(x) - f(y))(g(x) - g(y)) d(μ⊗μ) ≥ 0
   have hint_nn : 0 ≤ ∫ p, (f p.1 - f p.2) * (g p.1 - g p.2) ∂(μ.prod μ) :=
@@ -240,7 +240,7 @@ theorem single_coord_sup_inf_sum (v : ℝ → ℝ) (a b : ℝ) :
     v (a ⊔ b) + v (a ⊓ b) = v a + v b := by
   by_cases h : a ≤ b
   · rw [sup_eq_right.mpr h, inf_eq_left.mpr h, add_comm]
-  · push_neg at h
+  · push Not at h
     rw [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
 
 /-- `exp(-V)` satisfies the FKG lattice condition (with equality) when V is
@@ -287,15 +287,15 @@ theorem sup_inf_mul_add_le (a b c d : ℝ) :
   by_cases hab : a ≤ b <;> by_cases hcd : c ≤ d
   · rw [sup_eq_right.mpr hab, inf_eq_left.mpr hab, sup_eq_right.mpr hcd, inf_eq_left.mpr hcd]
     ring_nf; linarith
-  · push_neg at hcd
+  · push Not at hcd
     rw [sup_eq_right.mpr hab, inf_eq_left.mpr hab,
         sup_eq_left.mpr (le_of_lt hcd), inf_eq_right.mpr (le_of_lt hcd)]
     nlinarith [mul_le_mul_of_nonneg_left (le_of_lt hcd) (sub_nonneg.mpr hab)]
-  · push_neg at hab
+  · push Not at hab
     rw [sup_eq_left.mpr (le_of_lt hab), inf_eq_right.mpr (le_of_lt hab),
         sup_eq_right.mpr hcd, inf_eq_left.mpr hcd]
     nlinarith [mul_le_mul_of_nonneg_left hcd (sub_nonneg.mpr (le_of_lt hab))]
-  · push_neg at hab hcd
+  · push Not at hab hcd
     rw [sup_eq_left.mpr (le_of_lt hab), inf_eq_right.mpr (le_of_lt hab),
         sup_eq_left.mpr (le_of_lt hcd), inf_eq_right.mpr (le_of_lt hcd)]
 
@@ -334,7 +334,7 @@ theorem quadraticForm_submodular_of_nonpos_offDiag
                 a x * a x + b x * b x := by
               by_cases h : a x ≤ b x
               · rw [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-              · push_neg at h
+              · push Not at h
                 rw [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
             have key : Q x x * ((a x ⊔ b x) * (a x ⊔ b x)) +
                 Q x x * ((a x ⊓ b x) * (a x ⊓ b x)) =
@@ -424,7 +424,7 @@ theorem ahlswede_daykin_one_dim
           (f₃ x * f₄ x) * (f₃ y * f₄ y) := by
         by_cases h : x ≤ y
         · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-        · push_neg at h
+        · push Not at h
           simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
       rw [this]
       exact mul_le_mul hux huy (mul_nonneg (hnn₁ y) (hnn₂ y))
@@ -438,7 +438,7 @@ theorem ahlswede_daykin_one_dim
         f₃ x * f₄ y + f₃ y * f₄ x := by
       by_cases h : x ≤ y
       · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-      · push_neg at h
+      · push Not at h
         simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
     linarith
   -- Step 2: Integrate the pointwise sum bound over ℝ².
@@ -531,7 +531,7 @@ theorem ahlswede_daykin_one_dim_ae
           (f₃ p.1 * f₄ p.1) * (f₃ p.2 * f₄ p.2) := by
         by_cases h : p.1 ≤ p.2
         · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-        · push_neg at h
+        · push Not at h
           simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
       rw [hsupinf]
       exact mul_le_mul hxx hyy (mul_nonneg (hnn₁ p.2) (hnn₂ p.2))
@@ -546,7 +546,7 @@ theorem ahlswede_daykin_one_dim_ae
         f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
       by_cases h : p.1 ≤ p.2
       · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-      · push_neg at h
+      · push Not at h
         simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
     linarith
   have hi₁₂ : Integrable (fun p : ℝ × ℝ => f₁ p.1 * f₂ p.2) (volume.prod volume) :=
@@ -629,7 +629,7 @@ theorem ahlswede_daykin_one_dim_ae_lintegral
           (f₃ p.1 * f₄ p.1) * (f₃ p.2 * f₄ p.2) := by
         by_cases h : p.1 ≤ p.2
         · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-        · push_neg at h
+        · push Not at h
           simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
       rw [hsupinf]
       exact mul_le_mul hxx hyy (mul_nonneg (hnn₁ p.2) (hnn₂ p.2))
@@ -644,7 +644,7 @@ theorem ahlswede_daykin_one_dim_ae_lintegral
         f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
       by_cases h : p.1 ≤ p.2
       · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-      · push_neg at h
+      · push Not at h
         simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
     linarith
   have hpw_ae_en :
@@ -872,7 +872,7 @@ theorem ahlswede_daykin_one_dim_ennreal
           (f₃ p.1 * f₄ p.1) * (f₃ p.2 * f₄ p.2) := by
         by_cases h : p.1 ≤ p.2
         · simp only [sup_eq_right.mpr h, inf_eq_left.mpr h]; ring
-        · push_neg at h
+        · push Not at h
           simp only [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]; ring
       rw [hsupinf]
       exact mul_le_mul' hxx hyy
@@ -885,7 +885,7 @@ theorem ahlswede_daykin_one_dim_ennreal
         f₃ p.1 * f₄ p.2 + f₃ p.2 * f₄ p.1 := by
       by_cases h : p.1 ≤ p.2
       · simp [sup_eq_right.mpr h, inf_eq_left.mpr h, add_comm]
-      · push_neg at h
+      · push Not at h
         simp [sup_eq_left.mpr (le_of_lt h), inf_eq_right.mpr (le_of_lt h)]
     simpa [hPQ] using hsum
   have hInt :

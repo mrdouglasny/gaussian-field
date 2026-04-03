@@ -120,6 +120,7 @@ for trig functions composed with linear maps. -/
 /-- The angular frequency of the k-th Fourier mode. -/
 private def fourierOmega (k : ℕ) : ℝ := 2 * Real.pi * k / L
 
+omit hL in
 /-- `HasDerivAt` for the linear phase `x ↦ 2πkx/L`. -/
 private theorem hasDerivAt_fourierPhase (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => 2 * Real.pi * (k : ℝ) * x / L) (fourierOmega L k) x := by
@@ -128,6 +129,7 @@ private theorem hasDerivAt_fourierPhase (k : ℕ) (x : ℝ) :
   rw [h]
   simpa using (hasDerivAt_id x).const_mul (fourierOmega L k)
 
+omit hL in
 /-- First derivative of `A · cos(2πkx/L)`. -/
 private theorem hasDerivAt_cos_phase (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => Real.sqrt (2 / L) * Real.cos (2 * Real.pi * (k : ℝ) * x / L))
@@ -138,6 +140,7 @@ private theorem hasDerivAt_cos_phase (k : ℕ) (x : ℝ) :
   convert (hasDerivAt_const x (Real.sqrt (2 / L))).mul h1 using 1
   ring
 
+omit hL in
 /-- First derivative of `A · sin(2πkx/L)`. -/
 private theorem hasDerivAt_sin_phase (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => Real.sqrt (2 / L) * Real.sin (2 * Real.pi * (k : ℝ) * x / L))
@@ -148,6 +151,7 @@ private theorem hasDerivAt_sin_phase (k : ℕ) (x : ℝ) :
   convert (hasDerivAt_const x (Real.sqrt (2 / L))).mul h1 using 1
   ring
 
+omit hL in
 /-- Second derivative of `A · cos(2πkx/L)`. -/
 private theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => -Real.sqrt (2 / L) * fourierOmega L k *
@@ -156,6 +160,7 @@ private theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
         Real.cos (2 * Real.pi * (k : ℝ) * x / L)) x := by
   convert (hasDerivAt_sin_phase L k x).const_mul (-fourierOmega L k) using 1 <;> ring
 
+omit hL in
 /-- Second derivative of `A · sin(2πkx/L)`. -/
 private theorem hasDerivAt_deriv_sin (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => Real.sqrt (2 / L) * fourierOmega L k *
@@ -174,6 +179,7 @@ private theorem deriv_deriv_eq_of_hasDerivAt {f f' : ℝ → ℝ} {f'' : ℝ}
   rw [h1]
   exact hf'.deriv
 
+omit hL in
 /-- Eigenvalue formula: (2πk/L)² = 4π²k²/L². -/
 private theorem eigenvalue_formula (k : ℕ) :
     (2 * Real.pi * (k : ℝ) / L) ^ 2 = 4 * Real.pi ^ 2 * (k : ℝ) ^ 2 / L ^ 2 := by

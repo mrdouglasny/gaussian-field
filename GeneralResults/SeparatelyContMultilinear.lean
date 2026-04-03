@@ -117,7 +117,7 @@ theorem multilinear_continuous_of_separatelyContinuous
           hε_sub (Metric.mem_ball.mpr (by rw [dist_zero_right]; exact hVε fs hfs)))
       -- by_contra: extract sequences h_k → 0, gs_k → gs₀ violating the bound.
       by_contra hH
-      push_neg at hH
+      push Not at hH
       -- hH : ∀ V ∈ nhds fs₀, ∃ fs ∈ V, ε ≤ ‖Phi.curryLeft (fs 0 - fs₀ 0) (tail fs)‖
       obtain ⟨V_basis, hV_basis⟩ := (nhds fs₀).exists_antitone_basis
       choose fs_seq hfs_mem hfs_bound using fun k => hH (V_basis k) (hV_basis.mem k)

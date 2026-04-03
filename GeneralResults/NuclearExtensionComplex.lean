@@ -275,7 +275,7 @@ private theorem continuousMultilinear_eq_of_basis_eq
         exact Fin.elim0 i
       rw [hm, ← hbasis]
       exact h (fun i => Fin.elim0 i)
-  | n + 1, A, B, h => by
+  | n + 1, A, B, h => by set_option linter.unnecessarySimpa false in
       ext m
       let A0 : E →L[ℝ] ℝ := {
         toFun := fun x => A (Fin.cons x (Fin.tail m))

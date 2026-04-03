@@ -621,7 +621,7 @@ theorem massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
     neg_nonneg.mpr (finiteLaplacian_neg_semidefinite d N a ha f)
   have h_sq_pos : 0 < ∑ x : FinLatticeSites d N, f x ^ 2 := by
     obtain ⟨x, hx⟩ : ∃ x, f x ≠ 0 := by
-      by_contra h; push_neg at h; exact hf (funext h)
+      by_contra h; push Not at h; exact hf (funext h)
     exact Finset.sum_pos' (fun x _ => sq_nonneg (f x)) ⟨x, Finset.mem_univ _, by positivity⟩
   linarith [mul_pos (sq_pos_of_pos hmass) h_sq_pos]
 

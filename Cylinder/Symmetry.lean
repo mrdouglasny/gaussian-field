@@ -145,7 +145,7 @@ theorem schwartzPositiveTime_disjoint_reflected
   simp only [SchwartzMap.zero_apply]
   by_cases hx : x ≤ 0
   · exact hf x hx
-  · push_neg at hx
+  · push Not at hx
     have h : schwartzReflection f (-x) = 0 := hΘf (-x) (by linarith)
     simpa using h
 

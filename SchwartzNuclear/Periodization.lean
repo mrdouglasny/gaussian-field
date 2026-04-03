@@ -473,17 +473,17 @@ private lemma schwartz_shifted_summable_bound (h : SchwartzMap ℝ ℝ) (m : ℕ
       ((Set.finite_Icc (-(N : ℤ)) N).subset (fun j hj => by
         simp only [Set.mem_setOf_eq] at hj
         rw [Set.mem_Icc]
-        by_contra h_abs; push_neg at h_abs
+        by_contra h_abs; push Not at h_abs
         apply hj; show _ = u j; simp only [u]
         exact (if_neg (show ¬ (|j| : ℤ) ≤ ↑N from by
           rw [not_le]; by_cases hjn : (-↑N : ℤ) ≤ j
           · exact Int.lt_of_lt_of_le (h_abs hjn) (le_abs_self j)
-          · push_neg at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
+          · push Not at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
   · -- Bound: ‖D^m h(t+jL)‖ ≤ u(j) for t ∈ K
     intro j t ht; simp only [u]
     split_ifs with hj
     · exact hcrude _
-    · push_neg at hj
+    · push Not at hj
       -- From h_lower: |j|*L/2 ≤ ‖t + j*L‖
       have h_low := h_lower j t ht hj
       -- |j| ≥ 1
@@ -607,12 +607,12 @@ theorem periodize_sobolevSeminorm_le (k : ℕ) :
       ((Set.finite_Icc (-(N : ℤ)) N).subset (fun j hj => by
         simp only [Set.mem_setOf_eq] at hj
         rw [Set.mem_Icc]
-        by_contra h_abs; push_neg at h_abs
+        by_contra h_abs; push Not at h_abs
         apply hj; show _ = v j; simp only [v]
         exact (if_neg (show ¬ (|j| : ℤ) ≤ ↑N from by
           rw [not_le]; by_cases hjn : (-↑N : ℤ) ≤ j
           · exact Int.lt_of_lt_of_le (h_abs hjn) (le_abs_self j)
-          · push_neg at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
+          · push Not at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
   set C := ∑' j, v j
   have hC_nn : 0 ≤ C := tsum_nonneg (fun j => by simp only [v]; split_ifs <;> positivity)
   refine ⟨C, hC_nn, fun h => ?_⟩
@@ -640,7 +640,7 @@ theorem periodize_sobolevSeminorm_le (k : ℕ) :
           linarith [le_mul_of_one_le_left
             (norm_nonneg (iteratedDeriv k (⇑h) (x + ↑j * L))) h1]
         · -- tail bound: |j| > N so |x+jL| ≥ |j|L/2
-          push_neg at hj
+          push Not at hj
           -- Simplify hbd
           have hbd' : (1 + ‖x + ↑j * L‖) ^ (k + 2) *
               ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖ ≤ 2 ^ (k + 2) * Semi h := by

@@ -321,7 +321,7 @@ theorem greenFunctionBilinear_pos [HasLaplacianEigenvalues E] [T1Space E]
   -- Step 1: f ≠ 0 implies some coefficient is nonzero
   have hcoeff : ∃ m, DyninMityaginSpace.coeff m f ≠ 0 := by
     by_contra hall
-    push_neg at hall
+    push Not at hall
     haveI : LocallyConvexSpace ℝ E := DyninMityaginSpace.h_with.toLocallyConvexSpace
     obtain ⟨φ, hφ⟩ := SeparatingDual.exists_ne_zero (R := ℝ) hf
     exact hφ (by rw [DyninMityaginSpace.expansion φ f]; simp [hall])
@@ -675,7 +675,7 @@ theorem heatKernelBilinear_tensorProduct
       (heatKernelTerm_summable_norm t ht f₁ g₁)
       (heatKernelTerm_summable_norm t ht f₂ g₂)).symm
   · -- t < 0: case split on summability of each factor
-    push_neg at ht
+    push Not at ht
     by_cases h1 : Summable a <;> by_cases h2 : Summable b
     · -- Both summable
       have h1n : Summable (fun m => ‖a m‖) :=
@@ -691,7 +691,7 @@ theorem heatKernelBilinear_tensorProduct
         simp only [show ∀ p : ℕ × ℕ, a p.1 * b p.2 = 0 from
           fun p => by rw [ha p.1, zero_mul], tsum_zero]
       · -- ∃ nonzero a_{i₀} → product summable would imply b summable → contradiction
-        push_neg at ha; obtain ⟨i₀, hi₀⟩ := ha
+        push Not at ha; obtain ⟨i₀, hi₀⟩ := ha
         exact tsum_eq_zero_of_not_summable (fun hprod =>
           h2 ((summable_mul_left_iff hi₀).mp (hprod.prod_factor i₀)))
     · -- a not summable, b summable: RHS = 0 * tsum_b = 0
@@ -699,7 +699,7 @@ theorem heatKernelBilinear_tensorProduct
       by_cases hb : ∀ j, b j = 0
       · simp only [show ∀ p : ℕ × ℕ, a p.1 * b p.2 = 0 from
           fun p => by rw [hb p.2, mul_zero], tsum_zero]
-      · push_neg at hb; obtain ⟨j₀, hj₀⟩ := hb
+      · push Not at hb; obtain ⟨j₀, hj₀⟩ := hb
         apply tsum_eq_zero_of_not_summable
         intro hprod
         -- Fix second index j₀: use prod_symm then prod_factor
@@ -711,7 +711,7 @@ theorem heatKernelBilinear_tensorProduct
       by_cases hb : ∀ j, b j = 0
       · simp only [show ∀ p : ℕ × ℕ, a p.1 * b p.2 = 0 from
           fun p => by rw [hb p.2, mul_zero], tsum_zero]
-      · push_neg at hb; obtain ⟨j₀, hj₀⟩ := hb
+      · push Not at hb; obtain ⟨j₀, hj₀⟩ := hb
         apply tsum_eq_zero_of_not_summable
         intro hprod
         exact h1 ((summable_mul_right_iff hj₀).mp

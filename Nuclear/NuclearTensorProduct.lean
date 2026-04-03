@@ -268,7 +268,7 @@ instance instCompleteSpace :
     refine ⟨B, fun n => ?_⟩
     by_cases hn : N ≤ n
     · exact le_sup_of_le_right (h_large n hn)
-    · push_neg at hn
+    · push Not at hn
       apply le_sup_of_le_left
       exact Finset.le_sup' (fun i => rapidDecaySeminorm k (u i))
         (Finset.mem_range.mpr (by omega))

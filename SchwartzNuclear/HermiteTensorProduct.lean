@@ -1564,7 +1564,7 @@ private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
         _ = (C_ih * C_ax) * q_ax.sup (schwartzSeminormFamily ℝ
               (EuclideanSpace ℝ (Fin (d'' + 2))) ℝ) f := by ring
     · -- k ≥ 0 case: factor (1+|α|)^k ≤ (1+|α_rest|)^k * (1+n)^k
-      push_neg at hk
+      push Not at hk
       obtain ⟨C_ax, q_ax, hC_ax, h_ax⟩ :=
         schwartz_partial_hermiteCoeff_seminorm_bound' d'' q_ih k
       refine ⟨C_ih * C_ax, q_ax, mul_pos hC_ih hC_ax, fun f α => ?_⟩

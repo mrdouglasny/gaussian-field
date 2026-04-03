@@ -309,7 +309,7 @@ private theorem schwartz_posNeg_disjoint :
   simp only [SchwartzMap.zero_apply]
   by_cases hx : x ≤ 0
   · exact hpos x hx
-  · push_neg at hx; exact hneg x (le_of_lt hx)
+  · push Not at hx; exact hneg x (le_of_lt hx)
 
 /-! ## Disjointness of positive-time and negative-time submodules -/
 
