@@ -158,7 +158,7 @@ private theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
         Real.sin (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * (fourierOmega L k) ^ 2 *
         Real.cos (2 * Real.pi * (k : ℝ) * x / L)) x := by
-  convert (hasDerivAt_sin_phase L k x).const_mul (-fourierOmega L k) using 1 <;> ring
+  convert (hasDerivAt_sin_phase L k x).const_mul (-fourierOmega L k) using 1 <;> ring_nf
 
 omit hL in
 /-- Second derivative of `A · sin(2πkx/L)`. -/
@@ -167,7 +167,7 @@ private theorem hasDerivAt_deriv_sin (k : ℕ) (x : ℝ) :
         Real.cos (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * (fourierOmega L k) ^ 2 *
         Real.sin (2 * Real.pi * (k : ℝ) * x / L)) x := by
-  convert (hasDerivAt_cos_phase L k x).const_mul (fourierOmega L k) using 1 <;> ring
+  convert (hasDerivAt_cos_phase L k x).const_mul (fourierOmega L k) using 1 <;> ring_nf
 
 /-! ## Eigenvalue equation -/
 

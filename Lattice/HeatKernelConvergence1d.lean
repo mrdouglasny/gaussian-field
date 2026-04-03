@@ -564,7 +564,7 @@ theorem riemann_sum_periodic_tendsto
   have h_sum_eq : ∑ k ∈ Finset.range (N + 1),
       (L / (↑(N + 1) : ℝ)) * g (↑k * L / (↑(N + 1) : ℝ)) =
       ∑ k ∈ Finset.range M, (a * g (p k)) := by
-    congr 1; ext k; simp only [ha_def, hp_def, hM_def]; ring
+    congr 1; ext k; simp only [ha_def, hp_def, hM_def]; ring_nf
   -- Step 5: Bound the error
   rw [Real.dist_eq, h_sum_eq, h_split]
   -- |∑_k (∫ g(p(k)) - ∫ g)| = |∑_k ∫ (g(p(k)) - g)|
