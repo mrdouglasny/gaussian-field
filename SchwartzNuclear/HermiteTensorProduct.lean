@@ -971,7 +971,7 @@ private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) 
   have hprod_bound : ∀ y : EuclideanSpace ℝ (Fin (d + 1)),
       ‖iteratedFDeriv ℝ n (fun z => ∏ j : Fin (d + 1), fac j z) y‖ ≤
       ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
-        (p : Multiset (Fin (d + 1))).multinomial *
+        (p : Multiset (Fin (d + 1))).countPerms *
           ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
             ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) y‖ := by
     intro y
@@ -1042,7 +1042,7 @@ private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) 
           · positivity
   -- Define total bound and prove it
   refine ⟨∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
-      (p : Multiset (Fin (d + 1))).multinomial *
+      (p : Multiset (Fin (d + 1))).countPerms *
         ((d + 1 : ℝ) ^ k *
           ∑ j₀ : Fin (d + 1),
             C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
@@ -1054,13 +1054,13 @@ private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) 
       -- Step 1: Apply multinomial Leibniz bound
       ≤ ‖x‖ ^ k *
           ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
-            (p : Multiset (Fin (d + 1))).multinomial *
+            (p : Multiset (Fin (d + 1))).countPerms *
               ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
                 ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac j) x‖ :=
         mul_le_mul_of_nonneg_left (hprod_bound x) (pow_nonneg (norm_nonneg _) _)
     -- Step 2: Distribute ‖x‖^k and apply coordinate-wise bounds
     _ ≤ ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym n,
-          (p : Multiset (Fin (d + 1))).multinomial *
+          (p : Multiset (Fin (d + 1))).countPerms *
             ((d + 1 : ℝ) ^ k *
               ∑ j₀ : Fin (d + 1),
                 C_dec j₀ ((p : Multiset (Fin (d + 1))).count j₀) *
@@ -1801,7 +1801,7 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
   have hprod_bound : ∀ (α : MultiIndex (d + 1)) (y : EuclideanSpace ℝ (Fin (d + 1))),
       ‖iteratedFDeriv ℝ l (fun z => ∏ j : Fin (d + 1), fac α j z) y‖ ≤
       ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym l,
-        (p : Multiset (Fin (d + 1))).multinomial *
+        (p : Multiset (Fin (d + 1))).countPerms *
           ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
             ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac α j) y‖ := by
     intro α y
@@ -1876,7 +1876,7 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
   -- Define total constant (independent of α)
   set K := (d + 1 : ℝ) ^ (k + 1) * C₁ ^ (d + 1) *
     (∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym l,
-      ((p : Multiset (Fin (d + 1))).multinomial : ℝ)) with hK_def
+      ((p : Multiset (Fin (d + 1))).countPerms : ℝ)) with hK_def
   refine ⟨K + 1, (d + 1) * s₁, by positivity, fun α x => ?_⟩
   have hprod_eq' : iteratedFDeriv ℝ l (hermiteFunctionNd (d + 1) α) x =
       iteratedFDeriv ℝ l (fun z => ∏ j : Fin (d + 1), fac α j z) x :=
@@ -1885,18 +1885,18 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
   calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ l (fun z => ∏ j : Fin (d + 1), fac α j z) x‖
       ≤ ‖x‖ ^ k *
           ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym l,
-            (p : Multiset (Fin (d + 1))).multinomial *
+            (p : Multiset (Fin (d + 1))).countPerms *
               ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
                 ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac α j) x‖ :=
         mul_le_mul_of_nonneg_left (hprod_bound α x) (pow_nonneg (norm_nonneg _) _)
     _ = ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym l,
-          (p : Multiset (Fin (d + 1))).multinomial *
+          (p : Multiset (Fin (d + 1))).countPerms *
             (‖x‖ ^ k *
               ∏ j ∈ (Finset.univ : Finset (Fin (d + 1))),
                 ‖iteratedFDeriv ℝ ((p : Multiset (Fin (d + 1))).count j) (fac α j) x‖) := by
         rw [Finset.mul_sum]; ring_nf
     _ ≤ ∑ p ∈ (Finset.univ : Finset (Fin (d + 1))).sym l,
-          (p : Multiset (Fin (d + 1))).multinomial *
+          (p : Multiset (Fin (d + 1))).countPerms *
             ((d + 1 : ℝ) ^ (k + 1) *
               (C₁ * (1 + (MultiIndex.abs α : ℝ)) ^ s₁) ^ (d + 1)) := by
         apply Finset.sum_le_sum; intro p _

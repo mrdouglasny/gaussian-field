@@ -110,17 +110,17 @@ private lemma complex_product_decay
   -- Combine with Leibniz rule
   choose Cp hCp using fun (p : Sym (Fin n) m) =>
     h_term_bound (fun j => p.val.count j)
-  exact ⟨∑ p ∈ univ.sym m, ↑(p.val).multinomial * Cp p, fun x =>
+  exact ⟨∑ p ∈ univ.sym m, ↑(p.val).countPerms * Cp p, fun x =>
     calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ m (fun x => ∏ i, fs i (x i)) x‖
-        ≤ ‖x‖ ^ k * ∑ p ∈ univ.sym m, ↑(p.val).multinomial *
+        ≤ ‖x‖ ^ k * ∑ p ∈ univ.sym m, ↑(p.val).countPerms *
             ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) (fun x => fs j (x j)) x‖ :=
           mul_le_mul_of_nonneg_left
             (norm_iteratedFDeriv_prod_le (fun i _ => hsmooth i) (x := x) (n := m) hm)
             (by positivity)
-      _ = ∑ p ∈ univ.sym m, (↑(p.val).multinomial *
+      _ = ∑ p ∈ univ.sym m, (↑(p.val).countPerms *
             (‖x‖ ^ k * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) (fun x => fs j (x j)) x‖)) := by
           rw [mul_sum]; congr 1; ext p; ring
-      _ ≤ ∑ p ∈ univ.sym m, (↑(p.val).multinomial * Cp p) :=
+      _ ≤ ∑ p ∈ univ.sym m, (↑(p.val).countPerms * Cp p) :=
           sum_le_sum fun p _ => mul_le_mul_of_nonneg_left (hCp p x) (Nat.cast_nonneg _)⟩
 
 /-! ## Complex product tensor for Schwartz functions -/
@@ -705,23 +705,23 @@ private def slotInsertionCLM
               _ = (A + B') * S := by ring
           -- Combine over Leibniz terms
           choose Cp hCp_nn hCp using h_per_p
-          refine ⟨s_f, ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial * Cp p,
+          refine ⟨s_f, ∑ p ∈ Finset.univ.sym m, ↑(p.val).countPerms * Cp p,
             Finset.sum_nonneg fun p _ => mul_nonneg (Nat.cast_nonneg _) (hCp_nn p), fun f x => ?_⟩
           calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ m (fun x => ∏ i, (Function.update gs jj f) i (x i)) x‖
-              ≤ ‖x‖ ^ k * ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+              ≤ ‖x‖ ^ k * ∑ p ∈ Finset.univ.sym m, ↑(p.val).countPerms *
                   ∏ j, ‖iteratedFDeriv ℝ (p.val.count j)
                     (fun x : Fin n → D => (Function.update gs jj f) j (x j)) x‖ :=
                 mul_le_mul_of_nonneg_left (norm_iteratedFDeriv_prod_le (fun i _ => hsmooth f i) hm) (by positivity)
-            _ ≤ ‖x‖ ^ k * ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+            _ ≤ ‖x‖ ^ k * ∑ p ∈ Finset.univ.sym m, ↑(p.val).countPerms *
                   ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖ := by
                 gcongr with p _ j _; exact h_chain ((Function.update gs jj f) j) _ j x
-            _ = ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+            _ = ∑ p ∈ Finset.univ.sym m, ↑(p.val).countPerms *
                   (‖x‖ ^ k * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) ((Function.update gs jj f) j) (x j)‖) := by
                 rw [Finset.mul_sum]; congr 1; ext p; ring
-            _ ≤ ∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial *
+            _ ≤ ∑ p ∈ Finset.univ.sym m, ↑(p.val).countPerms *
                   (Cp p * (s_f.sup (schwartzSeminormFamily ℝ D ℝ)) f) :=
                 Finset.sum_le_sum fun p _ => mul_le_mul_of_nonneg_left (hCp p f x) (Nat.cast_nonneg _)
-            _ = (∑ p ∈ Finset.univ.sym m, ↑(p.val).multinomial * Cp p) *
+            _ = (∑ p ∈ Finset.univ.sym m, ↑(p.val).countPerms * Cp p) *
                   (s_f.sup (schwartzSeminormFamily ℝ D ℝ)) f := by rw [Finset.sum_mul]; congr 1; ext p; ring
         -- Combine per-(k,m) bounds over s_w
         choose s_km C_km hC_nn hC_bound using h_slot

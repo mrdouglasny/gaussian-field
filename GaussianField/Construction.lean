@@ -389,7 +389,7 @@ private theorem limUnder_partialSum_measurable
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (φ : E) :
     Measurable (fun ξ : NoiseSpace =>
-      limUnder Filter.atTop (fun N => ∑ k ∈ Finset.range N,
+      Filter.limUnder Filter.atTop (fun N => ∑ k ∈ Finset.range N,
         ξ k * coeff T h_inf k φ)) := by
   apply MeasureTheory.StronglyMeasurable.measurable
   apply MeasureTheory.StronglyMeasurable.limUnder
@@ -422,7 +422,7 @@ private theorem aemeasurable_seriesLimit (T : E →L[ℝ] H)
       ext ξ; simp only [g, Set.indicator]; split_ifs <;> rfl
     rw [h_eval]
     have h_eq : S.indicator (fun ξ => seriesLimit T h_inf ξ φ) =
-        S.indicator (fun ξ => limUnder Filter.atTop
+        S.indicator (fun ξ => Filter.limUnder Filter.atTop
           (fun N => ∑ k ∈ Finset.range N, ξ k * coeff T h_inf k φ)) := by
       ext ξ; simp only [Set.indicator]; split_ifs with h
       · have hgood := hS_sub ξ h

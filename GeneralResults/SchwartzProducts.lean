@@ -185,7 +185,7 @@ private lemma schwartz_product_decay
   have h_deriv : ∀ x : Fin n → D,
       ‖iteratedFDeriv ℝ m (fun x => ∏ i, fs i (x i)) x‖ ≤
         ∑ p ∈ univ.sym m,
-          ↑(p.val).multinomial *
+          ↑(p.val).countPerms *
             ∏ j, ‖iteratedFDeriv ℝ (p.val.count j)
               (fun x : Fin n → D => fs j (x j)) x‖ :=
     fun x => norm_iteratedFDeriv_prod_le (fun i _ => hsmooth i) (x := x) (n := m) hm
@@ -196,17 +196,17 @@ private lemma schwartz_product_decay
 
   -- Choose bounds for each p
   choose Cp hCp_nn hCp using fun (p : Sym (Fin n) m) => h_term_bound (fun j => p.val.count j)
-  refine ⟨∑ p ∈ univ.sym m, ↑(p.val).multinomial * Cp p, fun x => ?_⟩
+  refine ⟨∑ p ∈ univ.sym m, ↑(p.val).countPerms * Cp p, fun x => ?_⟩
   calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ m (fun x => ∏ i, fs i (x i)) x‖
       ≤ ‖x‖ ^ k * ∑ p ∈ univ.sym m,
-          ↑(p.val).multinomial *
+          ↑(p.val).countPerms *
             ∏ j, ‖iteratedFDeriv ℝ (p.val.count j) (fun x => fs j (x j)) x‖ :=
         mul_le_mul_of_nonneg_left (h_deriv x) (by positivity)
-    _ = ∑ p ∈ univ.sym m, (↑(p.val).multinomial *
+    _ = ∑ p ∈ univ.sym m, (↑(p.val).countPerms *
           (‖x‖ ^ k * ∏ j, ‖iteratedFDeriv ℝ (p.val.count j)
             (fun x => fs j (x j)) x‖)) := by
         rw [mul_sum]; congr 1; ext p; ring
-    _ ≤ ∑ p ∈ univ.sym m, (↑(p.val).multinomial * Cp p) := by
+    _ ≤ ∑ p ∈ univ.sym m, (↑(p.val).countPerms * Cp p) := by
         apply sum_le_sum; intro p _
         apply mul_le_mul_of_nonneg_left (hCp p x)
         exact Nat.cast_nonneg _
