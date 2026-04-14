@@ -330,23 +330,200 @@ theorem cylinderLaplaceEmbedding_coord (mass : ℝ) (hmass : 0 < mass)
     laplaceEmbeddingCoord L mass hmass a f :=
   (laplaceEmbedding_ell2 L mass hmass).choose_spec f a
 
+/-! ### Self-adjointness of even Fourier multipliers
+
+The Fourier multiplier `M_σ` with real even symbol `σ` is self-adjoint in L²:
+`∫ (M_σ f)(t) * g(t) dt = ∫ f(t) * (M_σ g)(t) dt`.
+
+Proof strategy:
+1. Lift to complex Schwartz functions via `schwartzToComplex`
+2. Use `integral_fourierInv_mul_eq` to move both sides to Fourier space
+3. Use evenness of σ and `integral_neg_eq_self` (substitution p → -p) to
+   show the Fourier-space integrals are equal -/
+
+/-- **Complex multiplier self-adjointness for even symbols.**
+
+For a real even symbol `σ` with temperate growth, the complex Fourier multiplier
+`M_σ` on `𝓢(ℝ, ℂ)` satisfies `∫ (M_σ F) * G = ∫ F * (M_σ G)`.
+
+Proof: Both sides reduce to `∫ σ(p) * ℱF(p) * ℱG(-p) dp` via
+`integral_fourierInv_mul_eq`, and evenness of σ plus the substitution
+`p → -p` (`integral_neg_eq_self`) shows this equals `∫ σ(p) * ℱG(p) * ℱF(-p) dp`. -/
+theorem complex_multiplier_selfadjoint_even (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) (F G : SchwartzMap ℝ ℂ) :
+    ∫ t, (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ F) t * G t =
+    ∫ t, F t * (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ G) t := by
+  -- Rewrite both sides using M_σ F = ℱ⁻¹(σ·ℱF) and integral_fourierInv_mul_eq
+  conv_lhs => arg 2; ext t; rw [SchwartzMap.fourierMultiplierCLM_apply]
+  rw [SchwartzMap.integral_fourierInv_mul_eq
+    (SchwartzMap.smulLeftCLM ℂ σ (FourierTransform.fourier F)) G]
+  conv_rhs => arg 2; ext t;
+    rw [show F t * (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ G) t =
+      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ G) t * F t from mul_comm _ _]
+  conv_rhs => arg 2; ext t; rw [SchwartzMap.fourierMultiplierCLM_apply]
+  rw [SchwartzMap.integral_fourierInv_mul_eq
+    (SchwartzMap.smulLeftCLM ℂ σ (FourierTransform.fourier G)) F]
+  -- Both sides are now Fourier-space integrals:
+  -- LHS = ∫ σ(p) • ℱF(p) * ℱ⁻¹G(p) dp
+  -- RHS = ∫ σ(p) • ℱG(p) * ℱ⁻¹F(p) dp
+  -- Expand ℱ⁻¹ = ℱ ∘ neg (by SchwartzMap.fourierInv_apply_eq)
+  simp_rw [SchwartzMap.fourierInv_apply_eq,
+    SchwartzMap.compCLMOfContinuousLinearEquiv_apply,
+    SchwartzMap.smulLeftCLM_apply hσ]
+  -- Now: ∫ σ(p) • ℱF(p) * ℱG(-p) = ∫ σ(p) • ℱG(p) * ℱF(-p)
+  -- Rewrite LHS integrand as (RHS integrand)(-p) and apply integral_neg_eq_self
+  rw [show (fun p => σ p •
+      ((FourierTransform.fourier F : SchwartzMap ℝ ℂ) : ℝ → ℂ) p *
+      ((FourierTransform.fourier G : SchwartzMap ℝ ℂ) : ℝ → ℂ)
+        ((LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv p)) =
+    (fun p => (fun q => σ q •
+      ((FourierTransform.fourier G : SchwartzMap ℝ ℂ) : ℝ → ℂ) q *
+      ((FourierTransform.fourier F : SchwartzMap ℝ ℂ) : ℝ → ℂ)
+        ((LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv q)) (-p)) from by
+    ext p
+    simp only [LinearIsometryEquiv.coe_toContinuousLinearEquiv,
+      LinearIsometryEquiv.neg_apply]
+    rw [neg_neg, heven, Complex.real_smul, Complex.real_smul, mul_comm
+      (((FourierTransform.fourier F : SchwartzMap ℝ ℂ) : ℝ → ℂ) p)
+      (((FourierTransform.fourier G : SchwartzMap ℝ ℂ) : ℝ → ℂ) (-p))]]
+  exact MeasureTheory.integral_neg_eq_self _ _
+
+/-- **Bridge**: `ofReal(M_σ_real f x) = M_σ_ℂ(ofReal ∘ f) x` for even real symbol.
+
+The real Fourier multiplier is `re ∘ M_σ_ℂ ∘ ofReal`. By
+`fourierMultiplier_preserves_real`, `M_σ_ℂ(ofReal f)` is already real-valued
+(for even σ), so `ofReal ∘ re = id` on its range. -/
+theorem ofReal_realMultiplier_eq (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+    (Complex.ofReal ((realFourierMultiplierCLM σ hσ f) x) : ℂ) =
+    (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex f)) x := by
+  have h := fourierMultiplier_preserves_real σ hσ heven
+  have hpt := congr_fun (congr_arg SchwartzMap.toFun
+    (ContinuousLinearMap.ext_iff.mp h f)) x
+  simp only [ContinuousLinearMap.comp_apply] at hpt
+  rw [← hpt]
+  simp [schwartzToComplex, schwartzToReal, realFourierMultiplierCLM]
+
+/-- **Self-adjointness of real even Fourier multipliers** (Parseval identity):
+
+  `∫ (M_σ f)(t) * g(t) dt = ∫ f(t) * (M_σ g)(t) dt`
+
+for real Schwartz functions `f, g` and real even symbol `σ`.
+
+Proof: Lift to complex via `ofReal`, use `complex_multiplier_selfadjoint_even`,
+project back via `Complex.ofReal_injective`. The bridge
+`ofReal_realMultiplier_eq` (from `fourierMultiplier_preserves_real`) ensures
+`ofReal(M_σ_real f) = M_σ_ℂ(ofReal f)`. -/
+theorem real_parseval_multiplier (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) (f g : SchwartzMap ℝ ℝ) :
+    ∫ t, (realFourierMultiplierCLM σ hσ f) t * g t =
+    ∫ t, f t * (realFourierMultiplierCLM σ hσ g) t := by
+  -- Lift to ℂ: ofReal is injective and preserves integrals
+  apply Complex.ofReal_injective
+  rw [Complex.ofReal_integral, Complex.ofReal_integral]
+  simp_rw [Complex.ofReal_mul, ofReal_realMultiplier_eq σ hσ heven]
+  -- Now both sides are complex integrals of M_σ_ℂ(ofReal ·)
+  exact complex_multiplier_selfadjoint_even σ hσ heven
+    (schwartzToComplex f) (schwartzToComplex g)
+
+/-! ### Resolvent squared = Lorentzian convolution
+
+The composition `R_ω ∘ R_ω` is the Fourier multiplier with Lorentzian symbol
+`σ_ω(p)² = (p² + ω²)⁻¹`, which equals convolution with `exp(-ω|·|)/(2ω)`.
+This is the Fourier transform identity `ℱ(exp(-ω|·|))(p) = 2ω/(p² + ω²)`. -/
+
+/-- The Lorentzian symbol: `1/(p² + ω²)`. -/
+def lorentzianSymbol (ω : ℝ) (p : ℝ) : ℝ := (p ^ 2 + ω ^ 2)⁻¹
+
+/-- The resolvent symbol squared equals the Lorentzian symbol:
+`σ_ω(p)² = (p² + ω²)^{-1} = lorentzianSymbol ω p`. -/
+theorem resolventSymbol_sq (ω : ℝ) (hω : 0 < ω) :
+    resolventSymbol ω * resolventSymbol ω = lorentzianSymbol ω := by
+  ext p; simp only [Pi.mul_apply, resolventSymbol, lorentzianSymbol]
+  rw [← Real.rpow_natCast, ← Real.rpow_natCast,
+      ← Real.rpow_mul (by positivity)]
+  norm_num; rw [Real.rpow_neg_one (by positivity)]
+
+/-- The Lorentzian symbol has temperate growth (product of two resolvent symbols). -/
+theorem lorentzianSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
+    (lorentzianSymbol ω).HasTemperateGrowth := by
+  rw [← resolventSymbol_sq ω hω]
+  exact (resolventSymbol_hasTemperateGrowth ω hω).mul
+    (resolventSymbol_hasTemperateGrowth ω hω)
+
+/-- The Lorentzian symbol is even: `1/((-p)² + ω²) = 1/(p² + ω²)`. -/
+theorem lorentzianSymbol_even (ω : ℝ) (p : ℝ) :
+    lorentzianSymbol ω (-p) = lorentzianSymbol ω p := by
+  unfold lorentzianSymbol; ring_nf
+
+/-- **Lorentzian convolution identity** (pointwise):
+
+  `(M_{1/(p²+ω²)} g)(t) = (1/(2ω)) * ∫ exp(-ω|t-s|) * g(s) ds`
+
+The Fourier multiplier with Lorentzian symbol `1/(p² + ω²)` acts as convolution
+with the kernel `exp(-ω|·|)/(2ω)`. This is equivalent to the Fourier transform
+identity `ℱ(exp(-ω|·|))(p) = 2ω/(p² + ω²)`.
+
+References: Stein-Shakarchi, *Fourier Analysis*, Ch. 5;
+Gradshteyn-Ryzhik 3.893; Simon, *P(φ)₂*, Appendix to §I.4. -/
+theorem lorentzian_convolution_pointwise (ω : ℝ) (hω : 0 < ω)
+    (g : SchwartzMap ℝ ℝ) (t : ℝ) :
+    (realFourierMultiplierCLM (lorentzianSymbol ω)
+      (lorentzianSymbol_hasTemperateGrowth ω hω) g) t =
+    (1 / (2 * ω)) * ∫ s, Real.exp (-ω * |t - s|) * g s := by
+  sorry
+
+/-- **Resolvent squared convolution identity.**
+
+  `∫ f(t) * (R_ω(R_ω g))(t) dt = (1/(2ω)) * ∫ f(t) * (∫ exp(-ω|t-s|) * g(s) ds) dt`
+
+Proved by:
+1. `R_ω ∘ R_ω = M_{σ_ω²}` (multiplier composition, `realFourierMultiplierCLM_comp`)
+2. `σ_ω² = lorentzianSymbol ω` (`resolventSymbol_sq`)
+3. `M_{lorentzian} g = (1/(2ω)) * ∫ exp(-ω|·-s|) g(s) ds` (`lorentzian_convolution_pointwise`) -/
+theorem resolvent_squared_convolution
+    (ω : ℝ) (hω : 0 < ω) (f g : SchwartzMap ℝ ℝ) :
+    ∫ t, f t * (resolventMultiplierCLM hω (resolventMultiplierCLM hω g)) t =
+    (1 / (2 * ω)) * ∫ t, f t * ∫ s, Real.exp (-ω * |t - s|) * g s := by
+  -- Step 1: R_ω(R_ω g) = M_{σ²} g = M_{lorentzian} g
+  have hcomp : resolventMultiplierCLM hω (resolventMultiplierCLM hω g) =
+      realFourierMultiplierCLM (lorentzianSymbol ω)
+        (lorentzianSymbol_hasTemperateGrowth ω hω) g := by
+    show (realFourierMultiplierCLM (resolventSymbol ω)
+        (resolventSymbol_hasTemperateGrowth ω hω))
+      ((realFourierMultiplierCLM (resolventSymbol ω)
+        (resolventSymbol_hasTemperateGrowth ω hω)) g) = _
+    rw [← ContinuousLinearMap.comp_apply,
+        realFourierMultiplierCLM_comp _ _ _ _ (resolventSymbol_even ω)]
+    congr 1
+    · exact resolventSymbol_sq ω hω
+    · exact proof_irrel _ _
+  rw [hcomp]
+  -- Step 2: Apply lorentzian_convolution_pointwise
+  congr 1; ext t
+  exact lorentzian_convolution_pointwise ω hω g t
+
 /-- **Resolvent Plancherel identity**: the L² inner product of resolvent outputs
-equals the integral of the squared symbol times the squared Fourier transform.
+equals the exponential-kernel convolution integral.
 
-  `∫ (R_ω h)(t) · (R_ω g)(t) dt = ∫ σ_ω(p)² · (Fh)(p) · (Fg)(p) dp`
+  `∫ (R_ω h)(t) · (R_ω g)(t) dt = (1/(2ω)) * ∫ h(t) * (∫ exp(-ω|t-s|) * g(s) ds) dt`
 
-This is Plancherel for the specific operator R_ω. The general Plancherel
-theorem (not yet in Mathlib) would give this immediately. For a single
-self-adjoint operator with bounded symbol, it can also be proved via:
-the resolvent squared R_ω² has convolution kernel `(1/(2ω))e^{-ω|t|}`
-(Fourier transform of `(p²+ω²)⁻¹`, proved in OSforGFF as `fourier_lorentzian_1d`).
-
-References: OSforGFF/General/FourierTransforms.lean, OSforGFF/Covariance/Parseval.lean -/
-axiom resolvent_plancherel
+Proved in two steps:
+1. **Self-adjointness** (`real_parseval_multiplier`): move one `R_ω` to the other
+   side: `∫ (R_ω h) * (R_ω g) = ∫ h * R_ω(R_ω g)`.
+2. **Resolvent squared** (`resolvent_squared_convolution`): `R_ω ∘ R_ω = M_{σ²}`
+   where `σ²(p) = 1/(p²+ω²)`, and `M_{σ²}` is convolution with `exp(-ω|·|)/(2ω)`. -/
+theorem resolvent_plancherel
     (ω : ℝ) (hω : 0 < ω)
     (h g : SchwartzMap ℝ ℝ) :
     ∫ t, (resolventMultiplierCLM hω h) t * (resolventMultiplierCLM hω g) t =
-    (1 / (2 * ω)) * ∫ t, h t * ∫ s, Real.exp (-ω * |t - s|) * g s
+    (1 / (2 * ω)) * ∫ t, h t * ∫ s, Real.exp (-ω * |t - s|) * g s := by
+  -- Step 1: Use self-adjointness of R_ω to move one R_ω to the other side
+  rw [real_parseval_multiplier (resolventSymbol ω)
+    (resolventSymbol_hasTemperateGrowth ω hω) (resolventSymbol_even ω)
+    h (resolventMultiplierCLM hω g)]
+  -- Step 2: Apply the resolvent squared convolution identity
+  exact resolvent_squared_convolution ω hω h g
 
 /-- **L² resolvent-reflection identity.**
 
