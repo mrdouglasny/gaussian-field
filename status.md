@@ -8,7 +8,14 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 **4 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-03-27.*
+*Updated 2026-04-14.*
+
+### Recent additions
+
+- **Lattice/CombesThomas.lean** (760 lines, fully proved): Combes-Thomas
+  exponential decay estimate for resolvent entries of finite-range PD
+  matrices. `|M⁻¹(x,y)| ≤ C · exp(-α · dist(x,y))`. Used by pphi2N
+  for the mass gap Green's function decay bound.
 
 ## Active Axiom Inventory (4 axioms)
 
