@@ -588,8 +588,19 @@ theorem inverse_opNorm_bound' (M : Matrix Λ Λ ℝ) (γ : ℝ)
         _ = Real.sqrt (g j ^ 2) := (Real.sqrt_sq_eq_abs _).symm
         _ ≤ Real.sqrt (∑ x, g x ^ 2) := Real.sqrt_le_sqrt
               (Finset.single_le_sum (fun x _ => sq_nonneg (g x)) (Finset.mem_univ j))
-    -- γ·S ≤ √S and S=(√S)², so γ(√S)²≤√S, γ√S≤1, |g i|≤√S≤1/γ
-    sorry
+    -- γS ≤ √S where S = Σg². Let s = √S. Then γs² ≤ s, so γs ≤ 1.
+    set S := ∑ x : Λ, g x ^ 2 with hS_def
+    set s := Real.sqrt S with hs_def
+    have hs_pos : 0 < s := Real.sqrt_pos.mpr hsum_pos
+    have hs_sq : s ^ 2 = S := Real.sq_sqrt (le_of_lt hsum_pos)
+    have h1 : γ * S ≤ s := le_trans hgap_bound hgj_le_sqrt
+    -- γ s² ≤ s, divide by s > 0
+    have hγs : γ * s ≤ 1 := by
+      have : γ * s * s ≤ 1 * s := by nlinarith [hs_sq]
+      exact le_of_mul_le_mul_right this hs_pos
+    calc |g i| = Real.sqrt (g i ^ 2) := (Real.sqrt_sq_eq_abs _).symm
+      _ ≤ s := Real.sqrt_le_sqrt hentry_sq
+      _ ≤ 1 / γ := by rw [le_div_iff₀ hγ]; linarith
 
 /-! ## Main theorem: Combes-Thomas exponential decay -/
 
@@ -676,7 +687,51 @@ theorem exponential_decay (M : Matrix Λ Λ ℝ)
         -- Chain: det(M_α) is a unit (similar to M via D),
         -- spectral gap preserved by choice of α₀ (exp(α₀R)-1)·‖M‖ = γ/2),
         -- then inverse_opNorm_bound' gives ‖M_α⁻¹‖ ≤ |Λ|/(γ/2) = C.
-        sorry
+        -- Step 1: det(M_α) is a unit (M_α = D M D⁻¹, det products)
+        -- Chain: M_α = D M D⁻¹ has same det as M (product of det),
+        -- spectral gap preserved, then inverse_opNorm_bound' applies.
+        -- det(M_α) is a unit: det(D)det(M)det(D⁻¹) = det(M) (D diagonal with exp>0)
+        -- (exp(α₀R)-1)·‖M‖ = γ/2 < γ by choice of α₀ = log(1+γ/(2‖M‖))/R
+        -- spectral_gap_preserved gives gap(M_α) ≥ γ/2
+        -- inverse_opNorm_bound' gives ‖M_α⁻¹‖ ≤ |Λ|/(γ/2) = C
+        -- All steps are proved lemmas; the assembly needs careful arithmetic.
+        have hα₀R : α₀ * R = Real.log (1 + γ / (2 * ‖M‖)) := by
+          rw [hα₀_def]; exact div_mul_cancel₀ _ (ne_of_gt hR)
+        have hexp_val : Real.exp (α₀ * R) = 1 + γ / (2 * ‖M‖) := by
+          rw [hα₀R, Real.exp_log (by linarith)]
+        have hα₀_bound : (Real.exp (α₀ * R) - 1) * ‖M‖ = γ / 2 := by
+          rw [hexp_val, add_sub_cancel_left]
+          rw [div_mul_eq_mul_div]
+          rw [show γ * ‖M‖ / (2 * ‖M‖) = γ / 2 from by
+            field_simp [ne_of_gt hM_pos]]
+        -- The gap is preserved with residual γ - γ/2 = γ/2
+        have hα₀_lt : (Real.exp (α₀ * R) - 1) * ‖M‖ < γ := by linarith
+        have hMα_gap := spectral_gap_preserved M γ hγ hgap hM_symm α₀ R
+            hα₀_pos.le hR.le dist y hrange htri hsymm hα₀_lt
+        rw [hα₀_bound] at hMα_gap
+        -- Now hMα_gap : HasSpectralGap (conjugatedMatrix M α₀ dist y) (γ/2)
+        -- det(M_α) = det(D) · det(M) · det(D⁻¹), product of units
+        have hMα_det : IsUnit (conjugatedMatrix M α₀ dist y).det := by
+          -- det(D M D⁻¹) = det(D) det(M) det(D⁻¹) = det(M) · det(D D⁻¹) = det(M) · 1
+          unfold conjugatedMatrix
+          rw [Matrix.det_mul, Matrix.det_mul]
+          -- det(D) · det(M) · det(D⁻¹) is a unit since det(M) is and
+          -- det(D) · det(D⁻¹) = det(D · D⁻¹) = det(1) = 1
+          have h1 : (conjugationMatrix α₀ dist y).det *
+              (conjugationMatrixInv α₀ dist y).det = 1 := by
+            rw [← Matrix.det_mul, conjugationMatrix_mul_inv, Matrix.det_one]
+          -- Goal: IsUnit (det D * det M * det D⁻¹)
+          -- = IsUnit (det D * det D⁻¹ * det M) [by ring]
+          -- = IsUnit (1 * det M) = IsUnit (det M) ✓
+          rw [show (conjugationMatrix α₀ dist y).det * M.det *
+              (conjugationMatrixInv α₀ dist y).det =
+              (conjugationMatrix α₀ dist y).det *
+              (conjugationMatrixInv α₀ dist y).det * M.det from by ring,
+              h1, one_mul]
+          exact hM_inv
+        have : γ - γ / 2 = γ / 2 := by ring
+        rw [this] at hMα_gap
+        exact inverse_opNorm_bound' _ _ (half_pos hγ) hMα_gap hMα_det
 
 /-! ## Corollary: summability of correlations -/
 
