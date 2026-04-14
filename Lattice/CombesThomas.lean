@@ -540,6 +540,57 @@ theorem inverse_opNorm_bound (M : Matrix Λ Λ ℝ) (γ : ℝ)
           have h1 : Real.sqrt (∑ x, g x ^ 2) * γ ≤ 1 := by linarith
           rw [le_div_iff₀ hγ]; linarith
 
+/-- Version of `inverse_opNorm_bound` without symmetry hypothesis.
+The entry bound |M⁻¹(i,j)| ≤ 1/γ only uses the spectral gap, not symmetry. -/
+theorem inverse_opNorm_bound' (M : Matrix Λ Λ ℝ) (γ : ℝ)
+    (hγ : 0 < γ) (hgap : HasSpectralGap M γ)
+    (hM_inv : IsUnit M.det) :
+    letI := @Matrix.linftyOpNormedAddCommGroup Λ Λ ℝ _ _ _
+    ‖M⁻¹‖ ≤ (Fintype.card Λ : ℝ) / γ := by
+  letI := @Matrix.linftyOpNormedAddCommGroup Λ Λ ℝ _ _ _
+  suffices hentry : ∀ i j : Λ, |M⁻¹ i j| ≤ 1 / γ by
+    have hrow : ∀ i, (∑ j, |M⁻¹ i j|) ≤ (Fintype.card Λ : ℝ) / γ := by
+      intro i
+      calc ∑ j, |M⁻¹ i j| ≤ ∑ _j : Λ, (1 / γ : ℝ) :=
+            Finset.sum_le_sum (fun j _ => hentry i j)
+        _ = (Fintype.card Λ : ℝ) / γ := by
+            simp [Finset.sum_const, Finset.card_univ]; ring
+    rw [Matrix.linfty_opNorm_def]
+    have h1 : ∀ i, (∑ j : Λ, ‖M⁻¹ i j‖₊ : ℝ) ≤ (Fintype.card Λ : ℝ) / γ := by
+      intro i
+      calc (∑ j : Λ, ‖M⁻¹ i j‖₊ : ℝ) = ∑ j, |M⁻¹ i j| := by
+            simp [NNNorm.nnnorm, Real.norm_eq_abs, NNReal.coe_sum]
+        _ ≤ _ := hrow i
+    have hle : (Finset.univ.sup fun i => ∑ j, ‖M⁻¹ i j‖₊) ≤
+        ⟨(Fintype.card Λ : ℝ) / γ, div_nonneg (Nat.cast_nonneg _) (le_of_lt hγ)⟩ := by
+      apply Finset.sup_le; intro i _; exact_mod_cast h1 i
+    exact_mod_cast hle
+  -- Entry bound (no symmetry needed)
+  intro i j
+  set g : Λ → ℝ := fun x => M⁻¹ x j
+  have hMg : M.mulVec g = fun x => if x = j then 1 else 0 := by
+    ext x; simp only [Matrix.mulVec, dotProduct]
+    have := congr_fun (congr_fun (Matrix.mul_nonsing_inv M hM_inv) x) j
+    simp only [Matrix.mul_apply, Matrix.one_apply] at this; exact this
+  have hinner_eq : ∑ x, g x * (M.mulVec g) x = g j := by
+    rw [hMg]; simp [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ]
+  have hgap_bound : γ * ∑ x, g x ^ 2 ≤ g j := by linarith [hgap g]
+  have hentry_sq : g i ^ 2 ≤ ∑ x, g x ^ 2 :=
+    Finset.single_le_sum (fun x _ => sq_nonneg (g x)) (Finset.mem_univ i)
+  by_cases hg_zero : ∑ x, g x ^ 2 = 0
+  · have : g i ^ 2 ≤ 0 := by rw [hg_zero] at hentry_sq; exact hentry_sq
+    have : g i = 0 := by nlinarith [sq_nonneg (g i)]
+    rw [show M⁻¹ i j = 0 from this, abs_zero]; exact div_nonneg one_pos.le hγ.le
+  · have hsum_pos : 0 < ∑ x, g x ^ 2 := lt_of_le_of_ne
+      (Finset.sum_nonneg (fun x _ => sq_nonneg (g x))) (Ne.symm hg_zero)
+    have hgj_le_sqrt : g j ≤ Real.sqrt (∑ x, g x ^ 2) := by
+      calc g j ≤ |g j| := le_abs_self _
+        _ = Real.sqrt (g j ^ 2) := (Real.sqrt_sq_eq_abs _).symm
+        _ ≤ Real.sqrt (∑ x, g x ^ 2) := Real.sqrt_le_sqrt
+              (Finset.single_le_sum (fun x _ => sq_nonneg (g x)) (Finset.mem_univ j))
+    -- γ·S ≤ √S and S=(√S)², so γ(√S)²≤√S, γ√S≤1, |g i|≤√S≤1/γ
+    sorry
+
 /-! ## Main theorem: Combes-Thomas exponential decay -/
 
 /-- **Combes-Thomas exponential decay estimate.**
@@ -619,11 +670,12 @@ theorem exponential_decay (M : Matrix Λ Λ ℝ)
       trans ‖(conjugatedMatrix M α₀ dist y)⁻¹‖
       · exact entry_le_opNorm _ x y
       · -- ‖M_α⁻¹‖ ≤ C = |Λ|/(γ/2)
-        -- The entry bound |A⁻¹(i,j)| ≤ 1/gap works without symmetry
-        -- (same proof as inverse_opNorm_bound but for non-symmetric A).
-        -- Conjugated matrix has same det as M (similar via invertible D),
-        -- and has spectral gap from spectral_gap_preserved.
-        -- Full verification requires: (exp(α₀R)-1)·‖M‖ = γ/2 < γ.
+        -- The conjugated matrix M_α = D M D⁻¹ has same det as M (similar)
+        -- and has spectral gap γ/2 from spectral_gap_preserved.
+        -- First: det(M_α) is a unit (similar to M)
+        -- Chain: det(M_α) is a unit (similar to M via D),
+        -- spectral gap preserved by choice of α₀ (exp(α₀R)-1)·‖M‖ = γ/2),
+        -- then inverse_opNorm_bound' gives ‖M_α⁻¹‖ ≤ |Λ|/(γ/2) = C.
         sorry
 
 /-! ## Corollary: summability of correlations -/
