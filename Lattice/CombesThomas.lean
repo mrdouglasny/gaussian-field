@@ -618,10 +618,12 @@ theorem exponential_decay (M : Matrix Λ Λ ℝ)
       -- Use entry_le_opNorm + inverse_opNorm_bound on the conjugated matrix
       trans ‖(conjugatedMatrix M α₀ dist y)⁻¹‖
       · exact entry_le_opNorm _ x y
-      · -- Need: ‖(conjugatedMatrix M α₀ dist y)⁻¹‖ ≤ C
-        -- This requires showing conjugated matrix has spectral gap γ/2
-        -- and then applying inverse_opNorm_bound.
-        -- The key computation: (exp(α₀R)-1)*‖M‖ = γ/2 by choice of α₀.
+      · -- ‖M_α⁻¹‖ ≤ C = |Λ|/(γ/2)
+        -- The entry bound |A⁻¹(i,j)| ≤ 1/gap works without symmetry
+        -- (same proof as inverse_opNorm_bound but for non-symmetric A).
+        -- Conjugated matrix has same det as M (similar via invertible D),
+        -- and has spectral gap from spectral_gap_preserved.
+        -- Full verification requires: (exp(α₀R)-1)·‖M‖ = γ/2 < γ.
         sorry
 
 /-! ## Corollary: summability of correlations -/
