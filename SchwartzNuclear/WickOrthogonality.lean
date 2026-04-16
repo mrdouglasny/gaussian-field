@@ -129,16 +129,103 @@ private theorem wickMonomial_hasDerivAt_all (c : ℝ) (n : ℕ) :
       | zero => simp [wickMonomial]; ring
       | succ j => rw [wickMonomial_succ_succ j c x]; push_cast; ring
 
+/-- Even moments `E[x^{2k}]` are integrable and positive under a probability measure
+satisfying Stein's identity with variance `c > 0`. By induction: Stein applied to
+`f(x) = x^{2k+1}` gives `E[x^{2k+2}] = c(2k+1)E[x^{2k}]`, and the RHS is positive
+by `c > 0` and induction, forcing the LHS to be finite and positive. -/
+private theorem stein_even_moment_integrable (c : ℝ) (hc : 0 < c)
+    (μ : Measure ℝ) [IsProbabilityMeasure μ]
+    (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
+      (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →
+      ∫ x, x * f x ∂μ = c * ∫ x, deriv f x ∂μ)
+    (k : ℕ) : Integrable (fun x : ℝ => x ^ (2 * k)) μ ∧
+              0 < ∫ x : ℝ, x ^ (2 * k) ∂μ := by
+  induction k with
+  | zero =>
+    simp only [mul_zero, pow_zero]
+    exact ⟨integrable_const 1, by simp⟩
+  | succ m ih =>
+    obtain ⟨him, hpos⟩ := ih
+    -- Apply Stein to f(x) = x^(2m+1)
+    have hstein := hμ_stein (fun x => x ^ (2 * m + 1)) (differentiable_pow _)
+      ⟨1, 2 * m + 1, fun x => by
+        simp only; rw [abs_pow, one_mul]
+        exact pow_le_pow_left₀ (abs_nonneg x) (le_add_of_nonneg_left one_pos.le) _⟩
+    -- Rewrite LHS: ∫ x * x^(2m+1) = ∫ x^(2(m+1))
+    have hlhs : ∫ x : ℝ, x * x ^ (2 * m + 1) ∂μ = ∫ x : ℝ, x ^ (2 * (m + 1)) ∂μ := by
+      congr 1; ext x; ring
+    -- Rewrite deriv: d/dx x^(2m+1) = (2m+1) x^(2m)
+    have hderiv_eq : (fun x : ℝ => deriv (fun y => y ^ (2 * m + 1)) x) =
+        (fun x => (2 * (m : ℝ) + 1) * x ^ (2 * m)) := by ext x; simp
+    rw [hlhs, hderiv_eq, integral_const_mul] at hstein
+    -- RHS is positive: c > 0, (2m+1) > 0, E[x^{2m}] > 0
+    have hrhs_pos : 0 < c * ((2 * (m : ℝ) + 1) * ∫ x : ℝ, x ^ (2 * m) ∂μ) := by
+      apply mul_pos hc; apply mul_pos; positivity; exact hpos
+    rw [← hstein] at hrhs_pos
+    -- Since ∫ x^(2(m+1)) = RHS > 0, the function must be integrable
+    -- (otherwise the Bochner integral would be 0)
+    exact ⟨by_contra fun hni => absurd (integral_undef hni) (ne_of_gt hrhs_pos), hrhs_pos⟩
+
+/-- For all `x : ℝ` and `n : ℕ`: `|x|^n ≤ 1 + x^{2n}`.
+When `|x| ≤ 1`: `|x|^n ≤ 1`. When `|x| > 1`: `|x|^n ≤ |x|^{2n} = x^{2n}`. -/
+private lemma abs_pow_le_one_add_even_pow (n : ℕ) (x : ℝ) :
+    |x| ^ n ≤ 1 + x ^ (2 * n) := by
+  by_cases h : |x| ≤ 1
+  · calc |x| ^ n ≤ 1 ^ n := pow_le_pow_left₀ (abs_nonneg x) h n
+      _ = 1 := one_pow n
+      _ ≤ 1 + x ^ (2 * n) := le_add_of_nonneg_right (Even.pow_nonneg ⟨n, by ring⟩ x)
+  · push Not at h
+    calc |x| ^ n ≤ |x| ^ (2 * n) := pow_le_pow_right₀ h.le (by omega)
+      _ = x ^ (2 * n) := by rw [← abs_pow]; exact abs_of_nonneg (Even.pow_nonneg ⟨n, by ring⟩ x)
+      _ ≤ 1 + x ^ (2 * n) := le_add_of_nonneg_left one_pos.le
+
+/-- `(1 + |x|)^d` is integrable under a Stein measure. By binomial expansion
+`(1 + |x|)^d = ∑ C(d,k) |x|^k`, each `|x|^k` is integrable since
+`|x|^k ≤ 1 + x^{2k}` and `x^{2k}` is integrable by `stein_even_moment_integrable`. -/
+private theorem oneplusabs_pow_integrable (c : ℝ) (hc : 0 < c)
+    (μ : Measure ℝ) [IsProbabilityMeasure μ]
+    (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
+      (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →
+      ∫ x, x * f x ∂μ = c * ∫ x, deriv f x ∂μ)
+    (d : ℕ) : Integrable (fun x : ℝ => (1 + |x|) ^ d) μ := by
+  -- Each |x|^n is integrable: bounded by 1 + x^(2n), both integrable
+  have habs : ∀ n, Integrable (fun x : ℝ => |x| ^ n) μ := fun n =>
+    Integrable.mono' ((integrable_const (1 : ℝ)).add (stein_even_moment_integrable c hc μ hμ_stein n).1)
+      ((continuous_abs.pow n).aestronglyMeasurable)
+      (ae_of_all _ fun x => by
+        rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg (abs_nonneg x) n)]
+        exact abs_pow_le_one_add_even_pow n x)
+  -- Expand (1 + |x|)^d by binomial theorem, apply integrable_finset_sum
+  have hfun : (fun x : ℝ => (1 + |x|) ^ d) =
+      (fun x => ∑ k ∈ Finset.range (d + 1),
+        (1 : ℝ) ^ k * |x| ^ (d - k) * ↑(d.choose k)) := by
+    ext x; exact add_pow 1 |x| d
+  rw [hfun]
+  exact integrable_finset_sum _ fun k _ => by
+    simp only [one_pow, one_mul]; exact (habs (d - k)).mul_const _
+
 /-- Integrability of `wickMonomial n c` under a probability measure satisfying Stein's
-identity with variance `c > 0`. Follows from: all moments `E[|X|^n]` are finite
-(derivable from Stein + `c > 0` by bootstrapping even moments), and `wickMonomial`
-is a polynomial bounded by `C * (1 + |x|)^d`. -/
-private axiom wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
+identity with variance `c > 0`. Since `wickMonomial n c` is a polynomial, it satisfies
+`|W_n(x)| ≤ C * (1 + |x|)^d` (from `wickMonomial_growth`). The bound function
+`(1 + |x|)^d` is integrable because all moments are finite under a Stein measure
+(bootstrapped from Stein's identity and `c > 0`). -/
+private theorem wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
     (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
       (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →
       ∫ x, x * f x ∂μ = c * ∫ x, deriv f x ∂μ) :
-    Integrable (wickMonomial n c) μ
+    Integrable (wickMonomial n c) μ := by
+  -- Get the polynomial growth bound: |W_n(x)| ≤ C * (1 + |x|)^d
+  obtain ⟨C, d, hbound⟩ := wickMonomial_growth n c
+  -- The bound function C * (1 + |x|)^d is integrable
+  have hbnd_int : Integrable (fun x => C * (1 + |x|) ^ d) μ :=
+    (oneplusabs_pow_integrable c hc μ hμ_stein d).const_mul C
+  -- wickMonomial is continuous (it's a polynomial), hence AEStronglyMeasurable
+  have hasm : AEStronglyMeasurable (wickMonomial n c) μ :=
+    (wickMonomial_differentiable n c).continuous.aestronglyMeasurable
+  -- Apply Integrable.mono': |W_n(x)| ≤ C * (1 + |x|)^d and the bound is integrable
+  exact hbnd_int.mono' hasm (ae_of_all _ fun x => by
+    rw [Real.norm_eq_abs]; exact hbound x)
 
 /-- Integrability of `x * wickMonomial n c x` under a Stein measure.
 Follows from the recursion: `x * W_{n}(x) = W_{n+1}(x) + n*c*W_{n-1}(x)`. -/
