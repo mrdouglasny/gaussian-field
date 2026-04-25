@@ -332,6 +332,7 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Support.lean](GaussianField/Support.lean) | 274 | [Hilbert-Schmidt condition, Cameron-Martin defs, support theorem](summary/GaussianField/Support.md) |
 | [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 441 | [Gaussian moments, Gross log-Sobolev inequality](summary/GaussianField/Hypercontractive.md) |
 | [HypercontractiveNat.lean](GaussianField/HypercontractiveNat.lean) | 329 | [Nelson's hypercontractive estimate](summary/GaussianField/HypercontractiveNat.md) for even integer p via double-factorial combinatorics |
+| [Symmetry.lean](GaussianField/Symmetry.lean) | 250 | Measure-level symmetries: covariance-preserving CLM action ⇒ measure invariance. Includes `measure_neg_invariant` and the lattice instance `latticeGaussianFieldLaw_isNegInvariant`. |
 
 ### Dependency graph
 

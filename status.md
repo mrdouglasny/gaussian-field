@@ -8,9 +8,21 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 **4 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-04-14.*
+*Updated 2026-04-25.*
 
 ### Recent additions
+
+- **GaussianField/Symmetry.lean** (~250 lines, fully proved, no axioms):
+  Measure-level symmetry framework for centered Gaussian fields. Workhorse
+  theorem: any continuous linear self-map `g : E →L[ℝ] E` whose action
+  preserves the covariance bilinear form `⟨T·, T·⟩` produces a measure
+  invariance `(measure T).map (configurationPullback g) = measure T`.
+  Specializations: `measure_neg_invariant` (g = -id, via bilinearity)
+  plus the lattice instance `latticeGaussianFieldLaw_isNegInvariant`.
+  Subsumes O(N) rotations of vector fields, lattice translations and
+  reflections, and Euclidean group action on continuum GFF — each
+  one-line specialization. Includes `latticeGaussianFieldLaw_isProbability`
+  as a global instance. Used by pphi2N for the 1D O(N) mass-gap chain.
 
 - **Lattice/CombesThomas.lean** (760 lines, fully proved): Combes-Thomas
   exponential decay estimate for resolvent entries of finite-range PD
