@@ -1,0 +1,822 @@
+/-
+Copyright (c) 2026 Michael R. Douglas. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+
+# [WORK IN PROGRESS — moved to `future/` 2026-05-02]
+
+This file was moved from `Cylinder/ReflectionPositivity.lean` into `future/`
+because the Lorentzian-convolution chain it contains has a Fourier-convention
+bug that propagates from `lorentzian_convolution_pointwise` through
+`resolvent_squared_convolution`, `resolvent_plancherel`, `resolvent_laplace_l2`,
+`resolvent_laplace_inner`, `cylinderGreen_reflection_eq_laplaceNorm`, all the
+way to the headline `cylinderGreen_reflection_positive`.
+
+The bug: the chain claims that `realFourierMultiplierCLM (lorentzianSymbol ω)`
+acts as convolution with the kernel `e^{-ω|·|}/(2ω)`. But `realFourierMultiplierCLM`
+is built on Mathlib's `fourierMultiplierCLM`, which uses the Mathlib Fourier
+convention `ℱf(ξ) = ∫ e^{-2πixξ} f(x) dx`. Under that convention, the symbol
+`1/(p² + ω²)` (= `lorentzianSymbol ω`) corresponds to convolution with the
+kernel `(π/ω) · e^{-2πω|·|}`, **not** `e^{-ω|·|}/(2ω)`. The decay rate and
+leading constant are both off by 2π factors. The single `sorry` in the file
+is on `lorentzian_convolution_pointwise`, but the wrong kernel claim is
+already present in the *statements* of the four downstream theorems, which
+"prove" their statements modulo that sorry. As soon as the sorry is closed
+with the correct Mathlib-convention kernel, all four downstream proofs break.
+
+The chain has **zero downstream callers** in any active project tree
+(`grep -r "lorentzian_convolution_pointwise|resolvent_squared_convolution|
+resolvent_plancherel|resolvent_laplace_l2|resolvent_laplace_inner|
+cylinderGreen_reflection_eq_laplaceNorm|cylinderGreen_reflection_positive"
+across pphi2 / pphi2N / markov-semigroups / OSforGFF{,-dimensions} /
+OSreconstruction / lgt / rg / gaussian-field returned no hits outside this
+file). pphi2 builds its own resolvent-Plancherel identity directly in
+`pphi2/Pphi2/GeneralResults/ResolventFourierAnalysis.lean`, which avoids
+the convention bug because its theorem statements never make a kernel claim
+— they only assert symbol-algebra identities. So moving this file out of the
+build path breaks nothing.
+
+## Plan when Route C is revived
+
+1. Introduce 2π-aware symbols `lorentzianSymbol2pi ω p := 1/((2πp)² + ω²)`
+   and `resolventSymbol2pi ω p := ((2πp)² + ω²)^{-1/2}`. With the new
+   symbols, `realFourierMultiplierCLM (lorentzianSymbol2pi ω) g` does have
+   convolution kernel `e^{-ω|·|}/(2ω)` in Mathlib convention, so the
+   original-style chain statements become correct.
+2. Restate the chain (`lorentzian_convolution_pointwise` ... through
+   `cylinderGreen_reflection_positive`) using the 2π-aware symbols.
+3. Discharge `lorentzian_convolution_pointwise` by porting OSforGFF's
+   `fourier_exponential_decay` (in `OSforGFF-dimensions/OSforGFF/FourierTransforms.lean:521`)
+   plus its prerequisite chain (lines 138–528, ~400 lines), and converting
+   from physics convention to Mathlib convention via a single change of
+   variables `k = 2πξ`.
+
+References for the Fourier identity itself:
+- Stein–Shakarchi, *Fourier Analysis*, Ch. 5.
+- Gradshteyn–Ryzhik 3.893.
+- Simon, *P(φ)₂ Euclidean (Quantum) Field Theory*, Appendix to §I.4.
+- OSforGFF-dimensions/OSforGFF/FourierTransforms.lean:521 (proved in
+  physics convention, needs a 2π adapter).
+
+# Reflection Positivity (OS3) for the Free Field on the Cylinder
+
+Proves the Osterwalder-Schrader reflection positivity axiom (OS3) for the
+free massive scalar field on S¹_L × ℝ:
+
+  `G(f, Θf) ≥ 0` for all positive-time test functions f.
+
+## Main results
+
+- `cylinderGreen_reflection_positive` — OS3 for the free Green's function (proved)
+
+## Mathematical background
+
+### The Laplace transform factorization
+
+For a test function `f = g ⊗ h` with `h` supported on `(0, ∞)` and
+`Θf = g ⊗ Θh` supported on `(-∞, 0)`, the Green's function decomposes as:
+
+  `G(f, Θf) = Σ_n |c_n(g)|² · |ĥ_L(ω_n)|² / (2ω_n)`
+
+where:
+- `c_n(g) = ⟨g, φ_n⟩_{L²(S¹)}` is the spatial Fourier coefficient
+- `ĥ_L(ω) = ∫₀^∞ h(t) e^{-ωt} dt` is the Laplace transform of h
+- `ω_n = resolventFreq L mass n` is the dispersion relation
+
+Each term is a perfect square divided by a positive constant, so the
+sum is non-negative. This factorization arises because the resolvent
+kernel `e^{-ω|t-s|}/(2ω)` factors as `e^{-ωt} · e^{ωs}/(2ω)` when
+`t > 0 > s`, turning the double integral into a product of single
+integrals (Laplace transforms).
+
+### Laplace embedding
+
+We encode the factorization via a **Laplace embedding** CLM
+`Λ : CylinderTestFunction L → ℓ²` whose components are the
+Laplace-resolved spatial Fourier coefficients:
+
+  `(Λf)_n = c_n(g) · ĥ_L(ω_n) / √(2ω_n)`
+
+The key identity is: for positive-time f,
+
+  `G(f, Θf) = ‖Λf‖²_{ℓ²} ≥ 0`
+
+This makes reflection positivity a trivial consequence of the
+non-negativity of norms.
+
+### Physical significance
+
+Reflection positivity is the Euclidean counterpart of unitarity in
+quantum field theory. Via the Osterwalder-Schrader reconstruction
+theorem, it implies:
+- The Hilbert space of physical states has a positive-definite inner product
+- The Hamiltonian is a self-adjoint operator bounded below
+- Wightman positivity holds for the reconstructed Minkowski theory
+
+## References
+
+- Osterwalder-Schrader (1973), Axiom (A3)
+- Glimm-Jaffe, *Quantum Physics*, §6.1, Theorem 6.1.1
+- Simon, *The P(φ)₂ Euclidean QFT*, Ch. I, §3
+-/
+
+import Cylinder.GreenFunction
+import Cylinder.PositiveTime
+import SchwartzFourier.LaplaceCLM
+import HeatKernel.GreenInvariance
+import SchwartzNuclear.HermiteHilbertBasis
+
+noncomputable section
+
+namespace GaussianField
+
+variable (L : ℝ) [hL : Fact (0 < L)]
+
+/-! ## Laplace transform on Schwartz space
+
+The Laplace transform `L_ω(h) = ∫₀^∞ h(t) e^{-ωt} dt` is a continuous linear
+functional on `𝓢(ℝ)` for each `ω > 0`. Defined and proved in
+`SchwartzFourier.LaplaceCLM`:
+
+- `schwartzLaplaceEvalCLM` — the CLM (constructed, not axiomatized)
+- `schwartzLaplaceEvalCLM_apply` — specification (proved by rfl)
+- `schwartzLaplace_uniformBound` — uniform bound for ω ≥ mass (proved) -/
+
+/-! ## Laplace embedding
+
+The Laplace embedding maps test functions to ℓ² via the Laplace-resolved
+spatial Fourier decomposition. For a pure tensor `g ⊗ h`:
+
+  `(Λ(g ⊗ h))_n = c_n(g) · ĥ_L(ω_n) / √(2ω_n)`
+
+where `ĥ_L(ω) = ∫₀^∞ h(t) e^{-ωt} dt` is the Laplace transform of h at
+frequency ω, and `c_n(g)` is the n-th spatial Fourier coefficient of g.
+
+The Laplace transform is well-defined because h ∈ 𝓢(ℝ) decays rapidly
+and ω_n > 0 for mass > 0. The resulting sequence is in ℓ² because the
+spatial Fourier coefficients of g ∈ C∞(S¹) decay rapidly and the Laplace
+transforms are bounded. -/
+
+/-- The a-th coordinate functional of the Laplace embedding.
+
+For spatial mode `a`, this is:
+  `f ↦ (1/√(2ω_a)) · L_{ω_a}(ntpSliceSchwartz L a f)`
+
+This is a CLM `CylinderTestFunction L →L[ℝ] ℝ` as a composition of:
+- `ntpSliceSchwartz L a : CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ`
+- `schwartzLaplaceEvalCLM ω_a : SchwartzMap ℝ ℝ →L[ℝ] ℝ`
+- scaling by `1/√(2ω_a)` -/
+def laplaceEmbeddingCoord (mass : ℝ) (hmass : 0 < mass) (a : ℕ) :
+    CylinderTestFunction L →L[ℝ] ℝ :=
+  (1 / Real.sqrt (2 * resolventFreq L mass a)) •
+    (schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)).comp
+      (ntpSliceSchwartz L a)
+
+/-- The coordinate functional is the composition of slice, Laplace eval, and scaling. -/
+theorem laplaceEmbeddingCoord_apply (mass : ℝ) (hmass : 0 < mass) (a : ℕ)
+    (f : CylinderTestFunction L) :
+    laplaceEmbeddingCoord L mass hmass a f =
+    (1 / Real.sqrt (2 * resolventFreq L mass a)) *
+    schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+      (ntpSliceSchwartz L a f) := by
+  simp [laplaceEmbeddingCoord, ContinuousLinearMap.smul_apply, smul_eq_mul]
+
+/-- **Decay bound for the Laplace embedding coordinates.**
+
+  `|laplaceEmbeddingCoord a f| ≤ C · p(f) · (1+a)^{-2}`
+
+The proof chains three bounds:
+1. **Laplace uniform bound**: `|L_ω(h)| ≤ C_L · schwartz_p(h)` for `ω ≥ mass`
+2. **Inverse Hermite**: `schwartz_p(equiv⁻¹ g) ≤ C_inv · rds_p(g)`
+3. **Slice decay**: `rds_p(slice_a f) ≤ Z · rds_q(f) · (1+a)^{-4}`
+
+Combined with the `1/√(2ω_a) ≤ 1/√(2·mass)` scaling, this gives `(1+a)^{-4}`
+decay, which is much stronger than the `(1+a)^{-2}` required for ℓ². -/
+theorem laplaceEmbeddingCoord_decay (mass : ℝ) (hmass : 0 < mass) :
+    ∃ (s : Finset (DyninMityaginSpace.ι (E := CylinderTestFunction L))) (C : ℝ) (_ : 0 < C),
+    ∀ (a : ℕ) (f : CylinderTestFunction L),
+      |laplaceEmbeddingCoord L mass hmass a f| ≤
+      (C * (s.sup DyninMityaginSpace.p) f) * (1 + (a : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
+  -- Step 1: Laplace uniform Schwartz bound
+  obtain ⟨s_L, C_L, hC_L, h_laplace⟩ := schwartzLaplace_uniformBound mass hmass
+  -- Step 2: Inverse Hermite bound (Schwartz seminorms of equiv⁻¹ g bounded by RDS seminorms of g)
+  have h_inv_combined :
+      ∃ (s_inv : Finset ℕ) (C_inv : NNReal), C_inv ≠ 0 ∧
+      ∀ g : RapidDecaySeq,
+        (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+          (schwartzRapidDecayEquiv1D.symm g) ≤
+        ↑C_inv * (s_inv.sup RapidDecaySeq.rapidDecaySeminorm) g := by
+    have h_each : ∀ idx : ℕ × ℕ,
+        ∃ (s_j : Finset ℕ) (C_j : NNReal), C_j ≠ 0 ∧
+        ∀ g : RapidDecaySeq,
+          SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) idx.1 idx.2
+            (schwartzRapidDecayEquiv1D.symm g) ≤
+          ↑C_j * (s_j.sup RapidDecaySeq.rapidDecaySeminorm) g := by
+      intro ⟨k', l'⟩
+      set q : Seminorm ℝ RapidDecaySeq :=
+        (SchwartzMap.seminorm ℝ k' l').comp
+          schwartzRapidDecayEquiv1D.symm.toContinuousLinearMap.toLinearMap
+      have hq_cont : Continuous q :=
+        ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨k', l'⟩).comp
+          schwartzRapidDecayEquiv1D.symm.continuous
+      obtain ⟨s, C, hCne, hle⟩ := Seminorm.bound_of_continuous
+        RapidDecaySeq.rapidDecay_withSeminorms q hq_cont
+      exact ⟨s, C, hCne, fun g => Seminorm.le_def.mp hle g⟩
+    choose s_j C_j hC_j h_j using h_each
+    refine ⟨s_L.biUnion s_j,
+      s_L.sum (fun idx => C_j idx) + 1,
+      by simp, fun g => ?_⟩
+    set big_rds := (s_L.biUnion s_j).sup RapidDecaySeq.rapidDecaySeminorm
+    apply Seminorm.finset_sup_apply_le (by positivity)
+    intro idx hidx
+    calc SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) idx.1 idx.2
+          (schwartzRapidDecayEquiv1D.symm g)
+        ≤ ↑(C_j idx) * ((s_j idx).sup RapidDecaySeq.rapidDecaySeminorm) g := h_j idx g
+      _ ≤ ↑(C_j idx) * big_rds g := by
+          apply mul_le_mul_of_nonneg_left _ (by positivity)
+          exact Seminorm.le_def.mp (Finset.sup_mono (Finset.subset_biUnion_of_mem s_j hidx)) g
+      _ ≤ ↑(s_L.sum (fun idx => C_j idx)) * big_rds g := by
+          apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+          push_cast
+          exact_mod_cast Finset.single_le_sum (fun j _ => (C_j j).coe_nonneg) hidx
+      _ ≤ ↑(s_L.sum (fun idx => C_j idx) + 1) * big_rds g := by
+          apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+          push_cast; linarith
+  obtain ⟨s_inv, C_inv, hC_inv_ne, h_inv⟩ := h_inv_combined
+  -- Step 3: Slice extraction decay
+  -- For each k ∈ s_inv, rds_k(slice_a f) ≤ Z * rds_{k+4+2} f * (1+a)^{-4}
+  set Z := ∑' (n : ℕ), ((1 + (n : ℝ)) ^ 2)⁻¹ with hZ
+  have hZ_pos : 0 < Z :=
+    NuclearTensorProduct.summable_inv_one_add_sq.tsum_pos
+      (fun n => by positivity) 0 (by positivity)
+  set s_total := s_inv.image (· + 6) with hs_total
+  have h_slice_decay : ∀ (n : ℕ) (f : CylinderTestFunction L),
+      (s_inv.sup RapidDecaySeq.rapidDecaySeminorm) (ntpExtractSlice n f) ≤
+      Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+      ((1 + (n : ℝ)) ^ 4)⁻¹ := by
+    intro n f
+    apply Seminorm.finset_sup_apply_le (by positivity)
+    intro k hk
+    have h_decay := ntpExtractSlice_a_decay n k 4 f
+    calc RapidDecaySeq.rapidDecaySeminorm k (ntpExtractSlice n f)
+        ≤ Z * RapidDecaySeq.rapidDecaySeminorm (k + 4 + 2) f *
+          ((1 + (n : ℝ)) ^ 4)⁻¹ := h_decay
+      _ ≤ Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (n : ℝ)) ^ 4)⁻¹ := by
+        gcongr
+        exact Seminorm.le_finset_sup_apply (Finset.mem_image.mpr ⟨k, hk, rfl⟩)
+  -- Step 4: Combine everything
+  -- scaling: 1/√(2ω_a) ≤ 1/√(2·mass) since ω_a ≥ mass
+  set scale := 1 / Real.sqrt (2 * mass) with hscale_def
+  have hscale_pos : 0 < scale := by
+    apply div_pos one_pos
+    exact Real.sqrt_pos_of_pos (by positivity)
+  -- Total constant
+  set C_total := scale * C_L * ↑C_inv * Z with hC_total
+  refine ⟨s_total, C_total + 1, by positivity, fun a f => ?_⟩
+  -- Chain:
+  -- |laplaceEmbeddingCoord a f|
+  --   = |1/√(2ω_a)| * |L_{ω_a}(slice_a f)|
+  --   ≤ scale * |L_{ω_a}(slice_a f)|
+  --   ≤ scale * C_L * schwartz_p(slice_a f)
+  --   = scale * C_L * schwartz_p(equiv⁻¹(ntpExtractSlice a f))
+  --   ≤ scale * C_L * C_inv * rds_p(ntpExtractSlice a f)
+  --   ≤ scale * C_L * C_inv * Z * (s_total.sup rds) f * (1+a)^{-4}
+  --   ≤ C_total * p(f) * (1+a)^{-2}  (since (1+a)^{-4} ≤ (1+a)^{-2})
+  rw [laplaceEmbeddingCoord_apply]
+  -- Bound the absolute value of the product
+  have h1 : |1 / Real.sqrt (2 * resolventFreq L mass a)| ≤ scale := by
+    rw [abs_div, abs_one, abs_of_nonneg (Real.sqrt_nonneg _)]
+    apply one_div_le_one_div_of_le (Real.sqrt_pos_of_pos (by positivity))
+    apply Real.sqrt_le_sqrt
+    apply mul_le_mul_of_nonneg_left _ (by positivity : (0 : ℝ) ≤ 2)
+    exact resolventFreq_mass_le L mass hmass.le a
+  -- Bound the Laplace evaluation
+  have hωa := resolventFreq_mass_le L mass hmass.le a
+  have h2 : |schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+      (ntpSliceSchwartz L a f)| ≤
+      C_L * (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+        (ntpSliceSchwartz L a f) :=
+    h_laplace (resolventFreq L mass a) hωa (ntpSliceSchwartz L a f)
+  -- ntpSliceSchwartz = equiv⁻¹ ∘ ntpExtractSlice
+  have h_slice_eq : ntpSliceSchwartz L a f =
+      schwartzRapidDecayEquiv1D.symm (ntpExtractSlice a f) := rfl
+  -- Bound Schwartz seminorms via inverse Hermite
+  have h3 : (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+      (ntpSliceSchwartz L a f) ≤
+      ↑C_inv * (s_inv.sup RapidDecaySeq.rapidDecaySeminorm) (ntpExtractSlice a f) := by
+    rw [h_slice_eq]; exact h_inv (ntpExtractSlice a f)
+  -- Bound slice RDS seminorms via decay
+  have h4 := h_slice_decay a f
+  -- Now chain the bounds
+  have h_abs_prod : |1 / Real.sqrt (2 * resolventFreq L mass a) *
+      schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+        (ntpSliceSchwartz L a f)| ≤
+      scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+      ((1 + (a : ℝ)) ^ 4)⁻¹ := by
+    rw [abs_mul]
+    calc |1 / Real.sqrt (2 * resolventFreq L mass a)| *
+          |schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+            (ntpSliceSchwartz L a f)|
+        ≤ scale * (C_L * (s_L.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2))
+            (ntpSliceSchwartz L a f)) := by gcongr
+      _ ≤ scale * (C_L * (↑C_inv * (s_inv.sup RapidDecaySeq.rapidDecaySeminorm)
+            (ntpExtractSlice a f))) := by gcongr
+      _ ≤ scale * (C_L * (↑C_inv * (Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+            ((1 + (a : ℝ)) ^ 4)⁻¹))) := by gcongr
+      _ = scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+            ((1 + (a : ℝ)) ^ 4)⁻¹ := by ring
+  -- (1+a)^{-4} ≤ (1+a)^{-2}
+  have h_pow_le : ((1 + (a : ℝ)) ^ 4)⁻¹ ≤ ((1 + (a : ℝ)) ^ 2)⁻¹ :=
+    inv_anti₀ (by positivity)
+      (pow_le_pow_right₀ (by linarith [Nat.cast_nonneg (α := ℝ) a] : (1 : ℝ) ≤ 1 + (a : ℝ))
+        (by omega))
+  -- Convert rpow to pow
+  rw [show ((-2 : ℤ) : ℝ) = (-2 : ℝ) from by norm_cast,
+      Real.rpow_neg (by positivity : (0 : ℝ) ≤ 1 + (a : ℝ)),
+      show (2 : ℝ) = ((2 : ℕ) : ℝ) from by norm_cast,
+      Real.rpow_natCast]
+  calc |1 / Real.sqrt (2 * resolventFreq L mass a) *
+        schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+          (ntpSliceSchwartz L a f)|
+      ≤ scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 4)⁻¹ := h_abs_prod
+    _ ≤ scale * C_L * ↑C_inv * Z * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 2)⁻¹ := by gcongr
+    _ = C_total * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 2)⁻¹ := by ring
+    _ ≤ (C_total + 1) * (s_total.sup RapidDecaySeq.rapidDecaySeminorm) f *
+          ((1 + (a : ℝ)) ^ 2)⁻¹ := by
+      gcongr
+      linarith
+
+/-- Helper: package the decay bound for `nuclear_ell2_embedding_from_decay`. -/
+private def laplaceEmbedding_ell2 (mass : ℝ) (hmass : 0 < mass) :
+    ∃ (j : CylinderTestFunction L →L[ℝ] ell2'),
+      ∀ (f : CylinderTestFunction L) (a : ℕ),
+        (j f : ℕ → ℝ) a = laplaceEmbeddingCoord L mass hmass a f := by
+  obtain ⟨s, C, hC, hdecay⟩ := laplaceEmbeddingCoord_decay L mass hmass
+  exact nuclear_ell2_embedding_from_decay
+    (laplaceEmbeddingCoord L mass hmass) s C hC hdecay
+
+/-- **The Laplace embedding** `Λ : CylinderTestFunction L → ℓ²`.
+
+Maps test functions to ℓ² via the Laplace-resolved spatial Fourier
+decomposition. The a-th component of `Λf` encodes the coupling of the
+a-th spatial Fourier mode to the temporal Laplace transform at the
+corresponding resolvent frequency `ω_a`:
+
+  `(Λf)_a = (1/√(2ω_a)) · L_{ω_a}(slice_a f)`
+
+Constructed from the coordinate functionals `laplaceEmbeddingCoord` via
+`nuclear_ell2_embedding_from_decay`. The coordinates decay like `(1+a)^{-4}`,
+well within the `(1+a)^{-2}` required for ℓ² membership.
+
+Used to prove reflection positivity: `G(f, Θf) = ‖Λf‖² ≥ 0`. -/
+def cylinderLaplaceEmbedding (mass : ℝ) (hmass : 0 < mass) :
+    CylinderTestFunction L →L[ℝ] ell2' :=
+  (laplaceEmbedding_ell2 L mass hmass).choose
+
+/-- The a-th coordinate of the Laplace embedding is the coordinate functional.
+
+  `(Λf)_a = laplaceEmbeddingCoord L mass hmass a f` -/
+theorem cylinderLaplaceEmbedding_coord (mass : ℝ) (hmass : 0 < mass)
+    (f : CylinderTestFunction L) (a : ℕ) :
+    (cylinderLaplaceEmbedding L mass hmass f : ℕ → ℝ) a =
+    laplaceEmbeddingCoord L mass hmass a f :=
+  (laplaceEmbedding_ell2 L mass hmass).choose_spec f a
+
+/-! ### Self-adjointness of even Fourier multipliers
+
+The Fourier multiplier `M_σ` with real even symbol `σ` is self-adjoint in L²:
+`∫ (M_σ f)(t) * g(t) dt = ∫ f(t) * (M_σ g)(t) dt`.
+
+Proof strategy:
+1. Lift to complex Schwartz functions via `schwartzToComplex`
+2. Use `integral_fourierInv_mul_eq` to move both sides to Fourier space
+3. Use evenness of σ and `integral_neg_eq_self` (substitution p → -p) to
+   show the Fourier-space integrals are equal -/
+
+/-- **Complex multiplier self-adjointness for even symbols.**
+
+For a real even symbol `σ` with temperate growth, the complex Fourier multiplier
+`M_σ` on `𝓢(ℝ, ℂ)` satisfies `∫ (M_σ F) * G = ∫ F * (M_σ G)`.
+
+Proof: Both sides reduce to `∫ σ(p) * ℱF(p) * ℱG(-p) dp` via
+`integral_fourierInv_mul_eq`, and evenness of σ plus the substitution
+`p → -p` (`integral_neg_eq_self`) shows this equals `∫ σ(p) * ℱG(p) * ℱF(-p) dp`. -/
+theorem complex_multiplier_selfadjoint_even (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) (F G : SchwartzMap ℝ ℂ) :
+    ∫ t, (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ F) t * G t =
+    ∫ t, F t * (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ G) t := by
+  -- Rewrite both sides using M_σ F = ℱ⁻¹(σ·ℱF) and integral_fourierInv_mul_eq
+  conv_lhs => arg 2; ext t; rw [SchwartzMap.fourierMultiplierCLM_apply]
+  rw [SchwartzMap.integral_fourierInv_mul_eq
+    (SchwartzMap.smulLeftCLM ℂ σ (FourierTransform.fourier F)) G]
+  conv_rhs => arg 2; ext t;
+    rw [show F t * (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ G) t =
+      (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ G) t * F t from mul_comm _ _]
+  conv_rhs => arg 2; ext t; rw [SchwartzMap.fourierMultiplierCLM_apply]
+  rw [SchwartzMap.integral_fourierInv_mul_eq
+    (SchwartzMap.smulLeftCLM ℂ σ (FourierTransform.fourier G)) F]
+  -- Both sides are now Fourier-space integrals:
+  -- LHS = ∫ σ(p) • ℱF(p) * ℱ⁻¹G(p) dp
+  -- RHS = ∫ σ(p) • ℱG(p) * ℱ⁻¹F(p) dp
+  -- Expand ℱ⁻¹ = ℱ ∘ neg (by SchwartzMap.fourierInv_apply_eq)
+  simp_rw [SchwartzMap.fourierInv_apply_eq,
+    SchwartzMap.compCLMOfContinuousLinearEquiv_apply,
+    SchwartzMap.smulLeftCLM_apply hσ]
+  -- Now: ∫ σ(p) • ℱF(p) * ℱG(-p) = ∫ σ(p) • ℱG(p) * ℱF(-p)
+  -- Rewrite LHS integrand as (RHS integrand)(-p) and apply integral_neg_eq_self
+  rw [show (fun p => σ p •
+      ((FourierTransform.fourier F : SchwartzMap ℝ ℂ) : ℝ → ℂ) p *
+      ((FourierTransform.fourier G : SchwartzMap ℝ ℂ) : ℝ → ℂ)
+        ((LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv p)) =
+    (fun p => (fun q => σ q •
+      ((FourierTransform.fourier G : SchwartzMap ℝ ℂ) : ℝ → ℂ) q *
+      ((FourierTransform.fourier F : SchwartzMap ℝ ℂ) : ℝ → ℂ)
+        ((LinearIsometryEquiv.neg ℝ (E := ℝ)).toContinuousLinearEquiv q)) (-p)) from by
+    ext p
+    simp only [LinearIsometryEquiv.coe_toContinuousLinearEquiv,
+      LinearIsometryEquiv.neg_apply]
+    rw [neg_neg, heven, Complex.real_smul, Complex.real_smul, mul_comm
+      (((FourierTransform.fourier F : SchwartzMap ℝ ℂ) : ℝ → ℂ) p)
+      (((FourierTransform.fourier G : SchwartzMap ℝ ℂ) : ℝ → ℂ) (-p))]]
+  exact MeasureTheory.integral_neg_eq_self _ _
+
+/-- **Bridge**: `ofReal(M_σ_real f x) = M_σ_ℂ(ofReal ∘ f) x` for even real symbol.
+
+The real Fourier multiplier is `re ∘ M_σ_ℂ ∘ ofReal`. By
+`fourierMultiplier_preserves_real`, `M_σ_ℂ(ofReal f)` is already real-valued
+(for even σ), so `ofReal ∘ re = id` on its range. -/
+theorem ofReal_realMultiplier_eq (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+    (Complex.ofReal ((realFourierMultiplierCLM σ hσ f) x) : ℂ) =
+    (SchwartzMap.fourierMultiplierCLM (𝕜 := ℝ) ℂ σ (schwartzToComplex f)) x := by
+  have h := fourierMultiplier_preserves_real σ hσ heven
+  have hpt := congr_fun (congr_arg SchwartzMap.toFun
+    (ContinuousLinearMap.ext_iff.mp h f)) x
+  simp only [ContinuousLinearMap.comp_apply] at hpt
+  rw [← hpt]
+  simp [schwartzToComplex, schwartzToReal, realFourierMultiplierCLM]
+
+/-- **Self-adjointness of real even Fourier multipliers** (Parseval identity):
+
+  `∫ (M_σ f)(t) * g(t) dt = ∫ f(t) * (M_σ g)(t) dt`
+
+for real Schwartz functions `f, g` and real even symbol `σ`.
+
+Proof: Lift to complex via `ofReal`, use `complex_multiplier_selfadjoint_even`,
+project back via `Complex.ofReal_injective`. The bridge
+`ofReal_realMultiplier_eq` (from `fourierMultiplier_preserves_real`) ensures
+`ofReal(M_σ_real f) = M_σ_ℂ(ofReal f)`. -/
+theorem real_parseval_multiplier (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth)
+    (heven : ∀ p, σ (-p) = σ p) (f g : SchwartzMap ℝ ℝ) :
+    ∫ t, (realFourierMultiplierCLM σ hσ f) t * g t =
+    ∫ t, f t * (realFourierMultiplierCLM σ hσ g) t := by
+  -- Lift to ℂ: ofReal is injective and preserves integrals
+  apply Complex.ofReal_injective
+  rw [Complex.ofReal_integral, Complex.ofReal_integral]
+  simp_rw [Complex.ofReal_mul, ofReal_realMultiplier_eq σ hσ heven]
+  -- Now both sides are complex integrals of M_σ_ℂ(ofReal ·)
+  exact complex_multiplier_selfadjoint_even σ hσ heven
+    (schwartzToComplex f) (schwartzToComplex g)
+
+/-! ### Resolvent squared = Lorentzian convolution
+
+The composition `R_ω ∘ R_ω` is the Fourier multiplier with Lorentzian symbol
+`σ_ω(p)² = (p² + ω²)⁻¹`, which equals convolution with `exp(-ω|·|)/(2ω)`.
+This is the Fourier transform identity `ℱ(exp(-ω|·|))(p) = 2ω/(p² + ω²)`. -/
+
+/-- The Lorentzian symbol: `1/(p² + ω²)`. -/
+def lorentzianSymbol (ω : ℝ) (p : ℝ) : ℝ := (p ^ 2 + ω ^ 2)⁻¹
+
+/-- The resolvent symbol squared equals the Lorentzian symbol:
+`σ_ω(p)² = (p² + ω²)^{-1} = lorentzianSymbol ω p`. -/
+theorem resolventSymbol_sq (ω : ℝ) (hω : 0 < ω) :
+    resolventSymbol ω * resolventSymbol ω = lorentzianSymbol ω := by
+  ext p; simp only [Pi.mul_apply, resolventSymbol, lorentzianSymbol]
+  rw [← Real.rpow_natCast, ← Real.rpow_natCast,
+      ← Real.rpow_mul (by positivity)]
+  norm_num; rw [Real.rpow_neg_one (by positivity)]
+
+/-- The Lorentzian symbol has temperate growth (product of two resolvent symbols). -/
+theorem lorentzianSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
+    (lorentzianSymbol ω).HasTemperateGrowth := by
+  rw [← resolventSymbol_sq ω hω]
+  exact (resolventSymbol_hasTemperateGrowth ω hω).mul
+    (resolventSymbol_hasTemperateGrowth ω hω)
+
+/-- The Lorentzian symbol is even: `1/((-p)² + ω²) = 1/(p² + ω²)`. -/
+theorem lorentzianSymbol_even (ω : ℝ) (p : ℝ) :
+    lorentzianSymbol ω (-p) = lorentzianSymbol ω p := by
+  unfold lorentzianSymbol; ring_nf
+
+/-- **Lorentzian convolution identity** (pointwise):
+
+  `(M_{1/(p²+ω²)} g)(t) = (1/(2ω)) * ∫ exp(-ω|t-s|) * g(s) ds`
+
+The Fourier multiplier with Lorentzian symbol `1/(p² + ω²)` acts as convolution
+with the kernel `exp(-ω|·|)/(2ω)`. This is equivalent to the Fourier transform
+identity `ℱ(exp(-ω|·|))(p) = 2ω/(p² + ω²)`.
+
+References: Stein-Shakarchi, *Fourier Analysis*, Ch. 5;
+Gradshteyn-Ryzhik 3.893; Simon, *P(φ)₂*, Appendix to §I.4. -/
+theorem lorentzian_convolution_pointwise (ω : ℝ) (hω : 0 < ω)
+    (g : SchwartzMap ℝ ℝ) (t : ℝ) :
+    (realFourierMultiplierCLM (lorentzianSymbol ω)
+      (lorentzianSymbol_hasTemperateGrowth ω hω) g) t =
+    (1 / (2 * ω)) * ∫ s, Real.exp (-ω * |t - s|) * g s := by
+  sorry
+
+/-- **Resolvent squared convolution identity.**
+
+  `∫ f(t) * (R_ω(R_ω g))(t) dt = (1/(2ω)) * ∫ f(t) * (∫ exp(-ω|t-s|) * g(s) ds) dt`
+
+Proved by:
+1. `R_ω ∘ R_ω = M_{σ_ω²}` (multiplier composition, `realFourierMultiplierCLM_comp`)
+2. `σ_ω² = lorentzianSymbol ω` (`resolventSymbol_sq`)
+3. `M_{lorentzian} g = (1/(2ω)) * ∫ exp(-ω|·-s|) g(s) ds` (`lorentzian_convolution_pointwise`) -/
+theorem resolvent_squared_convolution
+    (ω : ℝ) (hω : 0 < ω) (f g : SchwartzMap ℝ ℝ) :
+    ∫ t, f t * (resolventMultiplierCLM hω (resolventMultiplierCLM hω g)) t =
+    (1 / (2 * ω)) * ∫ t, f t * ∫ s, Real.exp (-ω * |t - s|) * g s := by
+  -- Step 1: R_ω(R_ω g) = M_{σ²} g = M_{lorentzian} g
+  have hcomp : resolventMultiplierCLM hω (resolventMultiplierCLM hω g) =
+      realFourierMultiplierCLM (lorentzianSymbol ω)
+        (lorentzianSymbol_hasTemperateGrowth ω hω) g := by
+    show (realFourierMultiplierCLM (resolventSymbol ω)
+        (resolventSymbol_hasTemperateGrowth ω hω))
+      ((realFourierMultiplierCLM (resolventSymbol ω)
+        (resolventSymbol_hasTemperateGrowth ω hω)) g) = _
+    rw [← ContinuousLinearMap.comp_apply,
+        realFourierMultiplierCLM_comp _ _ _ _ (resolventSymbol_even ω)]
+    congr 1
+    · exact resolventSymbol_sq ω hω
+    · exact proof_irrel _ _
+  rw [hcomp]
+  -- Step 2: Apply lorentzian_convolution_pointwise
+  congr 1; ext t
+  exact lorentzian_convolution_pointwise ω hω g t
+
+/-- **Resolvent Plancherel identity**: the L² inner product of resolvent outputs
+equals the exponential-kernel convolution integral.
+
+  `∫ (R_ω h)(t) · (R_ω g)(t) dt = (1/(2ω)) * ∫ h(t) * (∫ exp(-ω|t-s|) * g(s) ds) dt`
+
+Proved in two steps:
+1. **Self-adjointness** (`real_parseval_multiplier`): move one `R_ω` to the other
+   side: `∫ (R_ω h) * (R_ω g) = ∫ h * R_ω(R_ω g)`.
+2. **Resolvent squared** (`resolvent_squared_convolution`): `R_ω ∘ R_ω = M_{σ²}`
+   where `σ²(p) = 1/(p²+ω²)`, and `M_{σ²}` is convolution with `exp(-ω|·|)/(2ω)`. -/
+theorem resolvent_plancherel
+    (ω : ℝ) (hω : 0 < ω)
+    (h g : SchwartzMap ℝ ℝ) :
+    ∫ t, (resolventMultiplierCLM hω h) t * (resolventMultiplierCLM hω g) t =
+    (1 / (2 * ω)) * ∫ t, h t * ∫ s, Real.exp (-ω * |t - s|) * g s := by
+  -- Step 1: Use self-adjointness of R_ω to move one R_ω to the other side
+  rw [real_parseval_multiplier (resolventSymbol ω)
+    (resolventSymbol_hasTemperateGrowth ω hω) (resolventSymbol_even ω)
+    h (resolventMultiplierCLM hω g)]
+  -- Step 2: Apply the resolvent squared convolution identity
+  exact resolvent_squared_convolution ω hω h g
+
+/-- **L² resolvent-reflection identity.**
+
+  `∫ (R_ω h)(t) · (R_ω h̃)(t) dt = (1/(2ω)) · (L_ω h)²`
+
+Proved from `resolvent_plancherel` + `exp_factorization_reflection` +
+positive-time support of h. -/
+theorem resolvent_laplace_l2
+    (ω : ℝ) (hω : 0 < ω)
+    (h : SchwartzMap ℝ ℝ) (hh : h ∈ schwartzPositiveTimeSubmodule) :
+    ∫ t, (resolventMultiplierCLM hω h) t *
+         (resolventMultiplierCLM hω (schwartzReflection h)) t =
+    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2 := by
+  -- Step 1: Apply resolvent_plancherel
+  rw [resolvent_plancherel ω hω h (schwartzReflection h)]
+  -- Step 2: Show the double integral = (L_ω h)²
+  -- Ported from OSforGFF/OS/OS3_CovarianceRP.lean (factorization_to_squared_norm_direct)
+  -- 1D specialization: no spatial Fourier modes, just temporal.
+  congr 1
+  -- h vanishes on (-∞,0], h̃ = schwartzReflection h vanishes on [0,∞)
+  -- Key sub-lemma: inner integral simplifies for t > 0
+  have h_inner : ∀ t, 0 < t →
+      ∫ s, Real.exp (-ω * |t - s|) * (schwartzReflection h) s =
+      Real.exp (-ω * t) * ∫ u, h u * Real.exp (-ω * u) := by
+    intro t ht
+    simp only [show ∀ s, schwartzReflection h s = h (-s) from fun s => rfl]
+    have h_eq : ∀ s, Real.exp (-ω * |t - s|) * h (-s) =
+        Real.exp (-ω * t) * (Real.exp (ω * s) * h (-s)) := by
+      intro s; by_cases hs : 0 ≤ s
+      · simp [hh (-s) (by linarith)]
+      · push Not at hs; rw [show |t - s| = t - s from abs_of_pos (by linarith),
+          show Real.exp (-ω * (t - s)) = Real.exp (-ω * t) * Real.exp (ω * s) from by
+            rw [← Real.exp_add]; congr 1; ring]; ring
+    simp_rw [h_eq, MeasureTheory.integral_const_mul]; congr 1
+    rw [show (fun s => Real.exp (ω * s) * h (-s)) =
+      ((fun u => h u * Real.exp (-ω * u)) ∘ Neg.neg) from by ext s; simp; ring]
+    rw [← MeasureTheory.integral_sub_left_eq_self _ MeasureTheory.volume 0]; simp
+  -- Rewrite L_ω h as full integral (h vanishes on (-∞,0])
+  have hL_eq : (schwartzLaplaceEvalCLM ω hω h) = ∫ t, h t * Real.exp (-ω * t) := by
+    show ∫ t in Set.Ici (0 : ℝ), h t * Real.exp (-ω * t) = _
+    rw [← MeasureTheory.integral_indicator measurableSet_Ici]
+    apply MeasureTheory.integral_congr_ae; filter_upwards with t
+    by_cases ht : 0 ≤ t
+    · simp [Set.indicator_of_mem (Set.mem_Ici.mpr ht)]
+    · push Not at ht
+      have : t ∉ Set.Ici (0 : ℝ) := by simp; linarith
+      simp [this, hh t (le_of_lt ht)]
+  rw [hL_eq]; set L := ∫ u, h u * Real.exp (-ω * u)
+  -- The integrand is ae equal to h(t) * exp(-ωt) * L
+  have h_ae : ∀ᵐ t, h t * ∫ s, Real.exp (-ω * |t - s|) * (schwartzReflection h) s =
+      h t * Real.exp (-ω * t) * L := by
+    filter_upwards with t
+    by_cases ht : t ≤ 0
+    · simp [hh t ht]
+    · push Not at ht; rw [h_inner t ht, mul_assoc]
+  rw [MeasureTheory.integral_congr_ae h_ae]
+  rw [show ∫ t, h t * Real.exp (-ω * t) * L = L * ∫ t, h t * Real.exp (-ω * t) from by
+    rw [← MeasureTheory.integral_const_mul]; congr 1; ext t; ring]
+  ring
+
+/-- The DM coefficient inner product version, derived from the L² version
+via `dm_parseval`. -/
+theorem resolvent_laplace_inner
+    (ω : ℝ) (hω : 0 < ω)
+    (h : SchwartzMap ℝ ℝ) (hh : h ∈ schwartzPositiveTimeSubmodule) :
+    ∑' b, DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b
+            (resolventMultiplierCLM hω h) *
+          DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b
+            (resolventMultiplierCLM hω (schwartzReflection h)) =
+    (1 / (2 * ω)) * (schwartzLaplaceEvalCLM ω hω h) ^ 2 := by
+  rw [dm_parseval, resolvent_laplace_l2 ω hω h hh]
+
+/-- Slicing commutes with time reflection: `slice_a(Θf) = Θ(slice_a f)`.
+
+**Proof structure** (tested, needs import/visibility fixes):
+1. Both sides are CLMs. By `DyninMityaginSpace.hasSum_basis`, it suffices
+   to check on DM basis vectors (Schauder expansion + HasSum uniqueness).
+2. DM basis of NTP = `pure (basis a') (basis b')` by `basisVec_eq_pure`
+   (needs `smoothCircle_coeff_basis` + `schwartz1d_coeff_basis`).
+3. On pure tensors: `slice_a(Θ(g ⊗ h)) = slice_a(g ⊗ Θh) = coeff_a(g)•Θh`
+   and `Θ(slice_a(g ⊗ h)) = Θ(coeff_a(g)•h) = coeff_a(g)•Θh`. ✓
+
+Blocked by: `smoothCircle_coeff_basis` not imported (in HeatKernel/GreenInvariance),
+`schwartz1d_coeff_basis` not yet proved, and some private definitions. -/
+private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
+    ntpSliceSchwartz L a (cylinderTimeReflection L f) =
+    schwartzReflection (ntpSliceSchwartz L a f) := by
+  -- Two CLMs agree iff they agree on DM basis (Schauder expansion + HasSum uniqueness)
+  set T₁ : CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ :=
+    (ntpSliceSchwartz L a).comp (cylinderTimeReflection L)
+  set T₂ : CylinderTestFunction L →L[ℝ] SchwartzMap ℝ ℝ :=
+    schwartzReflection.comp (ntpSliceSchwartz L a)
+  change T₁ f = T₂ f
+  suffices h : T₁ = T₂ from congr_fun (congr_arg _ h) f
+  apply ContinuousLinearMap.ext; intro g
+  have hg := DyninMityaginSpace.hasSum_basis g
+  have h_basis : ∀ m, T₁ (DyninMityaginSpace.basis m) =
+      T₂ (DyninMityaginSpace.basis m) := by
+    intro m
+    simp only [T₁, T₂, ContinuousLinearMap.comp_apply]
+    -- NTP basis = pure of component bases
+    rw [show (DyninMityaginSpace.basis (E := CylinderTestFunction L) m :
+        CylinderTestFunction L) = NuclearTensorProduct.pure
+        (DyninMityaginSpace.basis (Nat.unpair m).1)
+        (DyninMityaginSpace.basis (Nat.unpair m).2) from
+      NuclearTensorProduct.basisVec_eq_pure (smoothCircle_coeff_basis L)
+        DyninMityaginSpace.HasBiorthogonalBasis.coeff_basis m]
+    -- Θ(pure g h) = pure g (Θh)
+    rw [show cylinderTimeReflection L (NuclearTensorProduct.pure _ _) =
+      NuclearTensorProduct.pure _ (schwartzReflection _) from
+      nuclearTensorProduct_mapCLM_pure _ _ _ _]
+    rw [ntpSliceSchwartz_pure, ntpSliceSchwartz_pure, map_smul]
+    simp [ContinuousLinearMap.id_apply]
+  -- HasSum uniqueness: both sums have the same terms (by h_basis), hence same limit
+  have h1 := hg.mapL T₁  -- HasSum (coeff • T₁ basis) (T₁ g)
+  have h2 := hg.mapL T₂  -- HasSum (coeff • T₂ basis) (T₂ g)
+  -- The summand functions are equal:
+  have h_eq : ∀ m, DyninMityaginSpace.coeff m g • T₁ (DyninMityaginSpace.basis m) =
+      DyninMityaginSpace.coeff m g • T₂ (DyninMityaginSpace.basis m) :=
+    fun m => by rw [h_basis m]
+  -- So T₁ g = T₂ g by HasSum.unique
+  -- h1 summand: T₁(c•ψ) = c • T₁(ψ) = c • T₂(ψ) (by map_smul + h_basis)
+  -- h2 summand: T₂(c•ψ) = c • T₂(ψ) (by map_smul)
+  -- So both have summand c • T₂(ψ), hence T₁ g = T₂ g by uniqueness
+  simp only [map_smul] at h1 h2
+  simp_rw [h_basis] at h1
+  exact h1.unique h2
+
+/-- Slicing preserves positive-time support. -/
+private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
+    (hf : f ∈ cylinderPositiveTimeSubmodule L) :
+    ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule :=
+  ntpSliceSchwartz_maps_positive L a f hf
+
+/-- The Laplace factorization identity for the cylinder Green's function.
+
+  `G(f, Θf) = ‖Λf‖²_{ℓ²}`
+
+Proved from the mode-level `resolvent_laplace_inner` axiom by:
+1. Expanding both sides as ℓ² tsums via coordinate formulas
+2. Grouping the LHS by spatial mode (Cantor pairing reorganization)
+3. Matching each mode's contribution with the Laplace embedding -/
+theorem cylinderGreen_reflection_eq_laplaceNorm
+    (mass : ℝ) (hmass : 0 < mass)
+    (f : CylinderTestFunction L)
+    (hf : f ∈ cylinderPositiveTimeSubmodule L) :
+    cylinderGreen L mass hmass f (cylinderTimeReflection L f) =
+    @inner ℝ ell2' _ (cylinderLaplaceEmbedding L mass hmass f)
+      (cylinderLaplaceEmbedding L mass hmass f) := by
+  -- Expand both sides as ℓ² tsums via coordinate formulas
+  simp only [cylinderGreen]
+  rw [lp.inner_eq_tsum (cylinderMassOperator L mass hmass f)
+      (cylinderMassOperator L mass hmass (cylinderTimeReflection L f)),
+      lp.inner_eq_tsum (cylinderLaplaceEmbedding L mass hmass f)
+      (cylinderLaplaceEmbedding L mass hmass f)]
+  simp only [inner_self_eq_norm_sq_to_K]
+  simp_rw [cylinderMassOperator_formula, cylinderLaplaceEmbedding_coord,
+    laplaceEmbeddingCoord_apply, ntpSliceSchwartz_timeReflection]
+  -- Both sides equal ∑' a, (1/(2ω_a)) * (L_{ω_a}(h_a))²
+  -- LHS via Cantor reindex + resolvent_laplace_inner
+  -- RHS via algebra: ‖c*x‖² = c²*x², (1/√(2ω))² = 1/(2ω)
+  set S := fun a => (1 / (2 * resolventFreq L mass a)) *
+    ((schwartzLaplaceEvalCLM (resolventFreq L mass a) (resolventFreq_pos L mass hmass a))
+      ((ntpSliceSchwartz L a) f)) ^ 2
+  -- Show both sides = ∑' a, S a
+  -- Step A: LHS = ∑' a, S a (via Cantor reindex + resolvent_laplace_inner)
+  -- Step B: RHS = ∑' a, S a (via algebra)
+  -- Then LHS = RHS by transitivity.
+  trans (∑' a, S a)
+  · -- Step A: LHS = ∑' a, S a
+    -- inner ℝ a b = a * b for reals
+    simp_rw [show ∀ a b : ℝ, @inner ℝ ℝ _ a b = a * b from
+      fun a b => by simp [inner, RCLike.re, conj_trivial, mul_comm]]
+    -- Reindex: ∑' m, F(unpair m) = ∑' a, ∑' b, F(a,b)
+    rw [show (∑' i, DyninMityaginSpace.coeff (Nat.unpair i).2
+          (resolventMultiplierCLM _ (ntpSliceSchwartz L (Nat.unpair i).1 f)) *
+        DyninMityaginSpace.coeff (Nat.unpair i).2
+          (resolventMultiplierCLM _ (schwartzReflection (ntpSliceSchwartz L (Nat.unpair i).1 f)))) =
+      ∑' a, ∑' b, DyninMityaginSpace.coeff b
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass a) (ntpSliceSchwartz L a f)) *
+        DyninMityaginSpace.coeff b
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass a)
+            (schwartzReflection (ntpSliceSchwartz L a f))) from by
+      set F : ℕ × ℕ → ℝ := fun p => DyninMityaginSpace.coeff p.2
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass p.1)
+            (ntpSliceSchwartz L p.1 f)) *
+        DyninMityaginSpace.coeff p.2
+          (resolventMultiplierCLM (resolventFreq_pos L mass hmass p.1)
+            (schwartzReflection (ntpSliceSchwartz L p.1 f)))
+      show (∑' m, F (Nat.pairEquiv.symm m)) = ∑' a, ∑' b, F (a, b)
+      rw [Equiv.tsum_eq Nat.pairEquiv.symm]
+      have hF : Summable F := by
+        rw [← Equiv.summable_iff Nat.pairEquiv.symm]
+        have hsm := (lp.hasSum_inner (𝕜 := ℝ) (cylinderMassOperator L mass hmass f)
+          (cylinderMassOperator L mass hmass (cylinderTimeReflection L f))).summable
+        refine hsm.congr fun m => ?_
+        simp only [F, cylinderMassOperator_formula, ntpSliceSchwartz_timeReflection,
+          inner, RCLike.re, conj_trivial, AddMonoidHom.id_apply, Function.comp,
+          Nat.pairEquiv, Equiv.coe_fn_symm_mk]
+        ring
+      exact hF.tsum_prod]
+    -- Apply resolvent_laplace_inner for each a
+    congr 1; ext a; exact resolvent_laplace_inner
+      (resolventFreq L mass a) (resolventFreq_pos L mass hmass a)
+      (ntpSliceSchwartz L a f) (ntpSliceSchwartz_positive_time L a f hf)
+  · -- Step B: RHS = ∑' a, S a
+    -- Strip the RCLike.ofReal cast (= id on ℝ), then algebra
+    simp_rw [RCLike.ofReal_real_eq_id, id]
+    congr 1; ext a; simp only [S, Real.norm_eq_abs, sq_abs, mul_pow, div_pow, one_pow]
+    rw [Real.sq_sqrt (by linarith [resolventFreq_pos L mass hmass a] : (0:ℝ) ≤ _)]
+
+/-! ## Reflection positivity (OS3)
+
+The central Osterwalder-Schrader axiom: the Green's function applied
+to a positive-time test function and its time reflection is non-negative.
+
+This is an immediate consequence of the Laplace factorization identity:
+`G(f, Θf) = ‖Λf‖² ≥ 0`. -/
+
+/-- **Reflection positivity (OS3) for the free field on the cylinder.**
+
+  `G(f, Θf) ≥ 0` for all positive-time test functions f.
+
+This is the Euclidean counterpart of unitarity: it ensures the
+reconstructed Hilbert space has a positive-definite inner product.
+
+Proof: By the Laplace factorization identity,
+  `G(f, Θf) = ‖Λf‖²_{ℓ²} ≥ 0`
+since norms are non-negative. -/
+theorem cylinderGreen_reflection_positive (mass : ℝ) (hmass : 0 < mass)
+    (f : CylinderTestFunction L)
+    (hf : f ∈ cylinderPositiveTimeSubmodule L) :
+    0 ≤ cylinderGreen L mass hmass f (cylinderTimeReflection L f) := by
+  rw [cylinderGreen_reflection_eq_laplaceNorm L mass hmass f hf]
+  exact real_inner_self_nonneg
+
+-- NOTE: cylinderGreen_reflection_strict_positive was removed as a dead axiom
+-- (never referenced by any downstream declaration). Strict RP is not needed
+-- for basic OS3 (which only requires nonnegativity, proved above).
+
+end GaussianField
