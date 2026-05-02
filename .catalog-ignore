@@ -1,0 +1,4 @@
+# Paths excluded from the catalogs/gaussian-field.md catalog scan.
+# Format: one path prefix per line, relative to project root.
+
+future/                # preserved-but-inactive scratch / experimental code

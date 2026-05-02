@@ -6,9 +6,15 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**4 axioms, 0 sorries** (active build, excluding `future/`)
+**3 axioms, 0 sorries** (active build, excluding `future/`)
 
-*Updated 2026-04-25.*
+*Updated 2026-05-02.* On 2026-05-02 the entire
+`Cylinder/ReflectionPositivity.lean` file was moved to `future/`
+(Lorentzian-convolution Fourier-convention bug, zero downstream callers).
+That removed the previously-listed `cylinderGreen_reflection_eq_laplaceNorm`
+axiom from the active build (1 → 0 in the cylinder-RP cluster) and
+removed the residual `sorry` on `lorentzian_convolution_pointwise` from
+the active build. See "Cylinder reflection positivity" section below.
 
 ### Recent additions
 
@@ -40,13 +46,36 @@ infrastructure for use by downstream projects (pphi2, OSforGFF).
 
 Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
 
-### Cylinder reflection positivity (1 axiom)
+### Cylinder reflection positivity — **moved to `future/` 2026-05-02**
 
-| # | Name | File | Description |
-|---|------|------|-------------|
-| 3 | `cylinderGreen_reflection_eq_laplaceNorm` | Cylinder/ReflectionPositivity | Laplace factorization: $G(f, \Theta f) = \lVert \Lambda f \rVert^2$ for positive-time $f$. Resolvent kernel factors as $e^{-\omega t} \cdot e^{\omega s} / (2\omega)$ for $t > 0 > s$. |
+The entire `Cylinder/ReflectionPositivity.lean` file (Laplace embedding +
+resolvent–Plancherel chain + headline `cylinderGreen_reflection_positive`)
+was moved to `future/CylinderReflectionPositivity.lean`. Reason: a
+Mathlib-Fourier-convention bug in the Lorentzian-convolution chain.
+`realFourierMultiplierCLM (lorentzianSymbol ω)` claims kernel
+`e^{-ω|·|}/(2ω)`, but Mathlib's $2\pi$-Fourier convention makes the actual
+kernel `(π/ω) e^{-2πω|·|}`. The single `sorry` in
+`lorentzian_convolution_pointwise` was masking wrong constants in the
+statements of all four downstream theorems
+(`resolvent_squared_convolution`, `resolvent_plancherel`,
+`resolvent_laplace_l2`, `resolvent_laplace_inner`) and ultimately in
+`cylinderGreen_reflection_positive` itself.
 
-Note: `cylinderGreen_reflection_positive` ($G(f,\Theta f) \geq 0$) is a **proved theorem** from the Laplace factorization identity. `cylinderGreen_reflection_strict_positive` was removed as a dead axiom.
+The chain has **zero downstream callers** in active code (verified by
+grep across pphi2 / pphi2N / markov-semigroups / OSforGFF{,-dimensions} /
+OSreconstruction / lgt / rg / gaussian-field). pphi2's IR layer derives
+its own resolvent-symbol identities directly in
+`pphi2/Pphi2/GeneralResults/ResolventFourierAnalysis.lean`, which are
+convention-independent. So the move breaks nothing.
+
+When Route C (direct cylinder construction) is revived, the chain can be
+restored by introducing 2π-aware symbols (`lorentzianSymbol2pi`,
+`resolventSymbol2pi`) and porting OSforGFF's
+`fourier_exponential_decay` (in `OSforGFF-dimensions/OSforGFF/FourierTransforms.lean:521`).
+Full revival plan is in the moved file's header.
+
+Net axiom delta from the move: **−1 axiom** (`cylinderGreen_reflection_eq_laplaceNorm`
+was the last residual axiom in the cylinder-RP cluster).
 
 ### Method of images (1 axiom)
 

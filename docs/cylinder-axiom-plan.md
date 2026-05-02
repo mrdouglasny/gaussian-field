@@ -132,7 +132,11 @@ This avoids the functional calculus square root lemma entirely. The trade-off: t
 For each theorem:
 1. `lake build Cylinder` — full Cylinder module builds
 2. `lean_verify` on the replaced axiom → should show only standard Lean axioms + remaining axioms
-3. Check downstream: `cylinderGreen_reflection_positive`, `torusGreen_uniform_bound` still build
+3. Check downstream: `torusGreen_uniform_bound` still builds.
+   (The `cylinderGreen_reflection_positive` chain was moved to
+   `future/CylinderReflectionPositivity.lean` on 2026-05-02 due to a
+   Mathlib-Fourier-convention bug — see `future/CylinderReflectionPositivity.lean`
+   header for the revival plan.)
 
 ## Files Overview
 
