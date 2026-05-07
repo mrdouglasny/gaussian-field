@@ -2094,7 +2094,10 @@ theorem gaussianDensity_fkg_lattice_condition (a mass : ℝ) (ha : 0 < a) (hmass
   have hsub := quadraticForm_submodular_of_nonpos_offDiag
     (massOperatorEntry d N a mass) hQ x y
   simp only [massOperator_bilinear_eq_sum d N] at *
-  linarith
+  -- With Glimm-Jaffe-aligned `a^d/2` action prefactor, scaling submodularity
+  -- by the positive `a^d/2` gives the FKG bound. `nlinarith` handles the
+  -- multiplication via `pow_pos ha d`.
+  nlinarith [hsub, pow_pos ha d]
 
 -- gaussianDensity_nonneg is now in SpectralCovariance.lean
 
@@ -2130,9 +2133,15 @@ theorem gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
       intro x; ring
     simp_rw [split, Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_neg_distrib]
     linarith [finiteLaplacian_neg_semidefinite d N a ha φ]
-  -- Step 2: Pointwise bound: gaussianDensity ≤ product of 1D Gaussians
-  set b := mass ^ 2 / 2 with hb_def
-  have hb_pos : 0 < b := by positivity
+  -- Step 2: Pointwise bound: gaussianDensity ≤ product of 1D Gaussians.
+  -- With Glimm-Jaffe-aligned `a^d/2` action prefactor, the 1D bound's
+  -- coefficient picks up the `a^d` factor.
+  set b := a^d * mass ^ 2 / 2 with hb_def
+  have ha_d_pos : (0 : ℝ) < a^d := pow_pos ha d
+  have hb_pos : 0 < b := by
+    have hms : (0 : ℝ) < mass^2 := by positivity
+    have : (0 : ℝ) < a^d * mass^2 := mul_pos ha_d_pos hms
+    simpa [hb_def] using by linarith
   have hpw : ∀ φ : FinLatticeField d N,
       gaussianDensity d N a mass φ ≤
       ∏ x : FinLatticeSites d N, Real.exp (-b * φ x ^ 2) := by
@@ -2143,9 +2152,10 @@ theorem gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
       (Real.exp_sum Finset.univ _).symm]
     apply Real.exp_le_exp_of_le
     rw [show ∑ x : FinLatticeSites d N, -b * φ x ^ 2 =
-        -(1/2) * (mass ^ 2 * ∑ x, φ x ^ 2) from by
+        -(a^d/2) * (mass ^ 2 * ∑ x, φ x ^ 2) from by
       simp only [hb_def, Finset.mul_sum]; ring_nf]
-    exact mul_le_mul_of_nonpos_left (hQ_bound φ) (by norm_num)
+    have ha_d_half_nonpos : -(a^d/2) ≤ 0 := by linarith
+    exact mul_le_mul_of_nonpos_left (hQ_bound φ) ha_d_half_nonpos
   -- Step 3: Product of 1D Gaussians is integrable
   have h1d : ∀ _ : FinLatticeSites d N,
       Integrable (fun t : ℝ => Real.exp (-b * t ^ 2)) volume :=

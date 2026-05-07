@@ -72,34 +72,62 @@ theorem lattice_singular_values_bounded (a mass : ℝ)
     exact Real.rpow_neg_one mass
   linarith
 
-/-! ## Covariance CLM -/
+/-! ## Covariance CLM (bare, counting inner product) -/
 
-/-- The lattice covariance as a CLM into ℓ².
-Constructed via spectral decomposition of Q = -Δ + m²: maps
+/-- The bare lattice covariance as a CLM into ℓ², in the **counting**
+inner product on `FinLatticeField`.
+
+Constructed via spectral decomposition of `Q = -Δ + m²`: maps
 `f ↦ (k ↦ λ_k^{-1/2} ⟪e_k, f⟫)` where `{e_k, λ_k}` are the eigenvectors
 and eigenvalues of the mass operator.
 
-Satisfies `⟨Tf, Tg⟩_ℓ² = ⟨f, Q⁻¹g⟩_L²`. -/
+Satisfies `⟨Tf, Tg⟩_ℓ² = ⟨f, Q⁻¹g⟩_{counting}`.
+
+This is the **operator-only** CLM — its spectral content reflects
+`Q^{-1}` independently of any inner-product convention. The
+**Glimm–Jaffe-aligned** CLM that determines the actual lattice GFF
+covariance kernel is `latticeCovarianceGJ` below; it differs by a
+scalar `(a^d)^{-1/2}` (i.e., the Riemann-sum vs counting inner-product
+ratio). All existing spectral-identity lemmas about this CLM
+(`spectralLatticeCovariance_inner`, `spectralLatticeCovariance_norm_sq`)
+continue to hold without modification. -/
 noncomputable def latticeCovariance (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass) :
     FinLatticeField d N →L[ℝ] ell2' :=
   spectralLatticeCovariance d N a mass ha hmass
 
+/-- The Glimm–Jaffe-aligned lattice covariance CLM, used to construct
+the lattice GFF measure with the textbook continuum-limit normalisation.
+
+Defined as `(a^d)^{-1/2} • latticeCovariance` (scalar multiple of the
+bare CLM). This implements the Riemann-sum inner product: instead of
+Q^{-1} in counting, the kernel is `(a^d Q)^{-1} = a^{-d} Q^{-1}`,
+so that the lattice 2-point function `(1/a^d)(Q^{-1})_{xy}` converges
+to the textbook continuum Green's function on `T^d_L = (aℤ/N)^d` as
+`a → 0` with `L = aN` fixed.
+
+Reference: Glimm–Jaffe Eq. (6.1.6); Simon Ch. I. -/
+noncomputable def latticeCovarianceGJ (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) :
+    FinLatticeField d N →L[ℝ] ell2' :=
+  (Real.sqrt (a^d))⁻¹ • latticeCovariance d N a mass ha hmass
+
 /-! ## Lattice Gaussian Measure -/
 
-/-- The centered Gaussian measure on the finite lattice.
-Constructed via `GaussianField.measure` from the covariance CLM.
+/-- The centered Gaussian measure on the finite lattice
+(**Glimm–Jaffe-aligned normalisation**).
 
-This is the measure with characteristic functional:
-  `E[exp(i⟨ω,f⟩)] = exp(-½ ‖T(f)‖²)`
-where `T = latticeCovariance`.
+Constructed via `GaussianField.measure` from the GJ-aligned covariance
+CLM `latticeCovarianceGJ`. Has covariance kernel `a^{-d} Q^{-1}`, so
+the lattice 2-point function converges to the textbook continuum
+Green's function on `T^d_L`.
 
-The covariance is:
-  `E[ω(f) · ω(g)] = ⟨T(f), T(g)⟩_ℓ² = ((-Δ_a + m²)⁻¹ f, g)` -/
+Characteristic functional:
+  `E[exp(i⟨ω,f⟩)] = exp(-½ ‖latticeCovarianceGJ(f)‖²) = exp(-(2 a^d)^{-1} ⟨f, Q⁻¹f⟩_counting)`. -/
 noncomputable def latticeGaussianMeasure (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass) :
     @Measure (Configuration (FinLatticeField d N)) instMeasurableSpaceConfiguration :=
-  GaussianField.measure (latticeCovariance d N a mass ha hmass)
+  GaussianField.measure (latticeCovarianceGJ d N a mass ha hmass)
 
 /-- The lattice Gaussian measure is a probability measure. -/
 instance latticeGaussianMeasure_isProbability (a mass : ℝ)
@@ -111,19 +139,22 @@ instance latticeGaussianMeasure_isProbability (a mass : ℝ)
 
 /-! ## Covariance identity
 
-The two-point function of the lattice Gaussian measure equals the Green's
-function of the mass operator:
-  `E[ω(f)·ω(g)] = ⟨T(f), T(g)⟩_ℓ² = ⟨f, Q⁻¹g⟩_L²` -/
+The two-point function of the lattice Gaussian measure equals the
+Glimm–Jaffe-aligned covariance:
+  `E[ω(f)·ω(g)] = ⟨T_GJ(f), T_GJ(g)⟩_ℓ² = a^{-d} ⟨f, Q⁻¹g⟩_counting`
 
-/-- The cross moment equals the abstract covariance. -/
+where `T_GJ = latticeCovarianceGJ`. The bare covariance CLM
+`latticeCovariance` and its spectral identities are unchanged. -/
+
+/-- The cross moment equals the GJ-aligned abstract covariance. -/
 theorem lattice_cross_moment (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f g : FinLatticeField d N) :
     ∫ ω : Configuration (FinLatticeField d N),
       (ω f) * (ω g) ∂(latticeGaussianMeasure d N a mass ha hmass) =
-    GaussianField.covariance (latticeCovariance d N a mass ha hmass) f g :=
+    GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass) f g :=
   GaussianField.cross_moment_eq_covariance _ f g
 
-/-- The covariance equals the spectral expansion of Q⁻¹. -/
+/-- The bare covariance equals the (counting) spectral expansion of `Q⁻¹`. -/
 theorem lattice_covariance_eq_spectral (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f g : FinLatticeField d N) :
     GaussianField.covariance (latticeCovariance d N a mass ha hmass) f g =
@@ -133,5 +164,46 @@ theorem lattice_covariance_eq_spectral (a mass : ℝ) (ha : 0 < a) (hmass : 0 < 
       (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
   unfold covariance latticeCovariance
   exact spectralLatticeCovariance_inner d N a mass ha hmass f g
+
+/-- The GJ-aligned covariance equals `(a^d)⁻¹` times the bare covariance. -/
+theorem latticeCovariance_GJ_eq_inv_smul_bare (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) (f g : FinLatticeField d N) :
+    GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass) f g =
+    (a^d : ℝ)⁻¹ *
+      GaussianField.covariance (latticeCovariance d N a mass ha hmass) f g := by
+  have ha_d_pos : (0 : ℝ) < a^d := pow_pos ha d
+  have hsqrt_sq : Real.sqrt (a^d) * Real.sqrt (a^d) = a^d :=
+    Real.mul_self_sqrt (le_of_lt ha_d_pos)
+  unfold latticeCovarianceGJ covariance
+  simp only [ContinuousLinearMap.smul_apply, inner_smul_left, inner_smul_right]
+  -- Reduce conj-on-ℝ and combine the two scalar factors
+  show (Real.sqrt (a^d))⁻¹ *
+        ((Real.sqrt (a^d))⁻¹ *
+          inner ℝ (latticeCovariance d N a mass ha hmass f)
+            (latticeCovariance d N a mass ha hmass g)) =
+      (a^d : ℝ)⁻¹ *
+        inner ℝ (latticeCovariance d N a mass ha hmass f)
+            (latticeCovariance d N a mass ha hmass g)
+  rw [show (Real.sqrt (a^d))⁻¹ * ((Real.sqrt (a^d))⁻¹ *
+        inner ℝ (latticeCovariance d N a mass ha hmass f)
+          (latticeCovariance d N a mass ha hmass g)) =
+      ((Real.sqrt (a^d))⁻¹ * (Real.sqrt (a^d))⁻¹) *
+        inner ℝ (latticeCovariance d N a mass ha hmass f)
+          (latticeCovariance d N a mass ha hmass g) from by ring]
+  congr 1
+  rw [show (Real.sqrt (a^d))⁻¹ * (Real.sqrt (a^d))⁻¹ =
+      (Real.sqrt (a^d) * Real.sqrt (a^d))⁻¹ from by rw [mul_inv]]
+  rw [hsqrt_sq]
+
+/-- The GJ-aligned covariance equals the rescaled spectral expansion. -/
+theorem lattice_covariance_GJ_eq_spectral (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) (f g : FinLatticeField d N) :
+    GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass) f g =
+    (a^d : ℝ)⁻¹ *
+    ∑ k : FinLatticeSites d N,
+      (massEigenvalues d N a mass k)⁻¹ *
+      (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * f x) *
+      (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * g x) := by
+  rw [latticeCovariance_GJ_eq_inv_smul_bare, lattice_covariance_eq_spectral]
 
 end GaussianField

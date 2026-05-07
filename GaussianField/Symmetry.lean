@@ -222,7 +222,7 @@ theorem latticeGaussianFieldLaw_map_neg
   rw [← MeasureTheory.Measure.map_map (measurable_evalMap d N)
     (measurable_configurationPullback negCLM)]
   unfold latticeGaussianMeasure
-  rw [measure_neg_invariant (latticeCovariance d N a mass ha hmass)]
+  rw [measure_neg_invariant (latticeCovarianceGJ d N a mass ha hmass)]
 
 /-- `IsNegInvariant` instance for the lattice Gaussian field law.
 This is the property required by `oneDim_hasCorrelationDecay` and the
