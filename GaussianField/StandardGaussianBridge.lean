@@ -60,9 +60,11 @@ in `GaussianField/Density.lean` plus characteristic-function uniqueness
 -/
 
 import GaussianField.Density
+import GaussianField.IsGaussian
 import Lattice.SpectralCovariance
 import Lattice.Covariance
 import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.MeasureTheory.Constructions.Pi
 
 noncomputable section
@@ -220,6 +222,134 @@ theorem gffOrthonormalCoord_normal
     rw [hc_sq, Real.coe_toNNReal _ (inv_nonneg.mpr h_prod_pos.le)]
     rw [mul_inv_cancel₀ h_prod_pos.ne']
 
+/-! ## Off-diagonal eigenvector covariance and the joint-Gaussianness CLM
+
+The pieces needed to discharge `gffOrthonormalCoord_independent`:
+* The off-diagonal companion of `latticeCovarianceGJ_eigenvector_inner_self`,
+  giving `⟨T_GJ(e_i), T_GJ(e_j)⟩ = 0` for `i ≠ j` by orthonormality of
+  the eigenvector basis.
+* A continuous-linear bundling `gffOrthonormalProjCLM` of the projection
+  `gffOrthonormalProj`, used to upgrade `IsGaussian (latticeGaussianMeasure)`
+  to `IsGaussian (latticeGaussianMeasure.map gffOrthonormalProj)` via
+  `isGaussian_map_of_measurable`. -/
+
+/-- The GJ-covariance of two distinct eigenvectors is zero. -/
+theorem latticeCovarianceGJ_eigenvector_inner_off
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (i j : FinLatticeSites d N) (hij : i ≠ j) :
+    let e_i : FinLatticeField d N :=
+      fun x => (massEigenvectorBasis d N a mass i : EuclideanSpace ℝ _) x
+    let e_j : FinLatticeField d N :=
+      fun x => (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x
+    @inner ℝ ell2' _
+        (latticeCovarianceGJ d N a mass ha hmass e_i)
+        (latticeCovarianceGJ d N a mass ha hmass e_j) =
+      0 := by
+  intro e_i e_j
+  show GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass) e_i e_j = 0
+  rw [lattice_covariance_GJ_eq_spectral d N a mass ha hmass e_i e_j]
+  -- Goal: (a^d)⁻¹ * Σ_k λ_k⁻¹ · c_k(e_i) · c_k(e_j) = 0
+  -- where c_k(e_i) = δ_{ki}, c_k(e_j) = δ_{kj}; product is 0 since i ≠ j.
+  have h_inner : ∀ k l : FinLatticeSites d N,
+      (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+        (massEigenvectorBasis d N a mass l : EuclideanSpace ℝ _) x) =
+      if k = l then (1 : ℝ) else 0 := by
+    intro k l
+    have h_orth :
+        @inner ℝ (EuclideanSpace ℝ (FinLatticeSites d N)) _
+          (massEigenvectorBasis d N a mass k)
+          (massEigenvectorBasis d N a mass l) =
+        if k = l then (1 : ℝ) else 0 :=
+      orthonormal_iff_ite.mp (massEigenvectorBasis d N a mass).orthonormal k l
+    have h_eq :
+        (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x *
+          (massEigenvectorBasis d N a mass l : EuclideanSpace ℝ _) x) =
+        @inner ℝ (EuclideanSpace ℝ (FinLatticeSites d N)) _
+          (massEigenvectorBasis d N a mass k)
+          (massEigenvectorBasis d N a mass l) := by
+      change _ =
+        ((massEigenvectorBasis d N a mass l).ofLp ⬝ᵥ
+          star (massEigenvectorBasis d N a mass k).ofLp)
+      simp [dotProduct, star_trivial, mul_comm]
+    rw [h_eq]; exact h_orth
+  -- Each summand has factor c_k(e_i) · c_k(e_j) = δ_{ki} · δ_{kj}.
+  -- Since i ≠ j, this is 0 for every k (k = i forces δ_{kj} = 0; k ≠ i forces δ_{ki} = 0).
+  rw [show (∑ k : FinLatticeSites d N,
+        (massEigenvalues d N a mass k)⁻¹ *
+          (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * e_i x) *
+          (∑ x, (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x * e_j x)) =
+      (0 : ℝ) from ?_]
+  · ring
+  apply Finset.sum_eq_zero
+  intro k _
+  rw [h_inner k i, h_inner k j]
+  by_cases hki : k = i
+  · -- k = i, so by i ≠ j, k ≠ j, second indicator is 0
+    rw [if_neg (hki ▸ hij : k ≠ j)]; ring
+  · rw [if_neg hki]; ring
+
+/-- Evaluation of a configuration at a fixed test function, packaged as
+a continuous linear map `Configuration E →L[ℝ] ℝ`. Continuity is
+`WeakDual.eval_continuous`; linearity is the topological-dual pairing. -/
+private noncomputable def gffEvalCLM (f : FinLatticeField d N) :
+    Configuration (FinLatticeField d N) →L[ℝ] ℝ :=
+  ⟨(topDualPairing ℝ (FinLatticeField d N)).flip f, WeakDual.eval_continuous f⟩
+
+omit [NeZero N] in
+@[simp] private lemma gffEvalCLM_apply (f : FinLatticeField d N)
+    (ω : Configuration (FinLatticeField d N)) :
+    gffEvalCLM d N f ω = ω f := rfl
+
+/-- The orthogonalization map `ω ↦ (k ↦ ω(e_k) · √(a^d λ_k))` packaged
+as a continuous linear map. Used to discharge joint Gaussianness in
+`gffOrthonormalCoord_independent`. -/
+private noncomputable def gffOrthonormalProjCLM
+    (a mass : ℝ) (_ha : 0 < a) (_hmass : 0 < mass) :
+    Configuration (FinLatticeField d N) →L[ℝ] (FinLatticeSites d N → ℝ) :=
+  ContinuousLinearMap.pi fun k =>
+    Real.sqrt (a^d * massEigenvalues d N a mass k) •
+      gffEvalCLM d N
+        (fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x)
+
+private lemma gffOrthonormalProjCLM_eq
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    ((gffOrthonormalProjCLM d N a mass ha hmass) :
+        Configuration (FinLatticeField d N) → FinLatticeSites d N → ℝ) =
+      gffOrthonormalProj d N a mass ha hmass := by
+  funext ω k
+  show Real.sqrt (a^d * massEigenvalues d N a mass k) *
+      ω (fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) =
+    ω (fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) *
+      Real.sqrt (a^d * massEigenvalues d N a mass k)
+  ring
+
+private lemma gffOrthonormalProj_measurable
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    Measurable (gffOrthonormalProj d N a mass ha hmass) := by
+  apply measurable_pi_iff.mpr
+  intro k
+  exact (configuration_eval_measurable _).mul_const _
+
+/-- The lattice GFF (in GJ normalization) is Gaussian on `Configuration`
+in Mathlib's sense. Bridges the `latticeGaussianMeasure` definition to
+`GaussianField.measure_isGaussian`. -/
+instance latticeGaussianMeasure_isGaussian
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    IsGaussian (latticeGaussianMeasure d N a mass ha hmass) :=
+  GaussianField.measure_isGaussian _
+
+private theorem gffOrthonormalProj_isGaussian
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    IsGaussian ((latticeGaussianMeasure d N a mass ha hmass).map
+      (gffOrthonormalProj d N a mass ha hmass)) := by
+  rw [show gffOrthonormalProj d N a mass ha hmass =
+      ((gffOrthonormalProjCLM d N a mass ha hmass) :
+        Configuration (FinLatticeField d N) → FinLatticeSites d N → ℝ) from
+      (gffOrthonormalProjCLM_eq d N a mass ha hmass).symm]
+  exact isGaussian_map_of_measurable
+    ((gffOrthonormalProjCLM_eq d N a mass ha hmass).symm ▸
+      gffOrthonormalProj_measurable d N a mass ha hmass)
+
 /-- **Distinct orthogonalized coordinates are independent.**
 
 Under `latticeGaussianMeasure`, the family `(ξ_k)_{k ∈ FinLatticeSites d N}`
@@ -229,19 +359,69 @@ this means the family is i.i.d. standard Gaussian.
 **Reference:** Janson §1.4 (uncorrelated jointly Gaussian variables
 are independent).
 
-**Proof strategy:** The covariance
-`Cov(ω(e_j), ω(e_k)) = ⟨T_GJ(e_j), T_GJ(e_k)⟩ = 0` for `j ≠ k` by the
-spectral identity (`spectralLatticeCovariance_inner` evaluated on
-distinct eigenvectors gives zero, since the eigenvectors are
-orthonormal and the spectral expansion is diagonal). Jointly Gaussian
-+ pairwise uncorrelated = mutually independent (Mathlib has the
-2-variable case via `ProbabilityTheory.IndepFun`; the multi-variable
-extension is by induction on the family). -/
-axiom gffOrthonormalCoord_independent
+**Proof:** Joint Gaussianness comes from packaging the orthogonalization
+map as a CLM (`gffOrthonormalProjCLM`) and pushing forward the lattice
+GFF (which is Gaussian on `Configuration` via `measure_isGaussian`).
+Pairwise covariances vanish on the eigenbasis by orthonormality
+(`latticeCovarianceGJ_eigenvector_inner_off`). Mathlib's
+`HasGaussianLaw.iIndepFun_of_covariance_eq_zero` then closes the goal. -/
+theorem gffOrthonormalCoord_independent
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     iIndepFun (fun k : FinLatticeSites d N =>
       gffOrthonormalCoord d N a mass ha hmass k)
-      (latticeGaussianMeasure d N a mass ha hmass)
+      (latticeGaussianMeasure d N a mass ha hmass) := by
+  set μ := latticeGaussianMeasure d N a mass ha hmass with hμ
+  -- Joint Gaussianness of the coordinate family.
+  haveI hGauss : IsGaussian (μ.map (gffOrthonormalProj d N a mass ha hmass)) :=
+    gffOrthonormalProj_isGaussian d N a mass ha hmass
+  have hX : HasGaussianLaw
+      (fun ω : Configuration (FinLatticeField d N) =>
+        fun k => gffOrthonormalCoord d N a mass ha hmass k ω) μ := ⟨hGauss⟩
+  -- Pairwise covariances vanish for distinct indices.
+  refine hX.iIndepFun_of_covariance_eq_zero ?_
+  intro i j hij
+  -- Notation
+  set e_i : FinLatticeField d N :=
+    fun x => (massEigenvectorBasis d N a mass i : EuclideanSpace ℝ _) x with he_i
+  set e_j : FinLatticeField d N :=
+    fun x => (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x with he_j
+  set c_i : ℝ := Real.sqrt (a^d * massEigenvalues d N a mass i) with hc_i
+  set c_j : ℝ := Real.sqrt (a^d * massEigenvalues d N a mass j) with hc_j
+  -- Both eigenvector pairings are centered (mean zero) under μ.
+  have h_centered_i : μ[fun ω : Configuration (FinLatticeField d N) => ω e_i] = 0 := by
+    show ∫ ω : Configuration (FinLatticeField d N), ω e_i ∂μ = 0
+    exact measure_centered (latticeCovarianceGJ d N a mass ha hmass) e_i
+  have h_centered_j : μ[fun ω : Configuration (FinLatticeField d N) => ω e_j] = 0 := by
+    show ∫ ω : Configuration (FinLatticeField d N), ω e_j ∂μ = 0
+    exact measure_centered (latticeCovarianceGJ d N a mass ha hmass) e_j
+  -- L² integrability of each pairing.
+  have hLp_i : MemLp (fun ω : Configuration (FinLatticeField d N) => ω e_i) 2 μ := by
+    exact_mod_cast pairing_memLp (latticeCovarianceGJ d N a mass ha hmass) e_i 2
+  have hLp_j : MemLp (fun ω : Configuration (FinLatticeField d N) => ω e_j) 2 μ := by
+    exact_mod_cast pairing_memLp (latticeCovarianceGJ d N a mass ha hmass) e_j 2
+  -- ξ_i = (· e_i) * c_i, ξ_j = (· e_j) * c_j, so cov is c_i * c_j * cov of evaluations.
+  have h_cov_eval :
+      cov[fun ω : Configuration (FinLatticeField d N) => ω e_i,
+          fun ω : Configuration (FinLatticeField d N) => ω e_j; μ] =
+        ∫ ω, (ω e_i) * (ω e_j) ∂μ := by
+    rw [covariance_eq_sub hLp_i hLp_j, h_centered_i, h_centered_j, mul_zero, sub_zero]
+    rfl
+  have h_cross :
+      ∫ ω : Configuration (FinLatticeField d N), (ω e_i) * (ω e_j) ∂μ = 0 := by
+    rw [show μ = GaussianField.measure (latticeCovarianceGJ d N a mass ha hmass) from rfl]
+    rw [cross_moment_eq_covariance (latticeCovarianceGJ d N a mass ha hmass) e_i e_j]
+    have := latticeCovarianceGJ_eigenvector_inner_off d N a mass ha hmass i j hij
+    show GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass) e_i e_j = 0
+    exact this
+  -- Pull out the constants.
+  have h_cov_zero :
+      cov[fun ω : Configuration (FinLatticeField d N) => ω e_i,
+          fun ω : Configuration (FinLatticeField d N) => ω e_j; μ] = 0 := by
+    rw [h_cov_eval, h_cross]
+  -- Combine with the c_i, c_j multiplications.
+  show cov[fun ω => ω e_i * c_i, fun ω => ω e_j * c_j; μ] = 0
+  rw [covariance_mul_const_left, covariance_mul_const_right, h_cov_zero,
+    zero_mul, zero_mul]
 
 /-- **The pushforward of the lattice GFF under orthogonalization is
 the standard multivariate Gaussian.**
