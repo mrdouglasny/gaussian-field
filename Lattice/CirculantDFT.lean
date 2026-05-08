@@ -302,13 +302,19 @@ theorem symmetric_second_diff_bound (f : SmoothMap_Circle L ℝ) (x h : ℝ) :
   have hlt_fwd : x < x + t := by linarith
   have hf_cd2 : ContDiffOn ℝ (↑(1 + 1 : ℕ)) (⇑f) (Set.uIcc x (x + t)) :=
     f.smooth.contDiffOn.of_le (WithTop.coe_le_coe.mpr le_top)
-  obtain ⟨c₁, hc₁, hc₁_eq⟩ := taylor_mean_remainder_lagrange_iteratedDeriv hlt_fwd.ne hf_cd2
+  obtain ⟨c₁, hc₁, hc₁_eq⟩ :=
+    taylor_mean_remainder_lagrange_iteratedDeriv (min_lt_max.mpr hlt_fwd.ne) hf_cd2
+  simp only [min_eq_left hlt_fwd.le, max_eq_right hlt_fwd.le,
+    ← Set.uIcc_of_le hlt_fwd.le] at hc₁_eq
   -- Backward direction: expand g(s) = f(x-s) on [0, t]
   have hg_cd2 : ContDiffOn ℝ (↑(1 + 1 : ℕ))
       (fun s => (f : ℝ → ℝ) (x - s)) (Set.uIcc 0 t) := by
     apply ContDiffOn.of_le _ (WithTop.coe_le_coe.mpr le_top)
     exact (f.smooth.comp ((contDiff_const.sub contDiff_id).of_le le_top)).contDiffOn
-  obtain ⟨c₂, hc₂, hc₂_eq⟩ := taylor_mean_remainder_lagrange_iteratedDeriv ht_pos.ne hg_cd2
+  obtain ⟨c₂, hc₂, hc₂_eq⟩ :=
+    taylor_mean_remainder_lagrange_iteratedDeriv (min_lt_max.mpr ht_pos.ne) hg_cd2
+  simp only [min_eq_left ht_pos.le, max_eq_right ht_pos.le,
+    ← Set.uIcc_of_le ht_pos.le] at hc₂_eq
   -- Simplify taylorWithinEval at n=1
   have hP₁ : taylorWithinEval (⇑f) 1 (Set.uIcc x (x + t)) x (x + t) =
       f x + (x + t - x) * derivWithin (⇑f) (Set.uIcc x (x + t)) x := by
