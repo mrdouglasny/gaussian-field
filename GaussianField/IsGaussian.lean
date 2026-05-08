@@ -70,7 +70,10 @@ lemma weakDual_clm_eq_eval (L : (WeakDual ℝ E) →L[ℝ] ℝ) :
   rw [h_ind.nhds_eq_comap, mem_comap] at h_nhd
   obtain ⟨V, hV_nhd, hV_sub⟩ := h_nhd
   -- φ(0) = 0 (since ω ↦ ω(f) is linear, applied to 0 gives 0)
-  have hφ0 : φ 0 = 0 := by ext f; simp [φ]
+  have hφ0 : φ 0 = 0 := by
+    funext f
+    show (topDualPairing ℝ E) 0 f = 0
+    rw [map_zero]; rfl
   rw [hφ0, nhds_pi] at hV_nhd
   -- Extract finite set I and neighborhoods t_f from the pi-filter membership
   obtain ⟨I, t, ht_nhd, hIt_sub⟩ := mem_pi'.mp hV_nhd
@@ -84,11 +87,11 @@ lemma weakDual_clm_eq_eval (L : (WeakDual ℝ E) →L[ℝ] ℝ) :
     -- n • ω has (n • ω) f = n * ω f = n * 0 = 0 ∈ t_f
     have h_mem : φ (n • ω) ∈ (I : Set E).pi t := by
       intro f hf
-      -- φ(n • ω)(f) = (topDualPairing ℝ E)(n • ω)(f) = n * ω(f) = n * 0 = 0
+      -- φ(n • ω)(f) = (n • ω) f = n • ω(f) = n • 0 = 0
       have h0 : φ (n • ω) f = 0 := by
-        show (topDualPairing ℝ E) (n • ω) f = 0
-        rw [← Nat.cast_smul_eq_nsmul ℝ n ω, map_smul,
-          LinearMap.smul_apply, smul_eq_mul, topDualPairing_apply, hω f hf, mul_zero]
+        show (n • ω) f = 0
+        show n • (ω f) = 0
+        rw [hω f hf, smul_zero]
       rw [h0]; exact mem_of_mem_nhds (by simpa using ht_nhd f)
     have h_in := hV_sub (hIt_sub h_mem)
     simp only [mem_preimage, mem_Ioo] at h_in
