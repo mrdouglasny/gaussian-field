@@ -127,14 +127,20 @@ over $k$:
 
 This is exactly the multivariate Hermite polynomial of multi-index
 $\alpha$ evaluated at the orthogonalized vector. -/
-axiom gffMultiWickMonomial_eq_hermite_product
+theorem gffMultiWickMonomial_eq_hermite_product
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (α : FinLatticeSites d N → ℕ)
     (ω : Configuration (FinLatticeField d N)) :
     gffMultiWickMonomial d N a mass ha hmass α ω =
       ∏ k : FinLatticeSites d N,
         ((Polynomial.hermite (α k)).map (Int.castRingHom ℝ)).eval
-          (gffOrthonormalCoord d N a mass ha hmass k ω)
+          (gffOrthonormalCoord d N a mass ha hmass k ω) := by
+  unfold gffMultiWickMonomial
+  refine Finset.prod_congr rfl ?_
+  intro k _
+  rw [wick_eq_hermiteR (α k) 1 (by norm_num : (0:ℝ) < 1)]
+  unfold scaledHermite
+  rw [Real.sqrt_one, one_pow, one_mul, div_one]
 
 /-- **Orthogonality of GFF multivariate Wick monomials under the lattice
 GFF measure.**
