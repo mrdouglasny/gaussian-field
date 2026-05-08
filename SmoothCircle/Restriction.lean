@@ -111,6 +111,75 @@ theorem circleRestriction_eq (N : ℕ) [NeZero N]
     circleRestriction L N f k = Real.sqrt (L / N) * f ((ZMod.val k : ℝ) * L / N) := by
   simp [circleSpacing, circlePoint]
 
+/-! ## Glimm–Jaffe (Riemann-sum) circle restriction
+
+The **counting-isometric** `circleRestriction` above scales by
+`√(L/N)` per coordinate; its squared ℓ²-norm approximates the
+continuum L² inner product. Useful when the GFF is built with the
+counting inner product on the lattice.
+
+The **Riemann-sum-isometric** `circleRestrictionGJ` below scales by
+`(L/N)` per coordinate (i.e., one extra `√(L/N)` factor). It
+corresponds to the Glimm–Jaffe-aligned setup where the lattice GFF
+has covariance kernel `a^{-d} Q^{-1}`, and the embedding's `(L/N)^d`
+factor for d-dim tensor products converts a lattice configuration
+`φ : (ℤ/Nℤ)^d → ℝ` to a Riemann-sum approximation
+`(ι_GJ φ)(f) = a^d Σ_x φ_x f(x_a)` of the continuum smearing.
+
+The relationship: `circleRestrictionGJ = √(L/N) • circleRestriction`. -/
+
+/-- The Glimm–Jaffe circle restriction: sample a smooth periodic function
+at N lattice points, with `(L/N)` weight (the Riemann-sum volume element):
+
+  `(r_N^{GJ} f)(k) = (L/N) · f(kL/N)`
+
+This is the **Riemann-sum-isometric** rescaling of `circleRestriction` —
+ie, `circleRestrictionGJ = √(L/N) • circleRestriction`. The squared
+ℓ²-norm `Σ_k (r_N^{GJ} f)(k)²` is `(L/N)² Σ_k f²(kL/N) = (L/N) · (Riemann sum of f²)`,
+so it scales as `O(L/N) = O(a)` per coordinate. For d-dim tensor
+products, the squared norm scales as `O(a^d)`, exactly matching the
+`(a^d)⁻¹` factor in the GJ-aligned lattice covariance. -/
+noncomputable def circleRestrictionGJ (N : ℕ) [NeZero N] :
+    SmoothMap_Circle L ℝ →L[ℝ] (ZMod N → ℝ) :=
+  Real.sqrt (circleSpacing L N) • circleRestriction L N
+
+@[simp] theorem circleRestrictionGJ_apply (N : ℕ) [NeZero N]
+    (f : SmoothMap_Circle L ℝ) (k : ZMod N) :
+    circleRestrictionGJ L N f k =
+      circleSpacing L N * f (circlePoint L N k) := by
+  unfold circleRestrictionGJ
+  rw [ContinuousLinearMap.smul_apply, Pi.smul_apply, smul_eq_mul,
+    circleRestriction_apply]
+  have h_nn : (0 : ℝ) ≤ circleSpacing L N :=
+    le_of_lt (circleSpacing_pos L N)
+  rw [show Real.sqrt (circleSpacing L N) *
+      (Real.sqrt (circleSpacing L N) * f (circlePoint L N k)) =
+      Real.sqrt (circleSpacing L N) * Real.sqrt (circleSpacing L N) *
+      f (circlePoint L N k) from by ring,
+    Real.mul_self_sqrt h_nn]
+
+/-- The GJ circle restriction equals (L/N) times evaluation at kL/N. -/
+theorem circleRestrictionGJ_eq (N : ℕ) [NeZero N]
+    (f : SmoothMap_Circle L ℝ) (k : ZMod N) :
+    circleRestrictionGJ L N f k = (L / N) * f ((ZMod.val k : ℝ) * L / N) := by
+  simp [circleSpacing, circlePoint]
+
+/-- Pointwise bound on the GJ circle restriction:
+`|circleRestrictionGJ L N f k| ≤ (L/N) · ‖f‖_∞` (in d=1, single coord). -/
+theorem circleRestrictionGJ_le (N : ℕ) [NeZero N]
+    (f : SmoothMap_Circle L ℝ) (k : ZMod N) :
+    |circleRestrictionGJ L N f k| ≤
+      circleSpacing L N *
+        SmoothMap_Circle.sobolevSeminorm 0 f := by
+  rw [circleRestrictionGJ_apply, abs_mul,
+    abs_of_nonneg (le_of_lt (circleSpacing_pos L N))]
+  apply mul_le_mul_of_nonneg_left _ (le_of_lt (circleSpacing_pos L N))
+  calc |(f : ℝ → ℝ) (circlePoint L N k)|
+      = ‖iteratedDeriv 0 ((f : ℝ → ℝ)) (circlePoint L N k)‖ := by
+        rw [iteratedDeriv_zero, Real.norm_eq_abs]
+    _ ≤ SmoothMap_Circle.sobolevSeminorm 0 f :=
+        SmoothMap_Circle.norm_iteratedDeriv_le_sobolevSeminorm' _ 0 _
+
 omit [Fact (0 < L)] in
 @[simp] theorem circleSpacing_eq (N : ℕ) [NeZero N] :
     circleSpacing L N = L / N := rfl
