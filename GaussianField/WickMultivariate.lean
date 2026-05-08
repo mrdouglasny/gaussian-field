@@ -157,36 +157,55 @@ axiom gffMultiWickMonomial_orthogonality
         ∂(latticeGaussianMeasure d N a mass ha hmass) =
     (if α = β then ((∏ k, (α k).factorial : ℕ) : ℝ) else 0)
 
+/-- The GFF site (auto-)variance at site `x`:
+`c_a(x) = ⟨φ(x), φ(x)⟩ = (a^d)⁻¹ · Σ_k λ_k⁻¹ · e_k(x)²`.
+
+This is the diagonal of the lattice GFF covariance, i.e. the variance
+that the local Wick subtraction must subtract for `:φ(x)^k:_{c_a}` to
+be the QFT-correct Wick monomial. The site-Wick-expansion axiom below
+is true only for this specific value of `c`; for any other `c`, the
+expansion picks up lower-degree terms. -/
+noncomputable def gffSiteVariance
+    (a mass : ℝ) (_ha : 0 < a) (_hmass : 0 < mass)
+    (x : FinLatticeSites d N) : ℝ :=
+  haveI : Fintype (ZMod N) := ZMod.fintype N
+  haveI : Fintype (FinLatticeSites d N) := Pi.instFintype
+  (a ^ d)⁻¹ *
+    ∑ k : FinLatticeSites d N,
+      (massEigenvalues d N a mass k)⁻¹ *
+        ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) ^ 2
+
 /-- **Site Wick monomial expansion in the eigenbasis.**
 
-The single-site Wick monomial $\mathopen{:}\phi(x)^k\mathclose{:}_{c_a}$
-admits an explicit linear expansion in eigenbasis multi-indices:
+The single-site Wick monomial $\mathopen{:}\phi(x)^k\mathclose{:}_{c_a(x)}$
+(with the local Wick constant `c_a(x) = gffSiteVariance d N a mass ha hmass x
+= (a^d)⁻¹ Σ_k λ_k⁻¹ e_k(x)²`) admits an explicit linear expansion in
+eigenbasis multi-indices:
 
-  `:φ(x)^k:_{c_a} = ∑_{|α| = k} c(α, x, k) · :ξ^α:_1`,
+  `:φ(x)^k:_{c_a(x)} = ∑_{|α| = k} coeff(α, x, k) · :ξ^α:_1`,
 
-where the coefficients $c(\alpha, x, k)$ are explicit polynomial
-combinations of the eigenvector values $e_k(x)$ and eigenvalue powers
-$\lambda_k^{1/2}$.
+where the coefficients are explicit polynomial combinations of the
+eigenvector values $e_k(x)$ and eigenvalue powers $\lambda_k^{1/2}$.
+The `totalDegree α = k` constraint is the key content: only multi-indices
+of *exact* total degree `k` appear, because the local Wick subtraction
+with the matched site variance `c_a(x)` cancels exactly the lower-degree
+contractions.
 
 **Proof strategy:** Substitute the eigenbasis expansion
-$\phi(x) = \sum_k \sqrt{\lambda_k}\, e_k(x)\, \xi_k$ into the 1D Wick
-recursion. The Wick subtraction normalization picks out exactly the
-multivariate Wick monomials at total degree $k$. The combinatorial
-identity is multinomial-style: each summand of the polynomial expansion
-of $(\sum_k \sqrt{\lambda_k} e_k(x) \xi_k)^k$ contributes to a specific
-multi-index, and the Wick subtraction collapses the lower-degree terms.
-
-The variance $c$ is a generic parameter here (in QFT applications it
-will be specialized to the local Wick constant
-`c_a = ⟨φ(x), φ(x)⟩ = (1/a^d) · Σ_k λ_k^{-1} e_k(x)^2`, but this
-file's API is QFT-agnostic). -/
+$\phi(x) = \sum_k \lambda_k^{-1/2}\, e_k(x)\, \xi_k$ into the 1D Wick
+recursion (note the `λ_k^{-1/2}` factor in the GJ-aligned normalisation
+where `ξ_k` has unit variance and `Var(ω(e_k)) = (a^d λ_k)⁻¹`). The
+Wick subtraction with constant `c_a(x) = Var(φ(x))` matches the
+multinomial diagonal contractions exactly, killing all lower-degree
+terms. -/
 axiom siteWickMonomial_eigenbasis_expansion
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
-    (k : ℕ) (x : FinLatticeSites d N) (c : ℝ) :
+    (k : ℕ) (x : FinLatticeSites d N) :
     ∃ (coeff : (FinLatticeSites d N → ℕ) → ℝ),
       (∀ α, coeff α ≠ 0 → MultiIndexLattice.totalDegree α = k) ∧
       ∀ ω : Configuration (FinLatticeField d N),
-        wickMonomial k c (ω (Pi.single x 1)) =
+        wickMonomial k (gffSiteVariance d N a mass ha hmass x)
+            (ω (Pi.single x 1)) =
         ∑ α ∈ multiIndicesOfDegree d N k, coeff α *
           gffMultiWickMonomial d N a mass ha hmass α ω
 

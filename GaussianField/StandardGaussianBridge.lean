@@ -74,18 +74,23 @@ open MeasureTheory ProbabilityTheory
 variable (d N : ℕ) [NeZero N]
 
 /-- The k-th orthogonalized field coordinate:
-`ξ_k(ω) := ω(e_k) / √(λ_k)`,
+`ξ_k(ω) := ω(e_k) · √(a^d · λ_k)`,
 where `e_k = massEigenvectorBasis d N a mass k` and
 `λ_k = massEigenvalues d N a mass k > 0`. As a function of `ω`, this
 is linear, continuous, and (under the lattice GFF measure) a standard
-`N(0,1)` random variable. -/
+`N(0,1)` random variable.
+
+The GJ-aligned variance is `Var(ω(e_k)) = (a^d λ_k)⁻¹` (since
+`T_GJ(e_k) = (a^d λ_k)^{-1/2} e_k`, see
+`lattice_covariance_GJ_eq_spectral` in `Lattice/Covariance.lean`),
+so the multiplier `√(a^d λ_k)` rescales to unit variance. -/
 noncomputable def gffOrthonormalCoord
     (a mass : ℝ) (_ha : 0 < a) (_hmass : 0 < mass)
     (k : FinLatticeSites d N) :
     Configuration (FinLatticeField d N) → ℝ :=
   fun ω =>
-    ω (fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) /
-      Real.sqrt (massEigenvalues d N a mass k)
+    ω (fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) *
+      Real.sqrt (a ^ d * massEigenvalues d N a mass k)
 
 /-- The bundled orthogonalization map: takes a configuration to the
 vector of its orthogonalized coordinates indexed by lattice sites
@@ -105,22 +110,16 @@ Under `latticeGaussianMeasure d N a mass ha hmass`, the random variable
 **Reference:** Janson §1.3.
 
 **Proof strategy:** The pairing `ω ↦ ω(e_k)` is centred Gaussian under
-the GFF with variance `⟨T_GJ(e_k), T_GJ(e_k)⟩ = (a^d)⁻¹ · λ_k⁻¹ · 1
-= (a^d λ_k)⁻¹` by the GJ-aligned spectral identity
-(`lattice_covariance_GJ_eq_spectral` in `Lattice/Covariance.lean`).
-Wait — the variance is computed directly: `e_k` is an eigenvector of
-$Q$, so $T_{GJ}(e_k) = (a^d)^{-1/2} \lambda_k^{-1/2} e_k$, giving
-$\|T_{GJ}(e_k)\|^2 = (a^d \lambda_k)^{-1}$.
-Dividing by $\sqrt{\lambda_k}$ rescales variance to $(a^d)^{-1}$ —
-hmm, this would not be unit variance. The orthonormalization needs to
-account for the GJ scaling: the right normalization is
-`ξ_k(ω) := ω(e_k) · √(a^d λ_k)`, not `ω(e_k) / √λ_k`.
-
-**TODO** before proving this axiom: confirm the correct normalization
-constant by computing `Var(ω(e_k))` under the GJ-aligned GFF (via
-`spectralLatticeCovariance_inner` and `latticeCovariance_GJ_eq_inv_smul_bare`)
-and choosing the divisor so the result has variance 1. The axiom
-statement below is provisional pending this computation. -/
+the GFF with variance `⟨T_GJ(e_k), T_GJ(e_k)⟩ = (a^d λ_k)⁻¹` by the
+GJ-aligned spectral identity (`lattice_covariance_GJ_eq_spectral` in
+`Lattice/Covariance.lean`): `e_k` is an eigenvector of `Q` with
+eigenvalue `λ_k`, so `T_GJ(e_k) = (a^d λ_k)^{-1/2} e_k` and
+`‖T_GJ(e_k)‖² = (a^d λ_k)⁻¹`. Multiplying by `√(a^d λ_k)` rescales
+the variance to `1`. Then `Measure.map` of a centred Gaussian random
+variable of variance 1 is `gaussianReal 0 1` by
+`ProbabilityTheory.gaussianReal_measure_map_..._eq_id` /
+`Measure.gaussian_pushforward` (the standard pushforward identity for
+centred Gaussian linear functionals). -/
 axiom gffOrthonormalCoord_normal
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (k : FinLatticeSites d N) :
