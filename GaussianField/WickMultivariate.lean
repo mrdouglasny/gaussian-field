@@ -150,11 +150,21 @@ GFF measure.**
 This is the multivariate Wick orthogonality: distinct multi-indices
 give zero, and the diagonal is a product of factorials.
 
-**Proof strategy:** Push forward to the standard multivariate Gaussian
-via `gffOrthonormalProj_pushforward_eq_stdGaussian`, then use Fubini
-on the product Gaussian and the 1D `wick_eq_hermiteR` +
-1D Hermite orthogonality (`wickMonomial_mean_zero` for the off-diagonal,
-1D Hermite norm `∫ He_n² dγ = n!` for the diagonal). -/
+**Proof strategy** (deferred):
+1. Push forward to the standard multivariate Gaussian via
+   `gffOrthonormalProj_pushforward_eq_stdGaussian` (now a theorem).
+2. Decompose into a product over `k` via Fubini
+   (`integral_fintype_prod_eq_prod`).
+3. Each factor reduces to the 1D Wick inner product
+   `∫ wickMonomial m 1 · wickMonomial n 1 ∂(gaussianReal 0 1) =
+     if m = n then (m! : ℝ) else 0`.
+
+**Blocking dependency:** the 1D Wick orthogonality identity above is
+not yet in this repo or Mathlib. The existing
+`SchwartzNuclear/WickOrthogonality.lean` only proves the n ≥ 1 mean
+(`wickMonomial_mean_zero`); the cross-product / norm pair would
+follow from analogous Stein-induction proofs but is a substantive
+addition. -/
 axiom gffMultiWickMonomial_orthogonality
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (α β : FinLatticeSites d N → ℕ) :
@@ -197,13 +207,20 @@ of *exact* total degree `k` appear, because the local Wick subtraction
 with the matched site variance `c_a(x)` cancels exactly the lower-degree
 contractions.
 
-**Proof strategy:** Substitute the eigenbasis expansion
+**Proof strategy** (deferred): Substitute the eigenbasis expansion
 $\phi(x) = \sum_k \lambda_k^{-1/2}\, e_k(x)\, \xi_k$ into the 1D Wick
 recursion (note the `λ_k^{-1/2}` factor in the GJ-aligned normalisation
 where `ξ_k` has unit variance and `Var(ω(e_k)) = (a^d λ_k)⁻¹`). The
 Wick subtraction with constant `c_a(x) = Var(φ(x))` matches the
 multinomial diagonal contractions exactly, killing all lower-degree
-terms. -/
+terms. The explicit coefficient is
+`coeff α x k = (k! / ∏_j α_j!) · ∏_j (e_j(x) / √(a^d · λ_j))^{α_j}`
+for `|α| = k`, otherwise 0.
+
+**Blocking dependency:** a multivariate Wick algebra theorem of the
+form "for independent `ξ_j ∼ N(0,1)` and `Y = ∑_j γ_j ξ_j`, one has
+`:Y^k:_{Var Y} = ∑_{|α|=k} (k! / ∏ α_j!) · (∏ γ_j^{α_j}) · :ξ^α:_1`"
+is not yet in this repo. -/
 axiom siteWickMonomial_eigenbasis_expansion
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (k : ℕ) (x : FinLatticeSites d N) :
