@@ -101,6 +101,65 @@ noncomputable def gffOrthonormalProj
     Configuration (FinLatticeField d N) → (FinLatticeSites d N → ℝ) :=
   fun ω k => gffOrthonormalCoord d N a mass ha hmass k ω
 
+/-! ## Variance computation
+
+The k-th eigenvector `e_k` has GJ-covariance
+`⟨T_GJ(e_k), T_GJ(e_k)⟩ = (a^d λ_k)⁻¹`. Combined with `pairing_is_gaussian`
+this gives `Var(ω(e_k)) = (a^d λ_k)⁻¹`, so multiplying by `√(a^d λ_k)`
+rescales to unit variance. -/
+
+/-- The GJ-covariance of the k-th eigenvector with itself is `(a^d λ_k)⁻¹`. -/
+theorem latticeCovarianceGJ_eigenvector_inner_self
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (k : FinLatticeSites d N) :
+    let e_k : FinLatticeField d N :=
+      fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x
+    @inner ℝ ell2' _
+        (latticeCovarianceGJ d N a mass ha hmass e_k)
+        (latticeCovarianceGJ d N a mass ha hmass e_k) =
+      (a^d * massEigenvalues d N a mass k)⁻¹ := by
+  intro e_k
+  -- This is `covariance(latticeCovarianceGJ) e_k e_k`.
+  show GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass) e_k e_k =
+    (a^d * massEigenvalues d N a mass k)⁻¹
+  rw [lattice_covariance_GJ_eq_spectral d N a mass ha hmass e_k e_k]
+  -- Goal: (a^d)⁻¹ * Σ_j λ_j⁻¹ · c_j(e_k)² = (a^d λ_k)⁻¹
+  -- where c_j(e_k) = Σ_x v_j(x) · v_k(x) = ⟨v_j, v_k⟩ = δ_{jk}.
+  have h_inner : ∀ j : FinLatticeSites d N,
+      (∑ x, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x * e_k x) =
+      if j = k then (1 : ℝ) else 0 := by
+    intro j
+    -- This sum is `inner ℝ v_j v_k` in EuclideanSpace, which orthonormality
+    -- gives as the indicator. Convert via dotProduct (mirroring the pattern
+    -- in `massEigenbasis_sum_mul_sum_eq_site_inner`).
+    have h_orth :
+        @inner ℝ (EuclideanSpace ℝ (FinLatticeSites d N)) _
+          (massEigenvectorBasis d N a mass j)
+          (massEigenvectorBasis d N a mass k) =
+        if j = k then (1 : ℝ) else 0 :=
+      orthonormal_iff_ite.mp (massEigenvectorBasis d N a mass).orthonormal j k
+    have h_eq :
+        (∑ x, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x * e_k x) =
+        @inner ℝ (EuclideanSpace ℝ (FinLatticeSites d N)) _
+          (massEigenvectorBasis d N a mass j)
+          (massEigenvectorBasis d N a mass k) := by
+      change _ =
+        ((massEigenvectorBasis d N a mass k).ofLp ⬝ᵥ
+          star (massEigenvectorBasis d N a mass j).ofLp)
+      simp [dotProduct, star_trivial, e_k, mul_comm]
+    rw [h_eq]; exact h_orth
+  rw [show (∑ j : FinLatticeSites d N,
+        (massEigenvalues d N a mass j)⁻¹ *
+          (∑ x, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x * e_k x) *
+          (∑ x, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x * e_k x)) =
+      (massEigenvalues d N a mass k)⁻¹ from by
+    rw [Finset.sum_eq_single k]
+    · rw [h_inner k, if_pos rfl]; ring
+    · intro j _ hjk
+      rw [h_inner j, if_neg hjk]; ring
+    · intro h; exact (h (Finset.mem_univ _)).elim]
+  ring
+
 /-- **Each orthogonalized coordinate is standard Gaussian.**
 
 Under `latticeGaussianMeasure d N a mass ha hmass`, the random variable
@@ -109,23 +168,57 @@ Under `latticeGaussianMeasure d N a mass ha hmass`, the random variable
 
 **Reference:** Janson §1.3.
 
-**Proof strategy:** The pairing `ω ↦ ω(e_k)` is centred Gaussian under
-the GFF with variance `⟨T_GJ(e_k), T_GJ(e_k)⟩ = (a^d λ_k)⁻¹` by the
-GJ-aligned spectral identity (`lattice_covariance_GJ_eq_spectral` in
-`Lattice/Covariance.lean`): `e_k` is an eigenvector of `Q` with
-eigenvalue `λ_k`, so `T_GJ(e_k) = (a^d λ_k)^{-1/2} e_k` and
-`‖T_GJ(e_k)‖² = (a^d λ_k)⁻¹`. Multiplying by `√(a^d λ_k)` rescales
-the variance to `1`. Then `Measure.map` of a centred Gaussian random
-variable of variance 1 is `gaussianReal 0 1` by
-`ProbabilityTheory.gaussianReal_measure_map_..._eq_id` /
-`Measure.gaussian_pushforward` (the standard pushforward identity for
-centred Gaussian linear functionals). -/
-axiom gffOrthonormalCoord_normal
+**Proof:** Combine `pairing_is_gaussian` (the pushforward of `ω ↦ ω(e_k)`
+is `gaussianReal 0 ⟨T(e_k), T(e_k)⟩.toNNReal`) with the variance helper
+`latticeCovarianceGJ_eigenvector_inner_self` (which computes the variance
+to be `(a^d λ_k)⁻¹`). The scaling by `√(a^d λ_k)` rescales the variance
+to 1 via `gaussianReal_map_const_mul`. -/
+theorem gffOrthonormalCoord_normal
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (k : FinLatticeSites d N) :
     Measure.map (gffOrthonormalCoord d N a mass ha hmass k)
       (latticeGaussianMeasure d N a mass ha hmass) =
-    gaussianReal 0 1
+    gaussianReal 0 1 := by
+  -- Setup
+  let e_k : FinLatticeField d N :=
+    fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x
+  let c : ℝ := Real.sqrt (a^d * massEigenvalues d N a mass k)
+  have hev_pos : 0 < massEigenvalues d N a mass k :=
+    massOperatorMatrix_eigenvalues_pos d N a mass ha hmass k
+  have ha_d_pos : 0 < a^d := pow_pos ha d
+  have h_prod_pos : 0 < a^d * massEigenvalues d N a mass k := mul_pos ha_d_pos hev_pos
+  have hc_nn : 0 ≤ c := Real.sqrt_nonneg _
+  have hc_sq : c^2 = a^d * massEigenvalues d N a mass k := by
+    show (Real.sqrt (a^d * massEigenvalues d N a mass k))^2 = _
+    rw [sq, Real.mul_self_sqrt h_prod_pos.le]
+  -- Step 1: gffOrthonormalCoord k = (c * ·) ∘ (· e_k) (by commutativity)
+  have h_fun_eq : (gffOrthonormalCoord d N a mass ha hmass k :
+        Configuration (FinLatticeField d N) → ℝ) =
+      (c * ·) ∘ (fun ω : Configuration (FinLatticeField d N) => ω e_k) := by
+    funext ω
+    show ω e_k * c = c * ω e_k
+    ring
+  -- Step 2: Measure.map composition
+  have h_meas_mul : Measurable (fun x : ℝ => c * x) :=
+    (continuous_const.mul continuous_id).measurable
+  have h_meas_eval : Measurable (fun ω : Configuration (FinLatticeField d N) => ω e_k) :=
+    configuration_eval_measurable e_k
+  rw [h_fun_eq, ← Measure.map_map h_meas_mul h_meas_eval]
+  -- Step 3: Apply pairing_is_gaussian
+  unfold latticeGaussianMeasure
+  rw [pairing_is_gaussian (latticeCovarianceGJ d N a mass ha hmass) e_k]
+  -- Goal: Measure.map (c * ·) (gaussianReal 0 ⟨Te_k, Te_k⟩.toNNReal) = gaussianReal 0 1
+  rw [latticeCovarianceGJ_eigenvector_inner_self d N a mass ha hmass k]
+  -- Goal: Measure.map (c * ·) (gaussianReal 0 ((a^d λ_k)⁻¹).toNNReal) = gaussianReal 0 1
+  rw [gaussianReal_map_const_mul]
+  -- Goal: gaussianReal (c * 0) (⟨c², _⟩ * ((a^d λ_k)⁻¹).toNNReal) = gaussianReal 0 1
+  congr 1
+  · ring
+  · -- ⟨c², _⟩ * (a^d λ_k)⁻¹.toNNReal = 1 in ℝ≥0
+    apply NNReal.eq
+    push_cast
+    rw [hc_sq, Real.coe_toNNReal _ (inv_nonneg.mpr h_prod_pos.le)]
+    rw [mul_inv_cancel₀ h_prod_pos.ne']
 
 /-- **Distinct orthogonalized coordinates are independent.**
 
