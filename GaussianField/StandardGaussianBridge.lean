@@ -428,18 +428,30 @@ the standard multivariate Gaussian.**
 
   `Measure.map gffOrthonormalProj (latticeGaussianMeasure …) = Π_k gaussianReal 0 1`
 
-**Proof strategy:** Combine
-`gffOrthonormalCoord_normal` (each marginal is `N(0,1)`) and
-`gffOrthonormalCoord_independent` (the family is independent). The
-product structure of the pushforward then matches `Measure.pi` of
-1D `gaussianReal 0 1`. Mathlib's
-`MeasureTheory.Measure.pi_eq_pi_iff_marginals` (or the equivalent
-characterization via finite cylinders) closes this. -/
-axiom gffOrthonormalProj_pushforward_eq_stdGaussian
+**Proof:** Each marginal is `N(0,1)` (`gffOrthonormalCoord_normal`)
+and the family is mutually independent (`gffOrthonormalCoord_independent`).
+Mathlib's `iIndepFun_iff_map_fun_eq_pi_map` then identifies the
+joint pushforward with the product of marginals. -/
+theorem gffOrthonormalProj_pushforward_eq_stdGaussian
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     Measure.map (gffOrthonormalProj d N a mass ha hmass)
       (latticeGaussianMeasure d N a mass ha hmass) =
-    Measure.pi (fun _ : FinLatticeSites d N => gaussianReal 0 1)
+    Measure.pi (fun _ : FinLatticeSites d N => gaussianReal 0 1) := by
+  set μ := latticeGaussianMeasure d N a mass ha hmass with hμ
+  have h_indep := gffOrthonormalCoord_independent d N a mass ha hmass
+  have h_AE : ∀ i : FinLatticeSites d N,
+      AEMeasurable (gffOrthonormalCoord d N a mass ha hmass i) μ := by
+    intro i
+    exact ((configuration_eval_measurable _).mul_const _).aemeasurable
+  have h_eq :=
+    (iIndepFun_iff_map_fun_eq_pi_map (μ := μ)
+      (f := fun i => gffOrthonormalCoord d N a mass ha hmass i) h_AE).mp h_indep
+  -- gffOrthonormalProj is `fun ω i ↦ gffOrthonormalCoord ... i ω` by definition.
+  rw [show gffOrthonormalProj d N a mass ha hmass =
+      fun ω i => gffOrthonormalCoord d N a mass ha hmass i ω from rfl, h_eq]
+  congr 1
+  funext i
+  exact gffOrthonormalCoord_normal d N a mass ha hmass i
 
 /-- **Characteristic-functional form of the bridge** (alternative formulation).
 
@@ -450,13 +462,52 @@ The pushforward measure has the characteristic functional
 characteristic functional, but useful as a target form when proving
 via `MeasureTheory.Measure.ext_of_charFunDual` (the same uniqueness
 tool used in `GaussianField/Density.lean`). -/
-axiom gffOrthonormalProj_charFun
+theorem gffOrthonormalProj_charFun
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (t : FinLatticeSites d N → ℝ) :
     ∫ x : FinLatticeSites d N → ℝ,
       Complex.exp (Complex.I * ↑(∑ k, t k * x k))
         ∂(Measure.map (gffOrthonormalProj d N a mass ha hmass)
           (latticeGaussianMeasure d N a mass ha hmass)) =
-    Complex.exp (-(1 / 2 : ℂ) * ↑(∑ k, t k ^ 2))
+    Complex.exp (-(1 / 2 : ℂ) * ↑(∑ k, t k ^ 2)) := by
+  rw [gffOrthonormalProj_pushforward_eq_stdGaussian d N a mass ha hmass]
+  -- Decompose the exponential of the sum into a product of exponentials.
+  have h_decomp : ∀ x : FinLatticeSites d N → ℝ,
+      Complex.exp (Complex.I * ↑(∑ k, t k * x k)) =
+        ∏ k, Complex.exp (Complex.I * ↑(t k * x k)) := by
+    intro x
+    rw [show (↑(∑ k, t k * x k) : ℂ) = ∑ k, ((t k * x k : ℝ) : ℂ) from by push_cast; rfl]
+    rw [Finset.mul_sum, Complex.exp_sum]
+  simp_rw [h_decomp]
+  rw [show
+      ∫ x : FinLatticeSites d N → ℝ, ∏ k, Complex.exp (Complex.I * ↑(t k * x k))
+        ∂(Measure.pi fun _ : FinLatticeSites d N => gaussianReal 0 1) =
+      ∏ k : FinLatticeSites d N,
+        ∫ x : ℝ, Complex.exp (Complex.I * ↑(t k * x)) ∂(gaussianReal 0 1) from
+    integral_fintype_prod_eq_prod
+      (f := fun k (x : ℝ) => Complex.exp (Complex.I * ↑(t k * x)))]
+  -- Each factor is the characteristic function of N(0,1) at t k.
+  have h_each : ∀ k : FinLatticeSites d N,
+      ∫ x : ℝ, Complex.exp (Complex.I * ↑(t k * x)) ∂(gaussianReal 0 1) =
+        Complex.exp (-((t k : ℂ) ^ 2) / 2) := by
+    intro k
+    have h_rewrite : ∀ x : ℝ,
+        Complex.exp (Complex.I * ↑(t k * x)) =
+          Complex.exp (↑(t k) * ↑x * Complex.I) := by
+      intro x
+      push_cast
+      ring_nf
+    simp_rw [h_rewrite]
+    rw [← charFun_apply_real, charFun_gaussianReal]
+    push_cast
+    ring_nf
+  simp_rw [h_each]
+  rw [← Complex.exp_sum]
+  congr 1
+  push_cast
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro k _
+  ring
 
 end GaussianField
