@@ -275,8 +275,8 @@ private theorem hermiteR_derivative (n : ℕ) :
   simp only [hermiteR]
   rw [Polynomial.derivative_map, hermite_derivative, Polynomial.map_mul, Polynomial.map_natCast]
 
-/-- The Gaussian `exp(-x²/2)`. -/
-private abbrev gaussian (x : ℝ) : ℝ := Real.exp (-(x ^ 2 / 2))
+/-- The unnormalized Gaussian weight `exp(-x²/2)` (no `1/√(2π)` factor). -/
+abbrev gaussian (x : ℝ) : ℝ := Real.exp (-(x ^ 2 / 2))
 
 /-- Derivative of `Hₘ(x) · exp(-x²/2)` equals `-H_{m+1}(x) · exp(-x²/2)`.
     From `H_{m+1} = X·Hₘ - Hₘ'` and the product rule. -/
@@ -344,7 +344,7 @@ private theorem differentiable_hermiteEval_mul_gaussian (m : ℕ) :
     (Differentiable.exp (by fun_prop : Differentiable ℝ (fun u : ℝ => -(u ^ 2 / 2))))
 
 /-- The `J` integral: `∫ Hₙ(x) · Hₘ(x) · exp(-x²/2) dx`. -/
-private noncomputable def J (n m : ℕ) : ℝ :=
+noncomputable def J (n m : ℕ) : ℝ :=
   ∫ x, (hermiteR n).eval x * ((hermiteR m).eval x * gaussian x)
 
 /-- IBP recurrence: `J(n+1, m+1) = (n+1) · J(n, m)`. -/
@@ -459,7 +459,7 @@ private theorem J_succ_zero (k : ℕ) : J (k + 1) 0 = 0 := by
   exact (mul_eq_zero.mp h3).resolve_left h4
 
 /-- `J(n, m) = if n = m then n! * √(2π) else 0`. -/
-private theorem J_eq : ∀ m n : ℕ,
+theorem J_eq : ∀ m n : ℕ,
     J n m = if n = m then ↑(n.factorial) * Real.sqrt (2 * Real.pi) else 0 := by
   intro m
   induction m with

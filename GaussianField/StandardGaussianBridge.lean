@@ -323,7 +323,7 @@ private lemma gffOrthonormalProjCLM_eq
       Real.sqrt (a^d * massEigenvalues d N a mass k)
   ring
 
-private lemma gffOrthonormalProj_measurable
+lemma gffOrthonormalProj_measurable
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     Measurable (gffOrthonormalProj d N a mass ha hmass) := by
   apply measurable_pi_iff.mpr

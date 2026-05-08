@@ -63,6 +63,7 @@ provides only the generic Gaussian-Hilbert-space identifications.
 import GaussianField.StandardGaussianBridge
 import GaussianField.Wick
 import SchwartzNuclear.HermiteWick
+import SchwartzNuclear.HermiteFunctions
 
 noncomputable section
 
@@ -142,6 +143,57 @@ theorem gffMultiWickMonomial_eq_hermite_product
   unfold scaledHermite
   rw [Real.sqrt_one, one_pow, one_mul, div_one]
 
+/-- 1D **Wick monomial orthogonality** under the standard Gaussian
+`gaussianReal 0 1`:
+
+  `∫ :x^m:_1 · :x^n:_1 ∂γ = δ_{m,n} · m!`.
+
+Reduced to `J_eq` (Hermite L²-inner product against the unnormalized
+Gaussian weight) via `wick_eq_hermiteR` (with `c = 1`, `√c = 1`,
+`x/√c = x`), then converted from Lebesgue to `gaussianReal 0 1` via
+the explicit PDF `(√(2π))⁻¹ · exp(-x²/2)`. -/
+theorem wickMonomial_inner_gaussianReal_one (m n : ℕ) :
+    ∫ x : ℝ, wickMonomial m 1 x * wickMonomial n 1 x ∂(gaussianReal 0 1) =
+    if m = n then (m.factorial : ℝ) else 0 := by
+  -- Step 1: wickMonomial k 1 x = (hermiteR k).eval x.
+  have h_wick : ∀ (k : ℕ) (x : ℝ),
+      wickMonomial k 1 x = (hermiteR k).eval x := by
+    intro k x
+    rw [wick_eq_hermiteR k 1 (by norm_num : (0:ℝ) < 1)]
+    show Real.sqrt 1 ^ k * (hermiteR k).eval (x / Real.sqrt 1) = _
+    rw [Real.sqrt_one, one_pow, one_mul, div_one]
+  simp_rw [h_wick]
+  -- Step 2: Convert gaussianReal 0 1 integral to Lebesgue with the PDF.
+  rw [integral_gaussianReal_eq_integral_smul (one_ne_zero)]
+  simp_rw [smul_eq_mul]
+  -- Step 3: Identify gaussianPDFReal 0 1 x = (√(2π))⁻¹ * gaussian x.
+  have h_pdf : ∀ x : ℝ,
+      gaussianPDFReal 0 1 x = (Real.sqrt (2 * Real.pi))⁻¹ * gaussian x := by
+    intro x
+    rw [gaussianPDFReal_def]
+    simp only [NNReal.coe_one, mul_one, sub_zero]
+    show (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-x^2 / 2) =
+        (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(x^2 / 2))
+    congr 2
+    ring
+  simp_rw [h_pdf]
+  -- Step 4: Pull out the (√(2π))⁻¹ constant; what's left is `J m n`.
+  rw [show (fun x : ℝ =>
+        (Real.sqrt (2 * Real.pi))⁻¹ * gaussian x *
+          ((hermiteR m).eval x * (hermiteR n).eval x)) =
+      (fun x : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ *
+        ((hermiteR m).eval x * ((hermiteR n).eval x * gaussian x))) from by
+    funext x; ring]
+  rw [integral_const_mul]
+  show (Real.sqrt (2 * Real.pi))⁻¹ * J m n = _
+  rw [J_eq n m]
+  -- Goal: (√(2π))⁻¹ * (if m = n then m! * √(2π) else 0) = if m = n then m! else 0
+  split_ifs with h
+  · have h2pi_pos : (0 : ℝ) < Real.sqrt (2 * Real.pi) :=
+      Real.sqrt_pos.mpr (by positivity)
+    field_simp
+  · ring
+
 /-- **Orthogonality of GFF multivariate Wick monomials under the lattice
 GFF measure.**
 
@@ -150,28 +202,80 @@ GFF measure.**
 This is the multivariate Wick orthogonality: distinct multi-indices
 give zero, and the diagonal is a product of factorials.
 
-**Proof strategy** (deferred):
-1. Push forward to the standard multivariate Gaussian via
-   `gffOrthonormalProj_pushforward_eq_stdGaussian` (now a theorem).
-2. Decompose into a product over `k` via Fubini
-   (`integral_fintype_prod_eq_prod`).
-3. Each factor reduces to the 1D Wick inner product
-   `∫ wickMonomial m 1 · wickMonomial n 1 ∂(gaussianReal 0 1) =
-     if m = n then (m! : ℝ) else 0`.
-
-**Blocking dependency:** the 1D Wick orthogonality identity above is
-not yet in this repo or Mathlib. The existing
-`SchwartzNuclear/WickOrthogonality.lean` only proves the n ≥ 1 mean
-(`wickMonomial_mean_zero`); the cross-product / norm pair would
-follow from analogous Stein-induction proofs but is a substantive
-addition. -/
-axiom gffMultiWickMonomial_orthogonality
+**Proof:** Push forward to `Π_k gaussianReal 0 1` via
+`gffOrthonormalProj_pushforward_eq_stdGaussian`, decompose into a
+product of 1D integrals via `integral_fintype_prod_eq_prod`, and apply
+the 1D orthogonality `wickMonomial_inner_gaussianReal_one` to each
+factor. -/
+theorem gffMultiWickMonomial_orthogonality
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (α β : FinLatticeSites d N → ℕ) :
     ∫ ω, gffMultiWickMonomial d N a mass ha hmass α ω *
         gffMultiWickMonomial d N a mass ha hmass β ω
         ∂(latticeGaussianMeasure d N a mass ha hmass) =
-    (if α = β then ((∏ k, (α k).factorial : ℕ) : ℝ) else 0)
+    (if α = β then ((∏ k, (α k).factorial : ℕ) : ℝ) else 0) := by
+  have h_meas := gffOrthonormalProj_measurable d N a mass ha hmass
+  -- Helper: each `wickMonomial k 1` is continuous (it's `(hermiteR k).eval`).
+  have h_wick_cont : ∀ k : ℕ, Continuous (wickMonomial k 1) := by
+    intro k
+    have h_eq : (fun x : ℝ => wickMonomial k 1 x) = (hermiteR k).eval := by
+      funext x
+      rw [wick_eq_hermiteR k 1 (by norm_num : (0:ℝ) < 1)]
+      show Real.sqrt 1 ^ k * (hermiteR k).eval (x / Real.sqrt 1) = _
+      rw [Real.sqrt_one, one_pow, one_mul, div_one]
+    rw [show wickMonomial k 1 = fun x : ℝ => wickMonomial k 1 x from rfl, h_eq]
+    exact (hermiteR k).continuous
+  -- Step 1: combine the two products into one product of pairs (using the
+  -- definitional equality `gffOrthonormalProj ω k = gffOrthonormalCoord k ω`).
+  have h_eq : ∀ ω : Configuration (FinLatticeField d N),
+      gffMultiWickMonomial d N a mass ha hmass α ω *
+        gffMultiWickMonomial d N a mass ha hmass β ω =
+      ∏ k, wickMonomial (α k) 1 (gffOrthonormalProj d N a mass ha hmass ω k) *
+            wickMonomial (β k) 1 (gffOrthonormalProj d N a mass ha hmass ω k) := by
+    intro ω
+    unfold gffMultiWickMonomial gffOrthonormalProj
+    rw [← Finset.prod_mul_distrib]
+  simp_rw [h_eq]
+  -- Step 2: Use integral_map and the pushforward equation.
+  have h_strong_meas : AEStronglyMeasurable
+      (fun y : FinLatticeSites d N → ℝ =>
+        ∏ k, wickMonomial (α k) 1 (y k) * wickMonomial (β k) 1 (y k))
+      ((latticeGaussianMeasure d N a mass ha hmass).map
+        (gffOrthonormalProj d N a mass ha hmass)) := by
+    apply Continuous.aestronglyMeasurable
+    apply continuous_finset_prod
+    intro k _
+    exact ((h_wick_cont _).comp (continuous_apply k)).mul
+      ((h_wick_cont _).comp (continuous_apply k))
+  rw [← integral_map h_meas.aemeasurable
+    (f := fun y : FinLatticeSites d N → ℝ =>
+      ∏ k, wickMonomial (α k) 1 (y k) * wickMonomial (β k) 1 (y k))
+    h_strong_meas]
+  rw [gffOrthonormalProj_pushforward_eq_stdGaussian d N a mass ha hmass]
+  -- Step 3: apply Fubini to the product over k.
+  rw [integral_fintype_prod_eq_prod
+    (f := fun k (x : ℝ) => wickMonomial (α k) 1 x * wickMonomial (β k) 1 x)]
+  -- Step 4: each factor is the 1D orthogonality.
+  simp_rw [wickMonomial_inner_gaussianReal_one]
+  -- Step 4: combine the per-coordinate indicators into a single multi-index indicator.
+  by_cases hαβ : α = β
+  · rw [if_pos hαβ]
+    rw [show (∏ k : FinLatticeSites d N,
+        if α k = β k then (((α k).factorial : ℕ) : ℝ) else 0) =
+        ∏ k : FinLatticeSites d N, ((α k).factorial : ℝ) from by
+      refine Finset.prod_congr rfl ?_
+      intro k _
+      rw [if_pos (by rw [hαβ] : α k = β k)]]
+    push_cast
+    rfl
+  · rw [if_neg hαβ]
+    -- Some k has α k ≠ β k, so that factor is 0.
+    obtain ⟨k, hk⟩ : ∃ k, α k ≠ β k := by
+      by_contra h
+      push Not at h
+      exact hαβ (funext h)
+    apply Finset.prod_eq_zero (Finset.mem_univ k)
+    rw [if_neg hk]
 
 /-- The GFF site (auto-)variance at site `x`:
 `c_a(x) = ⟨φ(x), φ(x)⟩ = (a^d)⁻¹ · Σ_k λ_k⁻¹ · e_k(x)²`.
