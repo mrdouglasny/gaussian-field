@@ -468,18 +468,44 @@ from the measure equality. -/
 Gaussian measure for `Q = a^d • massOperator` (Glimm–Jaffe-aligned, with
 the Riemann-sum factor folded into the operator).
 
-Proof status: AXIOMATIZED in Stage 1. The previous proof was `:= by rfl`
-against the un-rescaled `Q = massOperator`, which became false when
-`gaussianDensity` picked up the `a^d` factor. The corrected statement
-(with `(a^d) • Q`) requires a small calc proof (folding `a^d * Σ φ Qφ`
-into the action). To be discharged in Phase 2.
+**Phase 2 deliverable: discharged 2026-05-07** (axiom → proved theorem
+via density / measure unfolding plus Finset.mul_sum for the
+`a^d · Σ` action equality).
 
 Reference: Glimm–Jaffe Eq. (6.1.6); textbook discretisation. -/
-axiom normalizedGaussianDensityMeasure_eq_normalizedQuadraticGaussianMeasure
+theorem normalizedGaussianDensityMeasure_eq_normalizedQuadraticGaussianMeasure
     (a mass : ℝ) :
     normalizedGaussianDensityMeasure d N a mass =
       normalizedQuadraticGaussianMeasure
-        (Q := (a^d : ℝ) • massOperator d N a mass)
+        (Q := (a^d : ℝ) • massOperator d N a mass) := by
+  -- Both measures are `(Z⁻¹) • withDensity exp(-(a^d/2) Σ φ (Qφ))`. The
+  -- LHS uses gaussianDensity (with the `a^d/2` factor explicit); the RHS
+  -- uses quadraticGaussianDensity Q' with `Q' = (a^d) • Q`, where the
+  -- (a^d) factor is absorbed into Q' so that the action becomes
+  -- (1/2) Σ φ (Q'φ) = (1/2) · a^d · Σ φ (Qφ) = (a^d/2) · Σ φ (Qφ).
+  show (gaussianDensityNormConst d N a mass)⁻¹ • gaussianDensityMeasure d N a mass = _
+  unfold gaussianDensityNormConst normalizedQuadraticGaussianMeasure
+    gaussianDensityMeasure quadraticGaussianMeasure
+  have h_density : gaussianDensityWeight d N a mass =
+      fun φ => ENNReal.ofReal
+        (quadraticGaussianDensity ((a^d : ℝ) • massOperator d N a mass) φ) := by
+    funext φ
+    unfold gaussianDensityWeight gaussianDensity quadraticGaussianDensity
+    congr 1
+    -- exp(-(a^d/2) · Σ φ (Qφ)) = exp(-(1/2) · Σ φ ((a^d • Q) φ))
+    congr 1
+    -- -(a^d/2) · Σ φ Qφ = -(1/2) · Σ φ ((a^d • Q)φ)
+    -- Σ φ ((a^d • Q)φ) = Σ φ (a^d • Qφ) = a^d · Σ φ Qφ
+    have h_smul : ∀ x : FinLatticeSites d N,
+        φ x * (((a^d : ℝ) • massOperator d N a mass) φ) x =
+        a^d * (φ x * (massOperator d N a mass φ) x) := by
+      intro x
+      simp only [ContinuousLinearMap.smul_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    simp_rw [h_smul]
+    rw [← Finset.mul_sum]
+    ring
+  rw [h_density]
 
 /-- Fourier identity for the project normalized density measure
 (**Glimm–Jaffe-aligned** form): the characteristic functional equals
