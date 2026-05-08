@@ -868,8 +868,19 @@ theorem normalizedGaussianDensityMeasure_linearFourier
       (a^d : ℝ)⁻¹ *
         ∑ k : FinLatticeSites d N,
           (massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2 := by
-    simpa [GaussianField.covariance, c] using
-      lattice_covariance_GJ_eq_spectral (d := d) (N := N) a mass ha hmass f f
+    have h := lattice_covariance_GJ_eq_spectral (d := d) (N := N) a mass ha hmass f f
+    simp only [GaussianField.covariance] at h
+    rw [h]
+    congr 1
+    refine Finset.sum_congr rfl ?_
+    intro k _
+    show (massEigenvalues d N a mass k)⁻¹ *
+      (∑ x, ((massEigenvectorBasis d N a mass) k).ofLp x * f x) *
+      (∑ x, ((massEigenvectorBasis d N a mass) k).ofLp x * f x) =
+      (massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2
+    show _ = (massEigenvalues d N a mass k)⁻¹ * (c k) ^ 2
+    simp only [c]
+    ring
   have hnorm_cast :
       (↑(@inner ℝ ell2' _
         (latticeCovarianceGJ d N a mass ha hmass f)
@@ -905,7 +916,7 @@ theorem normalizedGaussianDensityMeasure_linearFourier
                     simp [div_eq_mul_inv]
       _ = ∑ k : FinLatticeSites d N,
             ((c k : ℂ) ^ 2 / (((a^d : ℝ) * massEigenvalues d N a mass k : ℝ) : ℂ)) := by
-            rw [mul_sum]
+            rw [Finset.mul_sum]
             refine Finset.sum_congr rfl ?_
             intro k hk
             have ha_d_ne : ((a^d : ℝ) : ℂ) ≠ 0 := by
@@ -913,8 +924,8 @@ theorem normalizedGaussianDensityMeasure_linearFourier
             have hlamk : (massEigenvalues d N a mass k : ℂ) ≠ 0 := by
               exact_mod_cast (ne_of_gt (massOperatorMatrix_eigenvalues_pos
                 (d := d) (N := N) a mass ha hmass k))
-            field_simp [ha_d_ne, hlamk]
-            ring_nf
+            push_cast
+            field_simp
   calc
     ∫ φ : FinLatticeField d N,
         Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
