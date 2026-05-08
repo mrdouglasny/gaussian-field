@@ -45,6 +45,8 @@ import GaussianField.Construction
 import GaussianField.Properties
 import GaussianField.Hypercontractive
 import GaussianField.Wick
+import GaussianField.StandardGaussianBridge
+import GaussianField.WickMultivariate
 import GaussianField.Support
 import GaussianField.CramerWold
 import GaussianField.ConfigurationEmbedding

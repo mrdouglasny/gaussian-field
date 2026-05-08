@@ -566,18 +566,27 @@ theorem spectral_singular_values_bounded (a mass : ℝ)
 Defined here (rather than in FKG.lean) so that Density.lean can access it
 without circular imports. -/
 
-/-- The Gaussian density on `FinLatticeField d N` (unnormalized):
-`ρ(φ) = exp(-½ ⟨φ, Qφ⟩)` where Q = -Δ_a + m² is the mass operator. -/
+/-- The Gaussian density on `FinLatticeField d N` (unnormalized,
+**Glimm–Jaffe-aligned**):
+`ρ(φ) = exp(-(a^d/2) ⟨φ, Qφ⟩_counting)` where `Q = -Δ_a + m²` is the
+mass operator and `a^d` is the Riemann-sum volume element discretising
+the continuum action `(1/2) ∫ ((∇φ)² + m²φ²) dx`.
+
+The corresponding (normalised) Gaussian measure has covariance kernel
+`(a^d Q)^{-1} = a^{-d} Q^{-1}`, matching `latticeCovarianceGJ` and hence
+`latticeGaussianMeasure` (via the density bridge in `Density.lean`).
+
+Reference: Glimm–Jaffe Eq. (6.1.6); Simon Ch. I. -/
 def gaussianDensity (a mass : ℝ)
     (φ : FinLatticeField d N) : ℝ :=
-  Real.exp (-(1/2) * ∑ x : FinLatticeSites d N,
+  Real.exp (-(a^d / 2 : ℝ) * ∑ x : FinLatticeSites d N,
     φ x * (massOperator d N a mass φ) x)
 
-/-- Spectral form of the Gaussian density exponent. -/
+/-- Spectral form of the Gaussian density exponent (Glimm–Jaffe-aligned). -/
 theorem gaussianDensity_eq_exp_spectral (a mass : ℝ)
     (φ : FinLatticeField d N) :
     gaussianDensity d N a mass φ =
-      Real.exp (-(1 / 2 : ℝ) *
+      Real.exp (-(a^d / 2 : ℝ) *
         ∑ k : FinLatticeSites d N,
           massEigenvalues d N a mass k *
             (∑ x : FinLatticeSites d N,

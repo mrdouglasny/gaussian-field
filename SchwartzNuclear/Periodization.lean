@@ -113,6 +113,7 @@ theorem periodize_summable (h : SchwartzMap ℝ ℝ) (t : ℝ) :
             nlinarith [le_abs_self t]
       _ = 4 * S / L ^ 2 * (1 / ↑n ^ 2) := by ring
 
+omit [Fact (0 < L)] in
 /-- The periodized function is periodic with period `L`.
 
 **Proof**: Reindex the sum using `k ↦ k + 1`:
@@ -139,7 +140,7 @@ theorem periodizeFun_periodic (h : SchwartzMap ℝ ℝ) :
 private lemma iteratedFDeriv_eq_zero_of_eventuallyEq_zero
     (f : ℝ → ℝ) (x : ℝ) (m : ℕ) (hf : f =ᶠ[nhds x] 0) :
     iteratedFDeriv ℝ m f x = 0 := by
-  rw [(hf.iteratedFDeriv ℝ m).eq_of_nhds]; exact congr_fun iteratedFDeriv_zero_fun x
+  rw [(hf.iteratedFDeriv ℝ m).eq_of_nhds]; exact congr_fun iteratedFDeriv_fun_zero x
 
 /-- `φ · g` vanishes near `x` when `x ∉ tsupport φ` (since `φ = 0` on the open complement). -/
 private lemma mul_eventuallyEq_zero_outside_tsupport
@@ -149,6 +150,7 @@ private lemma mul_eventuallyEq_zero_outside_tsupport
     ⟨(tsupport φ)ᶜ, (isClosed_tsupport φ).isOpen_compl.mem_nhds hx, fun y hy => by
       simp [Function.notMem_support.mp (fun h => hy (subset_tsupport φ h))]⟩
 
+omit [Fact (0 < L)] in
 /-- Leibniz + Schwartz decay bound on the support of `φ`.
 
 For `x ∈ tsupport φ` and `|x + kL| ≥ 1`, the Leibniz rule gives:

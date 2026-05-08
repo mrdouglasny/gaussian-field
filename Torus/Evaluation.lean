@@ -137,6 +137,69 @@ def torusEmbedCLM (N : ℕ) [NeZero N]
     ∑ x : FinLatticeSites 2 N, φ x * evalTorusAtSite L N x f :=
   rfl
 
+/-! ## Glimm–Jaffe (Riemann-sum) torus evaluation
+
+Parallel to `evalTorusAtSite` / `torusEmbedCLM`, but built from the
+Riemann-sum-isometric `circleRestrictionGJ` instead of the
+counting-isometric `circleRestriction`. For a pure tensor `f₁ ⊗ f₂`:
+
+  `eval^{GJ}_x(f₁ ⊗ f₂) = (L/N) · f₁(x₀·L/N) · (L/N) · f₂(x₁·L/N)`
+                           `= (L/N)² · f₁(x₀·L/N) · f₂(x₁·L/N)`
+                           `= a^d · f₁(x₀·a) · f₂(x₁·a)`         (d = 2)
+
+The squared sum `Σ_x (eval^{GJ}_x f)² ≈ a^d · ∫_{T²_L} f² dx` (`O(a^d)`),
+which exactly cancels the `(a^d)⁻¹` factor in the GJ-aligned lattice
+covariance, giving uniform-in-N control of the embedded two-point
+function.
+
+Relationship: `evalTorusAtSiteGJ = a^{d/2} • evalTorusAtSite`
+(the extra `(L/N)^{1/2}` per coordinate compounds to `(L/N)^{d/2} = a^{d/2}`
+across d coords; for d = 2 this is `(L/N) = a`). -/
+
+/-- Glimm–Jaffe evaluation of a torus test function at a lattice site,
+defined as `(L/N) = a` times the bare evaluation. Equivalently, this is
+what one would get from `evalCLM` of `circleRestrictionGJ`-tensor-products
+(see `evalTorusAtSiteGJ_pure` for the pure-tensor formula). -/
+noncomputable def evalTorusAtSiteGJ (N : ℕ) [NeZero N]
+    (x : FinLatticeSites 2 N) : TorusTestFunction L →L[ℝ] ℝ :=
+  circleSpacing L N • evalTorusAtSite L N x
+
+/-- The GJ torus embedding: maps a lattice field `φ : (ℤ/Nℤ)² → ℝ` to a
+continuous linear functional on `TorusTestFunction L`, using the
+Riemann-sum-isometric circle restriction.
+
+  `(ι^{GJ}_N φ)(f) = Σ_{x ∈ (ℤ/Nℤ)²} φ(x) · eval^{GJ}_x(f)
+                  = (L/N)² Σ_x φ_x · f(x · L/N)`
+
+For pure tensors this is the Riemann-sum approximation of
+`∫_{T²_L} φ_continuum · f dx` where `φ_continuum` is a step function
+agreeing with `φ` on lattice cells. -/
+def torusEmbedCLMGJ (N : ℕ) [NeZero N]
+    (φ : FinLatticeField 2 N) : Configuration (TorusTestFunction L) where
+  toFun f := ∑ x : FinLatticeSites 2 N, φ x * evalTorusAtSiteGJ L N x f
+  map_add' f g := by
+    simp only [map_add, mul_add, Finset.sum_add_distrib]
+  map_smul' r f := by
+    simp only [map_smul, smul_eq_mul, mul_left_comm, Finset.mul_sum, RingHom.id_apply]
+  cont := by
+    apply continuous_finset_sum
+    intro x _
+    exact continuous_const.mul (evalTorusAtSiteGJ L N x).cont
+
+/-- The GJ torus embedding agrees with evalTorusAtSiteGJ. -/
+@[simp] theorem torusEmbedCLMGJ_apply (N : ℕ) [NeZero N]
+    (φ : FinLatticeField 2 N) (f : TorusTestFunction L) :
+    torusEmbedCLMGJ L N φ f =
+    ∑ x : FinLatticeSites 2 N, φ x * evalTorusAtSiteGJ L N x f :=
+  rfl
+
+/-- The GJ evaluation equals `(L/N)` times the bare evaluation. -/
+@[simp] theorem evalTorusAtSiteGJ_apply' (N : ℕ) [NeZero N]
+    (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
+    evalTorusAtSiteGJ L N x f = circleSpacing L N * evalTorusAtSite L N x f := by
+  unfold evalTorusAtSiteGJ
+  rw [ContinuousLinearMap.smul_apply, smul_eq_mul]
+
 /-- Swap of lattice sites: (x₀, x₁) ↦ (x₁, x₀). -/
 def swapSites (N : ℕ) (x : FinLatticeSites 2 N) : FinLatticeSites 2 N :=
   ![x 1, x 0]
