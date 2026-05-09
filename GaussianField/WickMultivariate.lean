@@ -295,6 +295,42 @@ noncomputable def gffSiteVariance
       (massEigenvalues d N a mass k)⁻¹ *
         ((massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x) ^ 2
 
+/-! ## Spectral expansion helper for the site-Wick expansion
+
+The orthogonalized eigenvector coefficient `γ_j(x) = e_j(x) / √(a^d λ_j)`
+re-expresses `gffSiteVariance` as `∑ γ_j(x)²` (Parseval-style). This
+identity decouples `gffSiteVariance` from the explicit `(a^d)⁻¹` and
+`λ_j⁻¹` factors. -/
+
+/-- The orthogonalized eigenvector coefficient: `γ_j(x) = e_j(x) / √(a^d λ_j)`. -/
+private noncomputable def gffEigenCoeff
+    (a mass : ℝ) (j x : FinLatticeSites d N) : ℝ :=
+  (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x /
+    Real.sqrt (a^d * massEigenvalues d N a mass j)
+
+/-- The site variance equals `∑_j γ_j(x)²`. -/
+private lemma gffSiteVariance_eq_sum_gamma_sq
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (x : FinLatticeSites d N) :
+    gffSiteVariance d N a mass ha hmass x =
+    ∑ j, (gffEigenCoeff d N a mass j x)^2 := by
+  unfold gffSiteVariance gffEigenCoeff
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro j _
+  have h_pos : (0 : ℝ) < a^d * massEigenvalues d N a mass j :=
+    mul_pos (pow_pos ha d)
+      (massOperatorMatrix_eigenvalues_pos d N a mass ha hmass j)
+  have h_sqrt_sq : Real.sqrt (a^d * massEigenvalues d N a mass j) ^ 2 =
+      a^d * massEigenvalues d N a mass j :=
+    Real.sq_sqrt h_pos.le
+  rw [show ((massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x /
+        Real.sqrt (a^d * massEigenvalues d N a mass j))^2 =
+      ((massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x)^2 /
+        (Real.sqrt (a^d * massEigenvalues d N a mass j))^2 from by
+    rw [div_pow]]
+  rw [h_sqrt_sq, mul_comm (a^d) (massEigenvalues d N a mass j)]
+  field_simp
+
 /-- **Site Wick monomial expansion in the eigenbasis.**
 
 The single-site Wick monomial $\mathopen{:}\phi(x)^k\mathclose{:}_{c_a(x)}$
@@ -311,20 +347,29 @@ of *exact* total degree `k` appear, because the local Wick subtraction
 with the matched site variance `c_a(x)` cancels exactly the lower-degree
 contractions.
 
-**Proof strategy** (deferred): Substitute the eigenbasis expansion
-$\phi(x) = \sum_k \lambda_k^{-1/2}\, e_k(x)\, \xi_k$ into the 1D Wick
-recursion (note the `λ_k^{-1/2}` factor in the GJ-aligned normalisation
-where `ξ_k` has unit variance and `Var(ω(e_k)) = (a^d λ_k)⁻¹`). The
-Wick subtraction with constant `c_a(x) = Var(φ(x))` matches the
-multinomial diagonal contractions exactly, killing all lower-degree
-terms. The explicit coefficient is
-`coeff α x k = (k! / ∏_j α_j!) · ∏_j (e_j(x) / √(a^d · λ_j))^{α_j}`
-for `|α| = k`, otherwise 0.
+**Proof strategy** (deferred): The two helpers above
+(`omega_eval_delta_eq_sum_gamma_xi`, `gffSiteVariance_eq_sum_gamma_sq`)
+reduce the problem to a generic multivariate Wick multinomial identity:
 
-**Blocking dependency:** a multivariate Wick algebra theorem of the
-form "for independent `ξ_j ∼ N(0,1)` and `Y = ∑_j γ_j ξ_j`, one has
-`:Y^k:_{Var Y} = ∑_{|α|=k} (k! / ∏ α_j!) · (∏ γ_j^{α_j}) · :ξ^α:_1`"
-is not yet in this repo. -/
+  for any γ, ξ : ι → ℝ (with ι Fintype) and k : ℕ,
+  `wickMonomial k (∑ γ²) (∑ γ_j ξ_j) =
+     ∑_{|α|=k} (k!/∏ α_j!) · (∏ γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`.
+
+This is the multivariate Hermite multinomial expansion, derivable by
+strong induction on k using the 1D Wick recursion + multi-index
+combinatorics:
+
+  `:Y^{k+2}:_c = Y · :Y^{k+1}:_c - (k+1) c · :Y^k:_c`
+   with `Y = ∑ γ_j ξ_j`, `c = ∑ γ_j²`,
+   `Y · :ξ^α:_1 = ∑_j γ_j (:ξ^{α+δ_j}:_1 + α_j · :ξ^{α-δ_j}:_1)`
+   (1D Wick recursion per coordinate),
+   `c · :ξ^β:_1 = ∑_j γ_j² · :ξ^β:_1`,
+   and the algebraic cancellation
+   `(β_j+1) · c^{(k+1)}_{β+δ_j} = (k+1) γ_j · c^{(k)}_β`
+   for the explicit coefficient `c^{(k)}_α = (k!/∏α_j!) ∏γ_j^{α_j}`.
+
+The induction is rigorous but combinatorially intricate (~300 lines
+of multi-index sum manipulation in Lean). Not yet implemented. -/
 axiom siteWickMonomial_eigenbasis_expansion
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (k : ℕ) (x : FinLatticeSites d N) :
