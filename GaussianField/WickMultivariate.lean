@@ -484,25 +484,32 @@ after expanding each side via the 1D Wick exponential
 Jaffe, *Quantum Physics*, §6.1 (Wick ordering); Nourdin & Peccati,
 *Normal Approximations with Malliavin Calculus*, §2.7.
 
-**Proof (deferred):** Strong induction on `k` (`Nat.twoStepInduction`).
-Bases `k = 0` and `k = 1` are direct. The inductive step `k+2` uses the
-1D Wick recursion
-`W_{k+2}(c, Y) = Y · W_{k+1}(c, Y) − (k+1) c · W_k(c, Y)`,
-the per-coordinate Wick recursion
-`ξ_j · :ξ_j^m:_1 = :ξ_j^{m+1}:_1 + m · :ξ_j^{m-1}:_1`,
-multi-index re-indexing `α' = α ± δ_j`, and the algebraic cancellation
-`(β_j+1) · A^{(k+1)}_{β+δ_j} = (k+1) γ_j · A^{(k)}_β` for the
-explicit coefficient `A^{(k)}_α := (k! / ∏ α_j!) · ∏ γ_j^{α_j}`. The
-combinatorial work is intricate (~200–400 lines of Lean) and is left
-for a focused future effort. -/
-axiom wickMonomial_pow_sum_expansion
+**Proof:** First specialise the 1D Wick recursion to a binomial-type
+addition formula
+`W_n(c₁+c₂, x+y) = ∑_k C(n,k) W_k(c₁,x) W_{n-k}(c₂,y)`
+(`wickMonomial_add_add` in `SchwartzNuclear/HermiteWick.lean`),
+proved by two-step induction on `n` plus Pascal's rule
+(`Nat.choose_succ_succ`) and the choose-absorption identities
+(`Nat.add_one_mul_choose_eq`).  Then induct on the support Finset
+`s : Finset ι`, peeling off one index `j₀` at a time via
+`wickMonomial_add_add` and `wickMonomial_homogeneity`, and invoke
+the Function.update bijection
+`(m, α) ↔ Function.update α j₀ m`
+to pass between the multi-indices `α'` of total degree `k` and the
+nested decomposition `(α' j₀, α' restricted to s)`.  The coefficient
+identity at the final step is `C(k,m) · (k-m)! · m! = k!`.
+
+The proof itself lives in `SchwartzNuclear/HermiteWick.lean`; this is
+just a wrapper that uses the locally-defined `multiIndicesOfTotalDegree`. -/
+theorem wickMonomial_pow_sum_expansion_of_totalDegree
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     (γ ξ : ι → ℝ) (k : ℕ) :
     wickMonomial k (∑ j, (γ j) ^ 2) (∑ j, γ j * ξ j) =
     ∑ α ∈ multiIndicesOfTotalDegree ι k,
       ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
       (∏ j, γ j ^ (α j)) *
-      (∏ j, wickMonomial (α j) 1 (ξ j))
+      (∏ j, wickMonomial (α j) 1 (ξ j)) :=
+  wickMonomial_pow_sum_expansion γ ξ k
 
 namespace GaussianField
 
@@ -566,7 +573,7 @@ theorem siteWickMonomial_eigenbasis_expansion
     -- LHS now: wickMonomial k (∑ γ²) (∑ γ_j · ξ_j(ω)). Apply the (generic)
     -- multinomial axiom — it produces a sum over `multiIndicesOfTotalDegree`,
     -- which we then identify with `multiIndicesOfDegree d N k`.
-    rw [wickMonomial_pow_sum_expansion
+    rw [wickMonomial_pow_sum_expansion_of_totalDegree
           (γ := fun j => gffEigenCoeff d N a mass j x)
           (ξ := fun j => gffOrthonormalCoord d N a mass ha hmass j ω) (k := k)]
     rw [multiIndicesOfDegree_eq_generic d N k]

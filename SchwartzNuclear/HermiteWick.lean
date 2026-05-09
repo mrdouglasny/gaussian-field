@@ -937,4 +937,27 @@ private theorem wickMonomial_pow_sum_expansion_aux
       linear_combination (γ j₀ ^ m * wickMonomial m 1 (ξ j₀) * (∏ j, γ j ^ α j) *
         (∏ j, wickMonomial (α j) 1 (ξ j))) * hcoef'
 
+/-- **Multivariate Wick multinomial expansion** (textbook lemma).
+
+For any finite index set `ι`, any `γ ξ : ι → ℝ` and any `k : ℕ`,
+
+  `wickMonomial k (∑ j, (γ j)²) (∑ j, γ j · ξ j) =
+     ∑_{|α|=k} (k! / ∏ α_j!) · (∏ γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`,
+
+where the sum is over multi-indices `α : ι → ℕ` of total degree `k`.
+
+Specialisation of `wickMonomial_pow_sum_expansion_aux` to `s = univ`. -/
+theorem wickMonomial_pow_sum_expansion
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (γ ξ : ι → ℝ) (k : ℕ) :
+    wickMonomial k (∑ j, (γ j) ^ 2) (∑ j, γ j * ξ j) =
+    ∑ α ∈ (Fintype.piFinset (fun _ : ι => Finset.range (k + 1))).filter
+        (fun α => ∑ j, α j = k),
+      ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+      (∏ j, γ j ^ (α j)) *
+      (∏ j, wickMonomial (α j) 1 (ξ j)) := by
+  have h := wickMonomial_pow_sum_expansion_aux γ ξ (Finset.univ : Finset ι) k
+  rw [multiIndicesSupportedIn_univ] at h
+  exact h
+
 end
