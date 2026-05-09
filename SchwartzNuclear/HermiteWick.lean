@@ -139,4 +139,20 @@ theorem wick_eq_hermiteR_rpow (n : ℕ) (c : ℝ) (hc : 0 < c) (x : ℝ) :
   congr 1
   ring
 
+/-! ## Homogeneity
+
+`:γ·x^n:_{γ²·c} = γ^n · :x^n:_c`. Proved by induction using the
+three-term recurrence — pure algebra, no Hermite-functional content. -/
+
+/-- **Wick homogeneity**: rescaling `x` by `γ` and `c` by `γ²` rescales
+the Wick monomial by `γ^n`. -/
+theorem wickMonomial_homogeneity : ∀ (n : ℕ) (γ c x : ℝ),
+    wickMonomial n (γ ^ 2 * c) (γ * x) = γ ^ n * wickMonomial n c x
+  | 0, _, _, _ => by simp
+  | 1, γ, _, x => by simp
+  | n + 2, γ, c, x => by
+    rw [wickMonomial_succ_succ, wickMonomial_homogeneity (n + 1) γ c x,
+        wickMonomial_homogeneity n γ c x, wickMonomial_succ_succ]
+    ring
+
 end
