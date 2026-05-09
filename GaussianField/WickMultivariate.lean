@@ -308,6 +308,97 @@ private noncomputable def gffEigenCoeff
   (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x /
     Real.sqrt (a^d * massEigenvalues d N a mass j)
 
+/-- Pointwise completeness of the eigenbasis:
+`∑ j, e_j(x) · e_j(y) = δ_{xy}`. The (x,y) entry of `M Mᵀ = I` for
+the orthonormal basis matrix `M`. -/
+private lemma eigenbasis_completeness
+    (a mass : ℝ) (x y : FinLatticeSites d N) :
+    ∑ j, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x *
+        (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) y =
+    if y = x then (1 : ℝ) else 0 := by
+  -- sum_repr applied to (EuclideanSpace.single x 1):
+  -- ∑ j, b.repr (single x 1) j • b j = single x 1.
+  have h_repr := (massEigenvectorBasis d N a mass).sum_repr
+    (EuclideanSpace.single x (1 : ℝ))
+  -- Replace the abstract repr coefficient with e_j(x).
+  have h_repr_eq : ∀ j, (massEigenvectorBasis d N a mass).repr
+      (EuclideanSpace.single x (1 : ℝ)) j =
+      (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x := by
+    intro j
+    rw [OrthonormalBasis.repr_apply_apply]
+    -- ⟨b j, single x 1⟩ via the dotProduct convention used elsewhere:
+    -- inner a b = b.ofLp ⬝ᵥ star a.ofLp.
+    change ((EuclideanSpace.single x (1 : ℝ)).ofLp ⬝ᵥ
+      star (massEigenvectorBasis d N a mass j).ofLp) = _
+    simp [dotProduct, star_trivial,
+      ite_mul, one_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ]
+  simp_rw [h_repr_eq] at h_repr
+  -- h_repr : ∑ j, e_j(x) • b_j = single x 1 (in EuclideanSpace).
+  -- Cast both sides to Pi via ofLp.
+  have h_ofLp : ((∑ j, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x •
+        (massEigenvectorBasis d N a mass j) : EuclideanSpace ℝ _) :
+        FinLatticeSites d N → ℝ) =
+      ((EuclideanSpace.single x (1 : ℝ)) : FinLatticeSites d N → ℝ) :=
+    congrArg WithLp.ofLp h_repr
+  -- Apply at y.
+  have h_y := congrFun h_ofLp y
+  -- Compute LHS: (∑_j c_j • b_j).ofLp y = ∑_j c_j * b_j.ofLp y.
+  -- Convert (∑_j c_j • b_j).ofLp y → ∑_j c_j * (b_j).ofLp y.
+  simp only [WithLp.ofLp_sum, WithLp.ofLp_smul] at h_y
+  -- Now h_y is `(∑_j c_j • (b_j).ofLp) y = (single x 1).ofLp y`.
+  rw [show (∑ j, ((massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x •
+        ((massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) :
+          FinLatticeSites d N → ℝ))) y =
+      ∑ j, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x *
+        (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) y from by
+    rw [Finset.sum_apply]
+    refine Finset.sum_congr rfl ?_
+    intro j _
+    rfl] at h_y
+  -- Compute RHS: (single x 1).ofLp y = if y = x then 1 else 0.
+  rw [show ((EuclideanSpace.single x (1 : ℝ)) : FinLatticeSites d N → ℝ) y =
+      if y = x then (1 : ℝ) else 0 from by rw [EuclideanSpace.single_apply]] at h_y
+  exact h_y
+
+/-- Spectral expansion: `ω(δ_x) = ∑_j γ_j(x) · ξ_j(ω)`. -/
+private lemma omega_eval_delta_eq_sum_gamma_xi
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (x : FinLatticeSites d N)
+    (ω : Configuration (FinLatticeField d N)) :
+    ω (Pi.single x (1 : ℝ)) =
+    ∑ j, gffEigenCoeff d N a mass j x *
+        gffOrthonormalCoord d N a mass ha hmass j ω := by
+  -- Step 1: Pi.single x 1 = ∑ j, e_j(x) • (e_j : Pi) (pointwise via eigenbasis_completeness).
+  have h_pi_eq : (Pi.single x (1 : ℝ) : FinLatticeField d N) =
+      ∑ j, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x •
+        ((massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) :
+          FinLatticeSites d N → ℝ) := by
+    funext y
+    rw [show (Pi.single x (1 : ℝ) : FinLatticeField d N) y =
+        (if y = x then (1 : ℝ) else 0) from Pi.single_apply _ _ _]
+    rw [← eigenbasis_completeness d N a mass x y]
+    rw [Finset.sum_apply]
+    refine Finset.sum_congr rfl ?_
+    intro j _
+    rfl
+  -- Step 2: apply ω-linearity.
+  rw [h_pi_eq, map_sum]
+  refine Finset.sum_congr rfl ?_
+  intro j _
+  rw [map_smul]
+  show (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x •
+      ω (fun y => (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) y) =
+    gffEigenCoeff d N a mass j x *
+      gffOrthonormalCoord d N a mass ha hmass j ω
+  unfold gffEigenCoeff gffOrthonormalCoord
+  simp only [smul_eq_mul]
+  have h_pos : (0 : ℝ) < a^d * massEigenvalues d N a mass j :=
+    mul_pos (pow_pos ha d)
+      (massOperatorMatrix_eigenvalues_pos d N a mass ha hmass j)
+  have h_sqrt_ne : Real.sqrt (a^d * massEigenvalues d N a mass j) ≠ 0 :=
+    (Real.sqrt_pos.mpr h_pos).ne'
+  field_simp
+
 /-- The site variance equals `∑_j γ_j(x)²`. -/
 private lemma gffSiteVariance_eq_sum_gamma_sq
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (x : FinLatticeSites d N) :
