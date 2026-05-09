@@ -531,6 +531,16 @@ private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
     linarith [h_top, h_A_low, h_B_low]
   linarith [key]
 
+/-- The Wick monomial vanishes for a zero argument and zero variance,
+except at degree 0. -/
+private lemma wickMonomial_zero_zero : ∀ k : ℕ, wickMonomial k (0 : ℝ) (0 : ℝ) =
+    if k = 0 then 1 else 0
+  | 0 => by simp
+  | 1 => by simp
+  | k + 2 => by
+    rw [wickMonomial_succ_succ]
+    simp [wickMonomial_zero_zero (k + 1), wickMonomial_zero_zero k]
+
 /-- **Bivariate Wick addition.**
 
   `:_{(x+y)}^n:_{c₁+c₂} = ∑_k C(n, k) :x^k:_{c₁} · :y^{n-k}:_{c₂}`.
@@ -557,5 +567,374 @@ theorem wickMonomial_add_add : ∀ (n : ℕ) (c₁ c₂ x y : ℝ),
     intro c₁ c₂ x y
     rw [wickMonomial_succ_succ, ih2 c₁ c₂ x y, ih1 c₁ c₂ x y,
         bivariateSum_recursion n c₁ c₂ x y]
+
+/-! ## Multivariate Wick multinomial expansion
+
+The multivariate generalisation of the bivariate addition formula.
+For any finite index set `ι`, and any `γ ξ : ι → ℝ`,
+
+  `wickMonomial k (∑_j γ_j²) (∑_j γ_j · ξ_j)
+     = ∑_{|α|=k} (k! / ∏_j α_j!) · (∏_j γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`.
+
+Proof by `Finset.induction_on s` on the support set `s : Finset ι`,
+using `wickMonomial_add_add` to peel off one summand at a time and
+`wickMonomial_homogeneity` to absorb the resulting `γ_j^k` factors.
+-/
+
+/-- Multi-indices supported in a Finset `s ⊆ ι` with total degree `k`. -/
+private noncomputable def multiIndicesSupportedIn
+    {ι : Type*} [Fintype ι] [DecidableEq ι] (s : Finset ι) (k : ℕ) :
+    Finset (ι → ℕ) :=
+  (Fintype.piFinset (fun _ : ι => Finset.range (k + 1))).filter
+    (fun α => (∀ j ∉ s, α j = 0) ∧ ∑ j, α j = k)
+
+/-- The full set `multiIndicesOfTotalDegree` corresponds to the support
+being all of `ι`. -/
+private lemma multiIndicesSupportedIn_univ
+    {ι : Type*} [Fintype ι] [DecidableEq ι] (k : ℕ) :
+    multiIndicesSupportedIn (Finset.univ : Finset ι) k =
+    (Fintype.piFinset (fun _ : ι => Finset.range (k + 1))).filter
+      (fun α => ∑ j, α j = k) := by
+  unfold multiIndicesSupportedIn
+  ext α
+  simp [Finset.mem_filter, Fintype.mem_piFinset, Finset.mem_range]
+
+/-- Empty case: only the zero multi-index is supported in ∅, and only
+at total degree 0. -/
+private lemma multiIndicesSupportedIn_empty
+    {ι : Type*} [Fintype ι] [DecidableEq ι] (k : ℕ) :
+    multiIndicesSupportedIn (∅ : Finset ι) k =
+      if k = 0 then {(fun _ => 0 : ι → ℕ)} else ∅ := by
+  unfold multiIndicesSupportedIn
+  ext α
+  simp only [Finset.mem_filter, Fintype.mem_piFinset, Finset.mem_range,
+    Finset.notMem_empty]
+  rcases Nat.eq_zero_or_pos k with hk | hk
+  · subst hk
+    simp only [if_true, Finset.mem_singleton, funext_iff]
+    constructor
+    · rintro ⟨_, hα0, _⟩; intro j; exact hα0 j (by simp)
+    · intro hα0
+      refine ⟨fun i => ?_, fun j _ => hα0 j, ?_⟩
+      · rw [hα0 i]; omega
+      · simp_rw [hα0]; simp
+  · have hk_ne : k ≠ 0 := Nat.ne_of_gt hk
+    simp only [hk_ne, if_false, Finset.notMem_empty, iff_false, not_and]
+    intro hbound hα0
+    -- α j = 0 for all j (since α has empty support), so ∑ α = 0 ≠ k.
+    have hzero : ∀ j, α j = 0 := fun j => hα0 j (by simp)
+    simp_rw [hzero]
+    simp
+    omega
+
+/-- **Multivariate Wick multinomial expansion** (over a Finset).
+
+For any Finset `s : Finset ι`, any `γ ξ : ι → ℝ`, and any `k : ℕ`:
+
+  `wickMonomial k (∑_{j ∈ s} γ_j²) (∑_{j ∈ s} γ_j · ξ_j) =
+     ∑_{α ∈ multiIndicesSupportedIn s k}
+       (k! / ∏_j α_j!) · (∏_j γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`.
+
+The products on the RHS are over all of `ι`, but factors with
+`α j = 0` (which holds for `j ∉ s`) contribute 1.
+
+Proved by `Finset.induction_on s`, peeling off one element at a time
+via `wickMonomial_add_add` and `wickMonomial_homogeneity`. -/
+private theorem wickMonomial_pow_sum_expansion_aux
+    {ι : Type*} [Fintype ι] [DecidableEq ι] (γ ξ : ι → ℝ)
+    (s : Finset ι) :
+    ∀ (k : ℕ),
+    wickMonomial k (∑ j ∈ s, (γ j) ^ 2) (∑ j ∈ s, γ j * ξ j) =
+    ∑ α ∈ multiIndicesSupportedIn s k,
+      ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+      (∏ j, γ j ^ (α j)) *
+      (∏ j, wickMonomial (α j) 1 (ξ j)) := by
+  induction s using Finset.induction_on with
+  | empty =>
+    intro k
+    -- LHS: wickMonomial k 0 0 = if k = 0 then 1 else 0.
+    -- RHS: sum over multiIndicesSupportedIn ∅ k = if k = 0 then {0_index} else ∅.
+    simp only [Finset.sum_empty, wickMonomial_zero_zero, multiIndicesSupportedIn_empty]
+    rcases Nat.eq_zero_or_pos k with hk | hk
+    · subst hk
+      simp
+    · have hk_ne : k ≠ 0 := Nat.ne_of_gt hk
+      simp [hk_ne]
+  | insert j₀ s hj₀ ih =>
+    intro k
+    -- Split off j₀.
+    have hsum_var :
+        (∑ j ∈ insert j₀ s, (γ j) ^ 2) = (γ j₀) ^ 2 + ∑ j ∈ s, (γ j) ^ 2 :=
+      Finset.sum_insert hj₀
+    have hsum_pt :
+        (∑ j ∈ insert j₀ s, γ j * ξ j) = γ j₀ * ξ j₀ + ∑ j ∈ s, γ j * ξ j :=
+      Finset.sum_insert hj₀
+    rw [hsum_var, hsum_pt]
+    -- Apply bivariate addition.
+    rw [wickMonomial_add_add]
+    -- Each summand: C(k, m) · wickMonomial m (γ_{j₀}²) (γ_{j₀} ξ_{j₀})
+    --              · wickMonomial (k - m) (∑_s γ²) (∑_s γ ξ).
+    -- Apply homogeneity to the j₀ factor: wickMonomial m (γ_{j₀}²) (γ_{j₀} ξ_{j₀}) =
+    --     γ_{j₀}^m · wickMonomial m 1 ξ_{j₀}.
+    -- And IH to the s factor.
+    have hhom : ∀ m, wickMonomial m ((γ j₀) ^ 2) (γ j₀ * ξ j₀) =
+                  (γ j₀) ^ m * wickMonomial m 1 (ξ j₀) := fun m => by
+      have := wickMonomial_homogeneity m (γ j₀) 1 (ξ j₀)
+      simp at this
+      exact this
+    -- Substitute homogeneity for the j₀ factor and the IH for the s factor.
+    have step1 :
+        (∑ m ∈ Finset.range (k + 1),
+            (k.choose m : ℝ) * wickMonomial m ((γ j₀) ^ 2) (γ j₀ * ξ j₀) *
+              wickMonomial (k - m) (∑ j ∈ s, (γ j) ^ 2) (∑ j ∈ s, γ j * ξ j)) =
+        (∑ m ∈ Finset.range (k + 1),
+            (k.choose m : ℝ) * ((γ j₀) ^ m * wickMonomial m 1 (ξ j₀)) *
+              ∑ α ∈ multiIndicesSupportedIn s (k - m),
+                (((k - m).factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                (∏ j, γ j ^ (α j)) *
+                (∏ j, wickMonomial (α j) 1 (ξ j))) := by
+      refine Finset.sum_congr rfl (fun m _ => ?_)
+      rw [hhom, ih (k - m)]
+    rw [step1]
+    -- Now we need to prove the LHS = RHS where the RHS is the sum over
+    -- multiIndicesSupportedIn (insert j₀ s) k.
+    -- Convert the double sum (m, α) into a single sum over α' = update α j₀ m.
+    -- Use Finset.sum_bij.
+    -- First, push the inner sum outside.
+    rw [show ∑ m ∈ Finset.range (k + 1),
+              ((k.choose m : ℝ) * ((γ j₀) ^ m * wickMonomial m 1 (ξ j₀))) *
+                ∑ α ∈ multiIndicesSupportedIn s (k - m),
+                  (((k - m).factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                  (∏ j, γ j ^ (α j)) *
+                  (∏ j, wickMonomial (α j) 1 (ξ j))
+            = ∑ m ∈ Finset.range (k + 1),
+                ∑ α ∈ multiIndicesSupportedIn s (k - m),
+                  ((k.choose m : ℝ) * ((γ j₀) ^ m * wickMonomial m 1 (ξ j₀))) *
+                  ((((k - m).factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                  (∏ j, γ j ^ (α j)) *
+                  (∏ j, wickMonomial (α j) 1 (ξ j))) from
+      Finset.sum_congr rfl (fun m _ => Finset.mul_sum _ _ _)]
+    -- Use Finset.sum_sigma' to convert nested sums to a Σ-sum.
+    rw [Finset.sum_sigma' (Finset.range (k + 1))
+        (fun m => multiIndicesSupportedIn s (k - m))]
+    -- Now define the bijection (m, α) ↦ Function.update α j₀ m.
+    refine Finset.sum_bij (fun (mα : Σ _ : ℕ, ι → ℕ) _ => Function.update mα.2 j₀ mα.1)
+      ?hi ?h_inj ?h_surj ?h_eq
+    · -- hi: image is in multiIndicesSupportedIn (insert j₀ s) k.
+      rintro ⟨m, α⟩ hmα
+      simp only [Finset.mem_sigma, Finset.mem_range] at hmα
+      obtain ⟨hm_lt, hα⟩ := hmα
+      simp only [multiIndicesSupportedIn, Finset.mem_filter, Fintype.mem_piFinset,
+        Finset.mem_range] at hα ⊢
+      obtain ⟨hα_bd, hα_supp, hα_sum⟩ := hα
+      refine ⟨?_, ?_, ?_⟩
+      · intro j
+        rcases eq_or_ne j j₀ with hj | hj
+        · subst hj
+          rw [Function.update_self]
+          omega
+        · rw [Function.update_of_ne hj]
+          have := hα_bd j
+          omega
+      · -- support: for j ∉ insert j₀ s, update α j₀ m at j = α j = 0.
+        intro j hj
+        rw [Finset.mem_insert, not_or] at hj
+        obtain ⟨hj_ne, hj_ns⟩ := hj
+        rw [Function.update_of_ne hj_ne]
+        exact hα_supp j hj_ns
+      · -- sum: ∑ (Function.update α j₀ m) = m + ∑ α (with α j₀ replaced) = m + (k - m) = k.
+        -- Function.update α j₀ m: at j₀ value is m; elsewhere value is α j.
+        -- So ∑_{j ∈ univ} (Function.update α j₀ m) j = m + ∑_{j ∈ univ \ {j₀}} α j
+        --   = m + (∑_{j ∈ univ} α j - α j₀) = m + (k - m) - α j₀
+        -- We have α j₀ = 0 because j₀ ∉ s (so by hα_supp).
+        have hα_j₀ : α j₀ = 0 := hα_supp j₀ hj₀
+        have hsum_eq : ∑ j, Function.update α j₀ m j = m + (k - m) := by
+          rw [Finset.sum_update_of_mem (Finset.mem_univ j₀)]
+          -- Goal: m + ∑ x ∈ univ \ {j₀}, α x = m + (k - m)
+          have hsplit_sum :
+              ∑ j, α j = α j₀ + ∑ x ∈ Finset.univ \ {j₀}, α x := by
+            conv_lhs => rw [show (Finset.univ : Finset ι) = insert j₀ (Finset.univ \ {j₀}) by
+              ext x
+              simp only [Finset.mem_insert, Finset.mem_sdiff, Finset.mem_univ,
+                Finset.mem_singleton, true_and]
+              tauto]
+            rw [Finset.sum_insert (by simp)]
+          have : ∑ x ∈ Finset.univ \ {j₀}, α x = k - m := by
+            omega
+          rw [this]
+        rw [hsum_eq]
+        omega
+    · -- h_inj: injective.
+      rintro ⟨m, α⟩ hmα ⟨m', α'⟩ hmα' heq
+      simp only at heq
+      -- Function.update α j₀ m = Function.update α' j₀ m' implies m = m' (eval at j₀)
+      -- and α j = α' j for j ≠ j₀.
+      have hj₀_eq : (Function.update α j₀ m) j₀ = (Function.update α' j₀ m') j₀ := by
+        rw [heq]
+      simp at hj₀_eq
+      have hα_eq : α = α' := by
+        funext j
+        rcases eq_or_ne j j₀ with hj | hj
+        · -- j = j₀: both α j₀ and α' j₀ are 0 (since j₀ ∉ s).
+          simp only [Finset.mem_sigma] at hmα hmα'
+          have h1 : α j₀ = 0 := by
+            have hmem := hmα.2
+            simp only [multiIndicesSupportedIn, Finset.mem_filter] at hmem
+            exact hmem.2.1 j₀ hj₀
+          have h2 : α' j₀ = 0 := by
+            have hmem := hmα'.2
+            simp only [multiIndicesSupportedIn, Finset.mem_filter] at hmem
+            exact hmem.2.1 j₀ hj₀
+          rw [hj, h1, h2]
+        · have hcongr := congr_fun heq j
+          rw [Function.update_of_ne hj, Function.update_of_ne hj] at hcongr
+          exact hcongr
+      simp [hj₀_eq, hα_eq]
+    · -- h_surj: every α' in multiIndicesSupportedIn (insert j₀ s) k arises.
+      intro α' hα'
+      simp only [multiIndicesSupportedIn, Finset.mem_filter, Fintype.mem_piFinset,
+        Finset.mem_range] at hα'
+      obtain ⟨hbd, hsupp, hsum⟩ := hα'
+      -- Take m = α' j₀ and α = Function.update α' j₀ 0.
+      refine ⟨⟨α' j₀, Function.update α' j₀ 0⟩, ?_, ?_⟩
+      · simp only [Finset.mem_sigma, Finset.mem_range]
+        refine ⟨?_, ?_⟩
+        · -- α' j₀ < k + 1
+          have := hbd j₀
+          omega
+        · simp only [multiIndicesSupportedIn, Finset.mem_filter, Fintype.mem_piFinset,
+            Finset.mem_range]
+          -- Helper: for j ≠ j₀, α' j ≤ ∑_{x ≠ j₀} α' x = k - α' j₀.
+          have hsplit_sum :
+              ∑ j, α' j = α' j₀ + ∑ x ∈ Finset.univ \ {j₀}, α' x := by
+            conv_lhs => rw [show (Finset.univ : Finset ι) = insert j₀ (Finset.univ \ {j₀}) by
+              ext x
+              simp only [Finset.mem_insert, Finset.mem_sdiff, Finset.mem_univ,
+                Finset.mem_singleton, true_and]
+              tauto]
+            rw [Finset.sum_insert (by simp)]
+          have hsum_rest : ∑ x ∈ Finset.univ \ {j₀}, α' x = k - α' j₀ := by omega
+          have hbd_rest : ∀ j ≠ j₀, α' j ≤ k - α' j₀ := by
+            intro j hj
+            have hmem : j ∈ Finset.univ \ {j₀} := by
+              simp [hj]
+            calc α' j ≤ ∑ x ∈ Finset.univ \ {j₀}, α' x :=
+                    Finset.single_le_sum (f := α') (s := Finset.univ \ {j₀})
+                      (fun _ _ => Nat.zero_le _) hmem
+              _ = k - α' j₀ := hsum_rest
+          refine ⟨?_, ?_, ?_⟩
+          · intro j
+            rcases eq_or_ne j j₀ with hj | hj
+            · subst hj; rw [Function.update_self]; omega
+            · rw [Function.update_of_ne hj]
+              have := hbd_rest j hj
+              omega
+          · intro j hj
+            rcases eq_or_ne j j₀ with hj' | hj'
+            · subst hj'; rw [Function.update_self]
+            · rw [Function.update_of_ne hj']
+              apply hsupp
+              rw [Finset.mem_insert, not_or]
+              exact ⟨hj', hj⟩
+          · -- ∑ (Function.update α' j₀ 0) = ∑ α' - α' j₀ = k - α' j₀.
+            rw [Finset.sum_update_of_mem (Finset.mem_univ j₀)]
+            rw [hsum_rest]
+            ring
+      · -- Function.update (Function.update α' j₀ 0) j₀ (α' j₀) = α'.
+        dsimp only
+        funext j
+        rcases eq_or_ne j j₀ with hj | hj
+        · subst hj; rw [Function.update_self]
+        · rw [Function.update_of_ne hj, Function.update_of_ne hj]
+    · -- h_eq: the values agree.
+      rintro ⟨m, α⟩ hmα
+      simp only at *
+      simp only [Finset.mem_sigma, Finset.mem_range] at hmα
+      obtain ⟨hm_lt, hα⟩ := hmα
+      simp only [multiIndicesSupportedIn, Finset.mem_filter] at hα
+      obtain ⟨_, hα_supp, hα_sum⟩ := hα
+      have hα_j₀ : α j₀ = 0 := hα_supp j₀ hj₀
+      -- Show: C(k, m) · γ_{j₀}^m · W_m 1 ξ_{j₀} · (k-m)!/∏α_j! · ∏ γ^α · ∏ W α 1 ξ
+      --     = k!/∏ (update α j₀ m)_j! · ∏ γ^(update α j₀ m) · ∏ W (update α j₀ m) 1 ξ.
+      -- Use:
+      -- (1) (update α j₀ m) j₀ = m, (update α j₀ m) j = α j for j ≠ j₀.
+      -- (2) ∏_j (update α j₀ m)_j! = m! · ∏_{j ≠ j₀} α j!
+      --                              = m! · (∏ α_j!) / α_{j₀}! = m! · ∏ α_j!  (since α_{j₀} = 0, factorial = 1).
+      -- (3) C(k, m) = k! / (m! · (k - m)!), so C(k, m) · (k-m)!/∏α_j! = k!/(m! ∏α_j!) = k!/∏(update)_j!.
+      -- (4) Similarly for the γ and W products: split off j₀ and combine.
+      -- Helper: split ∏ over `univ` into the j₀ term times ∏ over `univ \ {j₀}`.
+      -- We use this for the three update-quantities below.  Specialised to ℝ
+      -- to avoid universe-polymorphism issues.
+      have hsplit : ∀ (f : ι → ℝ),
+          ∏ j, f j = f j₀ * ∏ j ∈ Finset.univ \ {j₀}, f j := by
+        intro f
+        conv_lhs => rw [show (Finset.univ : Finset ι) = insert j₀ (Finset.univ \ {j₀}) by
+          ext x
+          simp only [Finset.mem_insert, Finset.mem_sdiff, Finset.mem_univ,
+            Finset.mem_singleton, true_and]
+          tauto]
+        rw [Finset.prod_insert (by simp)]
+      -- Now rewrite the three products.
+      have hupdate_factorial_R :
+          (∏ j, ((Function.update α j₀ m j).factorial : ℝ)) =
+            (m.factorial : ℝ) * ∏ j, ((α j).factorial : ℝ) := by
+        rw [hsplit (fun j => ((Function.update α j₀ m j).factorial : ℝ))]
+        rw [hsplit (fun j => ((α j).factorial : ℝ))]
+        rw [Function.update_self, hα_j₀, Nat.factorial_zero, Nat.cast_one]
+        rw [show ∏ j ∈ Finset.univ \ {j₀},
+              ((Function.update α j₀ m j).factorial : ℝ) =
+            ∏ j ∈ Finset.univ \ {j₀}, ((α j).factorial : ℝ) by
+          refine Finset.prod_congr rfl (fun j hj => ?_)
+          rw [Finset.mem_sdiff, Finset.mem_singleton] at hj
+          rw [Function.update_of_ne hj.2]]
+        ring
+      have hupdate_gamma :
+          (∏ j, γ j ^ (Function.update α j₀ m j)) = γ j₀ ^ m * ∏ j, γ j ^ α j := by
+        rw [hsplit (fun j => γ j ^ (Function.update α j₀ m j))]
+        rw [hsplit (fun j => γ j ^ α j)]
+        rw [Function.update_self, hα_j₀, pow_zero]
+        rw [show γ j₀ ^ m * ∏ j ∈ Finset.univ \ {j₀}, γ j ^ Function.update α j₀ m j =
+              γ j₀ ^ m * ∏ j ∈ Finset.univ \ {j₀}, γ j ^ α j by
+          congr 1
+          refine Finset.prod_congr rfl (fun j hj => ?_)
+          rw [Finset.mem_sdiff, Finset.mem_singleton] at hj
+          rw [Function.update_of_ne hj.2]]
+        ring
+      have hupdate_W :
+          (∏ j, wickMonomial (Function.update α j₀ m j) 1 (ξ j)) =
+            wickMonomial m 1 (ξ j₀) * ∏ j, wickMonomial (α j) 1 (ξ j) := by
+        rw [hsplit (fun j => wickMonomial (Function.update α j₀ m j) 1 (ξ j))]
+        rw [hsplit (fun j => wickMonomial (α j) 1 (ξ j))]
+        rw [Function.update_self, hα_j₀, wickMonomial_zero, one_mul]
+        rw [show wickMonomial m 1 (ξ j₀) *
+              ∏ j ∈ Finset.univ \ {j₀}, wickMonomial (Function.update α j₀ m j) 1 (ξ j) =
+            wickMonomial m 1 (ξ j₀) *
+              ∏ j ∈ Finset.univ \ {j₀}, wickMonomial (α j) 1 (ξ j) by
+          congr 1
+          refine Finset.prod_congr rfl (fun j hj => ?_)
+          rw [Finset.mem_sdiff, Finset.mem_singleton] at hj
+          rw [Function.update_of_ne hj.2]]
+      rw [hupdate_factorial_R, hupdate_gamma, hupdate_W]
+      -- After substitutions, both sides factor through γ_{j₀}^m · W_m 1 ξ_{j₀} · ∏γ^α · ∏ W α 1 ξ.
+      -- The only remaining task is the coefficient identity:
+      --   C(k, m) · (k-m)!/∏α! = k! / (m! · ∏α!).
+      have hm_le : m ≤ k := Nat.lt_succ_iff.mp hm_lt
+      have hpos_m : (0 : ℝ) < (m.factorial : ℝ) := by exact_mod_cast Nat.factorial_pos m
+      have hpos_prod : (0 : ℝ) < (∏ j, ((α j).factorial : ℝ)) := by
+        apply Finset.prod_pos
+        intro j _
+        exact_mod_cast Nat.factorial_pos _
+      have hpos_km : (0 : ℝ) < ((k - m).factorial : ℝ) := by exact_mod_cast Nat.factorial_pos _
+      have hpos_prod_ne : (∏ j, ((α j).factorial : ℝ)) ≠ 0 := ne_of_gt hpos_prod
+      have hpos_m_ne : (m.factorial : ℝ) ≠ 0 := ne_of_gt hpos_m
+      have hcoef' : (k.choose m : ℝ) * ((k - m).factorial : ℝ) * (m.factorial : ℝ) =
+                    (k.factorial : ℝ) := by
+        have hkm : k.choose m * (k - m).factorial * m.factorial = k.factorial := by
+          have h := Nat.choose_mul_factorial_mul_factorial hm_le
+          linarith
+        exact_mod_cast hkm
+      field_simp
+      linear_combination (γ j₀ ^ m * wickMonomial m 1 (ξ j₀) * (∏ j, γ j ^ α j) *
+        (∏ j, wickMonomial (α j) 1 (ξ j))) * hcoef'
 
 end
