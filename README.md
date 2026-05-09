@@ -167,6 +167,25 @@ Proves `DyninMityaginSpace (SchwartzMap D ℝ)` for any finite-dimensional $D$ v
 Hermite function expansion and the Dynin-Mityagin isomorphism
 $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 
+The Hermite-polynomial side of this development also provides the **Wick polynomial
+algebra** used downstream by the Gaussian field construction:
+
+- `wickMonomial n c x` — the Wick-ordered monomial defined by the three-term
+  recursion (`x · :x^{n+1}:_c - (n+1)·c · :x^n:_c = :x^{n+2}:_c`).
+- `wick_eq_hermiteR` — Wick monomials are scaled probabilist's Hermite polynomials.
+- `wickMonomial_homogeneity` — `:γx^n:_{γ²c} = γ^n · :x^n:_c` (rescaling).
+- **`wickMonomial_add_add`** — bivariate Wick addition (binomial form): for two
+  independent variables with their own variances,
+  `:x+y^n:_{c₁+c₂} = ∑_k C(n,k) · :x^k:_{c₁} · :y^{n-k}:_{c₂}`.
+- **`wickMonomial_pow_sum_expansion`** — multivariate Wick multinomial expansion
+  over a `Fintype` index set:
+  `:∑γⱼξⱼ^k:_{∑γⱼ²} = ∑_{|α|=k} (k!/∏α!) · (∏γⱼ^{αⱼ}) · ∏ⱼ :ξⱼ^{αⱼ}:_1`.
+  This is the textbook polynomial identity (Janson §3.4, Glimm-Jaffe §6.1) that
+  underlies the eigenbasis expansion of site Wick monomials in the lattice GFF.
+  Proof: bivariate addition by `Nat.twoStepInduction` + Pascal + choose-absorption,
+  then iteration over the index set via `Finset.induction_on` + homogeneity.
+  No external axioms beyond `[propext, Classical.choice, Quot.sound]`.
+
 | File | Lines | Contents |
 |------|------:|----------|
 | [HermiteFunctions.lean](SchwartzNuclear/HermiteFunctions.lean) | 1,853 | 1D Hermite functions, orthonormality, completeness |
@@ -177,6 +196,8 @@ $\mathcal{S}(\mathbb{R}^d) \cong s(\mathbb{N})$.
 | [HermiteTensorProduct.lean](SchwartzNuclear/HermiteTensorProduct.lean) | 2,742 | Multi-d isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` |
 | [HermiteNuclear.lean](SchwartzNuclear/HermiteNuclear.lean) | 63 | `DyninMityaginSpace` instance from the isomorphism |
 | [SchwartzTensorProduct.lean](SchwartzNuclear/SchwartzTensorProduct.lean) | 427 | Tensor product associativity, `schwartzPeelOff`, `schwartzTensorEquiv` |
+| [HermiteWick.lean](SchwartzNuclear/HermiteWick.lean) | 963 | Wick monomial recursion, scaled Hermite identification, **bivariate Wick addition**, **multivariate Wick multinomial expansion** |
+| [WickOrthogonality.lean](SchwartzNuclear/WickOrthogonality.lean) | 365 | Stein's lemma (Gaussian IBP), 1D Wick mean-zero (`wickMonomial_mean_zero`) |
 
 ### 2b. Circle Analysis
 
@@ -333,6 +354,8 @@ probability measure on $E' = \text{WeakDual}\ \mathbb{R}\ E$.
 | [Hypercontractive.lean](GaussianField/Hypercontractive.lean) | 441 | [Gaussian moments, Gross log-Sobolev inequality](summary/GaussianField/Hypercontractive.md) |
 | [HypercontractiveNat.lean](GaussianField/HypercontractiveNat.lean) | 329 | [Nelson's hypercontractive estimate](summary/GaussianField/HypercontractiveNat.md) for even integer p via double-factorial combinatorics |
 | [Symmetry.lean](GaussianField/Symmetry.lean) | 250 | Measure-level symmetries: covariance-preserving CLM action ⇒ measure invariance. Includes `measure_neg_invariant` and the lattice instance `latticeGaussianFieldLaw_isNegInvariant`. |
+| [StandardGaussianBridge.lean](GaussianField/StandardGaussianBridge.lean) | 513 | Lattice GFF as pushforward of the standard multivariate Gaussian: orthogonalised coordinates `ξ_k(ω) = ω(e_k) · √(a^d λ_k)` are i.i.d. `N(0,1)` (`gffOrthonormalCoord_normal`/`_independent`), pushforward equality `Π_k gaussianReal 0 1` (`gffOrthonormalProj_pushforward_eq_stdGaussian`), characteristic-functional form (`gffOrthonormalProj_charFun`) |
+| [WickMultivariate.lean](GaussianField/WickMultivariate.lean) | 593 | Multivariate Wick monomials in the orthogonalised GFF coordinates: `gffMultiWickMonomial_eq_hermite_product`, `gffMultiWickMonomial_orthogonality` (`∫ :ξ^α: · :ξ^β: dμ_GFF = δ_{αβ} · ∏ α_j!`), and the eigenbasis expansion `siteWickMonomial_eigenbasis_expansion` of the site Wick monomial `:φ(x)^k:_{c_a(x)}` |
 
 ### Dependency graph
 
@@ -390,6 +413,8 @@ The core results are fully proved with no custom axioms:
 The hypercontractive and log-Sobolev development is fully theorem-backed (`GaussianField/HypercontractiveNat.lean`, `GaussianField/Hypercontractive.lean`) with no remaining axioms or sorries in that path.
 
 The lattice/FKG pipeline is theorem-backed end-to-end: continuous Ahlswede-Daykin (including ENNReal bridge and n-dimensional induction), lattice Gaussian FKG, perturbation/truncation lemmas, and the density bridge in `GaussianField/Density.lean` are proved.
+
+The **standard-Gaussian bridge** and **multivariate Wick algebra** are theorem-backed end-to-end (`GaussianField/StandardGaussianBridge.lean`, `GaussianField/WickMultivariate.lean`, `SchwartzNuclear/HermiteWick.lean`). All seven of the original bridge/Wick claims — orthogonalised-coordinate normality (`gffOrthonormalCoord_normal`), independence (`_independent`), pushforward to the standard pi-Gaussian (`gffOrthonormalProj_pushforward_eq_stdGaussian`), characteristic-functional form (`gffOrthonormalProj_charFun`), Wick-monomial / Hermite identification (`gffMultiWickMonomial_eq_hermite_product`), Wick orthogonality (`gffMultiWickMonomial_orthogonality`: `∫ :ξ^α: · :ξ^β: dμ_GFF = δ_{αβ} · ∏ α_j!`), and the eigenbasis expansion of the site Wick monomial (`siteWickMonomial_eigenbasis_expansion`) — are now proved theorems with no custom axioms. The bivariate and multivariate Wick multinomial identities (`wickMonomial_add_add`, `wickMonomial_pow_sum_expansion`) are proved generically over an arbitrary `Fintype` index set in `SchwartzNuclear/HermiteWick.lean` and could be upstreamed to Mathlib.
 
 The 1D lattice-continuum convergence pipeline is fully proved: DFT eigenbasis construction, spectral expansion of the heat kernel, eigenvalue convergence, DFT coefficient convergence via Riemann sums, and the full heat kernel bilinear form convergence theorem (`lattice_heatKernel_tendsto_continuum_1d` in `Lattice/CirculantDFT.lean`).
 
