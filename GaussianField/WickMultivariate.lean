@@ -442,9 +442,50 @@ private lemma siteWickExpansionCoeff_eq_zero
   unfold siteWickExpansionCoeff
   rw [if_neg hα]
 
+/-- **Multivariate Wick multinomial expansion** (textbook lemma, taken as
+axiom).
+
+For any `γ, ξ : FinLatticeSites d N → ℝ` and `k : ℕ`,
+
+  `wickMonomial k (∑ γ²) (∑ γ_j ξ_j) =
+     ∑_{|α|=k} (k! / ∏ α_j!) · (∏ γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`.
+
+This is the multivariate analog of the 1D Hermite/Wick expansion of a
+power. Equivalent to matching `t^k`-coefficients in the generating
+function identity
+
+  `exp(t · ∑ γ_j ξ_j − (∑ γ_j²) · t²/2)
+     = ∏_j exp(t · γ_j ξ_j − γ_j² · t² / 2)`
+
+after expanding each side via the Wick exponential
+`exp(t · x − v · t²/2) = ∑_n (t^n/n!) · wickMonomial n v x`.
+
+**References:** Janson, *Gaussian Hilbert Spaces* (CUP 1997), §3.1
+(univariate Hermite) and §3.4 (multivariate generalisation); Glimm &
+Jaffe, *Quantum Physics*, §6.1 (Wick ordering); Nourdin & Peccati,
+*Normal Approximations with Malliavin Calculus*, §2.7.
+
+**Proof (deferred):** Strong induction on `k` (`Nat.twoStepInduction`).
+Bases k=0, k=1 are direct. The inductive step k+2 uses the 1D Wick
+recursion `W_{k+2}(c, Y) = Y · W_{k+1}(c, Y) − (k+1) c · W_k(c, Y)`,
+the per-coordinate Wick recursion
+`ξ_j · :ξ_j^m:_1 = :ξ_j^{m+1}:_1 + m · :ξ_j^{m-1}:_1`,
+multi-index re-indexing α' = α ± δ_j, and the algebraic cancellation
+`(β_j+1) · A^{(k+1)}_{β+δ_j} = (k+1) γ_j · A^{(k)}_β` for the
+explicit coefficient `A^{(k)}_α := (k! / ∏ α_j!) · ∏ γ_j^{α_j}`. The
+combinatorial work is intricate (~200–400 lines of Lean) and is left
+for a focused future effort. -/
+axiom wickMonomial_pow_sum_expansion
+    (γ ξ : FinLatticeSites d N → ℝ) (k : ℕ) :
+    wickMonomial k (∑ j, (γ j) ^ 2) (∑ j, γ j * ξ j) =
+    ∑ α ∈ multiIndicesOfDegree d N k,
+      ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+      (∏ j, γ j ^ (α j)) *
+      (∏ j, wickMonomial (α j) 1 (ξ j))
+
 /-- **Site Wick monomial expansion in the eigenbasis.**
 
-The single-site Wick monomial $\mathopen{:}\phi(x)^k\mathclose{:}_{c_a(x)}$
+The single-site Wick monomial `:φ(x)^k:_{c_a(x)}`
 (with the local Wick constant `c_a(x) = gffSiteVariance d N a mass ha hmass x
 = (a^d)⁻¹ Σ_k λ_k⁻¹ e_k(x)²`) admits an explicit linear expansion in
 eigenbasis multi-indices:
@@ -452,36 +493,19 @@ eigenbasis multi-indices:
   `:φ(x)^k:_{c_a(x)} = ∑_{|α| = k} coeff(α, x, k) · :ξ^α:_1`,
 
 where the coefficients are explicit polynomial combinations of the
-eigenvector values $e_k(x)$ and eigenvalue powers $\lambda_k^{1/2}$.
-The `totalDegree α = k` constraint is the key content: only multi-indices
+eigenvector values `e_k(x)` and eigenvalue powers `λ_k^{-1/2}`. The
+`totalDegree α = k` constraint is the key content: only multi-indices
 of *exact* total degree `k` appear, because the local Wick subtraction
 with the matched site variance `c_a(x)` cancels exactly the lower-degree
 contractions.
 
-**Proof strategy** (deferred): The two helpers above
-(`omega_eval_delta_eq_sum_gamma_xi`, `gffSiteVariance_eq_sum_gamma_sq`)
-reduce the problem to a generic multivariate Wick multinomial identity:
-
-  for any γ, ξ : ι → ℝ (with ι Fintype) and k : ℕ,
-  `wickMonomial k (∑ γ²) (∑ γ_j ξ_j) =
-     ∑_{|α|=k} (k!/∏ α_j!) · (∏ γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`.
-
-This is the multivariate Hermite multinomial expansion, derivable by
-strong induction on k using the 1D Wick recursion + multi-index
-combinatorics:
-
-  `:Y^{k+2}:_c = Y · :Y^{k+1}:_c - (k+1) c · :Y^k:_c`
-   with `Y = ∑ γ_j ξ_j`, `c = ∑ γ_j²`,
-   `Y · :ξ^α:_1 = ∑_j γ_j (:ξ^{α+δ_j}:_1 + α_j · :ξ^{α-δ_j}:_1)`
-   (1D Wick recursion per coordinate),
-   `c · :ξ^β:_1 = ∑_j γ_j² · :ξ^β:_1`,
-   and the algebraic cancellation
-   `(β_j+1) · c^{(k+1)}_{β+δ_j} = (k+1) γ_j · c^{(k)}_β`
-   for the explicit coefficient `c^{(k)}_α = (k!/∏α_j!) ∏γ_j^{α_j}`.
-
-The induction is rigorous but combinatorially intricate (~300 lines
-of multi-index sum manipulation in Lean). Not yet implemented. -/
-axiom siteWickMonomial_eigenbasis_expansion
+**Proof:** Combine (1) the spectral expansion
+`omega_eval_delta_eq_sum_gamma_xi`: `ω(δ_x) = ∑_j γ_j(x) · ξ_j(ω)`,
+(2) the variance identity
+`gffSiteVariance_eq_sum_gamma_sq`: `c_a(x) = ∑_j γ_j(x)²`,
+and (3) the multivariate Wick multinomial
+expansion `wickMonomial_pow_sum_expansion`. -/
+theorem siteWickMonomial_eigenbasis_expansion
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (k : ℕ) (x : FinLatticeSites d N) :
     ∃ (coeff : (FinLatticeSites d N → ℕ) → ℝ),
@@ -490,6 +514,32 @@ axiom siteWickMonomial_eigenbasis_expansion
         wickMonomial k (gffSiteVariance d N a mass ha hmass x)
             (ω (Pi.single x 1)) =
         ∑ α ∈ multiIndicesOfDegree d N k, coeff α *
-          gffMultiWickMonomial d N a mass ha hmass α ω
+          gffMultiWickMonomial d N a mass ha hmass α ω := by
+  refine ⟨siteWickExpansionCoeff d N a mass k x, ?_, ?_⟩
+  · -- The coefficient vanishes off the right-degree slice.
+    intro α hα
+    by_contra hcontra
+    exact hα (siteWickExpansionCoeff_eq_zero d N a mass k x α hcontra)
+  · -- The expansion equation.
+    intro ω
+    -- Substitute the spectral expansion of ω(δ_x) and gffSiteVariance.
+    rw [gffSiteVariance_eq_sum_gamma_sq d N a mass ha hmass x,
+        omega_eval_delta_eq_sum_gamma_xi d N a mass ha hmass x ω]
+    -- LHS now: wickMonomial k (∑ γ²) (∑ γ_j · ξ_j(ω)). Apply the multinomial axiom.
+    rw [wickMonomial_pow_sum_expansion d N
+          (fun j => gffEigenCoeff d N a mass j x)
+          (fun j => gffOrthonormalCoord d N a mass ha hmass j ω) k]
+    -- Match summand by summand.
+    refine Finset.sum_congr rfl ?_
+    intro α hα
+    have h_deg : MultiIndexLattice.totalDegree α = k := by
+      unfold multiIndicesOfDegree at hα
+      simp only [Finset.mem_filter] at hα
+      exact hα.2
+    unfold siteWickExpansionCoeff
+    rw [if_pos h_deg]
+    -- Both sides: (k!/∏α!) · (∏ γ_j(x)^{α_j}) · (∏_j wickMonomial α_j 1 (ξ_j ω)),
+    -- where on the RHS the wickMonomial product is wrapped as `gffMultiWickMonomial α ω`.
+    rfl
 
 end GaussianField
