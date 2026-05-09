@@ -442,22 +442,41 @@ private lemma siteWickExpansionCoeff_eq_zero
   unfold siteWickExpansionCoeff
   rw [if_neg hα]
 
-/-- **Multivariate Wick multinomial expansion** (textbook lemma, taken as
-axiom).
+end GaussianField
 
-For any `γ, ξ : FinLatticeSites d N → ℝ` and `k : ℕ`,
+/-! ## Multivariate Wick multinomial expansion (generic, not GFF-specific)
+
+The statement below is a textbook fact about the 1D `wickMonomial`
+recursion over an arbitrary `Fintype` index set — no lattice or
+Gaussian-field content is involved. It naturally lives alongside
+`wickMonomial` itself and is a clean candidate for upstreaming to
+`Mathlib/Analysis/SpecialFunctions/.../Hermite/`. -/
+
+/-- Multi-indices on a finite index set `ι` of total degree exactly `k`.
+Each component is automatically bounded by `k`, giving a finite
+enumeration via `Fintype.piFinset`. -/
+noncomputable def multiIndicesOfTotalDegree
+    (ι : Type*) [Fintype ι] [DecidableEq ι] (k : ℕ) :
+    Finset (ι → ℕ) :=
+  (Fintype.piFinset (fun _ : ι => Finset.range (k + 1))).filter
+    (fun α => ∑ j, α j = k)
+
+/-- **Multivariate Wick multinomial expansion** (textbook lemma, taken
+as axiom).
+
+For any finite index set `ι`, any `γ ξ : ι → ℝ` and any `k : ℕ`,
 
   `wickMonomial k (∑ γ²) (∑ γ_j ξ_j) =
      ∑_{|α|=k} (k! / ∏ α_j!) · (∏ γ_j^{α_j}) · ∏_j wickMonomial α_j 1 ξ_j`.
 
-This is the multivariate analog of the 1D Hermite/Wick expansion of a
-power. Equivalent to matching `t^k`-coefficients in the generating
-function identity
+This is a polynomial identity in the `γ_j`'s and `ξ_j`'s — no
+probabilistic or analytic content. Equivalent to matching
+`t^k`-coefficients in the formal generating-function identity
 
   `exp(t · ∑ γ_j ξ_j − (∑ γ_j²) · t²/2)
      = ∏_j exp(t · γ_j ξ_j − γ_j² · t² / 2)`
 
-after expanding each side via the Wick exponential
+after expanding each side via the 1D Wick exponential
 `exp(t · x − v · t²/2) = ∑_n (t^n/n!) · wickMonomial n v x`.
 
 **References:** Janson, *Gaussian Hilbert Spaces* (CUP 1997), §3.1
@@ -466,22 +485,41 @@ Jaffe, *Quantum Physics*, §6.1 (Wick ordering); Nourdin & Peccati,
 *Normal Approximations with Malliavin Calculus*, §2.7.
 
 **Proof (deferred):** Strong induction on `k` (`Nat.twoStepInduction`).
-Bases k=0, k=1 are direct. The inductive step k+2 uses the 1D Wick
-recursion `W_{k+2}(c, Y) = Y · W_{k+1}(c, Y) − (k+1) c · W_k(c, Y)`,
+Bases `k = 0` and `k = 1` are direct. The inductive step `k+2` uses the
+1D Wick recursion
+`W_{k+2}(c, Y) = Y · W_{k+1}(c, Y) − (k+1) c · W_k(c, Y)`,
 the per-coordinate Wick recursion
 `ξ_j · :ξ_j^m:_1 = :ξ_j^{m+1}:_1 + m · :ξ_j^{m-1}:_1`,
-multi-index re-indexing α' = α ± δ_j, and the algebraic cancellation
+multi-index re-indexing `α' = α ± δ_j`, and the algebraic cancellation
 `(β_j+1) · A^{(k+1)}_{β+δ_j} = (k+1) γ_j · A^{(k)}_β` for the
 explicit coefficient `A^{(k)}_α := (k! / ∏ α_j!) · ∏ γ_j^{α_j}`. The
 combinatorial work is intricate (~200–400 lines of Lean) and is left
 for a focused future effort. -/
 axiom wickMonomial_pow_sum_expansion
-    (γ ξ : FinLatticeSites d N → ℝ) (k : ℕ) :
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (γ ξ : ι → ℝ) (k : ℕ) :
     wickMonomial k (∑ j, (γ j) ^ 2) (∑ j, γ j * ξ j) =
-    ∑ α ∈ multiIndicesOfDegree d N k,
+    ∑ α ∈ multiIndicesOfTotalDegree ι k,
       ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
       (∏ j, γ j ^ (α j)) *
       (∏ j, wickMonomial (α j) 1 (ξ j))
+
+namespace GaussianField
+
+variable (d N : ℕ) [NeZero N]
+
+/-- The lattice-side `multiIndicesOfDegree d N k` equals the generic
+`multiIndicesOfTotalDegree (FinLatticeSites d N) k`. The two differ
+only by (i) the `MultiIndexLattice.totalDegree` wrapper unfolding to
+`∑ j, α j` and (ii) the choice of `DecidableEq` instance for
+`FinLatticeSites d N` used inside `Fintype.piFinset`. -/
+private lemma multiIndicesOfDegree_eq_generic (k : ℕ) :
+    multiIndicesOfDegree d N k =
+      multiIndicesOfTotalDegree (FinLatticeSites d N) k := by
+  ext α
+  simp only [multiIndicesOfDegree, multiIndicesUpToDegree,
+    multiIndicesOfTotalDegree, MultiIndexLattice.totalDegree,
+    Finset.mem_filter, Fintype.mem_piFinset, Finset.mem_range]
 
 /-- **Site Wick monomial expansion in the eigenbasis.**
 
@@ -525,15 +563,18 @@ theorem siteWickMonomial_eigenbasis_expansion
     -- Substitute the spectral expansion of ω(δ_x) and gffSiteVariance.
     rw [gffSiteVariance_eq_sum_gamma_sq d N a mass ha hmass x,
         omega_eval_delta_eq_sum_gamma_xi d N a mass ha hmass x ω]
-    -- LHS now: wickMonomial k (∑ γ²) (∑ γ_j · ξ_j(ω)). Apply the multinomial axiom.
-    rw [wickMonomial_pow_sum_expansion d N
-          (fun j => gffEigenCoeff d N a mass j x)
-          (fun j => gffOrthonormalCoord d N a mass ha hmass j ω) k]
+    -- LHS now: wickMonomial k (∑ γ²) (∑ γ_j · ξ_j(ω)). Apply the (generic)
+    -- multinomial axiom — it produces a sum over `multiIndicesOfTotalDegree`,
+    -- which we then identify with `multiIndicesOfDegree d N k`.
+    rw [wickMonomial_pow_sum_expansion
+          (γ := fun j => gffEigenCoeff d N a mass j x)
+          (ξ := fun j => gffOrthonormalCoord d N a mass ha hmass j ω) (k := k)]
+    rw [multiIndicesOfDegree_eq_generic d N k]
     -- Match summand by summand.
     refine Finset.sum_congr rfl ?_
     intro α hα
     have h_deg : MultiIndexLattice.totalDegree α = k := by
-      unfold multiIndicesOfDegree at hα
+      unfold multiIndicesOfTotalDegree at hα
       simp only [Finset.mem_filter] at hα
       exact hα.2
     unfold siteWickExpansionCoeff
