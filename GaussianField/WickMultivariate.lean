@@ -422,6 +422,26 @@ private lemma gffSiteVariance_eq_sum_gamma_sq
   rw [h_sqrt_sq, mul_comm (a^d) (massEigenvalues d N a mass j)]
   field_simp
 
+/-- The explicit coefficient appearing in the multinomial Wick expansion:
+`(k!/∏α_j!) · ∏ γ_j(x)^{α_j}` for multi-indices of total degree `k`,
+zero otherwise. Used in `siteWickMonomial_eigenbasis_expansion`. -/
+private noncomputable def siteWickExpansionCoeff
+    (a mass : ℝ) (k : ℕ) (x : FinLatticeSites d N)
+    (α : FinLatticeSites d N → ℕ) : ℝ :=
+  if MultiIndexLattice.totalDegree α = k then
+    ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+      ∏ j, gffEigenCoeff d N a mass j x ^ (α j)
+  else 0
+
+/-- The explicit-coefficient function vanishes outside the right degree. -/
+private lemma siteWickExpansionCoeff_eq_zero
+    (a mass : ℝ) (k : ℕ) (x : FinLatticeSites d N)
+    (α : FinLatticeSites d N → ℕ)
+    (hα : MultiIndexLattice.totalDegree α ≠ k) :
+    siteWickExpansionCoeff d N a mass k x α = 0 := by
+  unfold siteWickExpansionCoeff
+  rw [if_neg hα]
+
 /-- **Site Wick monomial expansion in the eigenbasis.**
 
 The single-site Wick monomial $\mathopen{:}\phi(x)^k\mathclose{:}_{c_a(x)}$
