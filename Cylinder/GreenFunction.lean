@@ -265,83 +265,119 @@ sense, commutation with C implies `S` preserves the quadratic form
 `⟨f, Cg⟩ = ⟨Tf, Tg⟩`, and any invertible map preserving a positive
 definite form lifts to an isometry of the GNS Hilbert space. -/
 
-/-- **Heat kernel equivariance principle for the mass operator.**
+/-! ## Spacetime symmetry structure and master equivariance axiom
 
-If a CLM `S` commutes with the cylinder heat semigroup `e^{-tA}` for
-all `t ≥ 0` **and** preserves the ℓ² norm under the mass operator
-(`‖T(Sf)‖ = ‖Tf‖`), then the mass operator `T` intertwines `S` with a
-linear isometry `U` on ℓ²: `T(Sf) = U(Tf)`.
+A `CylinderSpacetimeSymmetry` bundles the two properties that any
+Euclidean-group action on the cylinder satisfies — heat-semigroup
+commutation and mass-operator-norm preservation — into a single
+structured argument. The mass operator's equivariance under any
+spacetime symmetry is then a single axiom.
 
-The `h_T_iso` hypothesis is essential: heat-semigroup commutation alone
-gives a *linear* intertwiner but not an isometry. (Counterexample
-`S = 2·id` commutes with `e^{-tA}` but `T(2f) = 2Tf` is not an isometry
-of `Tf`.) For Euclidean-group symmetries (translations, time reflection,
-spatial reflection), `h_T_iso` follows from the underlying L²-isometry
-of `S` on cylinder test functions plus the heat-commutation
-(by polarization of `‖T(Sf)‖² = ⟨Sf, C(Sf)⟩ = ⟨Sf, S(Cf)⟩ = ⟨f, Cf⟩`
-when `S*S = I`).
-
-This single axiom replaces the previous three-step chain:
-heat semigroup commutation → covariance commutation → mass operator
-equivariance.
+Specific symmetries (spatial translation, time translation, time
+reflection, and their products) are constructed as instances of
+`CylinderSpacetimeSymmetry`.
 
 **Vetted 2026-05-09** by Gemini deep-think (2.5-pro and 3.1-pro-preview)
-which independently flagged the missing `h_T_iso` hypothesis. -/
-axiom cylinderMassOperator_equivariant_of_heat_comm
+which independently flagged that heat-commutation alone is insufficient
+for the isometry conclusion (counterexample `S = 2·id`); the
+`preserves_T_norm` field below is the missing ingredient. -/
+
+/-- A spacetime symmetry of the cylinder: a continuous linear operator
+on cylinder test functions that **(1)** commutes with the heat semigroup
+`e^{-tA}` and **(2)** preserves the mass-operator ℓ²-norm.
+
+For Euclidean-group operators (translations, reflections), property (1)
+comes from the heat kernel commuting with the symmetry's geometric
+action, and property (2) reduces to the operator preserving the L²
+inner product on cylinder test functions (Lebesgue/Haar invariance). -/
+structure CylinderSpacetimeSymmetry (mass : ℝ) (hmass : 0 < mass) where
+  /-- The underlying continuous linear operator on cylinder test functions. -/
+  toCLM : CylinderTestFunction L →L[ℝ] CylinderTestFunction L
+  /-- Commutation with the cylinder heat semigroup: `e^{-tA} ∘ S = S ∘ e^{-tA}`. -/
+  heat_comm : ∀ {t : ℝ} (ht : 0 ≤ t) (f : CylinderTestFunction L),
+    cylinderHeatSemigroup L ht mass (toCLM f) =
+    toCLM (cylinderHeatSemigroup L ht mass f)
+  /-- Preservation of the mass-operator ℓ²-norm: `‖T(Sf)‖ = ‖Tf‖`.
+  This is the missing ingredient that the previous false axiom omitted. -/
+  preserves_T_norm : ∀ f : CylinderTestFunction L,
+    ‖cylinderMassOperator L mass hmass (toCLM f)‖ =
+    ‖cylinderMassOperator L mass hmass f‖
+
+/-- **Master equivariance axiom for the mass operator.**
+
+For any cylinder spacetime symmetry `S`, the mass operator `T`
+intertwines `S` with a linear isometric equivalence `U` on ℓ²:
+`T(Sf) = U(Tf)`.
+
+The mathematical justification: heat-commutation gives `[S, A⁻¹] = 0`,
+so `T(Sf) = U(Tf)` for some linear `U`. The `preserves_T_norm` field
+upgrades `U` from a linear intertwiner to a full isometry, and from
+the dense range of `T` it extends uniquely to `ell2' ≃ₗᵢ[ℝ] ell2'`. -/
+axiom cylinderMassOperator_equivariant
     (mass : ℝ) (hmass : 0 < mass)
-    (S : CylinderTestFunction L →L[ℝ] CylinderTestFunction L)
-    (h_heat : ∀ {t : ℝ} (ht : 0 ≤ t) (f : CylinderTestFunction L),
-      cylinderHeatSemigroup L ht mass (S f) =
-      S (cylinderHeatSemigroup L ht mass f))
-    (h_T_iso : ∀ f : CylinderTestFunction L,
-      ‖cylinderMassOperator L mass hmass (S f)‖ =
-      ‖cylinderMassOperator L mass hmass f‖) :
+    (S : CylinderSpacetimeSymmetry L mass hmass) :
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
-    ∀ f, cylinderMassOperator L mass hmass (S f) =
+    ∀ f, cylinderMassOperator L mass hmass (S.toCLM f) =
          U (cylinderMassOperator L mass hmass f)
 
-/-! ## L²-isometry of Euclidean symmetries on the cylinder
+/-! ## Specific spacetime symmetries
 
-The Euclidean symmetries (spatial translation, time translation, time
-reflection) preserve the L² norm on cylinder test functions, hence
-preserve `‖T(·)‖_{ell2'}` (the `h_T_iso` hypothesis of the master
-equivariance axiom).
+The Euclidean-group operators on the cylinder are constructed as
+instances of `CylinderSpacetimeSymmetry`. The `heat_comm` field comes
+from the existing heat-semigroup commutation theorems; the
+`preserves_T_norm` field is provided as an axiomatic instance for each
+specific operator (provable from Lebesgue/Haar measure invariance). -/
 
-These are textbook-level facts: translations preserve Lebesgue/Haar
-measure on `S¹_L × ℝ`, and reflection `t ↦ -t` is also Lebesgue-
-preserving. The mass operator's norm is `‖Tf‖²_{ell2'} = ⟨f, A⁻¹f⟩_{L²}`,
-which is invariant under L²-isometries that commute with `A⁻¹`. -/
-
-/-- Spatial translation preserves the mass-operator norm.
-
-  `‖T(spatialTranslation_v f)‖_{ell2'} = ‖T(f)‖_{ell2'}`
-
-This is the `h_T_iso` hypothesis instance for spatial translation,
-following from translation invariance of the Haar measure on `S¹_L`. -/
+/-- The mass-operator ℓ²-norm is preserved by spatial translation.
+This is a Haar-invariance fact on `S¹_L`. -/
 axiom cylinderMassOperator_spatialTranslation_norm_eq
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
     (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass (cylinderSpatialTranslation L v f)‖ =
     ‖cylinderMassOperator L mass hmass f‖
 
-/-- Time translation preserves the mass-operator norm. -/
+/-- The mass-operator ℓ²-norm is preserved by time translation. -/
 axiom cylinderMassOperator_timeTranslation_norm_eq
     (mass : ℝ) (hmass : 0 < mass) (τ : ℝ)
     (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass (cylinderTimeTranslation L τ f)‖ =
     ‖cylinderMassOperator L mass hmass f‖
 
-/-- Time reflection preserves the mass-operator norm. -/
+/-- The mass-operator ℓ²-norm is preserved by time reflection. -/
 axiom cylinderMassOperator_timeReflection_norm_eq
     (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass (cylinderTimeReflection L f)‖ =
     ‖cylinderMassOperator L mass hmass f‖
 
-/-! ## Mass operator equivariance (proved from heat kernel principle)
+/-- Spatial translation as a `CylinderSpacetimeSymmetry`. -/
+def cylinderSpatialTranslationSym
+    (mass : ℝ) (hmass : 0 < mass) (v : ℝ) :
+    CylinderSpacetimeSymmetry L mass hmass where
+  toCLM := cylinderSpatialTranslation L v
+  heat_comm ht g := cylinderHeatSemigroup_spatialTranslation_comm L ht mass v g
+  preserves_T_norm := cylinderMassOperator_spatialTranslation_norm_eq L mass hmass v
 
-Each equivariance theorem is proved by applying the heat kernel equivariance
-principle to the corresponding cylinder heat semigroup equivariance theorem. -/
+/-- Time translation as a `CylinderSpacetimeSymmetry`. -/
+def cylinderTimeTranslationSym
+    (mass : ℝ) (hmass : 0 < mass) (τ : ℝ) :
+    CylinderSpacetimeSymmetry L mass hmass where
+  toCLM := cylinderTimeTranslation L τ
+  heat_comm ht g := cylinderHeatSemigroup_timeTranslation_comm L ht mass τ g
+  preserves_T_norm := cylinderMassOperator_timeTranslation_norm_eq L mass hmass τ
+
+/-- Time reflection as a `CylinderSpacetimeSymmetry`. -/
+def cylinderTimeReflectionSym
+    (mass : ℝ) (hmass : 0 < mass) :
+    CylinderSpacetimeSymmetry L mass hmass where
+  toCLM := cylinderTimeReflection L
+  heat_comm ht g := cylinderHeatSemigroup_timeReflection_comm L ht mass g
+  preserves_T_norm := cylinderMassOperator_timeReflection_norm_eq L mass hmass
+
+/-! ## Mass operator equivariance (derived from the master axiom)
+
+Each equivariance theorem follows by applying the master axiom to the
+corresponding `CylinderSpacetimeSymmetry` instance. -/
 
 /-- The mass operator intertwines spatial translation with an isometry on ℓ².
 
@@ -352,9 +388,8 @@ theorem cylinderMassOperator_spatialTranslation_equivariant
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (cylinderSpatialTranslation L v f) =
          U (cylinderMassOperator L mass hmass f) :=
-  cylinderMassOperator_equivariant_of_heat_comm L mass hmass _
-    (fun ht g => cylinderHeatSemigroup_spatialTranslation_comm L ht mass v g)
-    (cylinderMassOperator_spatialTranslation_norm_eq L mass hmass v)
+  cylinderMassOperator_equivariant L mass hmass
+    (cylinderSpatialTranslationSym L mass hmass v)
 
 /-- The mass operator intertwines time translation with an isometry on ℓ².
 
@@ -365,9 +400,8 @@ theorem cylinderMassOperator_timeTranslation_equivariant
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (cylinderTimeTranslation L τ f) =
          U (cylinderMassOperator L mass hmass f) :=
-  cylinderMassOperator_equivariant_of_heat_comm L mass hmass _
-    (fun ht g => cylinderHeatSemigroup_timeTranslation_comm L ht mass τ g)
-    (cylinderMassOperator_timeTranslation_norm_eq L mass hmass τ)
+  cylinderMassOperator_equivariant L mass hmass
+    (cylinderTimeTranslationSym L mass hmass τ)
 
 /-- The mass operator intertwines time reflection with an isometry on ℓ².
 
@@ -378,9 +412,8 @@ theorem cylinderMassOperator_timeReflection_equivariant
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (cylinderTimeReflection L f) =
          U (cylinderMassOperator L mass hmass f) :=
-  cylinderMassOperator_equivariant_of_heat_comm L mass hmass _
-    (fun ht g => cylinderHeatSemigroup_timeReflection_comm L ht mass g)
-    (cylinderMassOperator_timeReflection_norm_eq L mass hmass)
+  cylinderMassOperator_equivariant L mass hmass
+    (cylinderTimeReflectionSym L mass hmass)
 
 /-! ## Invariance properties
 
