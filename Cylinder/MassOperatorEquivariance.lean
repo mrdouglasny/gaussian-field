@@ -129,7 +129,7 @@ This identity is the workhorse: norm preservation of the mass operator
 under any operator `S` reduces to per-spatial-mode invariance of
 `‖R_{ω_a}(slice_a (S f))‖²_{L²}`. -/
 
-private def perModeL2SqNorm (mass : ℝ) (hmass : 0 < mass)
+def perModeL2SqNorm (mass : ℝ) (hmass : 0 < mass)
     (a : ℕ) (f : CylinderTestFunction L) : ℝ :=
   ∫ t, (resolventMultiplierCLM (resolventFreq_pos L mass hmass a)
         (ntpSliceSchwartz L a f)) t ^ 2
@@ -142,7 +142,7 @@ Proof: `inner_self_eq_norm_sq_to_K` (real Hilbert) + `lp.inner_eq_tsum`
 + real fiber inner `⟪a, a⟫_ℝ = a²` + `cylinderMassOperator_formula` +
 Cantor reindex via `Equiv.tsum_eq Nat.pairEquiv` + `Summable.tsum_prod`
 + diagonal `dm_parseval` per spatial mode. -/
-private theorem cylinderMassOperator_normSq_eq_sum_perMode
+theorem cylinderMassOperator_normSq_eq_sum_perMode
     (mass : ℝ) (hmass : 0 < mass) (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass f‖ ^ 2 =
     ∑' a, perModeL2SqNorm L mass hmass a f := by

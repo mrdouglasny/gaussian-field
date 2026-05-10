@@ -53,7 +53,7 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 /-! ## Helper lemmas for pure tensor invariance -/
 
 /-- DyninMityaginSpace coefficient equals Fourier coefficient for circle functions. -/
-private theorem coeff_eq_fourierCoeffReal (m : ℕ) (f : SmoothMap_Circle L ℝ) :
+theorem coeff_eq_fourierCoeffReal (m : ℕ) (f : SmoothMap_Circle L ℝ) :
     DyninMityaginSpace.coeff m f = fourierCoeffReal (L := L) m f := by
   show ((RapidDecaySeq.coeffCLM m).comp
     (smoothCircleRapidDecayEquiv (L := L)).toContinuousLinearMap) f = _
@@ -225,10 +225,10 @@ private theorem circle_eigenvalue_cos_eq_sin (k : ℕ) (hk : 0 < k) :
 
 /-- The mode-partner involution on ℕ: swaps `2k-1 ↔ 2k` and fixes `0`.
 For n ≥ 1: odd n maps to n+1, even n maps to n-1. -/
-private def modePartner (n : ℕ) : ℕ :=
+def modePartner (n : ℕ) : ℕ :=
   if n = 0 then 0 else if n % 2 = 1 then n + 1 else n - 1
 
-private theorem modePartner_involutive : Function.Involutive modePartner := by
+theorem modePartner_involutive : Function.Involutive modePartner := by
   intro n
   simp only [modePartner]
   by_cases h0 : n = 0
@@ -245,22 +245,22 @@ private theorem modePartner_involutive : Function.Involutive modePartner := by
       omega
 
 /-- The mode-partner as an equivalence on ℕ. -/
-private def modePartnerEquiv : ℕ ≃ ℕ :=
+def modePartnerEquiv : ℕ ≃ ℕ :=
   modePartner_involutive.toPerm modePartner
 
 /-- modePartner maps 2k-1 ↦ 2k for k ≥ 1. -/
-private theorem modePartner_cos (k : ℕ) (hk : 0 < k) :
+theorem modePartner_cos (k : ℕ) (hk : 0 < k) :
     modePartner (2 * k - 1) = 2 * k := by
   simp only [modePartner]; split_ifs <;> omega
 
 /-- modePartner maps 2k ↦ 2k-1 for k ≥ 1. -/
-private theorem modePartner_sin (k : ℕ) (hk : 0 < k) :
+theorem modePartner_sin (k : ℕ) (hk : 0 < k) :
     modePartner (2 * k) = 2 * k - 1 := by
   simp only [modePartner]; split_ifs <;> omega
 
 /-- If summable `f` and `g` agree on involution-paired sums, their tsums agree.
 This uses the "2x = 2y" argument via reindexing by the involution. -/
-private theorem tsum_eq_of_paired_involution {σ : ℕ ≃ ℕ} {f g : ℕ → ℝ}
+theorem tsum_eq_of_paired_involution {σ : ℕ ≃ ℕ} {f g : ℕ → ℝ}
     (hf : Summable f) (hg : Summable g)
     (h_pair : ∀ n, f n + f (σ n) = g n + g (σ n)) :
     ∑' n, f n = ∑' n, g n := by
@@ -282,7 +282,7 @@ private theorem tsum_eq_of_paired_involution {σ : ℕ ≃ ℕ} {f g : ℕ → �
 
 /-- The paired product of Fourier coefficients is invariant under translation
 for cos/sin mode pairs. -/
-private theorem coeff_product_paired_translation (v : ℝ)
+theorem coeff_product_paired_translation (v : ℝ)
     (f g : SmoothMap_Circle L ℝ) (n : ℕ) :
     fourierCoeffReal (L := L) n (circleTranslation L v f) *
       fourierCoeffReal (L := L) n (circleTranslation L v g) +

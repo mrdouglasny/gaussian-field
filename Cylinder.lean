@@ -6,6 +6,7 @@ import Cylinder.PositiveTime
 import Cylinder.MassOperatorConstruction
 import Cylinder.GreenFunction
 import Cylinder.MassOperatorEquivariance
+import Cylinder.MassOperatorSpatialEquivariance
 import Cylinder.MassOperatorRangeDense
 -- `Cylinder.ReflectionPositivity` was moved to `future/CylinderReflectionPositivity.lean`
 -- on 2026-05-02 due to a Mathlib-Fourier-convention bug in its Lorentzian-convolution

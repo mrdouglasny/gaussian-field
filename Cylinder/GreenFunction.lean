@@ -87,6 +87,7 @@ The DMS basis for 𝓢(ℝ) is Hermite functions, but the resolvent
 
 import Cylinder.MassOperatorConstruction
 import Cylinder.MassOperatorEquivariance
+import Cylinder.MassOperatorSpatialEquivariance
 import Cylinder.MassOperatorRangeDense
 import Mathlib.Analysis.Normed.Operator.Extend
 
@@ -403,12 +404,13 @@ from the existing heat-semigroup commutation theorems; the
 specific operator (provable from Lebesgue/Haar measure invariance). -/
 
 /-- The mass-operator ℓ²-norm is preserved by spatial translation.
-This is a Haar-invariance fact on `S¹_L`. -/
-axiom cylinderMassOperator_spatialTranslation_norm_eq
+Proved in `Cylinder/MassOperatorSpatialEquivariance.lean`. -/
+theorem cylinderMassOperator_spatialTranslation_norm_eq
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
     (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass (cylinderSpatialTranslation L v f)‖ =
-    ‖cylinderMassOperator L mass hmass f‖
+    ‖cylinderMassOperator L mass hmass f‖ :=
+  cylinderMassOperator_spatialTranslation_norm_eq_proved L mass hmass v f
 
 /-- The mass-operator ℓ²-norm is preserved by time translation.
 Proved in `Cylinder/MassOperatorEquivariance.lean`. -/
