@@ -87,6 +87,8 @@ The DMS basis for 𝓢(ℝ) is Hermite functions, but the resolvent
 
 import Cylinder.MassOperatorConstruction
 import Cylinder.MassOperatorEquivariance
+import Cylinder.MassOperatorRangeDense
+import Mathlib.Analysis.Normed.Operator.Extend
 
 noncomputable section
 
@@ -294,32 +296,103 @@ inner product on cylinder test functions (Lebesgue/Haar invariance). -/
 structure CylinderSpacetimeSymmetry (mass : ℝ) (hmass : 0 < mass) where
   /-- The underlying continuous linear operator on cylinder test functions. -/
   toCLM : CylinderTestFunction L →L[ℝ] CylinderTestFunction L
+  /-- The continuous linear inverse on cylinder test functions. -/
+  inverse : CylinderTestFunction L →L[ℝ] CylinderTestFunction L
+  /-- Right inverse: `toCLM ∘ inverse = id`. -/
+  toCLM_comp_inverse :
+    toCLM.comp inverse = ContinuousLinearMap.id ℝ (CylinderTestFunction L)
+  /-- Left inverse: `inverse ∘ toCLM = id`. -/
+  inverse_comp_toCLM :
+    inverse.comp toCLM = ContinuousLinearMap.id ℝ (CylinderTestFunction L)
   /-- Commutation with the cylinder heat semigroup: `e^{-tA} ∘ S = S ∘ e^{-tA}`. -/
   heat_comm : ∀ {t : ℝ} (ht : 0 ≤ t) (f : CylinderTestFunction L),
     cylinderHeatSemigroup L ht mass (toCLM f) =
     toCLM (cylinderHeatSemigroup L ht mass f)
-  /-- Preservation of the mass-operator ℓ²-norm: `‖T(Sf)‖ = ‖Tf‖`.
-  This is the missing ingredient that the previous false axiom omitted. -/
+  /-- Preservation of the mass-operator ℓ²-norm: `‖T(Sf)‖ = ‖Tf‖`. -/
   preserves_T_norm : ∀ f : CylinderTestFunction L,
     ‖cylinderMassOperator L mass hmass (toCLM f)‖ =
     ‖cylinderMassOperator L mass hmass f‖
+  /-- The inverse also preserves the mass-operator ℓ²-norm. -/
+  preserves_T_norm_inv : ∀ f : CylinderTestFunction L,
+    ‖cylinderMassOperator L mass hmass (inverse f)‖ =
+    ‖cylinderMassOperator L mass hmass f‖
 
-/-- **Master equivariance axiom for the mass operator.**
+/-- **Master equivariance theorem for the mass operator.**
 
-For any cylinder spacetime symmetry `S`, the mass operator `T`
-intertwines `S` with a linear isometric equivalence `U` on ℓ²:
-`T(Sf) = U(Tf)`.
+For any cylinder spacetime symmetry `S`, the mass operator `T` intertwines
+`S` with a linear isometric equivalence `U` on `ell2'`: `T(Sf) = U(Tf)`.
 
-The mathematical justification: heat-commutation gives `[S, A⁻¹] = 0`,
-so `T(Sf) = U(Tf)` for some linear `U`. The `preserves_T_norm` field
-upgrades `U` from a linear intertwiner to a full isometry, and from
-the dense range of `T` it extends uniquely to `ell2' ≃ₗᵢ[ℝ] ell2'`. -/
-axiom cylinderMassOperator_equivariant
+**Proof.** Wigner-style construction:
+1. The structure `S` packages an explicit inverse, so it bundles into a
+   `LinearEquiv ℝ V V` (`V := CylinderTestFunction L`).
+2. Apply Mathlib's `LinearEquiv.extend` with `e₁ = e₂ = T.toLinearMap`:
+   - `DenseRange T` from `cylinderMassOperator_range_dense`.
+   - Norm bounds `‖T(Sf)‖ ≤ ‖Tf‖` (in fact equal) from `S.preserves_T_norm`.
+   - Same for the inverse from `S.preserves_T_norm_inv`.
+   This produces a `ContinuousLinearEquiv U_CLE : ell2' ≃SL ell2'` with
+   `U_CLE(Tf) = T(Sf)` for `f ∈ V`.
+3. Upgrade `U_CLE` to a `LinearIsometryEquiv` by showing `‖U_CLE x‖ = ‖x‖`:
+   on `range T` it follows from `S.preserves_T_norm`; extension to the
+   closure `range T = ell2'` is by `DenseRange.induction_on` applied to
+   the closed equality predicate of two continuous functions. -/
+theorem cylinderMassOperator_equivariant
     (mass : ℝ) (hmass : 0 < mass)
     (S : CylinderSpacetimeSymmetry L mass hmass) :
     ∃ U : ell2' ≃ₗᵢ[ℝ] ell2',
     ∀ f, cylinderMassOperator L mass hmass (S.toCLM f) =
-         U (cylinderMassOperator L mass hmass f)
+         U (cylinderMassOperator L mass hmass f) := by
+  -- Bundle S as a LinearEquiv on V := CylinderTestFunction L.
+  let S_lin : CylinderTestFunction L ≃ₗ[ℝ] CylinderTestFunction L :=
+    { toFun := S.toCLM
+      invFun := S.inverse
+      left_inv := fun f => by
+        have h : S.inverse (S.toCLM f) = (S.inverse.comp S.toCLM) f := rfl
+        rw [h, S.inverse_comp_toCLM]; rfl
+      right_inv := fun f => by
+        have h : S.toCLM (S.inverse f) = (S.toCLM.comp S.inverse) f := rfl
+        rw [h, S.toCLM_comp_inverse]; rfl
+      map_add' := S.toCLM.map_add
+      map_smul' := S.toCLM.map_smul }
+  -- T as a linear map V → ell2'.
+  let T_lin : CylinderTestFunction L →ₗ[ℝ] ell2' :=
+    (cylinderMassOperator L mass hmass).toLinearMap
+  have h_dense : DenseRange T_lin := cylinderMassOperator_range_dense L mass hmass
+  -- Norm bounds from preserves_T_norm (with C := 1).
+  have h_norm₁ : ∃ C : ℝ, ∀ f : CylinderTestFunction L,
+      ‖T_lin (S_lin f)‖ ≤ C * ‖T_lin f‖ := by
+    refine ⟨1, fun f => ?_⟩
+    show ‖cylinderMassOperator L mass hmass (S.toCLM f)‖ ≤
+        1 * ‖cylinderMassOperator L mass hmass f‖
+    rw [S.preserves_T_norm, one_mul]
+  have h_norm₂ : ∃ C : ℝ, ∀ f : CylinderTestFunction L,
+      ‖T_lin (S_lin.symm f)‖ ≤ C * ‖T_lin f‖ := by
+    refine ⟨1, fun f => ?_⟩
+    show ‖cylinderMassOperator L mass hmass (S.inverse f)‖ ≤
+        1 * ‖cylinderMassOperator L mass hmass f‖
+    rw [S.preserves_T_norm_inv, one_mul]
+  -- Apply Mathlib's LinearEquiv.extend to get a ContinuousLinearEquiv on ell2'.
+  let U_CLE : ell2' ≃SL[RingHom.id ℝ] ell2' :=
+    S_lin.extend T_lin T_lin h_dense h_norm₁ h_dense h_norm₂
+  -- U_CLE agrees with T(S·) on range T (defining property of extend).
+  have h_extend : ∀ f : CylinderTestFunction L,
+      U_CLE (T_lin f) = T_lin (S_lin f) :=
+    fun f => S_lin.extend_eq T_lin T_lin h_dense h_norm₁ h_dense h_norm₂ f
+  -- U_CLE is an isometry on range T (from preserves_T_norm).
+  have h_isom_on_range : ∀ f : CylinderTestFunction L, ‖U_CLE (T_lin f)‖ = ‖T_lin f‖ :=
+    fun f => by rw [h_extend f]; exact S.preserves_T_norm f
+  -- Extend isometry to all of ell2' by density.
+  have h_isom : ∀ x : ell2', ‖U_CLE x‖ = ‖x‖ := fun x => by
+    refine h_dense.induction_on x ?_ h_isom_on_range
+    exact isClosed_eq U_CLE.continuous.norm continuous_norm
+  -- Bundle U_CLE + h_isom into a LinearIsometryEquiv.
+  let U_LIE : ell2' ≃ₗᵢ[ℝ] ell2' :=
+    { U_CLE.toLinearEquiv with norm_map' := h_isom }
+  refine ⟨U_LIE, fun f => ?_⟩
+  show cylinderMassOperator L mass hmass (S.toCLM f) =
+       U_LIE (cylinderMassOperator L mass hmass f)
+  -- U_LIE on T_lin f equals T_lin (S_lin f) by extend_eq, which is T(Sf).
+  show T_lin (S_lin f) = U_CLE (T_lin f)
+  exact (h_extend f).symm
 
 /-! ## Specific spacetime symmetries
 
@@ -360,24 +433,70 @@ def cylinderSpatialTranslationSym
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ) :
     CylinderSpacetimeSymmetry L mass hmass where
   toCLM := cylinderSpatialTranslation L v
+  inverse := cylinderSpatialTranslation L (-v)
+  toCLM_comp_inverse := by
+    show (cylinderSpatialTranslation L v).comp (cylinderSpatialTranslation L (-v)) =
+      ContinuousLinearMap.id ℝ _
+    simp only [cylinderSpatialTranslation, ← nuclearTensorProduct_mapCLM_comp,
+      ContinuousLinearMap.id_comp, circleTranslation_add, neg_add_cancel,
+      circleTranslation_zero]
+    exact nuclearTensorProduct_mapCLM_id
+  inverse_comp_toCLM := by
+    show (cylinderSpatialTranslation L (-v)).comp (cylinderSpatialTranslation L v) =
+      ContinuousLinearMap.id ℝ _
+    simp only [cylinderSpatialTranslation, ← nuclearTensorProduct_mapCLM_comp,
+      ContinuousLinearMap.id_comp, circleTranslation_add, add_neg_cancel,
+      circleTranslation_zero]
+    exact nuclearTensorProduct_mapCLM_id
   heat_comm ht g := cylinderHeatSemigroup_spatialTranslation_comm L ht mass v g
   preserves_T_norm := cylinderMassOperator_spatialTranslation_norm_eq L mass hmass v
+  preserves_T_norm_inv := cylinderMassOperator_spatialTranslation_norm_eq L mass hmass (-v)
 
 /-- Time translation as a `CylinderSpacetimeSymmetry`. -/
 def cylinderTimeTranslationSym
     (mass : ℝ) (hmass : 0 < mass) (τ : ℝ) :
     CylinderSpacetimeSymmetry L mass hmass where
   toCLM := cylinderTimeTranslation L τ
+  inverse := cylinderTimeTranslation L (-τ)
+  toCLM_comp_inverse := by
+    show (cylinderTimeTranslation L τ).comp (cylinderTimeTranslation L (-τ)) =
+      ContinuousLinearMap.id ℝ _
+    simp only [cylinderTimeTranslation, ← nuclearTensorProduct_mapCLM_comp,
+      ContinuousLinearMap.id_comp, schwartzTranslation_add, neg_add_cancel,
+      schwartzTranslation_zero]
+    exact nuclearTensorProduct_mapCLM_id
+  inverse_comp_toCLM := by
+    show (cylinderTimeTranslation L (-τ)).comp (cylinderTimeTranslation L τ) =
+      ContinuousLinearMap.id ℝ _
+    simp only [cylinderTimeTranslation, ← nuclearTensorProduct_mapCLM_comp,
+      ContinuousLinearMap.id_comp, schwartzTranslation_add, add_neg_cancel,
+      schwartzTranslation_zero]
+    exact nuclearTensorProduct_mapCLM_id
   heat_comm ht g := cylinderHeatSemigroup_timeTranslation_comm L ht mass τ g
   preserves_T_norm := cylinderMassOperator_timeTranslation_norm_eq L mass hmass τ
+  preserves_T_norm_inv := cylinderMassOperator_timeTranslation_norm_eq L mass hmass (-τ)
 
 /-- Time reflection as a `CylinderSpacetimeSymmetry`. -/
 def cylinderTimeReflectionSym
     (mass : ℝ) (hmass : 0 < mass) :
     CylinderSpacetimeSymmetry L mass hmass where
   toCLM := cylinderTimeReflection L
+  inverse := cylinderTimeReflection L
+  toCLM_comp_inverse := by
+    show (cylinderTimeReflection L).comp (cylinderTimeReflection L) =
+      ContinuousLinearMap.id ℝ _
+    simp only [cylinderTimeReflection, ← nuclearTensorProduct_mapCLM_comp,
+      ContinuousLinearMap.id_comp, schwartzReflection_involution]
+    exact nuclearTensorProduct_mapCLM_id
+  inverse_comp_toCLM := by
+    show (cylinderTimeReflection L).comp (cylinderTimeReflection L) =
+      ContinuousLinearMap.id ℝ _
+    simp only [cylinderTimeReflection, ← nuclearTensorProduct_mapCLM_comp,
+      ContinuousLinearMap.id_comp, schwartzReflection_involution]
+    exact nuclearTensorProduct_mapCLM_id
   heat_comm ht g := cylinderHeatSemigroup_timeReflection_comm L ht mass g
   preserves_T_norm := cylinderMassOperator_timeReflection_norm_eq L mass hmass
+  preserves_T_norm_inv := cylinderMassOperator_timeReflection_norm_eq L mass hmass
 
 /-! ## Mass operator equivariance (derived from the master axiom)
 
