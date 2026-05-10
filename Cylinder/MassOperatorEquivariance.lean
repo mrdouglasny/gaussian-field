@@ -153,7 +153,88 @@ private theorem cylinderMassOperator_normSq_eq_sum_perMode
     (mass : ℝ) (hmass : 0 < mass) (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass f‖ ^ 2 =
     ∑' a, perModeL2SqNorm L mass hmass a f := by
-  sorry
+  set Tf := cylinderMassOperator L mass hmass f with hTf_def
+  -- Step A: ‖Tf‖² = ⟪Tf, Tf⟫_ℝ (real Hilbert space identity)
+  rw [show ‖Tf‖ ^ 2 = @inner ℝ ell2' _ Tf Tf from
+    (real_inner_self_eq_norm_sq Tf).symm]
+  -- Step B: lp 2 inner = tsum of fiber inners
+  rw [lp.inner_eq_tsum]
+  -- Step C: real-fiber inner ⟪a, a⟫_ℝ = a * a = a^2
+  simp_rw [show ∀ a : ℝ, @inner ℝ ℝ _ a a = a ^ 2 from
+    fun a => by simp [inner, RCLike.re, conj_trivial, sq]]
+  -- Step D: substitute cylinderMassOperator_formula
+  simp_rw [show ∀ n, Tf n = (Tf : ℕ → ℝ) n from fun n => rfl,
+           cylinderMassOperator_formula]
+  -- Step E: Cantor reindex `∑' n, F (Nat.unpair n) = ∑' (p : ℕ × ℕ), F p`
+  --   Using F (a, b) := (DM_b (R_{ω_a}(slice_a f)))^2
+  set F : ℕ × ℕ → ℝ := fun p =>
+    (DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) p.2
+      (resolventMultiplierCLM (resolventFreq_pos L mass hmass p.1)
+        (ntpSliceSchwartz L p.1 f))) ^ 2
+  -- Note that the post-substitution sum has F applied to (Nat.unpair n) — we want
+  -- to recognise that as ∑' p : ℕ × ℕ, F p.
+  have hreindex : (∑' n : ℕ,
+      (DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) (Nat.unpair n).2
+        (resolventMultiplierCLM (resolventFreq_pos L mass hmass (Nat.unpair n).1)
+          (ntpSliceSchwartz L (Nat.unpair n).1 f))) ^ 2) =
+      ∑' p : ℕ × ℕ, F p := by
+    have hF_unpair : (fun n : ℕ => F (Nat.pairEquiv.symm n)) =
+        (fun n : ℕ =>
+          (DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) (Nat.unpair n).2
+            (resolventMultiplierCLM (resolventFreq_pos L mass hmass (Nat.unpair n).1)
+              (ntpSliceSchwartz L (Nat.unpair n).1 f))) ^ 2) := by
+      funext n
+      simp [F, Nat.pairEquiv]
+    rw [← hF_unpair]
+    exact Equiv.tsum_eq Nat.pairEquiv.symm F
+  rw [hreindex]
+  -- Step F: Split ∑' p : ℕ × ℕ, F p = ∑' a, ∑' b, F (a, b) using Summable.tsum_prod
+  have hF_summable : Summable F := by
+    -- F p = ‖Tf‖²-style summand → summable since lp 2 has finite norm.
+    -- Strategy: F (Nat.pairEquiv.symm n) = (Tf n)^2 (after formula),
+    -- which is summable as a fiber of lp 2 (norm_rpow_eq_tsum).
+    -- Use Equiv.summable_iff to transport.
+    have hp : (0 : ℝ) < (2 : ENNReal).toReal := by norm_num
+    have h_lp_sum : Summable (fun n : ℕ => ‖(Tf : ℕ → ℝ) n‖ ^ (2 : ENNReal).toReal) := by
+      have := lp.memℓp Tf
+      rwa [Memℓp, if_neg (by norm_num : (2 : ENNReal) ≠ 0),
+           if_neg (by norm_num : (2 : ENNReal) ≠ ⊤)] at this
+    have h_real : (fun n : ℕ => ‖(Tf : ℕ → ℝ) n‖ ^ (2 : ENNReal).toReal) =
+        (fun n : ℕ => (Tf n) ^ 2) := by
+      funext n
+      simp only [show ((2 : ENNReal).toReal = 2) from by norm_num,
+                 Real.norm_eq_abs, sq_abs]
+    rw [h_real] at h_lp_sum
+    -- After substituting cylinderMassOperator_formula, the (Tf n)^2 expression
+    -- equals F (Nat.pairEquiv.symm n).
+    have h_eq : (fun n : ℕ => (Tf n) ^ 2) = (fun n : ℕ => F (Nat.pairEquiv.symm n)) := by
+      funext n
+      show ((Tf : ℕ → ℝ) n) ^ 2 = F _
+      rw [cylinderMassOperator_formula]
+      simp [F, Nat.pairEquiv]
+    rw [h_eq] at h_lp_sum
+    exact (Equiv.summable_iff Nat.pairEquiv.symm).mp h_lp_sum
+  rw [hF_summable.tsum_prod]
+  -- Step G: Apply diagonal dm_parseval per spatial mode `a`.
+  congr 1; funext a
+  unfold perModeL2SqNorm
+  -- ∑' b, (DM_b g)^2 = ∫ g^2 via dm_parseval f := g, g := g
+  set g := resolventMultiplierCLM (resolventFreq_pos L mass hmass a)
+    (ntpSliceSchwartz L a f) with hg
+  have h_parseval : ∑' n, DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) n g
+        * DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) n g =
+      ∫ x, g x * g x := dm_parseval g g
+  -- The ∑' b, F (a, b) unfolds to ∑' b, (DM_b g)^2
+  show ∑' b, F (a, b) = ∫ t, g t ^ 2
+  have hunfold : ∀ b, F (a, b) =
+      DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b g
+        * DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b g := by
+    intro b
+    show (DyninMityaginSpace.coeff (E := SchwartzMap ℝ ℝ) b g) ^ 2 = _
+    ring
+  simp_rw [hunfold]
+  rw [h_parseval]
+  congr 1; funext t; ring
 
 /-! ## Step 4: Parametric main theorem
 
