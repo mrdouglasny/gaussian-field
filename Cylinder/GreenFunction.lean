@@ -86,6 +86,7 @@ The DMS basis for 𝓢(ℝ) is Hermite functions, but the resolvent
 -/
 
 import Cylinder.MassOperatorConstruction
+import Cylinder.MassOperatorEquivariance
 
 noncomputable section
 
@@ -336,19 +337,23 @@ axiom cylinderMassOperator_spatialTranslation_norm_eq
     ‖cylinderMassOperator L mass hmass (cylinderSpatialTranslation L v f)‖ =
     ‖cylinderMassOperator L mass hmass f‖
 
-/-- The mass-operator ℓ²-norm is preserved by time translation. -/
-axiom cylinderMassOperator_timeTranslation_norm_eq
+/-- The mass-operator ℓ²-norm is preserved by time translation.
+Proved in `Cylinder/MassOperatorEquivariance.lean`. -/
+theorem cylinderMassOperator_timeTranslation_norm_eq
     (mass : ℝ) (hmass : 0 < mass) (τ : ℝ)
     (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass (cylinderTimeTranslation L τ f)‖ =
-    ‖cylinderMassOperator L mass hmass f‖
+    ‖cylinderMassOperator L mass hmass f‖ :=
+  cylinderMassOperator_timeTranslation_norm_eq_proved L mass hmass τ f
 
-/-- The mass-operator ℓ²-norm is preserved by time reflection. -/
-axiom cylinderMassOperator_timeReflection_norm_eq
+/-- The mass-operator ℓ²-norm is preserved by time reflection.
+Proved in `Cylinder/MassOperatorEquivariance.lean`. -/
+theorem cylinderMassOperator_timeReflection_norm_eq
     (mass : ℝ) (hmass : 0 < mass)
     (f : CylinderTestFunction L) :
     ‖cylinderMassOperator L mass hmass (cylinderTimeReflection L f)‖ =
-    ‖cylinderMassOperator L mass hmass f‖
+    ‖cylinderMassOperator L mass hmass f‖ :=
+  cylinderMassOperator_timeReflection_norm_eq_proved L mass hmass f
 
 /-- Spatial translation as a `CylinderSpacetimeSymmetry`. -/
 def cylinderSpatialTranslationSym
