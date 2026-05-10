@@ -101,6 +101,7 @@ plus the OU↔HO similarity-transform bridge in the docstring above.
 
 import SchwartzNuclear.HermiteTensorProduct
 import Mathlib.Data.Finset.Basic
+import GeneralResults.SeparationOfVariables
 
 noncomputable section
 
@@ -320,8 +321,34 @@ second derivative to each factor in turn (as required by the Laplacian
 on a product) and summing the results." All four sub-questions (Δ
 expansion, eigenvalue aggregation, `‖x‖²` expression, `d = 0` edge case)
 confirmed. -/
-axiom hermiteFunctionNd_HO_eigenvalue (d : ℕ) (α : MultiIndex d) :
-    hermiteFunctionNd_HO_eigenvalue_holds d α
+theorem hermiteFunctionNd_HO_eigenvalue (d : ℕ) (α : MultiIndex d) :
+    hermiteFunctionNd_HO_eigenvalue_holds d α := by
+  intro x
+  -- The Prop is stated for `x : EuclideanSpace ℝ (Fin d)` but coordinates
+  -- elaborate as `x.ofLp i`. Apply the abstract lemma at the underlying
+  -- function `fun i => x i`, which is `x.ofLp` definitionally.
+  have h_sep := separation_of_variables_eigenvalue
+    (f := fun i => hermiteFunction (α i))
+    (V := fun _ y => y ^ 2)
+    (lam := fun i => 2 * (α i : ℝ) + 1)
+    (D := fun _ => iteratedDeriv 2)
+    (h_1d := fun i y => hermiteFunction_harmonic_oscillator_eigenvalue (α i) y)
+    (fun i => x i)
+  -- Sum of 1D eigenvalues: ∑ i, (2 (α i) + 1) = 2 |α| + d.
+  have h_lam_sum : (∑ i : Fin d, (2 * ((α i : ℝ)) + 1)) =
+      2 * (α.abs : ℝ) + d := by
+    rw [Finset.sum_add_distrib, ← Finset.mul_sum]
+    show 2 * ∑ i : Fin d, ((α i : ℕ) : ℝ) + ∑ _ : Fin d, (1 : ℝ) =
+      2 * ((α.abs : ℕ) : ℝ) + (d : ℝ)
+    rw [show ((α.abs : ℕ) : ℝ) = ∑ i : Fin d, ((α i : ℕ) : ℝ) by
+        unfold MultiIndex.abs; push_cast; rfl,
+      Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+      nsmul_eq_mul, mul_one]
+  -- Goal (post-`intro x`) is already in the form matching `h_sep`
+  -- modulo the eigenvalue-sum identification.
+  rw [show hermiteFunctionNd d α x = ∏ i, hermiteFunction (α i) (x i) from rfl,
+      ← h_lam_sum]
+  exact h_sep
 
 /-! ## Finite-dimensional Galerkin space
 
