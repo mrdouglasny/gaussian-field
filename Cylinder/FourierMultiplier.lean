@@ -78,6 +78,9 @@ def heatSymbol (t : ℝ) (p : ℝ) : ℝ := Real.exp (-t * p ^ 2)
 /-- The resolvent Fourier symbol: `σ_ω(p) = (p² + ω²)^{-1/2}`. -/
 def resolventSymbol (ω : ℝ) (p : ℝ) : ℝ := (p ^ 2 + ω ^ 2) ^ (-(1 : ℝ) / 2)
 
+/-- The inverse resolvent Fourier symbol: `σ_ω⁻¹(p) = (p² + ω²)^{1/2}`. -/
+def inverseResolventSymbol (ω : ℝ) (p : ℝ) : ℝ := (p ^ 2 + ω ^ 2) ^ ((1 : ℝ) / 2)
+
 /-- The heat symbol is even: `σ_t(-p) = σ_t(p)`. -/
 theorem heatSymbol_even (t : ℝ) (p : ℝ) : heatSymbol t (-p) = heatSymbol t p := by
   unfold heatSymbol; congr 1; ring
@@ -101,6 +104,26 @@ theorem resolventSymbol_pos {ω : ℝ} (hω : 0 < ω) (p : ℝ) :
     0 < resolventSymbol ω p := by
   unfold resolventSymbol
   exact Real.rpow_pos_of_pos (by positivity) _
+
+/-- The inverse resolvent symbol is strictly positive for ω > 0. -/
+theorem inverseResolventSymbol_pos {ω : ℝ} (hω : 0 < ω) (p : ℝ) :
+    0 < inverseResolventSymbol ω p := by
+  unfold inverseResolventSymbol
+  exact Real.rpow_pos_of_pos (by positivity) _
+
+/-- The inverse resolvent symbol is even. -/
+theorem inverseResolventSymbol_even (ω : ℝ) (p : ℝ) :
+    inverseResolventSymbol ω (-p) = inverseResolventSymbol ω p := by
+  unfold inverseResolventSymbol
+  congr 1
+  ring
+
+/-- The resolvent symbol and its inverse multiply to `1`. -/
+theorem resolventSymbol_mul_inverse (ω : ℝ) (hω : 0 < ω) (p : ℝ) :
+    resolventSymbol ω p * inverseResolventSymbol ω p = 1 := by
+  unfold resolventSymbol inverseResolventSymbol
+  rw [← Real.rpow_add (by positivity)]
+  norm_num
 
 /-! ## Real Fourier multiplier CLM via lift-apply-project
 
@@ -187,6 +210,82 @@ theorem resolventSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
             (fun k _ => mul_nonneg (norm_nonneg _)
               (le_of_lt (Real.rpow_pos_of_pos hω2 _)))
             (Finset.mem_range.mpr (Nat.lt_succ_of_le hn))
+  · fun_prop
+
+/-- The inverse resolvent symbol has temperate growth for ω > 0. -/
+theorem inverseResolventSymbol_hasTemperateGrowth (ω : ℝ) (hω : 0 < ω) :
+    (inverseResolventSymbol ω).HasTemperateGrowth := by
+  show ((fun y => y ^ ((1 : ℝ) / 2)) ∘ (fun p => p ^ 2 + ω ^ 2)).HasTemperateGrowth
+  have hω2 : (0 : ℝ) < ω ^ 2 / 2 := by positivity
+  apply Function.HasTemperateGrowth.comp' (t := Set.Ioi (ω ^ 2 / 2))
+  · rintro _ ⟨p, rfl⟩
+    simp only [Set.mem_Ioi]
+    nlinarith [sq_nonneg p, pow_pos hω 2]
+  · exact isOpen_Ioi.uniqueDiffOn
+  · exact contDiffOn_fun_id.rpow_const_of_ne fun x hx => (lt_trans hω2 hx).ne'
+  · intro N
+    refine ⟨1,
+      1 + ∑ k ∈ Finset.range (N + 1),
+        ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k),
+      by positivity, ?_⟩
+    intro n hn x hx
+    have hx_pos : 0 < x := lt_trans hω2 hx
+    rw [norm_iteratedFDerivWithin_eq_norm_iteratedDerivWithin,
+      iteratedDerivWithin_eq_iteratedDeriv isOpen_Ioi.uniqueDiffOn
+        (Real.contDiffAt_rpow_const_of_ne hx_pos.ne') hx,
+      iteratedDeriv_eq_iterate, Real.iter_deriv_rpow_const, norm_mul, pow_one]
+    by_cases hn0 : n = 0
+    · subst hn0
+      simp only [descPochhammer_zero, Polynomial.eval_one, norm_one, one_mul,
+        Nat.cast_zero, sub_zero]
+      rw [Real.norm_eq_abs, abs_of_pos (Real.rpow_pos_of_pos hx_pos _)]
+      rw [← Real.sqrt_eq_rpow]
+      have hsum_nonneg : 0 ≤ ∑ k ∈ Finset.range (N + 1),
+          ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k) := by
+        exact Finset.sum_nonneg (fun k hk => mul_nonneg (norm_nonneg _)
+          (le_of_lt (Real.rpow_pos_of_pos hω2 _)))
+      have hs : Real.sqrt x ≤ 1 + x := by
+        nlinarith [Real.sq_sqrt hx_pos.le]
+      have hnorm : ‖x‖ = x := by
+        rw [Real.norm_eq_abs, abs_of_pos hx_pos]
+      calc
+        Real.sqrt x ≤ 1 + x := hs
+        _ ≤ (1 + ∑ k ∈ Finset.range (N + 1),
+              ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ *
+                (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k)) * (1 + ‖x‖) := by
+            rw [hnorm]
+            nlinarith
+    · have hrn : ((1 : ℝ) / 2) - (n : ℝ) < 0 := by
+        have hn1 : 1 ≤ n := Nat.succ_le_iff.mpr (Nat.pos_of_ne_zero hn0)
+        nlinarith [show (1 : ℝ) ≤ n by exact_mod_cast hn1]
+      have h1 : ‖x ^ ((1 : ℝ) / 2 - ↑n)‖ ≤ (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑n) := by
+        rw [Real.norm_eq_abs, abs_of_pos (Real.rpow_pos_of_pos hx_pos _)]
+        exact (Real.rpow_le_rpow_iff_of_neg hx_pos hω2 hrn).mpr hx.le
+      calc
+        ‖(descPochhammer ℝ n).eval ((1 : ℝ) / 2)‖ * ‖x ^ ((1 : ℝ) / 2 - ↑n)‖
+            ≤ ‖(descPochhammer ℝ n).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑n) := by
+              gcongr
+        _ ≤ ∑ k ∈ Finset.range (N + 1),
+              ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k) :=
+            Finset.single_le_sum (f := fun k =>
+                ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - (k : ℝ)))
+              (fun k _ => mul_nonneg (norm_nonneg _)
+                (le_of_lt (Real.rpow_pos_of_pos hω2 _)))
+              (Finset.mem_range.mpr (Nat.lt_succ_of_le hn))
+        _ ≤ (1 + ∑ k ∈ Finset.range (N + 1),
+              ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k)) *
+              (1 + ‖x‖) := by
+            have hx1 : 1 ≤ 1 + ‖x‖ := by nlinarith [norm_nonneg x]
+            calc
+              ∑ k ∈ Finset.range (N + 1),
+                  ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k)
+                  ≤ (1 + ∑ k ∈ Finset.range (N + 1),
+                      ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k)) * 1 := by
+                    nlinarith
+              _ ≤ (1 + ∑ k ∈ Finset.range (N + 1),
+                    ‖(descPochhammer ℝ k).eval ((1 : ℝ) / 2)‖ * (ω ^ 2 / 2) ^ ((1 : ℝ) / 2 - ↑k)) *
+                    (1 + ‖x‖) := by
+                  gcongr
   · fun_prop
 
 /-- Lift real Schwartz functions to complex: `f ↦ ofReal ∘ f`. -/
@@ -682,6 +781,71 @@ Defined via lift-apply-project from Mathlib's `fourierMultiplierCLM`. -/
 def resolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
     SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
   realFourierMultiplierCLM (resolventSymbol ω) (resolventSymbol_hasTemperateGrowth ω hω)
+
+/-- The inverse resolvent Fourier multiplier on `𝓢(ℝ)`. -/
+def inverseResolventMultiplierCLM {ω : ℝ} (hω : 0 < ω) :
+    SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ :=
+  realFourierMultiplierCLM (inverseResolventSymbol ω)
+    (inverseResolventSymbol_hasTemperateGrowth ω hω)
+
+/-- The constant-one real Fourier multiplier is the identity. -/
+theorem realFourierMultiplierCLM_one :
+    realFourierMultiplierCLM (fun _ => (1 : ℝ)) (Function.HasTemperateGrowth.const 1) =
+    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) := by
+  ext f x
+  simp [realFourierMultiplierCLM, schwartzToReal, schwartzToComplex,
+    SchwartzMap.fourierMultiplierCLM_const]
+
+/-- `R_ω ∘ R_ω⁻¹ = id` on `𝓢(ℝ)`. -/
+theorem resolventMultiplierCLM_comp_inverseResolventMultiplierCLM
+    {ω : ℝ} (hω : 0 < ω) :
+    (resolventMultiplierCLM hω).comp (inverseResolventMultiplierCLM hω) =
+    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) := by
+  unfold resolventMultiplierCLM inverseResolventMultiplierCLM
+  rw [realFourierMultiplierCLM_comp _ _ _ _ (inverseResolventSymbol_even ω)]
+  have hmul : resolventSymbol ω * inverseResolventSymbol ω = (fun _ => (1 : ℝ)) := by
+    ext p
+    exact resolventSymbol_mul_inverse ω hω p
+  simpa [hmul] using
+    (realFourierMultiplierCLM_one :
+      realFourierMultiplierCLM (fun _ => (1 : ℝ)) (Function.HasTemperateGrowth.const 1) =
+        ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ))
+
+/-- `R_ω⁻¹ ∘ R_ω = id` on `𝓢(ℝ)`. -/
+theorem inverseResolventMultiplierCLM_comp_resolventMultiplierCLM
+    {ω : ℝ} (hω : 0 < ω) :
+    (inverseResolventMultiplierCLM hω).comp (resolventMultiplierCLM hω) =
+    ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ) := by
+  unfold resolventMultiplierCLM inverseResolventMultiplierCLM
+  rw [realFourierMultiplierCLM_comp _ _ _ _ (resolventSymbol_even ω)]
+  have hmul : inverseResolventSymbol ω * resolventSymbol ω = (fun _ => (1 : ℝ)) := by
+    ext p
+    rw [mul_comm]
+    exact resolventSymbol_mul_inverse ω hω p
+  simpa [hmul] using
+    (realFourierMultiplierCLM_one :
+      realFourierMultiplierCLM (fun _ => (1 : ℝ)) (Function.HasTemperateGrowth.const 1) =
+        ContinuousLinearMap.id ℝ (SchwartzMap ℝ ℝ))
+
+/-- The resolvent multiplier as a continuous linear equivalence of `𝓢(ℝ)`. -/
+def resolventMultiplierCLE {ω : ℝ} (hω : 0 < ω) :
+    SchwartzMap ℝ ℝ ≃L[ℝ] SchwartzMap ℝ ℝ where
+  toFun := resolventMultiplierCLM hω
+  invFun := inverseResolventMultiplierCLM hω
+  left_inv := fun f => by
+    have h : inverseResolventMultiplierCLM hω (resolventMultiplierCLM hω f) =
+        ((inverseResolventMultiplierCLM hω).comp (resolventMultiplierCLM hω)) f := rfl
+    rw [h, inverseResolventMultiplierCLM_comp_resolventMultiplierCLM]
+    rfl
+  right_inv := fun f => by
+    have h : resolventMultiplierCLM hω (inverseResolventMultiplierCLM hω f) =
+        ((resolventMultiplierCLM hω).comp (inverseResolventMultiplierCLM hω)) f := rfl
+    rw [h, resolventMultiplierCLM_comp_inverseResolventMultiplierCLM]
+    rfl
+  map_add' := (resolventMultiplierCLM hω).map_add
+  map_smul' := (resolventMultiplierCLM hω).map_smul
+  continuous_toFun := (resolventMultiplierCLM hω).continuous
+  continuous_invFun := (inverseResolventMultiplierCLM hω).continuous
 
 attribute [local instance] SMulCommClass.symm in
 /-- **Injectivity of the resolvent Fourier multiplier.**
