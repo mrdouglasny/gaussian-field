@@ -2,6 +2,30 @@
 
 *Last updated 2026-05-10.*
 
+## Purpose
+
+In this project, an **axiom** is a *vetted provable theorem with a vetted
+discharge plan* — not a fundamental unprovable assumption. Each axiom
+listed below is:
+
+1. A standard textbook fact, with explicit literature citation.
+2. Reviewed for type correctness, hypothesis sufficiency, and
+   non-vacuity (typically by a Gemini deep-think pass and/or a
+   literature cross-check).
+3. Accompanied by a concrete plan to discharge it into a Lean theorem
+   (inline in the row, or linked to a dedicated discharge-plan doc).
+
+We use the `axiom` keyword as a *staging point* — it lets the project
+proceed to use a result before its full Lean proof is assembled, while
+keeping the trust boundary explicit and discharge progress trackable.
+The goal is for every entry below to eventually become a proved
+theorem.
+
+Format and conventions for this audit doc:
+`~/.claude/AXIOM_AUDIT_FORMAT.md`.
+
+---
+
 **Active axioms in build: 3.** All three are Gemini-vetted **Standard**
 classical-analysis textbook results.
 
