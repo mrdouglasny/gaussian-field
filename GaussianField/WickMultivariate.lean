@@ -194,6 +194,58 @@ theorem wickMonomial_inner_gaussianReal_one (m n : ℕ) :
     field_simp
   · ring
 
+/-- **Multivariate Wick orthogonality on the standard product Gaussian.**
+
+For any finite index set `ι` and multi-indices `α, β : ι → ℕ`,
+  `∫ ∏_j :ξ_j^{α_j}:_1 · ∏_j :ξ_j^{β_j}:_1 ∂(Π_j gaussianReal 0 1)
+     = δ_{α, β} · ∏_j α_j!`.
+
+The product-of-Wicks form is the building block for both
+`gffMultiWickMonomial_orthogonality` (after the GFF pushforward) and
+the abstract Janson 2-site Wick power formula
+(`janson_two_site_wick_power_inner` below) used in the canonical
+setup. Direct combination of `Fubini` (`integral_fintype_prod_eq_prod`)
+with the 1D orthogonality `wickMonomial_inner_gaussianReal_one`. -/
+theorem multiWickMonomial_pi_gaussianReal_inner
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (α β : ι → ℕ) :
+    ∫ ξ : ι → ℝ,
+      (∏ j, wickMonomial (α j) 1 (ξ j)) *
+      (∏ j, wickMonomial (β j) 1 (ξ j))
+      ∂(MeasureTheory.Measure.pi (fun _ : ι => gaussianReal 0 1)) =
+    if α = β then ((∏ j, ((α j).factorial : ℕ) : ℕ) : ℝ) else 0 := by
+  -- Combine the two products into one product of pairs
+  have h_eq : (fun ξ : ι → ℝ =>
+      (∏ j, wickMonomial (α j) 1 (ξ j)) * (∏ j, wickMonomial (β j) 1 (ξ j))) =
+      (fun ξ : ι → ℝ =>
+        ∏ j, wickMonomial (α j) 1 (ξ j) * wickMonomial (β j) 1 (ξ j)) := by
+    funext ξ
+    rw [← Finset.prod_mul_distrib]
+  rw [h_eq]
+  -- Apply Fubini for product measures
+  rw [integral_fintype_prod_eq_prod
+    (f := fun j (x : ℝ) => wickMonomial (α j) 1 x * wickMonomial (β j) 1 x)]
+  -- Apply 1D orthogonality to each factor
+  simp_rw [wickMonomial_inner_gaussianReal_one]
+  -- Collapse per-coordinate indicators into the multi-index indicator
+  by_cases hαβ : α = β
+  · rw [if_pos hαβ]
+    rw [show (∏ j : ι,
+        if α j = β j then (((α j).factorial : ℕ) : ℝ) else 0) =
+        ∏ j : ι, ((α j).factorial : ℝ) from by
+      refine Finset.prod_congr rfl ?_
+      intro j _
+      rw [if_pos (by rw [hαβ] : α j = β j)]]
+    push_cast
+    rfl
+  · rw [if_neg hαβ]
+    obtain ⟨j, hj⟩ : ∃ j, α j ≠ β j := by
+      by_contra h
+      push Not at h
+      exact hαβ (funext h)
+    apply Finset.prod_eq_zero (Finset.mem_univ j)
+    rw [if_neg hj]
+
 /-- **Orthogonality of GFF multivariate Wick monomials under the lattice
 GFF measure.**
 
