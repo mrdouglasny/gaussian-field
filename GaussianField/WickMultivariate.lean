@@ -590,4 +590,85 @@ theorem siteWickMonomial_eigenbasis_expansion
     -- where on the RHS the wickMonomial product is wrapped as `gffMultiWickMonomial α ω`.
     rfl
 
+/-! ## 2-site Wick power formula on the lattice GFF
+
+The Janson-Hilbert two-site formula specialised to single-site Wick
+powers under the lattice GFF measure:
+
+  `∫ :φ(x)^n:_{c_a(x)} · :φ(y)^m:_{c_a(y)} dμ_GFF
+     = δ_{n,m} · n! · gffPositionCovariance(x, y)^n`
+
+where `gffPositionCovariance(x, y) = Σ_j γ_j(x) · γ_j(y) =
+(a^d)⁻¹ · Σ_j (e_j(x) e_j(y) / λ_j)` is the position-space covariance
+kernel (the (x, y)-entry of the inverse mass operator, scaled).
+
+Used by pphi2 to discharge the cross-term orthogonality
+(`canonicalCrossTerm_inner_eq_zero`) and the diagonal piece needed by
+the per-cross-term L² bound (`canonicalCrossTerm_l2_sq_le`).
+
+**Proof sketch** (deferred):
+1. Substitute `gffSiteVariance_eq_sum_gamma_sq` and
+   `omega_eval_delta_eq_sum_gamma_xi` to rewrite each Wick monomial
+   as `wickMonomial k (Σ γ_j(x)²) (Σ γ_j(x) ξ_j(ω))`.
+2. Apply `wickMonomial_pow_sum_expansion_of_totalDegree` to expand
+   each side into a multi-index sum over `gffMultiWickMonomial`.
+3. Multiply, integrate (linearity), apply
+   `gffMultiWickMonomial_orthogonality` to vanish off-diagonal pairs.
+4. The diagonal `α = β` only contributes when `|α| = n = m`. The
+   resulting sum reduces via the multinomial theorem
+     `Σ_{|α|=n} (n! / ∏ α_j!) · ∏ a_j^{α_j} = (Σ_j a_j)^n`
+   applied to `a_j = γ_j(x) γ_j(y)` to give `n! · (Σ γ_j(x) γ_j(y))^n`.
+-/
+
+/-- Position-space covariance kernel of the lattice GFF:
+`C(x, y) = Σ_j γ_j(x) · γ_j(y) = (a^d)⁻¹ · Σ_j (e_j(x) e_j(y)) / λ_j`.
+
+The (x, y)-entry of the inverse mass operator (scaled by `(a^d)⁻¹`),
+expressed via the orthogonalised eigenvector coefficients. The
+diagonal `gffPositionCovariance x x = gffSiteVariance x` is the
+on-site variance (the auto-covariance Wick subtracts). -/
+noncomputable def gffPositionCovariance
+    (a mass : ℝ) (x y : FinLatticeSites d N) : ℝ :=
+  ∑ j, gffEigenCoeff d N a mass j x * gffEigenCoeff d N a mass j y
+
+/-- The position covariance is symmetric. -/
+lemma gffPositionCovariance_symm
+    (a mass : ℝ) (x y : FinLatticeSites d N) :
+    gffPositionCovariance d N a mass x y =
+    gffPositionCovariance d N a mass y x := by
+  unfold gffPositionCovariance
+  refine Finset.sum_congr rfl fun j _ => ?_
+  ring
+
+/-- The position covariance on the diagonal equals the site variance. -/
+lemma gffPositionCovariance_self
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (x : FinLatticeSites d N) :
+    gffPositionCovariance d N a mass x x =
+    gffSiteVariance d N a mass ha hmass x := by
+  unfold gffPositionCovariance
+  rw [gffSiteVariance_eq_sum_gamma_sq d N a mass ha hmass x]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  ring
+
+/-- **2-site Wick power formula on the lattice GFF.** For sites `x, y`
+and Wick powers `n, m`, the integral of the product of single-site
+Wick monomials under the lattice GFF measure equals `n! · C(x, y)^n`
+when `n = m`, zero otherwise. The Janson–Hilbert orthogonality applied
+in the eigenbasis.
+
+Used downstream to discharge cross-term orthogonality and the
+diagonal piece of per-cross-term L² bounds. -/
+theorem gff_wickPower_two_site_inner
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (n m : ℕ) (x y : FinLatticeSites d N) :
+    ∫ ω, wickMonomial n (gffSiteVariance d N a mass ha hmass x)
+            (ω (Pi.single x 1)) *
+          wickMonomial m (gffSiteVariance d N a mass ha hmass y)
+            (ω (Pi.single y 1))
+        ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    if n = m then
+      (n.factorial : ℝ) * (gffPositionCovariance d N a mass x y) ^ n
+    else 0 := by
+  sorry
+
 end GaussianField
