@@ -650,6 +650,28 @@ lemma gffPositionCovariance_self
   refine Finset.sum_congr rfl fun j _ => ?_
   ring
 
+/-- Eigenbasis expansion of a single-site Wick monomial as an explicit
+sum over multi-indices of total degree `n`. Refines
+`siteWickMonomial_eigenbasis_expansion` by exposing the explicit
+coefficient `(n! / ∏ α_j!) · ∏ γ_j(x)^{α_j}` rather than wrapping it
+behind an existential. -/
+private lemma wickMonomial_at_site_eq_eigen_sum
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (n : ℕ) (x : FinLatticeSites d N)
+    (ω : Configuration (FinLatticeField d N)) :
+    wickMonomial n (gffSiteVariance d N a mass ha hmass x)
+        (ω (Pi.single x 1)) =
+    ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+      ((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+        (∏ j, gffEigenCoeff d N a mass j x ^ (α j)) *
+        gffMultiWickMonomial d N a mass ha hmass α ω := by
+  rw [gffSiteVariance_eq_sum_gamma_sq d N a mass ha hmass x,
+      omega_eval_delta_eq_sum_gamma_xi d N a mass ha hmass x ω,
+      wickMonomial_pow_sum_expansion_of_totalDegree
+        (fun j => gffEigenCoeff d N a mass j x)
+        (fun j => gffOrthonormalCoord d N a mass ha hmass j ω) n]
+  rfl
+
 /-- **2-site Wick power formula on the lattice GFF.** For sites `x, y`
 and Wick powers `n, m`, the integral of the product of single-site
 Wick monomials under the lattice GFF measure equals `n! · C(x, y)^n`
