@@ -129,6 +129,23 @@ No dedicated discharge plan doc yet.
 
 ---
 
+## Recently added (2026-05-11 session)
+
+New theorems in `WickMultivariate.lean`, all axiom-free
+(`#print axioms` shows only `[propext, Classical.choice, Quot.sound]`):
+
+| Theorem | What it proves | Used by |
+|---|---|---|
+| `gffPositionCovariance` (def) | Position-space covariance kernel `C(x, y) = Σ_j γ_j(x) · γ_j(y)` | 2-site Wick formula |
+| `gffPositionCovariance_symm` | Symmetry `C(x, y) = C(y, x)` | API |
+| `gffPositionCovariance_self` | `C(x, x) = gffSiteVariance x` | API |
+| `gff_wickPower_two_site_inner` | Janson–Hilbert 2-site Wick power formula: `∫ :φ(x)^n: :φ(y)^m: dμ_GFF = δ_{n,m} · n! · C(x, y)^n` | pphi2 `canonicalCrossTerm_inner_eq_zero` (S3 cross-term orthogonality) and `canonicalCrossTerm_l2_sq_le` (S4 per-cross-term L² bound) |
+
+Proof uses the eigenbasis expansion (`siteWickMonomial_eigenbasis_expansion`)
++ termwise integration + `gffMultiWickMonomial_orthogonality` + a
+multinomial-theorem step via Mathlib's `Finset.sum_pow_eq_sum_piAntidiag`.
+Plan doc: `docs/gff-wickPower-two-site-inner-proof-plan.md`.
+
 ## Recently discharged (2026-05-10 session)
 
 For reference. Total active axioms went **9 → 3**.

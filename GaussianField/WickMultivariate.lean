@@ -357,7 +357,7 @@ private lemma eigenbasis_completeness
     rfl] at h_y
   -- Compute RHS: (single x 1).ofLp y = if y = x then 1 else 0.
   rw [show ((EuclideanSpace.single x (1 : ℝ)) : FinLatticeSites d N → ℝ) y =
-      if y = x then (1 : ℝ) else 0 from by rw [EuclideanSpace.single_apply]] at h_y
+      if y = x then (1 : ℝ) else 0 from by rw [PiLp.single_apply]] at h_y
   exact h_y
 
 /-- Spectral expansion: `ω(δ_x) = ∑_j γ_j(x) · ξ_j(ω)`. -/
@@ -677,7 +677,8 @@ private lemma integrable_pow_gaussianReal_one (k : ℕ) :
       (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
   cases k with
   | zero =>
-      simpa using (MeasureTheory.integrable_const (1 : ℝ))
+      simp only [pow_zero]
+      exact MeasureTheory.integrable_const (1 : ℝ)
   | succ k =>
       have h_mem0 :=
         ProbabilityTheory.memLp_id_gaussianReal
@@ -798,8 +799,8 @@ private lemma sum_pow_eq_sum_multiIndices (f : FinLatticeSites d N → ℝ) (n :
               Nat.multinomial Finset.univ α =
             (∑ j ∈ (Finset.univ : Finset (FinLatticeSites d N)), α j).factorial :=
           Nat.multinomial_spec Finset.univ α
-        exact_mod_cast (hspec.trans (by simpa [hsum]))
-  simpa [hmult]
+        exact_mod_cast (hspec.trans (by simp [hsum]))
+  simp [hmult]
 
 /-- **2-site Wick power formula on the lattice GFF.** For sites `x, y`
 and Wick powers `n, m`, the integral of the product of single-site
@@ -948,7 +949,7 @@ theorem gff_wickPower_two_site_inner
               (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
                 ∏ j, (gffEigenCoeff d N a mass j x *
                   gffEigenCoeff d N a mass j y) ^ α j) := by
-              simpa [hprod_mul]
+              simp [hprod_mul]
     calc
       (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
           ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
