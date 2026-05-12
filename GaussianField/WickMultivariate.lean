@@ -672,6 +672,135 @@ private lemma wickMonomial_at_site_eq_eigen_sum
         (fun j => gffOrthonormalCoord d N a mass ha hmass j ω) n]
   rfl
 
+private lemma integrable_pow_gaussianReal_one (k : ℕ) :
+    MeasureTheory.Integrable (fun x : ℝ => x ^ k)
+      (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
+  cases k with
+  | zero =>
+      simpa using (MeasureTheory.integrable_const (1 : ℝ))
+  | succ k =>
+      have h_mem0 :=
+        ProbabilityTheory.memLp_id_gaussianReal
+          (μ := (0 : ℝ)) (v := (1 : NNReal)) (p := (Nat.succ k : NNReal))
+      have h_mem : MeasureTheory.MemLp (fun x : ℝ => x) (Nat.succ k)
+          (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
+        simpa using h_mem0
+      have h_norm : MeasureTheory.Integrable (fun x : ℝ => ‖x‖ ^ Nat.succ k)
+          (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
+        simpa using h_mem.integrable_norm_pow'
+      have h_meas :
+          MeasureTheory.AEStronglyMeasurable (fun x : ℝ => x ^ Nat.succ k)
+            (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) :=
+        (continuous_id.pow _).aestronglyMeasurable
+      rw [← MeasureTheory.integrable_norm_iff h_meas]
+      simpa [norm_pow] using h_norm
+
+private lemma integrable_polynomial_gaussianReal_one (p : Polynomial ℝ) :
+    MeasureTheory.Integrable (fun x : ℝ => p.eval x)
+      (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
+  have h_eval :
+      (fun x : ℝ => p.eval x) =
+        (fun x => ∑ i ∈ Finset.range (p.natDegree + 1), p.coeff i * x ^ i) := by
+    ext x
+    rw [Polynomial.eval_eq_sum_range]
+  rw [h_eval]
+  exact MeasureTheory.integrable_finset_sum _ fun i hi =>
+    (integrable_pow_gaussianReal_one i).const_mul (p.coeff i)
+
+private lemma integrable_wickMonomial_mul_gaussianReal_one (m n : ℕ) :
+    MeasureTheory.Integrable (fun x : ℝ => wickMonomial m 1 x * wickMonomial n 1 x)
+      (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
+  have h_eq :
+      (fun x : ℝ => wickMonomial m 1 x * wickMonomial n 1 x) =
+        fun x => ((hermiteR m) * (hermiteR n)).eval x := by
+    funext x
+    rw [Polynomial.eval_mul, wick_eq_hermiteR m 1 (by norm_num : (0 : ℝ) < 1),
+      wick_eq_hermiteR n 1 (by norm_num : (0 : ℝ) < 1)]
+    simp [scaledHermite]
+  rw [h_eq]
+  exact integrable_polynomial_gaussianReal_one ((hermiteR m) * (hermiteR n))
+
+private lemma integrable_gffMultiWickMonomial_mul
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (α β : FinLatticeSites d N → ℕ) :
+    MeasureTheory.Integrable
+      (fun ω => gffMultiWickMonomial d N a mass ha hmass α ω *
+        gffMultiWickMonomial d N a mass ha hmass β ω)
+      (latticeGaussianMeasure d N a mass ha hmass) := by
+  let f : (FinLatticeSites d N → ℝ) → ℝ := fun y =>
+    ∏ k, wickMonomial (α k) 1 (y k) * wickMonomial (β k) 1 (y k)
+  have hf :
+      MeasureTheory.Integrable f
+        (MeasureTheory.Measure.pi fun _ : FinLatticeSites d N =>
+          ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
+    simpa [f] using
+      (MeasureTheory.Integrable.fintype_prod
+        (μ := fun _ : FinLatticeSites d N =>
+          ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal))
+        (f := fun k x => wickMonomial (α k) 1 x * wickMonomial (β k) 1 x)
+        (fun k => integrable_wickMonomial_mul_gaussianReal_one (α k) (β k)))
+  have h_push :
+      MeasureTheory.Integrable f
+        ((latticeGaussianMeasure d N a mass ha hmass).map
+          (gffOrthonormalProj d N a mass ha hmass)) := by
+    rw [gffOrthonormalProj_pushforward_eq_stdGaussian d N a mass ha hmass]
+    exact hf
+  refine (h_push.comp_measurable
+      (gffOrthonormalProj_measurable d N a mass ha hmass)).congr ?_
+  filter_upwards with ω
+  simp [f, gffOrthonormalProj, gffMultiWickMonomial, ← Finset.prod_mul_distrib]
+
+private lemma multiIndicesOfTotalDegree_eq_piAntidiag (n : ℕ) :
+    multiIndicesOfTotalDegree (FinLatticeSites d N) n =
+      Finset.piAntidiag Finset.univ n := by
+  ext α
+  constructor
+  · intro hα
+    unfold multiIndicesOfTotalDegree at hα
+    simp only [Finset.mem_filter] at hα
+    exact (Finset.mem_piAntidiag).2 ⟨hα.2, fun i hi => Finset.mem_univ i⟩
+  · intro hα
+    have hsum : ∑ j, α j = n := (Finset.mem_piAntidiag.mp hα).1
+    simp only [multiIndicesOfTotalDegree, Finset.mem_filter, Fintype.mem_piFinset,
+      Finset.mem_range]
+    refine ⟨?_, hsum⟩
+    intro i
+    have h_le : α i ≤ ∑ j, α j := by
+      simpa using
+        (Finset.single_le_sum (fun j _ => Nat.zero_le (α j)) (Finset.mem_univ i))
+    exact Nat.lt_succ_of_le (hsum ▸ h_le)
+
+private lemma sum_pow_eq_sum_multiIndices (f : FinLatticeSites d N → ℝ) (n : ℕ) :
+    (∑ j, f j) ^ n =
+      ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+        ((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+          ∏ j, f j ^ α j := by
+  rw [multiIndicesOfTotalDegree_eq_piAntidiag d N n, Finset.sum_pow_eq_sum_piAntidiag]
+  refine Finset.sum_congr rfl ?_
+  intro α hα
+  have hsum : ∑ j, α j = n := (Finset.mem_piAntidiag.mp hα).1
+  have hprod_pos : (0 : ℝ) < ∏ j, ((α j).factorial : ℝ) := by
+    apply Finset.prod_pos
+    intro j hj
+    exact_mod_cast Nat.factorial_pos (α j)
+  have hprod_ne : (∏ j, ((α j).factorial : ℝ)) ≠ 0 := ne_of_gt hprod_pos
+  have hmult :
+      (Nat.multinomial Finset.univ α : ℝ) =
+        ((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) := by
+    apply (eq_div_iff hprod_ne).2
+    calc
+      (Nat.multinomial Finset.univ α : ℝ) * ∏ j, ((α j).factorial : ℝ)
+          = (∏ j, ((α j).factorial : ℝ)) *
+              (Nat.multinomial Finset.univ α : ℝ) := by ring
+      _ = (n.factorial : ℝ) := by
+        have hspec :
+            (∏ j ∈ (Finset.univ : Finset (FinLatticeSites d N)), (α j).factorial) *
+              Nat.multinomial Finset.univ α =
+            (∑ j ∈ (Finset.univ : Finset (FinLatticeSites d N)), α j).factorial :=
+          Nat.multinomial_spec Finset.univ α
+        exact_mod_cast (hspec.trans (by simpa [hsum]))
+  simpa [hmult]
+
 /-- **2-site Wick power formula on the lattice GFF.** For sites `x, y`
 and Wick powers `n, m`, the integral of the product of single-site
 Wick monomials under the lattice GFF measure equals `n! · C(x, y)^n`
@@ -691,6 +820,174 @@ theorem gff_wickPower_two_site_inner
     if n = m then
       (n.factorial : ℝ) * (gffPositionCovariance d N a mass x y) ^ n
     else 0 := by
-  sorry
+  classical
+  let coeff :=
+    fun (k : ℕ) (z : FinLatticeSites d N) (α : FinLatticeSites d N → ℕ) =>
+      ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+        ∏ j, gffEigenCoeff d N a mass j z ^ α j
+  let diagFac := fun (α : FinLatticeSites d N → ℕ) => ∏ j, ((α j).factorial : ℝ)
+  have h_summand_int :
+      ∀ α β, MeasureTheory.Integrable
+        (fun ω =>
+          (coeff n x α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+            (coeff m y β * gffMultiWickMonomial d N a mass ha hmass β ω))
+        (latticeGaussianMeasure d N a mass ha hmass) := by
+    intro α β
+    have h_base := (integrable_gffMultiWickMonomial_mul d N a mass ha hmass α β).const_mul
+      (coeff n x α * coeff m y β)
+    refine h_base.congr ?_
+    filter_upwards with ω
+    ring
+  have h_expand :
+      ∀ ω : Configuration (FinLatticeField d N),
+        wickMonomial n (gffSiteVariance d N a mass ha hmass x) (ω (Pi.single x 1)) *
+            wickMonomial m (gffSiteVariance d N a mass ha hmass y) (ω (Pi.single y 1)) =
+          (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            coeff n x α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+          (∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            coeff m y β * gffMultiWickMonomial d N a mass ha hmass β ω) := by
+    intro ω
+    rw [wickMonomial_at_site_eq_eigen_sum d N a mass ha hmass n x ω,
+      wickMonomial_at_site_eq_eigen_sum d N a mass ha hmass m y ω]
+  simp_rw [h_expand]
+  have h_distrib :
+      ∀ ω : Configuration (FinLatticeField d N),
+        (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            coeff n x α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+          (∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            coeff m y β * gffMultiWickMonomial d N a mass ha hmass β ω) =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            (coeff n x α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+              (coeff m y β * gffMultiWickMonomial d N a mass ha hmass β ω) := by
+    intro ω
+    rw [Finset.sum_mul_sum]
+  simp_rw [h_distrib]
+  rw [MeasureTheory.integral_finset_sum _ (fun α hα => by
+    apply MeasureTheory.integrable_finset_sum
+    intro β hβ
+    exact h_summand_int α β)]
+  have h_outer :
+      (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∫ ω, ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            (coeff n x α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+              (coeff m y β * gffMultiWickMonomial d N a mass ha hmass β ω)
+          ∂(latticeGaussianMeasure d N a mass ha hmass)) =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            (coeff n x α * coeff m y β) *
+              (if α = β then diagFac α else 0) := by
+    refine Finset.sum_congr rfl ?_
+    intro α hα
+    rw [MeasureTheory.integral_finset_sum _ (fun β hβ => h_summand_int α β)]
+    refine Finset.sum_congr rfl ?_
+    intro β hβ
+    rw [show
+        (fun ω =>
+          (coeff n x α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+            (coeff m y β * gffMultiWickMonomial d N a mass ha hmass β ω)) =
+          (fun ω =>
+            (coeff n x α * coeff m y β) *
+              (gffMultiWickMonomial d N a mass ha hmass α ω *
+                gffMultiWickMonomial d N a mass ha hmass β ω)) from by
+        ext ω
+        ring]
+    rw [MeasureTheory.integral_const_mul,
+      gffMultiWickMonomial_orthogonality d N a mass ha hmass]
+    simp [diagFac]
+  rw [h_outer]
+  by_cases hnm : n = m
+  · subst hnm
+    rw [if_pos rfl]
+    have h_collapse :
+        (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            (coeff n x α * coeff n y β) * (if α = β then diagFac α else 0)) =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          (coeff n x α * coeff n y α) * diagFac α := by
+      refine Finset.sum_congr rfl ?_
+      intro α hα
+      rw [Finset.sum_eq_single_of_mem α hα]
+      · simp [diagFac]
+      · intro β hβ hβα
+        have hneq : α ≠ β := by
+          intro h
+          exact hβα h.symm
+        simp [hneq, diagFac]
+    have h_diag_term :
+        ∀ α, α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n →
+          (coeff n x α * coeff n y α) * diagFac α =
+            (n.factorial : ℝ) *
+              (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                ∏ j, (gffEigenCoeff d N a mass j x *
+                  gffEigenCoeff d N a mass j y) ^ α j) := by
+      intro α hα
+      have hprod_mul :
+          (∏ j, gffEigenCoeff d N a mass j x ^ α j) *
+              (∏ j, gffEigenCoeff d N a mass j y ^ α j) =
+            ∏ j, (gffEigenCoeff d N a mass j x *
+              gffEigenCoeff d N a mass j y) ^ α j := by
+        rw [← Finset.prod_mul_distrib]
+        refine Finset.prod_congr rfl ?_
+        intro j hj
+        rw [mul_pow]
+      have hprod_pos : (0 : ℝ) < ∏ j, ((α j).factorial : ℝ) := by
+        apply Finset.prod_pos
+        intro j hj
+        exact_mod_cast Nat.factorial_pos (α j)
+      have hprod_ne : (∏ j, ((α j).factorial : ℝ)) ≠ 0 := ne_of_gt hprod_pos
+      calc
+        (coeff n x α * coeff n y α) * diagFac α
+            = (n.factorial : ℝ) *
+                (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                  ((∏ j, gffEigenCoeff d N a mass j x ^ α j) *
+                    (∏ j, gffEigenCoeff d N a mass j y ^ α j))) := by
+              unfold coeff diagFac
+              field_simp [hprod_ne]
+        _ = (n.factorial : ℝ) *
+              (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                ∏ j, (gffEigenCoeff d N a mass j x *
+                  gffEigenCoeff d N a mass j y) ^ α j) := by
+              simpa [hprod_mul]
+    calc
+      (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            (coeff n x α * coeff n y β) * (if α = β then diagFac α else 0))
+          =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          (coeff n x α * coeff n y α) * diagFac α := h_collapse
+      _ =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          (n.factorial : ℝ) *
+            (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+              ∏ j, (gffEigenCoeff d N a mass j x *
+                gffEigenCoeff d N a mass j y) ^ α j) := by
+            refine Finset.sum_congr rfl ?_
+            intro α hα
+            exact h_diag_term α hα
+      _ = (n.factorial : ℝ) *
+          (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            ((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+              ∏ j, (gffEigenCoeff d N a mass j x *
+                gffEigenCoeff d N a mass j y) ^ α j) := by
+          rw [← Finset.mul_sum]
+      _ = (n.factorial : ℝ) *
+          (∑ j, gffEigenCoeff d N a mass j x *
+            gffEigenCoeff d N a mass j y) ^ n := by
+          rw [sum_pow_eq_sum_multiIndices d N
+            (fun j => gffEigenCoeff d N a mass j x * gffEigenCoeff d N a mass j y) n]
+      _ = (n.factorial : ℝ) * (gffPositionCovariance d N a mass x y) ^ n := by
+          rw [gffPositionCovariance]
+  · rw [if_neg hnm]
+    apply Finset.sum_eq_zero
+    intro α hα
+    apply Finset.sum_eq_zero
+    intro β hβ
+    by_cases hαβ : α = β
+    · subst hαβ
+      unfold multiIndicesOfTotalDegree at hα hβ
+      simp only [Finset.mem_filter] at hα hβ
+      exact absurd (hα.2.symm.trans hβ.2) hnm
+    · simp [hαβ, diagFac]
 
 end GaussianField
