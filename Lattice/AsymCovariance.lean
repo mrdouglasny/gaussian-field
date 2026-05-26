@@ -668,6 +668,96 @@ theorem massOperator_product_eigenvector_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero 
     latticeFourierBasisFun Ns m₂ x.2 * h1d₁ +
     latticeFourierBasisFun Nt m₁ x.1 * h1d₂
 
+/-- The asymmetric mass operator is surjective (positive definite on a finite-dim space). -/
+theorem massOperatorAsym_surjective (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
+    Function.Surjective (massOperatorAsym Nt Ns a mass) := by
+  have hinj : Function.Injective (massOperatorAsym Nt Ns a mass) := by
+    intro f g hfg
+    by_contra hne
+    have hne' : f - g ≠ 0 := sub_ne_zero.mpr hne
+    have hpos := massOperatorAsym_pos_def Nt Ns a mass ha hmass (f - g) hne'
+    have hzero : ∑ x, (f - g) x * (massOperatorAsym Nt Ns a mass (f - g)) x = 0 := by
+      have hzero' : massOperatorAsym Nt Ns a mass (f - g) = 0 := by
+        ext x; simp [map_sub, hfg, sub_self]
+      simp [hzero']
+    linarith
+  exact (massOperatorAsym Nt Ns a mass).toLinearMap.surjective_of_injective hinj
+
+/-- The covariance bilinear form of the asymmetric spectral CLM, in eigencoordinates. -/
+theorem covariance_spectralLatticeCovarianceAsym_eq (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymLatticeField Nt Ns) :
+    covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass) f g =
+    ∑ k : AsymLatticeSites Nt Ns,
+      (massEigenvaluesAsym Nt Ns a mass k)⁻¹ *
+      (∑ x, (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) *
+      (∑ x, (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x) := by
+  unfold covariance
+  exact spectralLatticeCovarianceAsym_inner Nt Ns a mass ha hmass f g
+
+/-- The DFT eigencoefficient identity: pairing a product DFT eigenvector with `Q·h` equals the
+eigenvalue times the pairing with `h`. From `Q` self-adjoint + the product-eigenvector property. -/
+theorem dft_eigencoeff_massOperatorAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : a ≠ 0) (m₁ m₂ : ℕ) (hm₁ : m₁ < Nt) (hm₂ : m₂ < Ns)
+    (h : AsymLatticeField Nt Ns) :
+    (∑ x : AsymLatticeSites Nt Ns,
+      (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) *
+      (massOperatorAsym Nt Ns a mass h) x) =
+    (latticeEigenvalue1d Nt a m₁ + latticeEigenvalue1d Ns a m₂ + mass ^ 2) *
+      (∑ x : AsymLatticeSites Nt Ns,
+        (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) * h x) := by
+  rw [massOperatorAsym_selfAdjoint Nt Ns a mass
+    (fun y => latticeFourierBasisFun Nt m₁ y.1 * latticeFourierBasisFun Ns m₂ y.2) h]
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl fun x _ => ?_
+  rw [massOperator_product_eigenvector_asym Nt Ns a mass ha m₁ m₂ hm₁ hm₂ x]
+  ring
+
+/-- **The abstract spectral covariance equals the rectangular 2D DFT spectral sum.** The
+heterogeneous analogue of `abstract_spectral_eq_dft_spectral_2d`: both compute `⟨f, Q⁻¹g⟩`,
+one via Mathlib's eigenbasis, one via the product DFT eigenbasis. -/
+theorem abstract_spectral_eq_dft_spectral_2d_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymLatticeField Nt Ns) :
+    covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass) f g =
+    ∑ m₁ : Fin Nt, ∑ m₂ : Fin Ns,
+      (∑ x, f x * (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2)) *
+      (∑ x, g x * (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2)) /
+      ((latticeEigenvalue1d Nt a m₁ + latticeEigenvalue1d Ns a m₂ + mass ^ 2) *
+       latticeFourierNormSq Nt m₁ * latticeFourierNormSq Ns m₂) := by
+  obtain ⟨h, rfl⟩ := massOperatorAsym_surjective Nt Ns a mass ha hmass g
+  have ha' : a ≠ 0 := ne_of_gt ha
+  trans (∑ x : AsymLatticeSites Nt Ns, f x * h x)
+  · rw [covariance_spectralLatticeCovarianceAsym_eq]
+    simp_rw [massOperatorAsym_eigenCoeff_eq_eigenvalues_mul_eigenCoeff Nt Ns a mass h]
+    refine Eq.trans ?_
+      (massEigenbasisAsym_sum_mul_sum_eq_site_inner Nt Ns a mass f h)
+    refine Finset.sum_congr rfl fun k _ => ?_
+    have hne : massEigenvaluesAsym Nt Ns a mass k ≠ 0 :=
+      ne_of_gt (massOperatorMatrixAsym_eigenvalues_pos Nt Ns a mass ha hmass k)
+    field_simp
+  · rw [dft_parseval_2d_asym]
+    refine Finset.sum_congr rfl fun m₁ _ => Finset.sum_congr rfl fun m₂ _ => ?_
+    have heig := dft_eigencoeff_massOperatorAsym Nt Ns a mass ha' m₁ m₂ m₁.isLt m₂.isLt h
+    have heig' : ∑ x : AsymLatticeSites Nt Ns,
+        (massOperatorAsym Nt Ns a mass h) x *
+        (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) =
+      (latticeEigenvalue1d Nt a ↑m₁ + latticeEigenvalue1d Ns a ↑m₂ + mass ^ 2) *
+        (∑ x, h x * (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2)) := by
+      rw [show ∑ x, (massOperatorAsym Nt Ns a mass h) x *
+          (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) =
+        ∑ x, (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) *
+          (massOperatorAsym Nt Ns a mass h) x from
+        Finset.sum_congr rfl fun x _ => mul_comm _ _]
+      rw [heig]
+      congr 1
+      exact Finset.sum_congr rfl fun x _ => mul_comm _ _
+    rw [heig']
+    have hμ : 0 < latticeEigenvalue1d Nt a ↑m₁ + latticeEigenvalue1d Ns a ↑m₂ + mass ^ 2 := by
+      have h1 := latticeEigenvalue1d_nonneg Nt a m₁
+      have h2 := latticeEigenvalue1d_nonneg Ns a m₂
+      positivity
+    field_simp
+
 /-! ## The lattice→continuum convergence (the cylinder-OS0 delta, now true) -/
 
 /-- **Isotropic rectangular lattice → continuum Green's function.**
