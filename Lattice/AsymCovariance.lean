@@ -267,6 +267,114 @@ noncomputable def latticeCovarianceAsymGJ (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     AsymLatticeField Nt Ns →L[ℝ] ell2' :=
   (Real.sqrt (a ^ 2))⁻¹ • spectralLatticeCovarianceAsym Nt Ns a mass ha hmass
 
+/-! ## Abstract spectral foundation (positivity, eigencoefficients)
+
+Heterogeneous-lattice analogues of the square `Laplacian`/`SpectralCovariance` results. These
+are generic Hermitian-eigendecomposition facts (the eigenbasis `massEigenvectorBasisAsym` is
+defined exactly as in the square case) plus the lattice-specific positivity. They feed the
+abstract = DFT spectral bridge. -/
+
+/-- Basis decomposition: any lattice field is a linear combination of site deltas. -/
+private lemma asym_field_basis_decomp {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+    (φ : AsymLatticeField Nt Ns) :
+    φ = ∑ y : AsymLatticeSites Nt Ns, φ y • asymLatticeDelta Nt Ns y := by
+  ext x
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, asymLatticeDelta,
+    mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
+
+/-- For a single direction, `∑ₓ f(x)·(f(x+v)+f(x-v)-2f(x)) = -∑ₓ (f(x+v)-f(x))²`. Summation by
+parts on the finite additive group; periodicity is automatic. -/
+private lemma asym_direction_sum_eq_neg_sq {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+    (f : AsymLatticeField Nt Ns) (v : AsymLatticeSites Nt Ns) :
+    ∑ x, f x * (f (x + v) + f (x - v) - 2 * f x) =
+    -(∑ x, (f (x + v) - f x) ^ 2) := by
+  have reindex_sq : ∑ x, f (x + v) ^ 2 = ∑ x, f x ^ 2 :=
+    Fintype.sum_equiv (Equiv.addRight v) (fun x => f (x + v) ^ 2) (fun x => f x ^ 2)
+      (fun x => by simp)
+  have shift_bwd : ∑ x, f x * f (x - v) = ∑ x, f (x + v) * f x :=
+    asym_sum_mul_translate' f f v
+  have comm_sum : ∑ x, f (x + v) * f x = ∑ x, f x * f (x + v) :=
+    Finset.sum_congr rfl (fun x _ => mul_comm _ _)
+  have lhs_eq : ∑ x, f x * (f (x + v) + f (x - v) - 2 * f x) =
+      (∑ x, f x * f (x + v)) + (∑ x, f x * f (x - v)) + (-2) * (∑ x, f x ^ 2) := by
+    have h1 : ∀ x, f x * (f (x + v) + f (x - v) - 2 * f x) =
+        f x * f (x + v) + f x * f (x - v) + (-2) * (f x ^ 2) := fun x => by ring
+    simp_rw [h1, Finset.sum_add_distrib, ← Finset.mul_sum]
+  rw [lhs_eq, shift_bwd, comm_sum]
+  have rhs_eq : -(∑ x, (f (x + v) - f x) ^ 2) =
+      -(∑ x, f (x + v) ^ 2) + 2 * (∑ x, f x * f (x + v)) + (-1) * (∑ x, f x ^ 2) := by
+    have h2 : ∀ x, (f (x + v) - f x) ^ 2 =
+        f (x + v) ^ 2 + (-2) * (f x * f (x + v)) + f x ^ 2 := fun x => by ring
+    simp_rw [h2, Finset.sum_add_distrib, ← Finset.mul_sum]; ring
+  rw [rhs_eq, reindex_sq]; ring
+
+/-- The asymmetric isotropic Laplacian is negative semidefinite. -/
+theorem finiteLaplacianAsym_neg_semidefinite (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a : ℝ) (ha : 0 < a) (f : AsymLatticeField Nt Ns) :
+    ∑ x, f x * (finiteLaplacianAsym Nt Ns a f) x ≤ 0 := by
+  let _ha := ha
+  change ∑ x, f x * finiteLaplacianAsymFun Nt Ns a f x ≤ 0
+  simp only [finiteLaplacianAsymFun]
+  have e1p : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1 + 1, x.2) : AsymLatticeSites Nt Ns) = x + ((1 : ZMod Nt), (0 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  have e1m : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1 - 1, x.2) : AsymLatticeSites Nt Ns) = x - ((1 : ZMod Nt), (0 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  have e2p : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1, x.2 + 1) : AsymLatticeSites Nt Ns) = x + ((0 : ZMod Nt), (1 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  have e2m : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1, x.2 - 1) : AsymLatticeSites Nt Ns) = x - ((0 : ZMod Nt), (1 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  simp_rw [e1p, e1m, e2p, e2m]
+  set e1 : AsymLatticeSites Nt Ns := ((1 : ZMod Nt), (0 : ZMod Ns))
+  set e2 : AsymLatticeSites Nt Ns := ((0 : ZMod Nt), (1 : ZMod Ns))
+  have expand : ∀ x : AsymLatticeSites Nt Ns,
+      f x * (a⁻¹ ^ 2 * (f (x + e1) + f (x - e1) + f (x + e2) + f (x - e2) - 4 * f x)) =
+      a⁻¹ ^ 2 * (f x * (f (x + e1) + f (x - e1) - 2 * f x)) +
+      a⁻¹ ^ 2 * (f x * (f (x + e2) + f (x - e2) - 2 * f x)) := fun x => by ring
+  simp_rw [expand, Finset.sum_add_distrib, ← Finset.mul_sum]
+  rw [asym_direction_sum_eq_neg_sq f e1, asym_direction_sum_eq_neg_sq f e2]
+  have hS1 : 0 ≤ ∑ x, (f (x + e1) - f x) ^ 2 := Finset.sum_nonneg fun x _ => sq_nonneg _
+  have hS2 : 0 ≤ ∑ x, (f (x + e2) - f x) ^ 2 := Finset.sum_nonneg fun x _ => sq_nonneg _
+  have ha2 : 0 ≤ a⁻¹ ^ 2 := sq_nonneg _
+  nlinarith [mul_nonneg ha2 hS1, mul_nonneg ha2 hS2]
+
+/-- The mass operator on the asymmetric lattice is positive definite when `mass > 0`. -/
+theorem massOperatorAsym_pos_def (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
+    (ha : 0 < a) (hmass : 0 < mass) (f : AsymLatticeField Nt Ns) (hf : f ≠ 0) :
+    0 < ∑ x, f x * (massOperatorAsym Nt Ns a mass f) x := by
+  simp only [massOperatorAsym, ContinuousLinearMap.add_apply,
+    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+    ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply,
+    smul_eq_mul]
+  have split : ∀ x : AsymLatticeSites Nt Ns,
+      f x * (-(finiteLaplacianAsym Nt Ns a f) x + mass ^ 2 * f x) =
+      -(f x * (finiteLaplacianAsym Nt Ns a f) x) + mass ^ 2 * f x ^ 2 := by
+    intro x; ring
+  simp_rw [split, Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_neg_distrib]
+  have h_neg : 0 ≤ -(∑ x, f x * (finiteLaplacianAsym Nt Ns a f) x) :=
+    neg_nonneg.mpr (finiteLaplacianAsym_neg_semidefinite Nt Ns a ha f)
+  have h_sq_pos : 0 < ∑ x, f x ^ 2 := by
+    obtain ⟨x, hx⟩ : ∃ x, f x ≠ 0 := by
+      by_contra h; push Not at h; exact hf (funext h)
+    exact Finset.sum_pos' (fun x _ => sq_nonneg (f x))
+      ⟨x, Finset.mem_univ _, by positivity⟩
+  linarith [mul_pos (sq_pos_of_pos hmass) h_sq_pos]
+
+/-- The mass operator applied to `f` equals the matrix-vector product `M *ᵥ f`. -/
+theorem massOperatorAsym_eq_matrix_mulVec (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
+    (f : AsymLatticeField Nt Ns) (x : AsymLatticeSites Nt Ns) :
+    (massOperatorAsym Nt Ns a mass f) x =
+    (massOperatorMatrixAsym Nt Ns a mass).mulVec f x := by
+  simp only [Matrix.mulVec, massOperatorMatrixAsym]
+  conv_lhs => rw [asym_field_basis_decomp f]
+  simp only [map_sum, map_smul, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+  congr 1; ext y
+  unfold massOperatorEntryAsym
+  ring
+
 /-! ## Rectangular 2D DFT spectral identities
 
 Heterogeneous-lattice analogues of the square `CirculantDFT2d` results, assembled from the
