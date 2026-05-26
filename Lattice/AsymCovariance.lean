@@ -32,6 +32,7 @@ import Lattice.Covariance
 import Lattice.Convergence
 import Torus.AsymmetricTorus
 import HeatKernel.Bilinear
+import Mathlib.Analysis.Matrix.PosDef
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
@@ -374,6 +375,226 @@ theorem massOperatorAsym_eq_matrix_mulVec (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] 
   congr 1; ext y
   unfold massOperatorEntryAsym
   ring
+
+/-- In eigenbasis coefficients, the mass operator acts by scalar multiplication by its
+eigenvalue. -/
+theorem massOperatorAsym_eigenCoeff_eq_eigenvalues_mul_eigenCoeff (Nt Ns : ℕ)
+    [NeZero Nt] [NeZero Ns] (a mass : ℝ) (f : AsymLatticeField Nt Ns)
+    (k : AsymLatticeSites Nt Ns) :
+    (∑ x : AsymLatticeSites Nt Ns,
+        (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x *
+          (massOperatorAsym Nt Ns a mass f) x) =
+      massEigenvaluesAsym Nt Ns a mass k *
+        (∑ x : AsymLatticeSites Nt Ns,
+          (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) := by
+  have hswap := massOperatorAsym_selfAdjoint Nt Ns a mass
+    (massEigenvectorBasisAsym Nt Ns a mass k) f
+  have hright :
+      ∑ x : AsymLatticeSites Nt Ns,
+          (massOperatorAsym Nt Ns a mass (massEigenvectorBasisAsym Nt Ns a mass k)) x * f x =
+        massEigenvaluesAsym Nt Ns a mass k *
+          (∑ x : AsymLatticeSites Nt Ns,
+            (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) := by
+    have hmul :
+        massOperatorAsym Nt Ns a mass (massEigenvectorBasisAsym Nt Ns a mass k) =
+          massEigenvaluesAsym Nt Ns a mass k • (massEigenvectorBasisAsym Nt Ns a mass k) := by
+      ext x
+      rw [massOperatorAsym_eq_matrix_mulVec Nt Ns a mass
+        (massEigenvectorBasisAsym Nt Ns a mass k) x]
+      simpa [massEigenvaluesAsym, massEigenvectorBasisAsym] using
+        congrFun (Matrix.IsHermitian.mulVec_eigenvectorBasis
+          (hA := massOperatorMatrixAsym_isHermitian Nt Ns a mass) k) x
+    rw [hmul]
+    calc
+      ∑ x : AsymLatticeSites Nt Ns,
+          (massEigenvaluesAsym Nt Ns a mass k *
+            (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x) * f x
+          = ∑ x : AsymLatticeSites Nt Ns,
+              massEigenvaluesAsym Nt Ns a mass k *
+                ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) := by
+              refine Finset.sum_congr rfl ?_
+              intro x hx
+              ring
+      _ = massEigenvaluesAsym Nt Ns a mass k *
+            (∑ x : AsymLatticeSites Nt Ns,
+              (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) := by
+            rw [Finset.mul_sum]
+  rw [hright] at hswap
+  exact hswap
+
+/-- Parseval identity in the mass-operator eigenbasis, in site coordinates. -/
+theorem massEigenbasisAsym_sum_mul_sum_eq_site_inner (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (f g : AsymLatticeField Nt Ns) :
+    (∑ k : AsymLatticeSites Nt Ns,
+      (∑ x : AsymLatticeSites Nt Ns,
+        (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) *
+      (∑ x : AsymLatticeSites Nt Ns,
+        (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x)) =
+      ∑ x : AsymLatticeSites Nt Ns, f x * g x := by
+  let uf : EuclideanSpace ℝ (AsymLatticeSites Nt Ns) :=
+    (EuclideanSpace.equiv (AsymLatticeSites Nt Ns) ℝ).symm f
+  let ug : EuclideanSpace ℝ (AsymLatticeSites Nt Ns) :=
+    (EuclideanSpace.equiv (AsymLatticeSites Nt Ns) ℝ).symm g
+  have hparseval :=
+    OrthonormalBasis.sum_inner_mul_inner (massEigenvectorBasisAsym Nt Ns a mass) uf ug
+  have hcoeff_left : ∀ k : AsymLatticeSites Nt Ns,
+      inner ℝ uf (massEigenvectorBasisAsym Nt Ns a mass k) =
+        ∑ x : AsymLatticeSites Nt Ns,
+          (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x := by
+    intro k
+    change (massEigenvectorBasisAsym Nt Ns a mass k).ofLp ⬝ᵥ star uf.ofLp = _
+    simp [dotProduct, star_trivial, uf, WithLp.ofLp_toLp]
+  have hcoeff_right : ∀ k : AsymLatticeSites Nt Ns,
+      inner ℝ (massEigenvectorBasisAsym Nt Ns a mass k) ug =
+        ∑ x : AsymLatticeSites Nt Ns,
+          (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x := by
+    intro k
+    change ug.ofLp ⬝ᵥ star (massEigenvectorBasisAsym Nt Ns a mass k).ofLp = _
+    simp [dotProduct, star_trivial, ug, WithLp.ofLp_toLp, mul_comm]
+  have hinner :
+      inner ℝ uf ug = ∑ x : AsymLatticeSites Nt Ns, f x * g x := by
+    change ug.ofLp ⬝ᵥ star uf.ofLp = _
+    simp [dotProduct, star_trivial, uf, ug, WithLp.ofLp_toLp, mul_comm]
+  calc
+    (∑ k : AsymLatticeSites Nt Ns,
+        (∑ x : AsymLatticeSites Nt Ns,
+          (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) *
+        (∑ x : AsymLatticeSites Nt Ns,
+          (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x))
+        = ∑ k : AsymLatticeSites Nt Ns,
+            inner ℝ uf (massEigenvectorBasisAsym Nt Ns a mass k) *
+              inner ℝ (massEigenvectorBasisAsym Nt Ns a mass k) ug := by
+              refine Finset.sum_congr rfl ?_
+              intro k hk
+              rw [hcoeff_left, hcoeff_right]
+    _ = inner ℝ uf ug := hparseval
+    _ = ∑ x : AsymLatticeSites Nt Ns, f x * g x := hinner
+
+/-- Eigenvalues of the asymmetric mass operator are strictly positive (`Q` is pos. def.). -/
+theorem massOperatorMatrixAsym_eigenvalues_pos (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (k : AsymLatticeSites Nt Ns) :
+    0 < massEigenvaluesAsym Nt Ns a mass k := by
+  let M : Matrix (AsymLatticeSites Nt Ns) (AsymLatticeSites Nt Ns) ℝ :=
+    massOperatorMatrixAsym Nt Ns a mass
+  have hPosDef : M.PosDef := by
+    refine Matrix.posDef_iff_dotProduct_mulVec.mpr ?_
+    refine ⟨massOperatorMatrixAsym_isHermitian Nt Ns a mass, ?_⟩
+    intro x hx
+    have hpos := massOperatorAsym_pos_def Nt Ns a mass ha hmass x hx
+    have hmul : M.mulVec x = massOperatorAsym Nt Ns a mass x := by
+      ext i
+      symm
+      exact massOperatorAsym_eq_matrix_mulVec Nt Ns a mass x i
+    simpa [M, dotProduct, hmul] using hpos
+  have hEigPos : ∀ i : AsymLatticeSites Nt Ns,
+      0 < (massMatrixAsymHerm Nt Ns a mass).eigenvalues i :=
+    (Matrix.IsHermitian.posDef_iff_eigenvalues_pos
+      (hA := massMatrixAsymHerm Nt Ns a mass)).mp hPosDef
+  simpa [massEigenvaluesAsym] using hEigPos k
+
+/-- Key identity: `⟨Tf, Tg⟩_ℓ² = Σ_k λ_k⁻¹ c_k(f) c_k(g)` with `c_k(·) = ⟪e_k, ·⟫`. -/
+theorem spectralLatticeCovarianceAsym_inner (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymLatticeField Nt Ns) :
+    @inner ℝ ell2' _
+      (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass f)
+      (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass g) =
+    ∑ k : AsymLatticeSites Nt Ns,
+      (massEigenvaluesAsym Nt Ns a mass k)⁻¹ *
+      (∑ x, (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x) *
+      (∑ x, (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x) := by
+  let enum : AsymLatticeSites Nt Ns ≃ Fin (Fintype.card (AsymLatticeSites Nt Ns)) :=
+    Fintype.equivFin (AsymLatticeSites Nt Ns)
+  let lam : AsymLatticeSites Nt Ns → ℝ := massEigenvaluesAsym Nt Ns a mass
+  let s : AsymLatticeSites Nt Ns → ℝ := fun k =>
+    ∑ x : AsymLatticeSites Nt Ns,
+      (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * f x
+  let t : AsymLatticeSites Nt Ns → ℝ := fun k =>
+    ∑ x : AsymLatticeSites Nt Ns,
+      (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x
+  have hlam : ∀ k : AsymLatticeSites Nt Ns, 0 < lam k := by
+    intro k
+    simpa [lam] using massOperatorMatrixAsym_eigenvalues_pos Nt Ns a mass ha hmass k
+  have hf :
+      spectralLatticeCovarianceAsym Nt Ns a mass ha hmass f =
+      ∑ k : AsymLatticeSites Nt Ns,
+        ((Real.sqrt (lam k))⁻¹ * s k) • lp.single 2 (enum k).val (1 : ℝ) := by
+    unfold spectralLatticeCovarianceAsym
+    simp [enum, lam, s]
+  have hg :
+      spectralLatticeCovarianceAsym Nt Ns a mass ha hmass g =
+      ∑ k : AsymLatticeSites Nt Ns,
+        ((Real.sqrt (lam k))⁻¹ * t k) • lp.single 2 (enum k).val (1 : ℝ) := by
+    unfold spectralLatticeCovarianceAsym
+    simp [enum, lam, t]
+  rw [hf, hg]
+  simp [inner_sum, sum_inner, Finset.sum_mul, Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro k hk
+  have hleft :
+      ∑ i,
+        inner ℝ (((Real.sqrt (lam i))⁻¹ * s i) •
+          lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+          (((Real.sqrt (lam k))⁻¹ * t k) •
+            lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) =
+      ((Real.sqrt (lam k))⁻¹ * s k) * ((Real.sqrt (lam k))⁻¹ * t k) := by
+    classical
+    simpa using (show ∑ i : AsymLatticeSites Nt Ns,
+      inner ℝ (((Real.sqrt (lam i))⁻¹ * s i) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+        (((Real.sqrt (lam k))⁻¹ * t k) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ))
+      = ((Real.sqrt (lam k))⁻¹ * s k) * ((Real.sqrt (lam k))⁻¹ * t k) from by
+        classical
+        rw [Finset.sum_eq_single k]
+        · have hsingle : inner ℝ (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ))
+              (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 1 := by
+              simp
+          simp [inner_smul_left, inner_smul_right, mul_assoc, mul_left_comm, mul_comm]
+        · intro i hi hik
+          have hne : enum i ≠ enum k := by
+            intro h; exact hik (enum.injective h)
+          have : inner ℝ (((Real.sqrt (lam i))⁻¹ * s i) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+              (((Real.sqrt (lam k))⁻¹ * t k) • lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 0 := by
+                have hne_val : (enum i).val ≠ (enum k).val := by
+                  intro h
+                  apply hne
+                  exact Fin.ext h
+                have hsingle0 :
+                    inner ℝ (lp.single (E := fun _ : ℕ => ℝ) 2 (enum i).val (1 : ℝ))
+                      (lp.single (E := fun _ : ℕ => ℝ) 2 (enum k).val (1 : ℝ)) = 0 := by
+                  rw [lp.inner_single_left]
+                  simp [lp.single_apply, hne_val]
+                simp [inner_smul_left, inner_smul_right, hsingle0, mul_comm]
+          exact this
+        · intro hknot
+          exact (hknot (Finset.mem_univ k)).elim)
+  have hrhs :
+      (∑ x, ∑ i,
+        (massEigenvaluesAsym Nt Ns a mass k)⁻¹ *
+          ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) i * f i) *
+          ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x)) =
+      (lam k)⁻¹ * s k * t k := by
+    calc
+      (∑ x, ∑ i,
+        (massEigenvaluesAsym Nt Ns a mass k)⁻¹ *
+          ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) i * f i) *
+          ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x))
+          = ∑ i, ∑ x,
+              (massEigenvaluesAsym Nt Ns a mass k)⁻¹ *
+                ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) i * f i) *
+                ((massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x) := by
+              rw [Finset.sum_comm]
+      _ = (lam k)⁻¹ *
+            (∑ i, (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) i * f i) *
+            (∑ x, (massEigenvectorBasisAsym Nt Ns a mass k : EuclideanSpace ℝ _) x * g x) := by
+              simp [lam, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+      _ = (lam k)⁻¹ * s k * t k := by simp [s, t]
+  rw [hleft, hrhs]
+  have hsq : Real.sqrt (lam k) * Real.sqrt (lam k) = lam k := by
+    nlinarith [Real.sq_sqrt (le_of_lt (hlam k))]
+  calc
+    ((Real.sqrt (lam k))⁻¹ * s k) * ((Real.sqrt (lam k))⁻¹ * t k)
+        = (((Real.sqrt (lam k))⁻¹ * (Real.sqrt (lam k))⁻¹) * s k) * t k := by ring
+    _ = (((Real.sqrt (lam k) * Real.sqrt (lam k))⁻¹) * s k) * t k := by ring
+    _ = (lam k)⁻¹ * s k * t k := by simp [hsq]
 
 /-! ## Rectangular 2D DFT spectral identities
 
