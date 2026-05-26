@@ -83,17 +83,70 @@ noncomputable def finiteLaplacianAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a :
   { finiteLaplacianAsymLM Nt Ns a with
     cont := (finiteLaplacianAsymLM Nt Ns a).continuous_of_finiteDimensional }
 
+/-- Translation reindexing (forward) on the heterogeneous lattice: shifting the
+second factor by `+v` is the same as shifting the first by `-v`. Periodicity is
+automatic since `AsymLatticeSites Nt Ns` is a finite additive group. -/
+private lemma asym_sum_mul_translate {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+    (h k : AsymLatticeField Nt Ns) (v : AsymLatticeSites Nt Ns) :
+    ∑ x, h x * k (x + v) = ∑ x, h (x - v) * k x := by
+  symm
+  exact Fintype.sum_equiv (Equiv.addRight (-v))
+    (fun x => h (x - v) * k x) (fun x => h x * k (x + v))
+    (fun x => by simp [sub_eq_add_neg])
+
+/-- Translation reindexing (backward) on the heterogeneous lattice. -/
+private lemma asym_sum_mul_translate' {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+    (h k : AsymLatticeField Nt Ns) (v : AsymLatticeSites Nt Ns) :
+    ∑ x, h x * k (x - v) = ∑ x, h (x + v) * k x := by
+  symm
+  exact Fintype.sum_equiv (Equiv.addRight v)
+    (fun x => h (x + v) * k x) (fun x => h x * k (x - v))
+    (fun x => by simp [add_sub_cancel_right])
+
 /-- The asymmetric isotropic Laplacian is self-adjoint in the counting inner product.
 
-This is the heterogeneous analogue of `finiteLaplacian_selfAdjoint`; the proof is the same
-periodic reindexing argument on `ZMod Nt × ZMod Ns`. -/
+This is the heterogeneous analogue of `finiteLaplacian_selfAdjoint`: the same periodic
+reindexing argument on the product lattice `ZMod Nt × ZMod Ns`, shifting in the two
+factors `e₁ = (1,0)` and `e₂ = (0,1)` separately. -/
 theorem finiteLaplacianAsym_selfAdjoint (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a : ℝ)
     (f g : AsymLatticeField Nt Ns) :
     ∑ x, f x * (finiteLaplacianAsym Nt Ns a g) x =
     ∑ x, (finiteLaplacianAsym Nt Ns a f) x * g x := by
-  -- TODO: port the `finiteLaplacian_selfAdjoint` periodic reindexing proof to
-  -- the product lattice `ZMod Nt × ZMod Ns`, shifting separately in each factor.
-  sorry
+  change ∑ x, f x * finiteLaplacianAsymFun Nt Ns a g x =
+    ∑ x, finiteLaplacianAsymFun Nt Ns a f x * g x
+  simp only [finiteLaplacianAsymFun]
+  -- Express the four nearest-neighbour shifts as group translations by `e₁`, `e₂`.
+  have e1p : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1 + 1, x.2) : AsymLatticeSites Nt Ns) = x + ((1 : ZMod Nt), (0 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  have e1m : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1 - 1, x.2) : AsymLatticeSites Nt Ns) = x - ((1 : ZMod Nt), (0 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  have e2p : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1, x.2 + 1) : AsymLatticeSites Nt Ns) = x + ((0 : ZMod Nt), (1 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  have e2m : ∀ x : AsymLatticeSites Nt Ns,
+      ((x.1, x.2 - 1) : AsymLatticeSites Nt Ns) = x - ((0 : ZMod Nt), (1 : ZMod Ns)) := by
+    intro x; simp [Prod.ext_iff]
+  simp_rw [e1p, e1m, e2p, e2m]
+  set e1 : AsymLatticeSites Nt Ns := ((1 : ZMod Nt), (0 : ZMod Ns))
+  set e2 : AsymLatticeSites Nt Ns := ((0 : ZMod Nt), (1 : ZMod Ns))
+  -- Expand both sides into four shift terms plus the diagonal.
+  have lhs_exp : ∀ x : AsymLatticeSites Nt Ns,
+      f x * (a⁻¹ ^ 2 * (g (x + e1) + g (x - e1) + g (x + e2) + g (x - e2) - 4 * g x)) =
+      a⁻¹ ^ 2 * (f x * g (x + e1)) + a⁻¹ ^ 2 * (f x * g (x - e1)) +
+      a⁻¹ ^ 2 * (f x * g (x + e2)) + a⁻¹ ^ 2 * (f x * g (x - e2)) +
+      a⁻¹ ^ 2 * (-4 * (f x * g x)) := fun x => by ring
+  have rhs_exp : ∀ x : AsymLatticeSites Nt Ns,
+      a⁻¹ ^ 2 * (f (x + e1) + f (x - e1) + f (x + e2) + f (x - e2) - 4 * f x) * g x =
+      a⁻¹ ^ 2 * (f (x + e1) * g x) + a⁻¹ ^ 2 * (f (x - e1) * g x) +
+      a⁻¹ ^ 2 * (f (x + e2) * g x) + a⁻¹ ^ 2 * (f (x - e2) * g x) +
+      a⁻¹ ^ 2 * (-4 * (f x * g x)) := fun x => by ring
+  simp_rw [lhs_exp, rhs_exp, Finset.sum_add_distrib, ← Finset.mul_sum]
+  -- Reindex the four shift sums on the left to match the right; diagonal is shared.
+  rw [asym_sum_mul_translate f g e1, asym_sum_mul_translate' f g e1,
+    asym_sum_mul_translate f g e2, asym_sum_mul_translate' f g e2]
+  ring
 
 /-- Massive operator on the asymmetric lattice: `Q = -Δ_a + m²`. -/
 def massOperatorAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ) :
