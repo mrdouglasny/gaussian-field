@@ -267,6 +267,78 @@ noncomputable def latticeCovarianceAsymGJ (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     AsymLatticeField Nt Ns →L[ℝ] ell2' :=
   (Real.sqrt (a ^ 2))⁻¹ • spectralLatticeCovarianceAsym Nt Ns a mass ha hmass
 
+/-! ## Rectangular 2D DFT spectral identities
+
+Heterogeneous-lattice analogues of the square `CirculantDFT2d` results, assembled from the
+per-direction 1D pieces (`dft_parseval_1d`, `dft_1d_eigenvalue_pointwise`) instantiated at the
+two sizes `Nt`, `Ns`. These are the spectral foundation for the lattice→continuum convergence. -/
+
+/-- Factor a sum over the product lattice `ZMod Nt × ZMod Ns` as an iterated sum. -/
+lemma sum_factor_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (F : AsymLatticeSites Nt Ns → ℝ) :
+    ∑ x : AsymLatticeSites Nt Ns, F x = ∑ a : ZMod Nt, ∑ b : ZMod Ns, F (a, b) :=
+  Fintype.sum_prod_type F
+
+/-- The 2D DFT Parseval identity on the rectangular lattice: the counting inner product equals
+the spectral sum over the product DFT basis `φ^{Nt}_{m₁} ⊗ φ^{Ns}_{m₂}`. Tensor of the 1D
+Parseval identities of sizes `Nt`, `Ns`. -/
+theorem dft_parseval_2d_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (f g : AsymLatticeField Nt Ns) :
+    ∑ x : AsymLatticeSites Nt Ns, f x * g x =
+    ∑ m₁ : Fin Nt, ∑ m₂ : Fin Ns,
+      (∑ x : AsymLatticeSites Nt Ns,
+        f x * (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2)) *
+      (∑ x : AsymLatticeSites Nt Ns,
+        g x * (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2)) /
+      (latticeFourierNormSq Nt m₁ * latticeFourierNormSq Ns m₂) := by
+  have coeff_factor : ∀ (h : AsymLatticeField Nt Ns) (m₁ : Fin Nt) (m₂ : Fin Ns),
+      ∑ x : AsymLatticeSites Nt Ns,
+        h x * (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) =
+      ∑ a : ZMod Nt, (∑ b : ZMod Ns, h (a, b) * latticeFourierBasisFun Ns ↑m₂ b) *
+        latticeFourierBasisFun Nt ↑m₁ a := by
+    intro h m₁ m₂
+    rw [sum_factor_asym]
+    congr 1; ext a
+    rw [Finset.sum_mul]
+    congr 1; ext b
+    ring
+  rw [sum_factor_asym]
+  simp_rw [dft_parseval_1d Ns (fun b => f (_, b)) (fun b => g (_, b))]
+  rw [Finset.sum_comm]
+  conv_lhs => arg 2; ext m₂; rw [← Finset.sum_div,
+    dft_parseval_1d Nt
+      (fun a => ∑ b, f (a, b) * latticeFourierBasisFun Ns ↑m₂ b)
+      (fun a => ∑ b, g (a, b) * latticeFourierBasisFun Ns ↑m₂ b),
+    Finset.sum_div]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun m₁ _ => Finset.sum_congr rfl fun m₂ _ => ?_
+  rw [← coeff_factor f m₁ m₂, ← coeff_factor g m₁ m₂]
+  ring
+
+/-- The rectangular mass operator applied to a product of 1D DFT eigenvectors
+`φ^{Nt}_{m₁} ⊗ φ^{Ns}_{m₂}` yields `(λ^{Nt}_{m₁} + λ^{Ns}_{m₂} + mass²)` times it: it is an
+eigenvector with the additive rectangular dispersion. -/
+theorem massOperator_product_eigenvector_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : a ≠ 0) (m₁ m₂ : ℕ) (hm₁ : m₁ < Nt) (hm₂ : m₂ < Ns)
+    (x : AsymLatticeSites Nt Ns) :
+    (massOperatorAsym Nt Ns a mass
+      (fun y : AsymLatticeSites Nt Ns =>
+        latticeFourierBasisFun Nt m₁ y.1 * latticeFourierBasisFun Ns m₂ y.2)) x =
+    (latticeEigenvalue1d Nt a m₁ + latticeEigenvalue1d Ns a m₂ + mass ^ 2) *
+      (latticeFourierBasisFun Nt m₁ x.1 * latticeFourierBasisFun Ns m₂ x.2) := by
+  simp only [massOperatorAsym, ContinuousLinearMap.add_apply,
+    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+    ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
+    Pi.smul_apply, smul_eq_mul]
+  simp only [finiteLaplacianAsym, ContinuousLinearMap.coe_mk',
+    finiteLaplacianAsymLM, LinearMap.coe_mk, AddHom.coe_mk,
+    finiteLaplacianAsymFun]
+  have h1d₁ := dft_1d_eigenvalue_pointwise Nt a ha m₁ hm₁ x.1
+  have h1d₂ := dft_1d_eigenvalue_pointwise Ns a ha m₂ hm₂ x.2
+  linear_combination
+    latticeFourierBasisFun Ns m₂ x.2 * h1d₁ +
+    latticeFourierBasisFun Nt m₁ x.1 * h1d₂
+
 /-! ## The lattice→continuum convergence (the cylinder-OS0 delta, now true) -/
 
 /-- **Isotropic rectangular lattice → continuum Green's function.**
