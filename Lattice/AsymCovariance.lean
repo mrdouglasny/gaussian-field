@@ -1082,6 +1082,51 @@ private theorem greenFunctionBilinear_pure_eq_tsum_asym (mass : ℝ) (hmass : 0 
   simp_rw [h_term, ← Nat.pairEquiv_symm_apply]
   exact Nat.pairEquiv.symm.tsum_eq _
 
+/-- **Isotropic rectangular lattice → continuum Green's function (pure tensors).** -/
+private theorem lattice_green_tendsto_continuum_asym_pure
+    (mass : ℝ) (hmass : 0 < mass)
+    (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
+    (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
+    (ha : ∀ k, 0 < a k)
+    (hLt : ∀ k, (Nt k : ℝ) * a k = Lt) (hLs : ∀ k, (Ns k : ℝ) * a k = Ls)
+    (ha0 : Tendsto a atTop (nhds 0))
+    (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
+    Tendsto (fun k => haveI := hNt k; haveI := hNs k
+        covariance (spectralLatticeCovarianceAsym (Nt k) (Ns k) (a k) mass (ha k) hmass)
+          (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (NuclearTensorProduct.pure f₁ f₂))
+          (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (NuclearTensorProduct.pure g₁ g₂)))
+      atTop
+      (nhds (greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass
+        (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂))) := by
+  simp_rw [lattice_covariance_eq_tsum_pure_asym]
+  rw [greenFunctionBilinear_pure_eq_tsum_asym]
+  obtain ⟨Cf₁, hCf₁_nn, hCf₁⟩ := latticeDFTCoeff1d_quadratic_bound Lt f₁
+  obtain ⟨Cg₁, hCg₁_nn, hCg₁⟩ := latticeDFTCoeff1d_quadratic_bound Lt g₁
+  obtain ⟨Cf₂, hCf₂_nn, hCf₂⟩ := latticeDFTCoeff1d_quadratic_bound Ls f₂
+  obtain ⟨Cg₂, hCg₂_nn, hCg₂⟩ := latticeDFTCoeff1d_quadratic_bound Ls g₂
+  apply tendsto_tsum_of_dominated_convergence
+    (bound := fun p : ℕ × ℕ => Cf₁ * Cg₁ * Cf₂ * Cg₂ /
+      (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4))
+  · exact summable_bound_asym mass hmass _
+  · intro p
+    exact latticeGreenTerm2dAsym_tendsto Lt Ls mass hmass Nt Ns a hNt hNs ha hLt hLs ha0
+      f₁ g₁ f₂ g₂ p
+  · apply Filter.Eventually.of_forall
+    intro k p
+    haveI := hNt k; haveI := hNs k
+    have hNtk : (Nt k - 1) + 1 = Nt k := Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (hNt k).out)
+    have hNsk : (Ns k - 1) + 1 = Ns k := Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (hNs k).out)
+    have bf₁ : ∀ m, |latticeDFTCoeff1d Lt (Nt k) f₁ m| ≤ Cf₁ / (1 + (m : ℝ)) ^ 2 := fun m => by
+      have := hCf₁ (Nt k - 1) m; simpa only [hNtk] using this
+    have bg₁ : ∀ m, |latticeDFTCoeff1d Lt (Nt k) g₁ m| ≤ Cg₁ / (1 + (m : ℝ)) ^ 2 := fun m => by
+      have := hCg₁ (Nt k - 1) m; simpa only [hNtk] using this
+    have bf₂ : ∀ m, |latticeDFTCoeff1d Ls (Ns k) f₂ m| ≤ Cf₂ / (1 + (m : ℝ)) ^ 2 := fun m => by
+      have := hCf₂ (Ns k - 1) m; simpa only [hNsk] using this
+    have bg₂ : ∀ m, |latticeDFTCoeff1d Ls (Ns k) g₂ m| ≤ Cg₂ / (1 + (m : ℝ)) ^ 2 := fun m => by
+      have := hCg₂ (Ns k - 1) m; simpa only [hNsk] using this
+    exact latticeGreenTerm2dAsym_norm_le Lt Ls (Nt k) (Ns k) (a k) mass hmass f₁ g₁ f₂ g₂
+      hCf₁_nn hCg₁_nn hCf₂_nn hCg₂_nn bf₁ bg₁ bf₂ bg₂ p
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
