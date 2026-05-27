@@ -1396,6 +1396,182 @@ private theorem latticeDFTCoeff1d_seminorm_quadratic_gen (L : ℝ) [hL : Fact (0
   · rw [latticeDFTCoeff1d_zero_of_ge L (N + 1) f m (by omega), abs_zero]
     exact div_nonneg hC_nn (by positivity)
 
+/-- **Convergence for general `f`, pure `g`** (Phase A), via DM expansion of `f`. -/
+private theorem lattice_green_tendsto_pure_right_asym
+    (mass : ℝ) (hmass : 0 < mass)
+    (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
+    (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
+    (ha : ∀ k, 0 < a k) (hLt : ∀ k, (Nt k : ℝ) * a k = Lt) (hLs : ∀ k, (Ns k : ℝ) * a k = Ls)
+    (ha0 : Tendsto a atTop (nhds 0))
+    (f : AsymTorusTestFunction Lt Ls)
+    (g₁ : SmoothMap_Circle Lt ℝ) (g₂ : SmoothMap_Circle Ls ℝ) :
+    Tendsto (fun k => haveI := hNt k; haveI := hNs k
+        covariance (spectralLatticeCovarianceAsym (Nt k) (Ns k) (a k) mass (ha k) hmass)
+          (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x f)
+          (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (NuclearTensorProduct.pure g₁ g₂)))
+      atTop
+      (nhds (greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass
+        f (NuclearTensorProduct.pure g₁ g₂))) := by
+  have h_expand : ∀ k, (haveI := hNt k; haveI := hNs k
+      covariance (spectralLatticeCovarianceAsym (Nt k) (Ns k) (a k) mass (ha k) hmass)
+        (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x f)
+        (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (NuclearTensorProduct.pure g₁ g₂))) =
+      ∑' m, DyninMityaginSpace.coeff m f *
+        (haveI := hNt k; haveI := hNs k
+        covariance (spectralLatticeCovarianceAsym (Nt k) (Ns k) (a k) mass (ha k) hmass)
+          (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (DyninMityaginSpace.basis m))
+          (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (NuclearTensorProduct.pure g₁ g₂))) :=
+    fun k => by
+      haveI := hNt k; haveI := hNs k
+      exact covariance_dm_expansion_left_asym Lt Ls (Nt k) (Ns k) (a k) mass (ha k) hmass f
+        (NuclearTensorProduct.pure g₁ g₂)
+  simp_rw [h_expand]
+  have h_G_expand : greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass f
+      (NuclearTensorProduct.pure g₁ g₂) =
+      ∑' m, DyninMityaginSpace.coeff m f *
+        greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass
+          (DyninMityaginSpace.basis m) (NuclearTensorProduct.pure g₁ g₂) := by
+    have := DyninMityaginSpace.expansion (greenCLM_left_asym Lt Ls mass hmass
+      (NuclearTensorProduct.pure g₁ g₂)) f
+    simp only [greenCLM_left_apply_asym] at this
+    exact this
+  rw [h_G_expand]
+  obtain ⟨Cg₁, hCg₁_nn, hCg₁⟩ := latticeDFTCoeff1d_quadratic_bound Lt g₁
+  obtain ⟨Cg₂, hCg₂_nn, hCg₂⟩ := latticeDFTCoeff1d_quadratic_bound Ls g₂
+  obtain ⟨A₁, hA₁_pos, r₁, hA₁⟩ :=
+    DyninMityaginSpace.basis_growth (E := SmoothMap_Circle Lt ℝ) (0 : ℕ)
+  obtain ⟨A₂, hA₂_pos, r₂, hA₂⟩ :=
+    DyninMityaginSpace.basis_growth (E := SmoothMap_Circle Ls ℝ) (0 : ℕ)
+  set Sb₁ := Real.sqrt (2 * Lt) * A₁
+  set Sb₂ := Real.sqrt (2 * Ls) * A₂
+  set S₂ := ∑' p : ℕ × ℕ, 1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2)
+  have hS₂_nn : 0 ≤ S₂ := tsum_nonneg fun p => by positivity
+  set K := Sb₁ * Cg₁ * Sb₂ * Cg₂ / mass ^ 2 * S₂ with hK_def
+  have hK_nn : 0 ≤ K := by
+    rw [hK_def]
+    exact mul_nonneg (div_nonneg (by positivity) (by positivity)) hS₂_nn
+  have h_BN_bound : ∀ m k, (haveI := hNt k; haveI := hNs k
+      |covariance (spectralLatticeCovarianceAsym (Nt k) (Ns k) (a k) mass (ha k) hmass)
+        (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x (DyninMityaginSpace.basis m))
+        (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x
+          (NuclearTensorProduct.pure g₁ g₂))|) ≤
+      K * (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ := by
+    intro m k
+    haveI := hNt k; haveI := hNs k
+    have hk1 : (Nt k - 1) + 1 = Nt k :=
+      Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (NeZero.ne (Nt k)))
+    have hk2 : (Ns k - 1) + 1 = Ns k :=
+      Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (NeZero.ne (Ns k)))
+    rw [ntp_basis_eq_pure_asym Lt Ls m]
+    have hf₁ : ∀ j, |latticeDFTCoeff1d Lt (Nt k)
+        (DyninMityaginSpace.basis (Nat.unpair m).1) j| ≤
+        Sb₁ * (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ := fun j => by
+      have hflat := latticeDFTCoeff1d_flat_bound Lt
+        (DyninMityaginSpace.basis (Nat.unpair m).1) (Nt k - 1) j
+      simp only [hk1] at hflat
+      calc |latticeDFTCoeff1d Lt (Nt k) (DyninMityaginSpace.basis (Nat.unpair m).1) j|
+          ≤ Real.sqrt (2 * Lt) *
+            SmoothMap_Circle.sobolevSeminorm 0 (DyninMityaginSpace.basis (Nat.unpair m).1) := hflat
+        _ ≤ Real.sqrt (2 * Lt) * (A₁ * (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁) :=
+            mul_le_mul_of_nonneg_left (hA₁ _) (Real.sqrt_nonneg _)
+        _ = Sb₁ * (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ := by ring
+    have hf₂ : ∀ j, |latticeDFTCoeff1d Ls (Ns k)
+        (DyninMityaginSpace.basis (Nat.unpair m).2) j| ≤
+        Sb₂ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ := fun j => by
+      have hflat := latticeDFTCoeff1d_flat_bound Ls
+        (DyninMityaginSpace.basis (Nat.unpair m).2) (Ns k - 1) j
+      simp only [hk2] at hflat
+      calc |latticeDFTCoeff1d Ls (Ns k) (DyninMityaginSpace.basis (Nat.unpair m).2) j|
+          ≤ Real.sqrt (2 * Ls) *
+            SmoothMap_Circle.sobolevSeminorm 0 (DyninMityaginSpace.basis (Nat.unpair m).2) := hflat
+        _ ≤ Real.sqrt (2 * Ls) * (A₂ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂) :=
+            mul_le_mul_of_nonneg_left (hA₂ _) (Real.sqrt_nonneg _)
+        _ = Sb₂ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ := by ring
+    have hgg₁ : ∀ j, |latticeDFTCoeff1d Lt (Nt k) g₁ j| ≤ Cg₁ / (1 + (j : ℝ)) ^ 2 := fun j => by
+      have := hCg₁ (Nt k - 1) j; simpa only [hk1] using this
+    have hgg₂ : ∀ j, |latticeDFTCoeff1d Ls (Ns k) g₂ j| ≤ Cg₂ / (1 + (j : ℝ)) ^ 2 := fun j => by
+      have := hCg₂ (Ns k - 1) j; simpa only [hk2] using this
+    calc |covariance (spectralLatticeCovarianceAsym (Nt k) (Ns k) (a k) mass (ha k) hmass)
+            (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x
+              (NuclearTensorProduct.pure (DyninMityaginSpace.basis (Nat.unpair m).1)
+                (DyninMityaginSpace.basis (Nat.unpair m).2)))
+            (fun x => evalAsymTorusAtSite Lt Ls (Nt k) (Ns k) x
+              (NuclearTensorProduct.pure g₁ g₂))|
+        ≤ (Sb₁ * (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁) * Cg₁ *
+          (Sb₂ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂) * Cg₂ / mass ^ 2 * S₂ :=
+            lattice_covariance_pure_abs_le_asym Lt Ls (Nt k) (Ns k) (a k) mass (ha k) hmass
+              _ g₁ _ g₂ (by positivity) (by positivity) hCg₁_nn hCg₂_nn hf₁ hgg₁ hf₂ hgg₂
+      _ = K * (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ := by
+          rw [hK_def]; ring
+  set rr := r₁ + r₂
+  obtain ⟨D, hD_pos, sD, hD⟩ :=
+    DyninMityaginSpace.coeff_decay (E := AsymTorusTestFunction Lt Ls) (rr + 2)
+  have h_dom_summable : Summable (fun m : ℕ => |DyninMityaginSpace.coeff m f| * K *
+      (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂) := by
+    have h_bound : ∀ m, |DyninMityaginSpace.coeff m f| * K *
+        (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ ≤
+        D * (sD.sup (DyninMityaginSpace.p (E := AsymTorusTestFunction Lt Ls))) f * K /
+        (1 + (m : ℝ)) ^ 2 := by
+      intro m
+      have h_unpair_le : (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ *
+          (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ ≤ (1 + (m : ℝ)) ^ rr := by
+        calc (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂
+            ≤ (1 + (m : ℝ)) ^ r₁ * (1 + (m : ℝ)) ^ r₂ := by
+              apply mul_le_mul
+              · gcongr; exact_mod_cast Nat.unpair_left_le m
+              · gcongr; exact_mod_cast Nat.unpair_right_le m
+              · positivity
+              · positivity
+          _ = (1 + (m : ℝ)) ^ rr := by rw [← pow_add]
+      have hD_bound := hD f m
+      calc |DyninMityaginSpace.coeff m f| * K *
+            (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂
+          = |DyninMityaginSpace.coeff m f| *
+            ((1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂) * K := by
+              ring
+        _ ≤ |DyninMityaginSpace.coeff m f| * (1 + (m : ℝ)) ^ rr * K := by
+              apply mul_le_mul_of_nonneg_right _ hK_nn
+              exact mul_le_mul_of_nonneg_left h_unpair_le (abs_nonneg _)
+        _ = (|DyninMityaginSpace.coeff m f| * (1 + (m : ℝ)) ^ (rr + 2)) *
+            (K / (1 + (m : ℝ)) ^ 2) := by
+              have : (1 + (m : ℝ)) ^ 2 ≠ 0 := ne_of_gt (by positivity)
+              field_simp; ring
+        _ ≤ (D * (sD.sup (DyninMityaginSpace.p (E := AsymTorusTestFunction Lt Ls))) f) *
+            (K / (1 + (m : ℝ)) ^ 2) :=
+            mul_le_mul_of_nonneg_right hD_bound (div_nonneg hK_nn (by positivity))
+        _ = D * (sD.sup (DyninMityaginSpace.p (E := AsymTorusTestFunction Lt Ls))) f * K /
+            (1 + (m : ℝ)) ^ 2 := by ring
+    apply Summable.of_nonneg_of_le (fun m => by positivity) h_bound
+    have hps := (Real.summable_one_div_nat_pow.mpr (by omega : 1 < 2)).comp_injective
+      Nat.succ_injective
+    have h1 : Summable (fun n : ℕ => 1 / ((n : ℝ) + 1) ^ 2) :=
+      hps.congr fun n => by simp only [Function.comp, Nat.cast_succ]
+    exact (h1.mul_left
+      (D * (sD.sup (DyninMityaginSpace.p (E := AsymTorusTestFunction Lt Ls))) f * K)).congr
+      fun n => by ring
+  apply tendsto_tsum_of_dominated_convergence
+    (bound := fun m => |DyninMityaginSpace.coeff m f| * K *
+      (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂)
+  · exact h_dom_summable
+  · intro m
+    apply Filter.Tendsto.const_mul
+    rw [ntp_basis_eq_pure_asym Lt Ls m]
+    exact lattice_green_tendsto_continuum_asym_pure Lt Ls mass hmass Nt Ns a hNt hNs ha hLt hLs ha0
+      _ g₁ _ g₂
+  · apply Filter.Eventually.of_forall
+    intro k m
+    haveI := hNt k; haveI := hNs k
+    rw [Real.norm_eq_abs, abs_mul]
+    have hrhs : |DyninMityaginSpace.coeff m f| * K *
+        (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂ =
+        |DyninMityaginSpace.coeff m f| * (K *
+        (1 + ((Nat.unpair m).1 : ℝ)) ^ r₁ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₂) := by ring
+    rw [hrhs]
+    apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+    rw [abs_le]
+    refine ⟨?_, le_trans (le_abs_self _) (h_BN_bound m k)⟩
+    have := (abs_le.mp (h_BN_bound m k)).1; linarith
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
