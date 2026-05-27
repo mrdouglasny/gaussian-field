@@ -887,6 +887,99 @@ private theorem summable_bound_asym (mass : ℝ) (hmass : 0 < mass) (C : ℝ) :
     have : (1 + (p.2 : ℝ)) ^ 4 ≠ 0 := ne_of_gt (by positivity)
     field_simp
 
+/-- Each rectangular lattice Green's term converges to the continuum term, along any
+isotropic sequence `(Nt k, Ns k, a k)` with `Nt k · a k = Lt`, `Ns k · a k = Ls`, `a k → 0`. -/
+private theorem latticeGreenTerm2dAsym_tendsto
+    (mass : ℝ) (hmass : 0 < mass)
+    (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
+    (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
+    (ha : ∀ k, 0 < a k)
+    (hLt : ∀ k, (Nt k : ℝ) * a k = Lt) (hLs : ∀ k, (Ns k : ℝ) * a k = Ls)
+    (ha0 : Tendsto a atTop (nhds 0))
+    (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) (p : ℕ × ℕ) :
+    Tendsto (fun k => haveI := hNt k; haveI := hNs k
+        latticeGreenTerm2dAsym Lt Ls (Nt k) (Ns k) (a k) mass f₁ g₁ f₂ g₂ p)
+      atTop (nhds (continuumGreenTerm2dAsym Lt Ls mass f₁ g₁ f₂ g₂ p)) := by
+  -- a → 𝓝[>] 0  ⟹  (a)⁻¹ → atTop  ⟹  Nt, Ns → atTop
+  have ha0' : Tendsto a atTop (nhdsWithin 0 (Set.Ioi 0)) :=
+    tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within a ha0
+      (Filter.Eventually.of_forall fun k => ha k)
+  have hinv : Tendsto (fun k => (a k)⁻¹) atTop atTop := tendsto_inv_nhdsGT_zero.comp ha0'
+  have hNt_top : Tendsto Nt atTop atTop := by
+    rw [← tendsto_natCast_atTop_iff (R := ℝ)]
+    refine (hinv.const_mul_atTop (Fact.out : (0:ℝ) < Lt)).congr fun k => ?_
+    rw [← div_eq_mul_inv, div_eq_iff (ne_of_gt (ha k))]; exact (hLt k).symm
+  have hNs_top : Tendsto Ns atTop atTop := by
+    rw [← tendsto_natCast_atTop_iff (R := ℝ)]
+    refine (hinv.const_mul_atTop (Fact.out : (0:ℝ) < Ls)).congr fun k => ?_
+    rw [← div_eq_mul_inv, div_eq_iff (ne_of_gt (ha k))]; exact (hLs k).symm
+  have hNt1 : Tendsto (fun k => Nt k - 1) atTop atTop := by
+    rw [tendsto_atTop_atTop]; intro b
+    obtain ⟨K, hK⟩ := tendsto_atTop_atTop.mp hNt_top (b + 1)
+    exact ⟨K, fun k hk => by have := hK k hk; omega⟩
+  have hNs1 : Tendsto (fun k => Ns k - 1) atTop atTop := by
+    rw [tendsto_atTop_atTop]; intro b
+    obtain ⟨K, hK⟩ := tendsto_atTop_atTop.mp hNs_top (b + 1)
+    exact ⟨K, fun k hk => by have := hK k hk; omega⟩
+  have hNtk : ∀ k, (Nt k - 1) + 1 = Nt k := fun k =>
+    Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (hNt k).out)
+  have hNsk : ∀ k, (Ns k - 1) + 1 = Ns k := fun k =>
+    Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (hNs k).out)
+  -- per-direction reindexed convergences
+  have eig1 : Tendsto (fun k => latticeEigenvalue1d (Nt k) (a k) p.1) atTop
+      (nhds (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Lt ℝ) p.1)) := by
+    refine ((latticeEigenvalue1d_tendsto_continuum Lt p.1).comp hNt1).congr fun k => ?_
+    haveI := hNt k
+    simp only [Function.comp, hNtk k]
+    congr 1
+    rw [circleSpacing, div_eq_iff (by exact_mod_cast (hNt k).out : (Nt k : ℝ) ≠ 0), mul_comm]
+    exact (hLt k).symm
+  have eig2 : Tendsto (fun k => latticeEigenvalue1d (Ns k) (a k) p.2) atTop
+      (nhds (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Ls ℝ) p.2)) := by
+    refine ((latticeEigenvalue1d_tendsto_continuum Ls p.2).comp hNs1).congr fun k => ?_
+    haveI := hNs k
+    simp only [Function.comp, hNsk k]
+    congr 1
+    rw [circleSpacing, div_eq_iff (by exact_mod_cast (hNs k).out : (Ns k : ℝ) ≠ 0), mul_comm]
+    exact (hLs k).symm
+  have dft_f1 : Tendsto (fun k => haveI := hNt k; latticeDFTCoeff1d Lt (Nt k) f₁ p.1) atTop
+      (nhds (DyninMityaginSpace.coeff p.1 f₁)) := by
+    refine ((latticeDFTCoeff1d_tendsto Lt f₁ p.1).comp hNt1).congr fun k => ?_
+    haveI := hNt k; simp only [Function.comp, hNtk k]
+  have dft_g1 : Tendsto (fun k => haveI := hNt k; latticeDFTCoeff1d Lt (Nt k) g₁ p.1) atTop
+      (nhds (DyninMityaginSpace.coeff p.1 g₁)) := by
+    refine ((latticeDFTCoeff1d_tendsto Lt g₁ p.1).comp hNt1).congr fun k => ?_
+    haveI := hNt k; simp only [Function.comp, hNtk k]
+  have dft_f2 : Tendsto (fun k => haveI := hNs k; latticeDFTCoeff1d Ls (Ns k) f₂ p.2) atTop
+      (nhds (DyninMityaginSpace.coeff p.2 f₂)) := by
+    refine ((latticeDFTCoeff1d_tendsto Ls f₂ p.2).comp hNs1).congr fun k => ?_
+    haveI := hNs k; simp only [Function.comp, hNsk k]
+  have dft_g2 : Tendsto (fun k => haveI := hNs k; latticeDFTCoeff1d Ls (Ns k) g₂ p.2) atTop
+      (nhds (DyninMityaginSpace.coeff p.2 g₂)) := by
+    refine ((latticeDFTCoeff1d_tendsto Ls g₂ p.2).comp hNs1).congr fun k => ?_
+    haveI := hNs k; simp only [Function.comp, hNsk k]
+  have ns1 : Tendsto (fun k => haveI := hNt k; latticeFourierNormSq (Nt k) p.1) atTop (nhds 1) := by
+    refine tendsto_const_nhds.congr' (Filter.EventuallyEq.symm ?_)
+    filter_upwards [hNt1.eventually (latticeFourierNormSq_eventually_one p.1)] with k hk
+    haveI := hNt k; simpa only [hNtk k] using hk
+  have ns2 : Tendsto (fun k => haveI := hNs k; latticeFourierNormSq (Ns k) p.2) atTop (nhds 1) := by
+    refine tendsto_const_nhds.congr' (Filter.EventuallyEq.symm ?_)
+    filter_upwards [hNs1.eventually (latticeFourierNormSq_eventually_one p.2)] with k hk
+    haveI := hNs k; simpa only [hNsk k] using hk
+  -- denominator convergence: (eig₁ + eig₂ + mass²)·normSq₁·normSq₂ → (c₁ + c₂ + mass²)
+  have h_denom : Tendsto (fun k => haveI := hNt k; haveI := hNs k
+      (latticeEigenvalue1d (Nt k) (a k) p.1 + latticeEigenvalue1d (Ns k) (a k) p.2 + mass ^ 2) *
+        latticeFourierNormSq (Nt k) p.1 * latticeFourierNormSq (Ns k) p.2) atTop
+      (nhds (HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Lt ℝ) p.1 +
+             HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Ls ℝ) p.2 + mass ^ 2)) := by
+    have h := (((eig1.add eig2).add (tendsto_const_nhds (x := mass ^ 2))).mul ns1).mul ns2
+    simpa only [mul_one] using h
+  unfold latticeGreenTerm2dAsym continuumGreenTerm2dAsym
+  apply Filter.Tendsto.div (((dft_f1.mul dft_g1).mul dft_f2).mul dft_g2) h_denom
+  have h1 := HasLaplacianEigenvalues.eigenvalue_nonneg (E := SmoothMap_Circle Lt ℝ) p.1
+  have h2 := HasLaplacianEigenvalues.eigenvalue_nonneg (E := SmoothMap_Circle Ls ℝ) p.2
+  nlinarith [sq_pos_of_pos hmass]
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
