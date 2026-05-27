@@ -980,6 +980,73 @@ private theorem latticeGreenTerm2dAsym_tendsto
   have h2 := HasLaplacianEigenvalues.eigenvalue_nonneg (E := SmoothMap_Circle Ls ℝ) p.2
   nlinarith [sq_pos_of_pos hmass]
 
+/-- The rectangular lattice covariance for pure tensors equals the explicit 2D DFT spectral
+sum (range form). From `abstract_spectral_eq_dft_spectral_2d_asym` + the pure-tensor DFT
+coefficient factorization. -/
+private theorem lattice_covariance_pure_eq_2d_spectral_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
+    covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure f₁ f₂))
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure g₁ g₂)) =
+    ∑ m₁ ∈ Finset.range Nt, ∑ m₂ ∈ Finset.range Ns,
+      latticeDFTCoeff1d Lt Nt f₁ m₁ * latticeDFTCoeff1d Lt Nt g₁ m₁ *
+      latticeDFTCoeff1d Ls Ns f₂ m₂ * latticeDFTCoeff1d Ls Ns g₂ m₂ /
+      ((latticeEigenvalue1d Nt a m₁ + latticeEigenvalue1d Ns a m₂ + mass ^ 2) *
+       latticeFourierNormSq Nt m₁ * latticeFourierNormSq Ns m₂) := by
+  rw [abstract_spectral_eq_dft_spectral_2d_asym]
+  have hpure : ∀ (h₁ : SmoothMap_Circle Lt ℝ) (h₂ : SmoothMap_Circle Ls ℝ)
+      (x : AsymLatticeSites Nt Ns),
+      evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure h₁ h₂) =
+      circleRestriction Lt Nt h₁ x.1 * circleRestriction Ls Ns h₂ x.2 := by
+    intro h₁ h₂ x
+    unfold evalAsymTorusAtSite
+    rw [NuclearTensorProduct.evalCLM_pure]
+    simp [ContinuousLinearMap.comp_apply]
+  have hcoeff : ∀ (h₁ : SmoothMap_Circle Lt ℝ) (h₂ : SmoothMap_Circle Ls ℝ)
+      (m₁ : Fin Nt) (m₂ : Fin Ns),
+      ∑ x : AsymLatticeSites Nt Ns,
+        evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure h₁ h₂) *
+        (latticeFourierBasisFun Nt ↑m₁ x.1 * latticeFourierBasisFun Ns ↑m₂ x.2) =
+      latticeDFTCoeff1d Lt Nt h₁ ↑m₁ * latticeDFTCoeff1d Ls Ns h₂ ↑m₂ := by
+    intro h₁ h₂ m₁ m₂
+    simp_rw [hpure]
+    simp_rw [show ∀ x : AsymLatticeSites Nt Ns,
+        (circleRestriction Lt Nt h₁ x.1 * circleRestriction Ls Ns h₂ x.2) *
+        (latticeFourierBasisFun Nt ↑m₁ x.1 * latticeFourierBasisFun Ns ↑m₂ x.2) =
+        (circleRestriction Lt Nt h₁ x.1 * latticeFourierBasisFun Nt ↑m₁ x.1) *
+        (circleRestriction Ls Ns h₂ x.2 * latticeFourierBasisFun Ns ↑m₂ x.2) from
+      fun x => by ring]
+    rw [sum_factor_asym]
+    dsimp only
+    rw [← Fintype.sum_mul_sum]
+    congr 1
+    · rw [latticeDFTCoeff1d, if_pos m₁.isLt]
+    · rw [latticeDFTCoeff1d, if_pos m₂.isLt]
+  simp_rw [hcoeff]
+  symm
+  rw [← Fin.sum_univ_eq_sum_range]
+  refine Finset.sum_congr rfl fun m₁ _ => ?_
+  rw [← Fin.sum_univ_eq_sum_range]
+  refine Finset.sum_congr rfl fun m₂ _ => ?_
+  ring
+
+/-- The rectangular lattice covariance for pure tensors as a `tsum` over `ℕ × ℕ`. -/
+private theorem lattice_covariance_eq_tsum_pure_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
+    covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure f₁ f₂))
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure g₁ g₂)) =
+    ∑' p : ℕ × ℕ, latticeGreenTerm2dAsym Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p := by
+  rw [lattice_covariance_pure_eq_2d_spectral_asym]
+  symm
+  rw [tsum_eq_sum (s := Finset.range Nt ×ˢ Finset.range Ns)]
+  · rw [Finset.sum_product]; rfl
+  · intro p hp
+    rw [Finset.mem_product, Finset.mem_range, Finset.mem_range, not_and_or, not_lt, not_lt] at hp
+    exact latticeGreenTerm2dAsym_zero_of_ge Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p hp
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
