@@ -1354,6 +1354,48 @@ private theorem lattice_covariance_pure_abs_le_asym (Nt Ns : ℕ) [NeZero Nt] [N
         have : (1 + (p.2 : ℝ)) ^ 2 ≠ 0 := ne_of_gt (by positivity)
         field_simp
 
+/-- Explicit quadratic DFT bound with Sobolev-seminorm constant (general circle size `L`).
+Allows polynomial-in-`k` bounds for `basis k`. -/
+private theorem latticeDFTCoeff1d_seminorm_quadratic_gen (L : ℝ) [hL : Fact (0 < L)]
+    (f : SmoothMap_Circle L ℝ) (N m : ℕ) :
+    |latticeDFTCoeff1d L (N + 1) f m| ≤
+      (Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f +
+       Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 2 f * L ^ 2) /
+      (1 + (m : ℝ)) ^ 2 := by
+  set C₀ := Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f
+  set C₂ := Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 2 f
+  set Cd := C₂ * L ^ 2
+  set C := C₀ + Cd
+  have hC₀_nn : 0 ≤ C₀ := by positivity
+  have hC₂_nn : 0 ≤ C₂ := by positivity
+  have hC_nn : 0 ≤ C := by positivity
+  by_cases hm_lt : m < N + 1
+  · by_cases hm0 : m = 0
+    · subst hm0; simp only [Nat.cast_zero, add_zero, one_pow, div_one]
+      exact (latticeDFTCoeff1d_flat_bound L f N 0).trans (le_add_of_nonneg_right (by positivity))
+    · have hm_pos : 1 ≤ m := Nat.one_le_iff_ne_zero.mpr hm0
+      haveI hN1 : NeZero (N + 1) := ⟨by omega⟩
+      have h_transfer := eigenvector_transfer L (N + 1) f m hm_lt
+      have h_lap := laplacianDFT_flat_bound L (N + 1) f m
+      have h_eig := latticeEigenvalue1d_ge_quadratic L (N + 1) m hm_pos hm_lt
+      have h_eig_pos : 0 < latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m :=
+        lt_of_lt_of_le (by have := hL.out; positivity) h_eig
+      rw [← h_transfer] at h_lap
+      have h_abs : |latticeDFTCoeff1d L (N + 1) f m| ≤
+          C₂ / latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m := by
+        rw [abs_mul, abs_of_pos h_eig_pos] at h_lap
+        rw [le_div_iff₀ h_eig_pos, mul_comm]
+        exact h_lap
+      have hL_pos := hL.out
+      have h_denom_pos : (0 : ℝ) < (1 + ↑m) ^ 2 / L ^ 2 := by positivity
+      calc |latticeDFTCoeff1d L (N + 1) f m|
+          ≤ C₂ / latticeEigenvalue1d (N + 1) (circleSpacing L (N + 1)) m := h_abs
+        _ ≤ C₂ / ((1 + ↑m) ^ 2 / L ^ 2) := div_le_div_of_nonneg_left hC₂_nn h_denom_pos h_eig
+        _ = Cd / (1 + ↑m) ^ 2 := by simp only [Cd]; field_simp
+        _ ≤ C / (1 + ↑m) ^ 2 := div_le_div_of_nonneg_right (by linarith) (by positivity)
+  · rw [latticeDFTCoeff1d_zero_of_ge L (N + 1) f m (by omega), abs_zero]
+    exact div_nonneg hC_nn (by positivity)
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
