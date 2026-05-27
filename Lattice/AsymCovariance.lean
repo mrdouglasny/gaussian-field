@@ -1047,6 +1047,41 @@ private theorem lattice_covariance_eq_tsum_pure_asym (Nt Ns : ℕ) [NeZero Nt] [
     rw [Finset.mem_product, Finset.mem_range, Finset.mem_range, not_and_or, not_lt, not_lt] at hp
     exact latticeGreenTerm2dAsym_zero_of_ge Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p hp
 
+/-- The continuum rectangular Green's function for pure tensors as a `tsum` over `ℕ × ℕ`. -/
+private theorem greenFunctionBilinear_pure_eq_tsum_asym (mass : ℝ) (hmass : 0 < mass)
+    (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
+    greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass
+      (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) =
+    ∑' p : ℕ × ℕ, continuumGreenTerm2dAsym Lt Ls mass f₁ g₁ f₂ g₂ p := by
+  show ∑' m, DyninMityaginSpace.coeff m (NuclearTensorProduct.pure f₁ f₂) *
+        DyninMityaginSpace.coeff m (NuclearTensorProduct.pure g₁ g₂) /
+        (HasLaplacianEigenvalues.eigenvalue
+          (E := NuclearTensorProduct (SmoothMap_Circle Lt ℝ) (SmoothMap_Circle Ls ℝ)) m +
+          mass ^ 2) =
+      ∑' p : ℕ × ℕ, continuumGreenTerm2dAsym Lt Ls mass f₁ g₁ f₂ g₂ p
+  have h_term : ∀ m : ℕ,
+      DyninMityaginSpace.coeff m (NuclearTensorProduct.pure f₁ f₂) *
+        DyninMityaginSpace.coeff m (NuclearTensorProduct.pure g₁ g₂) /
+        (HasLaplacianEigenvalues.eigenvalue
+          (E := NuclearTensorProduct (SmoothMap_Circle Lt ℝ) (SmoothMap_Circle Ls ℝ)) m +
+          mass ^ 2) =
+      continuumGreenTerm2dAsym Lt Ls mass f₁ g₁ f₂ g₂ (Nat.unpair m) := by
+    intro m
+    show (NuclearTensorProduct.pure f₁ f₂).val m * (NuclearTensorProduct.pure g₁ g₂).val m /
+        (HasLaplacianEigenvalues.eigenvalue
+          (E := NuclearTensorProduct (SmoothMap_Circle Lt ℝ) (SmoothMap_Circle Ls ℝ)) m +
+          mass ^ 2) =
+      continuumGreenTerm2dAsym Lt Ls mass f₁ g₁ f₂ g₂ (Nat.unpair m)
+    have ev_ntp := fun (n : ℕ) =>
+      show HasLaplacianEigenvalues.eigenvalue
+        (E := NuclearTensorProduct (SmoothMap_Circle Lt ℝ) (SmoothMap_Circle Ls ℝ)) n =
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Lt ℝ) (Nat.unpair n).1 +
+        HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Ls ℝ) (Nat.unpair n).2 from rfl
+    simp only [continuumGreenTerm2dAsym, ev_ntp, NuclearTensorProduct.pure_val]
+    ring
+  simp_rw [h_term, ← Nat.pairEquiv_symm_apply]
+  exact Nat.pairEquiv.symm.tsum_eq _
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
