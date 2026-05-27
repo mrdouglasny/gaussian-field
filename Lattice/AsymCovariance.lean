@@ -1127,6 +1127,123 @@ private theorem lattice_green_tendsto_continuum_asym_pure
     exact latticeGreenTerm2dAsym_norm_le Lt Ls (Nt k) (Ns k) (a k) mass hmass f₁ g₁ f₂ g₂
       hCf₁_nn hCg₁_nn hCf₂_nn hCg₂_nn bf₁ bg₁ bf₂ bg₂ p
 
+/-! ### DM-expansion infrastructure (general elements) -/
+
+/-- NTP basis elements of the rectangular torus are pure tensors. -/
+private theorem ntp_basis_eq_pure_asym (m : ℕ) :
+    DyninMityaginSpace.basis (E := AsymTorusTestFunction Lt Ls) m =
+    NuclearTensorProduct.pure
+      (DyninMityaginSpace.basis (E := SmoothMap_Circle Lt ℝ) (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (E := SmoothMap_Circle Ls ℝ) (Nat.unpair m).2) := by
+  ext k
+  show (RapidDecaySeq.basisVec m).val k =
+    (NuclearTensorProduct.pure
+      (DyninMityaginSpace.basis (E := SmoothMap_Circle Lt ℝ) (Nat.unpair m).1)
+      (DyninMityaginSpace.basis (E := SmoothMap_Circle Ls ℝ) (Nat.unpair m).2)).val k
+  rw [NuclearTensorProduct.pure_val, smoothCircle_coeff_basis, smoothCircle_coeff_basis]
+  simp only [RapidDecaySeq.basisVec]
+  by_cases hk : k = m
+  · subst hk; simp
+  · simp only [hk, ite_false]
+    by_cases h1 : (Nat.unpair k).1 = (Nat.unpair m).1
+    · have h2 : (Nat.unpair k).2 ≠ (Nat.unpair m).2 := by
+        intro h2; exact hk (by rw [← Nat.pair_unpair k, h1, h2, Nat.pair_unpair])
+      simp [h2]
+    · simp [h1]
+
+/-- Continuity of `f ↦ G(f, h)` on the rectangular torus, via polarization. -/
+private theorem greenFunctionBilinear_continuous_left_asym
+    (mass : ℝ) (hmass : 0 < mass) (h : AsymTorusTestFunction Lt Ls) :
+    Continuous (fun f => greenFunctionBilinear
+      (E := AsymTorusTestFunction Lt Ls) mass hmass f h) := by
+  have hcdiag := greenFunctionBilinear_continuous_diag mass hmass
+    (E := AsymTorusTestFunction Lt Ls)
+  have hpol : ∀ f, greenFunctionBilinear mass hmass f h =
+      (greenFunctionBilinear mass hmass (f + h) (f + h) -
+       greenFunctionBilinear mass hmass f f -
+       greenFunctionBilinear mass hmass h h) / 2 := by
+    intro f
+    have : greenFunctionBilinear mass hmass (f + h) (f + h) =
+        greenFunctionBilinear mass hmass f f +
+        2 * greenFunctionBilinear mass hmass f h +
+        greenFunctionBilinear mass hmass h h := by
+      rw [greenFunctionBilinear_add_left, greenFunctionBilinear_add_right,
+          greenFunctionBilinear_add_right, greenFunctionBilinear_symm mass hmass h f]
+      ring
+    linarith
+  exact (((hcdiag.comp (continuous_id.add continuous_const)).sub hcdiag).sub
+    continuous_const).div_const 2 |>.congr (fun f => (hpol f).symm)
+
+/-- Green function on the rectangular torus as a CLM in the first argument. -/
+private noncomputable def greenCLM_left_asym
+    (mass : ℝ) (hmass : 0 < mass) (h : AsymTorusTestFunction Lt Ls) :
+    AsymTorusTestFunction Lt Ls →L[ℝ] ℝ :=
+  ⟨{ toFun := fun f => greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass f h
+     map_add' := fun f₁ f₂ => greenFunctionBilinear_add_left mass hmass f₁ f₂ h
+     map_smul' := fun c f => by
+       rw [greenFunctionBilinear_smul_left, RingHom.id_apply, smul_eq_mul] },
+   greenFunctionBilinear_continuous_left_asym Lt Ls mass hmass h⟩
+
+@[simp] private theorem greenCLM_left_apply_asym
+    (mass : ℝ) (hmass : 0 < mass) (h f : AsymTorusTestFunction Lt Ls) :
+    greenCLM_left_asym Lt Ls mass hmass h f =
+    greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass f h := rfl
+
+/-- The restriction map `f ↦ (x ↦ evalAsymTorusAtSite x f)` as a CLM. -/
+private def evalLatticeMapAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
+    AsymTorusTestFunction Lt Ls →L[ℝ] AsymLatticeField Nt Ns where
+  toFun f := fun x => evalAsymTorusAtSite Lt Ls Nt Ns x f
+  map_add' f₁ f₂ := funext fun x => map_add (evalAsymTorusAtSite Lt Ls Nt Ns x) f₁ f₂
+  map_smul' c f := funext fun x => map_smul (evalAsymTorusAtSite Lt Ls Nt Ns x) c f
+  cont := continuous_pi fun x => (evalAsymTorusAtSite Lt Ls Nt Ns x).continuous
+
+@[simp] private theorem evalLatticeMapAsym_apply (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (f : AsymTorusTestFunction Lt Ls) (x : AsymLatticeSites Nt Ns) :
+    evalLatticeMapAsym Lt Ls Nt Ns f x = evalAsymTorusAtSite Lt Ls Nt Ns x f := rfl
+
+/-- Lattice covariance CLM in the first argument (for fixed `Nt, Ns, a` and second argument). -/
+private noncomputable def latticeCovCLM_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (g : AsymTorusTestFunction Lt Ls) :
+    AsymTorusTestFunction Lt Ls →L[ℝ] ℝ :=
+  let T := (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass).comp (evalLatticeMapAsym Lt Ls Nt Ns)
+  (innerSL ℝ (T g)).comp T
+
+private theorem latticeCovCLM_left_apply_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymTorusTestFunction Lt Ls) :
+    latticeCovCLM_left_asym Lt Ls Nt Ns a mass ha hmass g f =
+    covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x f)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x g) := by
+  simp only [latticeCovCLM_left_asym, ContinuousLinearMap.comp_apply, innerSL_apply_apply,
+    covariance, evalLatticeMapAsym]
+  exact real_inner_comm _ _
+
+/-- DM expansion of the lattice covariance in the first argument. -/
+private theorem covariance_dm_expansion_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymTorusTestFunction Lt Ls) :
+    covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x f)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x g) =
+    ∑' m, DyninMityaginSpace.coeff m f *
+      covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
+        (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (DyninMityaginSpace.basis m))
+        (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x g) := by
+  rw [← latticeCovCLM_left_apply_asym]
+  rw [DyninMityaginSpace.expansion (latticeCovCLM_left_asym Lt Ls Nt Ns a mass ha hmass g) f]
+  congr 1; ext m
+  rw [latticeCovCLM_left_apply_asym]
+
+/-- Summability of `1 / ((1+p₁)²·(1+p₂)²)` over `ℕ × ℕ`. -/
+private theorem summable_inv_sq_sq_asym :
+    Summable (fun p : ℕ × ℕ =>
+      1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2)) := by
+  have h1d : Summable (fun n : ℕ => 1 / (1 + (n : ℝ)) ^ 2) := by
+    have hps := (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)).comp_injective
+      Nat.succ_injective
+    exact hps.congr fun n => by simp only [Function.comp, Nat.cast_succ, add_comm]
+  exact (h1d.mul_of_nonneg h1d (fun _ => by positivity) (fun _ => by positivity)).congr
+    fun p => by simp [mul_comm]
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
