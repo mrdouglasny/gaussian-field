@@ -1244,6 +1244,116 @@ private theorem summable_inv_sq_sq_asym :
   exact (h1d.mul_of_nonneg h1d (fun _ => by positivity) (fun _ => by positivity)).congr
     fun p => by simp [mul_comm]
 
+/-- Uniform bound on `|B(pure(f₁,f₂), pure(g₁,g₂))|` using flat bounds for `f` and quadratic
+bounds for `g`. -/
+private theorem lattice_covariance_pure_abs_le_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ)
+    {Af₁ Af₂ Cg₁ Cg₂ : ℝ}
+    (hAf₁ : 0 ≤ Af₁) (hAf₂ : 0 ≤ Af₂) (hCg₁ : 0 ≤ Cg₁) (hCg₂ : 0 ≤ Cg₂)
+    (hf₁ : ∀ m, |latticeDFTCoeff1d Lt Nt f₁ m| ≤ Af₁)
+    (hg₁ : ∀ m, |latticeDFTCoeff1d Lt Nt g₁ m| ≤ Cg₁ / (1 + (m : ℝ)) ^ 2)
+    (hf₂ : ∀ m, |latticeDFTCoeff1d Ls Ns f₂ m| ≤ Af₂)
+    (hg₂ : ∀ m, |latticeDFTCoeff1d Ls Ns g₂ m| ≤ Cg₂ / (1 + (m : ℝ)) ^ 2) :
+    |covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure f₁ f₂))
+      (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x (NuclearTensorProduct.pure g₁ g₂))| ≤
+    Af₁ * Cg₁ * Af₂ * Cg₂ / mass ^ 2 *
+      ∑' p : ℕ × ℕ, 1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2) := by
+  rw [lattice_covariance_eq_tsum_pure_asym]
+  have hmass_sq := sq_pos_of_pos hmass
+  have hNtk : (Nt - 1) + 1 = Nt := Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (NeZero.ne Nt))
+  have hNsk : (Ns - 1) + 1 = Ns := Nat.succ_pred_eq_of_pos (Nat.pos_of_ne_zero (NeZero.ne Ns))
+  have h_summable : Summable (latticeGreenTerm2dAsym Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂) := by
+    obtain ⟨Cf₁, hCf₁_nn, hCf₁⟩ := latticeDFTCoeff1d_quadratic_bound Lt f₁
+    obtain ⟨Cg₁', hCg₁'_nn, hCg₁'⟩ := latticeDFTCoeff1d_quadratic_bound Lt g₁
+    obtain ⟨Cf₂, hCf₂_nn, hCf₂⟩ := latticeDFTCoeff1d_quadratic_bound Ls f₂
+    obtain ⟨Cg₂', hCg₂'_nn, hCg₂'⟩ := latticeDFTCoeff1d_quadratic_bound Ls g₂
+    refine Summable.of_norm_bounded (summable_bound_asym mass hmass _) fun p =>
+      latticeGreenTerm2dAsym_norm_le Lt Ls Nt Ns a mass hmass f₁ g₁ f₂ g₂
+        hCf₁_nn hCg₁'_nn hCf₂_nn hCg₂'_nn
+        (fun m => by have := hCf₁ (Nt - 1) m; simpa only [hNtk] using this)
+        (fun m => by have := hCg₁' (Nt - 1) m; simpa only [hNtk] using this)
+        (fun m => by have := hCf₂ (Ns - 1) m; simpa only [hNsk] using this)
+        (fun m => by have := hCg₂' (Ns - 1) m; simpa only [hNsk] using this) p
+  calc |∑' p, latticeGreenTerm2dAsym Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p|
+      ≤ ∑' p, |latticeGreenTerm2dAsym Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p| := by
+        have h := norm_tsum_le_tsum_norm h_summable.norm
+        simp only [Real.norm_eq_abs] at h; exact h
+    _ ≤ ∑' p : ℕ × ℕ, Af₁ * Cg₁ * Af₂ * Cg₂ /
+        (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2) := by
+        have hg_sum : Summable (fun p : ℕ × ℕ => Af₁ * Cg₁ * Af₂ * Cg₂ /
+            (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2)) :=
+          (summable_inv_sq_sq_asym.mul_left (Af₁ * Cg₁ * Af₂ * Cg₂ / mass ^ 2)).congr
+            fun p => by field_simp
+        apply h_summable.abs.tsum_le_tsum _ hg_sum
+        intro p
+        by_cases h_range : p.1 < Nt ∧ p.2 < Ns
+        · obtain ⟨hp1_lt, hp2_lt⟩ := h_range
+          unfold latticeGreenTerm2dAsym
+          rw [abs_div, abs_mul, abs_mul, abs_mul]
+          have hden_pos : 0 < (latticeEigenvalue1d Nt a p.1 + latticeEigenvalue1d Ns a p.2 +
+              mass ^ 2) * latticeFourierNormSq Nt p.1 * latticeFourierNormSq Ns p.2 := by
+            apply mul_pos (mul_pos _ _) _
+            · linarith [latticeEigenvalue1d_nonneg Nt a p.1,
+                         latticeEigenvalue1d_nonneg Ns a p.2, sq_pos_of_pos hmass]
+            · exact latticeFourierNormSq_pos Nt p.1 hp1_lt
+            · exact latticeFourierNormSq_pos Ns p.2 hp2_lt
+          rw [abs_of_pos hden_pos]
+          have hnum : |latticeDFTCoeff1d Lt Nt f₁ p.1| * |latticeDFTCoeff1d Lt Nt g₁ p.1| *
+              |latticeDFTCoeff1d Ls Ns f₂ p.2| * |latticeDFTCoeff1d Ls Ns g₂ p.2| ≤
+              Af₁ * (Cg₁ / (1 + (p.1 : ℝ)) ^ 2) * Af₂ * (Cg₂ / (1 + (p.2 : ℝ)) ^ 2) := by
+            apply mul_le_mul
+            · apply mul_le_mul
+              · exact mul_le_mul (hf₁ p.1) (hg₁ p.1) (abs_nonneg _) hAf₁
+              · exact hf₂ p.2
+              · exact abs_nonneg _
+              · exact mul_nonneg hAf₁ (div_nonneg hCg₁ (by positivity))
+            · exact hg₂ p.2
+            · exact abs_nonneg _
+            · positivity
+          set den := (latticeEigenvalue1d Nt a p.1 + latticeEigenvalue1d Ns a p.2 + mass ^ 2) *
+              latticeFourierNormSq Nt p.1 * latticeFourierNormSq Ns p.2
+          have hden_ge : mass ^ 2 ≤ den := by
+            have h_ns1 := latticeFourierNormSq_ge_one Nt p.1 hp1_lt
+            have h_ns2 := latticeFourierNormSq_ge_one Ns p.2 hp2_lt
+            have h_eig_sum_pos : 0 < latticeEigenvalue1d Nt a p.1 + latticeEigenvalue1d Ns a p.2 +
+                mass ^ 2 := by
+              linarith [latticeEigenvalue1d_nonneg Nt a p.1,
+                         latticeEigenvalue1d_nonneg Ns a p.2, sq_pos_of_pos hmass]
+            calc mass ^ 2
+                ≤ latticeEigenvalue1d Nt a p.1 + latticeEigenvalue1d Ns a p.2 + mass ^ 2 :=
+                  by linarith [latticeEigenvalue1d_nonneg Nt a p.1,
+                               latticeEigenvalue1d_nonneg Ns a p.2]
+              _ ≤ (latticeEigenvalue1d Nt a p.1 + latticeEigenvalue1d Ns a p.2 + mass ^ 2) *
+                  latticeFourierNormSq Nt p.1 := le_mul_of_one_le_right h_eig_sum_pos.le h_ns1
+              _ ≤ den := le_mul_of_one_le_right
+                  (mul_nonneg h_eig_sum_pos.le (le_of_lt (latticeFourierNormSq_pos Nt p.1 hp1_lt)))
+                  h_ns2
+          calc |latticeDFTCoeff1d Lt Nt f₁ p.1| * |latticeDFTCoeff1d Lt Nt g₁ p.1| *
+                |latticeDFTCoeff1d Ls Ns f₂ p.2| * |latticeDFTCoeff1d Ls Ns g₂ p.2| / den
+              ≤ Af₁ * (Cg₁ / (1 + (p.1:ℝ)) ^ 2) * Af₂ * (Cg₂ / (1 + (p.2:ℝ)) ^ 2) / den :=
+                  div_le_div_of_nonneg_right hnum (le_of_lt hden_pos)
+            _ ≤ Af₁ * (Cg₁ / (1 + (p.1:ℝ)) ^ 2) * Af₂ * (Cg₂ / (1 + (p.2:ℝ)) ^ 2) / mass ^ 2 := by
+                  apply div_le_div_of_nonneg_left
+                  · positivity
+                  · exact hmass_sq
+                  · exact hden_ge
+            _ = Af₁ * Cg₁ * Af₂ * Cg₂ /
+                (mass ^ 2 * (1 + (p.1:ℝ)) ^ 2 * (1 + (p.2:ℝ)) ^ 2) := by field_simp
+        · rw [not_and_or, not_lt, not_lt] at h_range
+          rw [show |latticeGreenTerm2dAsym Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p| = 0 from by
+            rw [latticeGreenTerm2dAsym_zero_of_ge Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p h_range,
+              abs_zero]]
+          positivity
+    _ = Af₁ * Cg₁ * Af₂ * Cg₂ / mass ^ 2 *
+        ∑' p : ℕ × ℕ, 1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2) := by
+        rw [← tsum_mul_left]; congr 1; ext p
+        have : mass ^ 2 ≠ 0 := ne_of_gt hmass_sq
+        have : (1 + (p.1 : ℝ)) ^ 2 ≠ 0 := ne_of_gt (by positivity)
+        have : (1 + (p.2 : ℝ)) ^ 2 ≠ 0 := ne_of_gt (by positivity)
+        field_simp
+
 /-- **Isotropic rectangular lattice → continuum Green's function.**
 
 For a sequence of isotropic lattices `ZMod (Nt k) × ZMod (Ns k)` with spacing `a k`
