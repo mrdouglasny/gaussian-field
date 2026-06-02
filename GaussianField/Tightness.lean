@@ -150,7 +150,7 @@ private lemma lowerSemicontinuous_second_moment
   -- liminf ≤ y
   have h_liminf_le : liminf (fun n => ENNReal.ofReal (∫ ω', (ω' (u n)) ^ 2 ∂(μ i))) atTop ≤
       ENNReal.ofReal y := by
-    apply liminf_le_of_le ⟨0, Eventually.of_forall (fun _ => zero_le _)⟩
+    apply liminf_le_of_le ⟨0, Eventually.of_forall (fun _ => zero_le)⟩
     intro b hb
     obtain ⟨n, hn⟩ := hb.exists
     exact hn.trans (h_bound n)

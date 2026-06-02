@@ -460,7 +460,7 @@ theorem entry_le_opNorm (A : Matrix Λ Λ ℝ) (i j : Λ) :
   push_cast
   -- Chain: ‖A i j‖₊ ≤ ∑ k ‖A i k‖₊ ≤ sup_i ∑ k ‖A i k‖₊
   have step1 : ‖A i j‖₊ ≤ ∑ k : Λ, ‖A i k‖₊ :=
-    Finset.single_le_sum (f := fun k => ‖A i k‖₊) (fun _ _ => zero_le _) (mem_univ j)
+    Finset.single_le_sum (f := fun k => ‖A i k‖₊) (fun _ _ => zero_le) (mem_univ j)
   have step2 : (∑ k : Λ, ‖A i k‖₊) ≤ univ.sup fun i => ∑ k, ‖A i k‖₊ :=
     Finset.le_sup (f := fun i => ∑ k, ‖A i k‖₊) (Finset.mem_univ i)
   exact_mod_cast step1.trans step2

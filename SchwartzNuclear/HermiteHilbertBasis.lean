@@ -37,7 +37,7 @@ theorem hermiteFunctionLp_inner (n m : ℕ) :
   rw [L2.inner_def]; apply integral_congr_ae
   filter_upwards [MemLp.coeFn_toLp (hermiteFunction_memLp n),
     MemLp.coeFn_toLp (hermiteFunction_memLp m)] with x h1 h2
-  simp only [hermiteFunctionLp, inner, RCLike.re, conj_trivial, h1, h2,
+  simp only [hermiteFunctionLp, inner, RCLike.re, star_trivial, h1, h2,
     AddMonoidHom.id_apply]; ring
 
 /-- L² inner product of f with a Hermite function = ∫ f ψ_n. -/
@@ -46,7 +46,7 @@ theorem hermiteFunctionLp_inner_gen (n : ℕ) (f : Lp ℝ 2 (volume : Measure �
     ∫ x, (f : ℝ → ℝ) x * hermiteFunction n x := by
   rw [L2.inner_def]; apply integral_congr_ae
   filter_upwards [MemLp.coeFn_toLp (hermiteFunction_memLp n)] with x h1
-  simp only [hermiteFunctionLp, inner, RCLike.re, conj_trivial, h1,
+  simp only [hermiteFunctionLp, inner, RCLike.re, star_trivial, h1,
     AddMonoidHom.id_apply]; ring
 
 /-! ## Hilbert basis construction -/
@@ -82,7 +82,7 @@ theorem schwartzToLp_inner (f g : SchwartzMap ℝ ℝ) :
     @inner ℝ _ _ (schwartzToLp f) (schwartzToLp g) = ∫ x, f x * g x := by
   rw [L2.inner_def]; apply integral_congr_ae
   filter_upwards [(f.memLp 2).coeFn_toLp, (g.memLp 2).coeFn_toLp] with x h1 h2
-  simp only [schwartzToLp, inner, RCLike.re, conj_trivial, h1, h2, AddMonoidHom.id_apply]; ring
+  simp only [schwartzToLp, inner, RCLike.re, star_trivial, h1, h2, AddMonoidHom.id_apply]; ring
 
 /-- DM coefficient of Schwartz f = L² inner product with ψ_n. -/
 theorem schwartzToLp_inner_hermite (n : ℕ) (f : SchwartzMap ℝ ℝ) :

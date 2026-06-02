@@ -29,7 +29,7 @@ import Mathlib.Analysis.InnerProductSpace.Rayleigh
 import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
 import Mathlib.Analysis.InnerProductSpace.Spectrum
 import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.Normed.Operator.Compact
+import Mathlib.Analysis.Normed.Operator.Compact.Basic
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.Module
 import Mathlib.Topology.Algebra.InfiniteSum.Module

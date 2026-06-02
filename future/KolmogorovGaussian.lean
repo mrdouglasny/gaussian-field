@@ -6,7 +6,7 @@ Authors: Michael R. Douglas
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Topology.Algebra.Module.WeakDual
+import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
 
 /-!
 # Kolmogorov–Minlos Gaussian measure via nuclear L² support (certificate)

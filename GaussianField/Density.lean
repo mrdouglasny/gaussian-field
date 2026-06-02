@@ -935,7 +935,6 @@ theorem normalizedGaussianDensityMeasure_linearFourier
               Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))
                 ∂(gaussianDensityMeasure d N a mass) := by
             simp [normalizedGaussianDensityMeasure, integral_smul_measure]
-            norm_cast
     _ = ((gaussianDensityNormConst d N a mass)⁻¹).toReal *
           ∫ φ : FinLatticeField d N,
             (gaussianDensityWeight d N a mass φ).toReal •

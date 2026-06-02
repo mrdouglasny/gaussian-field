@@ -72,6 +72,7 @@ theorem continuous_eval_at (x : ℝ) :
   simp only [Seminorm.comp_apply, Finset.sup_singleton, NNReal.smul_def,
     Seminorm.smul_apply, NNReal.coe_mk]
   -- Goal: (normSeminorm ℝ ℝ) (lm f) ≤ 1 • sobolevSeminorm 0 f
+  show (normSeminorm ℝ ℝ) (lm f) ≤ (1 : ℝ) • (sobolevSeminorm 0) f
   rw [one_smul, coe_normSeminorm, Real.norm_eq_abs]
   calc |f x| = ‖iteratedDeriv 0 (⇑f) x‖ := by
         rw [iteratedDeriv_zero]; exact (Real.norm_eq_abs _).symm

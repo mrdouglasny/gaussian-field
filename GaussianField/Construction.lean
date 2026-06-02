@@ -50,7 +50,7 @@ import Mathlib.Analysis.Normed.Lp.MeasurableSpace
 import Mathlib.MeasureTheory.Group.IntegralConvolution
 import Mathlib.MeasureTheory.Integral.Pi
 import Mathlib.MeasureTheory.Measure.FiniteMeasureExt
-import Mathlib.Topology.Algebra.Module.WeakDual
+import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
 
 noncomputable section
 
@@ -482,8 +482,8 @@ private lemma hilbertEmbedding_inner (hfin : FiniteDimensional ℝ H) (x y : H) 
   simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
   -- RHS: Parseval for the finite ONB
   rw [← (stdOrthonormalBasis ℝ H).repr.inner_map_map x y, PiLp.inner_apply]
-  simp only [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial,
-             RCLike.re_to_real, OrthonormalBasis.repr_apply_apply, mul_comm]
+  simp only [RCLike.inner_apply, conj_trivial,
+             OrthonormalBasis.repr_apply_apply, mul_comm]
 
 /-! ## Measure Definition -/
 

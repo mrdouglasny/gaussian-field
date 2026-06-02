@@ -79,7 +79,7 @@ lemma exists_CLF_le_seminorm
   by_cases hf : f = 0
   · exact ⟨0, by simp [hf, map_zero], fun x => by simp⟩
   · -- Define linear functional on span {f} with value q(f) at f
-    let f₀ := LinearPMap.mkSpanSingleton (K := ℝ) f (q f) hf
+    let f₀ := LinearPMap.mkSpanSingleton (K := ℝ) (σ := RingHom.id ℝ) f (q f) hf
     -- Apply Hahn-Banach extension with N = q (sublinear)
     obtain ⟨g, hg_ext, hg_le⟩ := exists_extension_of_le_sublinear f₀ q
       (fun c hc x => by -- positive homogeneity: q(c • x) = c * q(x) for c > 0
@@ -460,7 +460,7 @@ theorem DyninMityaginSpace.toNuclearSpace (E : Type*)
       rw [mul_comm]
       calc |hN.coeff m x| * (1 + (m : ℝ)) ^ (S + 2) ≤ C₂ * (s₂.sup hN.p) x :=
               hcoeff_decay x m
-        _ = (C₂nn : ℝ) * (s₂.sup hN.p) x := by simp [hC₂nn_def]
+        _ = (C₂nn : ℝ) * (s₂.sup hN.p) x := by rw [hC₂nn_def]; rfl
         _ = (C₂nn • s₂.sup hN.p) x := by simp [NNReal.smul_def]
         _ ≤ (C₁nn • s₁.sup hN.p) x + (C₂nn • s₂.sup hN.p) x :=
             le_add_of_nonneg_left (apply_nonneg _ x)

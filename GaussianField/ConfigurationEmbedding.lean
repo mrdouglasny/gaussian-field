@@ -262,7 +262,7 @@ theorem prokhorov_configuration_pushforward
       exact hconv_RN f_bcf f_bcf.continuous
         ⟨‖f_bcf‖, fun x => (Real.norm_eq_abs _).symm ▸ f_bcf.norm_coe_le_norm x⟩
     -- Suffices: ∀ ε > 0, ν_lim(rangeᶜ) ≤ ENNReal.ofReal ε
-    apply le_antisymm _ (zero_le _)
+    apply le_antisymm _ (zero_le)
     apply ENNReal.le_of_forall_pos_le_add
     intro ε hε _
     rw [zero_add]

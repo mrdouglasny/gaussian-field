@@ -32,7 +32,7 @@ Our existing `pairing_is_gaussian` then immediately gives the result.
 
 import GaussianField.Properties
 import Mathlib.Probability.Distributions.Gaussian.Basic
-import Mathlib.Topology.Algebra.Module.WeakDual
+import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
 import Mathlib.LinearAlgebra.Dual.Lemmas
 
 noncomputable section
