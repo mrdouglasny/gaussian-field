@@ -22,7 +22,7 @@ precision is `a²·Q`).
 
 * `evalMapAsym` / `evalMapAsymMeasurableEquiv` — the weak-dual ↔ coordinate measurable equiv.
 * `latticeGaussianFieldLawAsym` — the free GFF pushed to coordinates.
-* `latticeGaussianFieldLawAsym_eq_normalizedQuadraticGaussianMeasure` — the bridge (WIP).
+* `latticeGaussianFieldLawAsym_eq_normalizedQuadraticGaussianMeasure` — the bridge.
 
 This is the GaussianField-side input to the Layer-B2 measure↔operator bridge in `pphi2`
 (crux-1); see `docs/generic-density-bridge-plan.md` for the eventual generic consolidation.
