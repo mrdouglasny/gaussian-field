@@ -1065,15 +1065,54 @@ the connected four-point `u₄` of the interacting lattice measure on a general
 (smeared) test function, where the `gff_wickPower_two_site_inner` form does not
 apply because the embedded test function is supported on many sites. -/
 
-/-- Smeared eigen-coefficient `Γ_j(f) = ∑_x f(x) · γ_j(x)`. -/
-private noncomputable def gffSmearedCoeff
+/-- Smeared eigen-coefficient `Γ_j(f) = ∑_x f(x) · γ_j(x)`. Public API for the smeared Wick kernel. -/
+noncomputable def gffSmearedCoeff
     (a mass : ℝ) (f : FinLatticeField d N) (j : FinLatticeSites d N) : ℝ :=
   ∑ x, f x * gffEigenCoeff d N a mass j x
 
-/-- Smeared position covariance `∑_j Γ_j(f) Γ_j(g) = ∑_{x,y} f(x) g(y) C(x,y)`. -/
-private noncomputable def gffSmearedCovariance
+/-- Smeared position covariance `∑_j Γ_j(f) Γ_j(g) = ∑_{x,y} f(x) g(y) C(x,y) = ⟨φ(f)φ(g)⟩`.
+Public API: the `n=m` value of `gff_wickPower_two_smeared_inner`; rewrite via the position-space
+covariance with `gffSmearedCovariance_eq_sum_position`. -/
+noncomputable def gffSmearedCovariance
     (a mass : ℝ) (f g : FinLatticeField d N) : ℝ :=
   ∑ j, gffSmearedCoeff d N a mass f j * gffSmearedCoeff d N a mass g j
+
+/-- `gffSmearedCovariance f g = ∑_{x,y} f(x) g(y) C(x,y)` — the smeared covariance via the
+position-space covariance kernel `gffPositionCovariance`. Connects the smeared Wick kernel to the
+position-space `(C_a f)(z)` used downstream. -/
+lemma gffSmearedCovariance_eq_sum_position
+    (a mass : ℝ) (f g : FinLatticeField d N) :
+    gffSmearedCovariance d N a mass f g =
+      ∑ x, ∑ y, f x * g y * gffPositionCovariance d N a mass x y := by
+  unfold gffSmearedCovariance gffSmearedCoeff gffPositionCovariance
+  simp_rw [Finset.sum_mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun x _ => ?_
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun y _ => ?_
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  ring
+
+/-- `gffSmearedCovariance f (δ_z) = ∑_x f(x) C(x,z) = (C_a f)(z)` — the single-site specialization
+giving the position-space covariance applied to `f` at the vertex site `z`. -/
+lemma gffSmearedCovariance_single_right
+    (a mass : ℝ) (f : FinLatticeField d N) (z : FinLatticeSites d N) :
+    gffSmearedCovariance d N a mass f (Pi.single z (1 : ℝ)) =
+      ∑ x, f x * gffPositionCovariance d N a mass x z := by
+  rw [gffSmearedCovariance_eq_sum_position]
+  refine Finset.sum_congr rfl fun x _ => ?_
+  simp only [Pi.single_apply, mul_ite, mul_one, mul_zero, ite_mul, zero_mul,
+    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+
+/-- `gffSmearedCovariance f f = ∑_j Γ_j(f)²` — the smeared field variance `Var ω(f)`, i.e. the Wick
+constant in `gff_wickPower_two_smeared_inner`. -/
+lemma gffSmearedCovariance_self
+    (a mass : ℝ) (f : FinLatticeField d N) :
+    gffSmearedCovariance d N a mass f f = ∑ j, (gffSmearedCoeff d N a mass f j) ^ 2 := by
+  unfold gffSmearedCovariance
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [sq]
 
 /-- `ω(f) = ∑_j Γ_j(f) · ξ_j(ω)` — smeared spectral expansion, by `ω`-linearity. -/
 private lemma omega_eval_smeared_eq_sum_gamma_xi
