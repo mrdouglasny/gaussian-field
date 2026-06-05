@@ -1379,4 +1379,39 @@ theorem gff_wickPower_two_smeared_inner
       exact absurd (hα.2.symm.trans hβ.2) hnm
     · simp [hαβ, diagFac]
 
+/-- **Integrability of a product of two smeared Wick monomials** under the lattice GFF. The linearity
+prerequisite for evaluating `∫ :φ(f)⁴: · wickPolynomial P c (φ_z)` term by term (pulling the integral
+through the interaction polynomial's finite sum of Wick monomials). Proved by expanding both Wick
+monomials into eigenbasis multi-index sums (`wickMonomial_at_smeared_eq_eigen_sum`) and using the
+per-pair integrability `integrable_gffMultiWickMonomial_mul`. -/
+theorem integrable_wickMonomial_smeared_mul
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (n m : ℕ) (f g : FinLatticeField d N) :
+    MeasureTheory.Integrable
+      (fun ω => wickMonomial n (∑ j, (gffSmearedCoeff d N a mass f j) ^ 2) (ω f) *
+        wickMonomial m (∑ j, (gffSmearedCoeff d N a mass g j) ^ 2) (ω g))
+      (latticeGaussianMeasure d N a mass ha hmass) := by
+  have hcongr : ∀ ω, wickMonomial n (∑ j, (gffSmearedCoeff d N a mass f j) ^ 2) (ω f) *
+        wickMonomial m (∑ j, (gffSmearedCoeff d N a mass g j) ^ 2) (ω g) =
+      ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+        ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+          ((((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+              ∏ j, gffSmearedCoeff d N a mass f j ^ α j) *
+            (((m.factorial : ℝ) / ∏ j, ((β j).factorial : ℝ)) *
+              ∏ j, gffSmearedCoeff d N a mass g j ^ β j)) *
+            (gffMultiWickMonomial d N a mass ha hmass α ω *
+              gffMultiWickMonomial d N a mass ha hmass β ω) := by
+    intro ω
+    rw [wickMonomial_at_smeared_eq_eigen_sum d N a mass ha hmass n f ω,
+        wickMonomial_at_smeared_eq_eigen_sum d N a mass ha hmass m g ω,
+        Finset.sum_mul_sum]
+    refine Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => ?_
+    ring
+  rw [MeasureTheory.integrable_congr (Filter.Eventually.of_forall hcongr)]
+  apply MeasureTheory.integrable_finset_sum
+  intro α _
+  apply MeasureTheory.integrable_finset_sum
+  intro β _
+  exact (integrable_gffMultiWickMonomial_mul d N a mass ha hmass α β).const_mul _
+
 end GaussianField
