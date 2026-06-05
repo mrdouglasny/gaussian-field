@@ -41,6 +41,17 @@ of the GFF interaction.
   $V_a - \mathbb E V_a$ is a finite linear combination of Wick
   monomials of total degree $\le \deg P$, hence (after the change of
   variables) lies in `wienerChaosLE _ (deg P)`.
+- `gff_wickPower_two_site_inner` — two-**site** Wick power formula:
+  $\int :\varphi(x)^n: \, :\varphi(y)^m: \, d\mu_{\mathrm{GFF}}
+  = \delta_{nm}\, n!\, C(x,y)^n$ (Janson–Hilbert orthogonality).
+- `gff_wickPower_two_smeared_inner` — its **smeared** generalization to
+  arbitrary test fields $f, g$:
+  $\int :\varphi(f)^n: \, :\varphi(g)^m: \, d\mu_{\mathrm{GFF}}
+  = \delta_{nm}\, n!\, \langle\varphi(f)\varphi(g)\rangle^n$
+  (the Wick/Mehler kernel; $n=m=4$ gives $4!\,\langle\varphi(f)\varphi(g)\rangle^4$).
+  Proved by $\omega$-linearity from the multinomial Wick expansion
+  `wickMonomial_pow_sum_expansion_of_totalDegree`, reusing the site proof
+  verbatim with $\gamma_j(x)\mapsto\Gamma_j(f)=\sum_x f(x)\gamma_j(x)$.
 
 ## References
 
@@ -52,9 +63,10 @@ of the GFF interaction.
 
 ## Status
 
-API + axiom skeleton (2026-05-08). Definitions are concrete; the
-identification theorems are stated as axioms with proof-strategy
-docstrings citing the existing 1D infrastructure. QFT-specific
+The identification + orthogonality theorems are **proved** (no axioms);
+the two-site and smeared two-field Wick power formulas
+(`gff_wickPower_two_site_inner`, `gff_wickPower_two_smeared_inner`,
+2026-06-05) are sorry-free and axiom-clean. QFT-specific
 specializations (e.g. interaction polynomial $V_a$ in the chaos)
 live downstream in pphi2's `PolynomialChaosBridge.lean`; this file
 provides only the generic Gaussian-Hilbert-space identifications.
@@ -1031,6 +1043,254 @@ theorem gff_wickPower_two_site_inner
             (fun j => gffEigenCoeff d N a mass j x * gffEigenCoeff d N a mass j y) n]
       _ = (n.factorial : ℝ) * (gffPositionCovariance d N a mass x y) ^ n := by
           rw [gffPositionCovariance]
+  · rw [if_neg hnm]
+    apply Finset.sum_eq_zero
+    intro α hα
+    apply Finset.sum_eq_zero
+    intro β hβ
+    by_cases hαβ : α = β
+    · subst hαβ
+      unfold multiIndicesOfTotalDegree at hα hβ
+      simp only [Finset.mem_filter] at hα hβ
+      exact absurd (hα.2.symm.trans hβ.2) hnm
+    · simp [hαβ, diagFac]
+
+/-! ## Smeared (test-function) Wick power inner product
+
+Generalises `gff_wickPower_two_site_inner` from single sites `δ_x` to arbitrary
+smeared lattice fields `f, g : FinLatticeField d N`, by `ω`-linearity. The
+single-site case is recovered with `f = Pi.single x 1`
+(then `gffSmearedCoeff … f j = gffEigenCoeff … j x`). Used by pphi2 to evaluate
+the connected four-point `u₄` of the interacting lattice measure on a general
+(smeared) test function, where the `gff_wickPower_two_site_inner` form does not
+apply because the embedded test function is supported on many sites. -/
+
+/-- Smeared eigen-coefficient `Γ_j(f) = ∑_x f(x) · γ_j(x)`. -/
+private noncomputable def gffSmearedCoeff
+    (a mass : ℝ) (f : FinLatticeField d N) (j : FinLatticeSites d N) : ℝ :=
+  ∑ x, f x * gffEigenCoeff d N a mass j x
+
+/-- Smeared position covariance `∑_j Γ_j(f) Γ_j(g) = ∑_{x,y} f(x) g(y) C(x,y)`. -/
+private noncomputable def gffSmearedCovariance
+    (a mass : ℝ) (f g : FinLatticeField d N) : ℝ :=
+  ∑ j, gffSmearedCoeff d N a mass f j * gffSmearedCoeff d N a mass g j
+
+/-- `ω(f) = ∑_j Γ_j(f) · ξ_j(ω)` — smeared spectral expansion, by `ω`-linearity. -/
+private lemma omega_eval_smeared_eq_sum_gamma_xi
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (f : FinLatticeField d N) (ω : Configuration (FinLatticeField d N)) :
+    ω f = ∑ j, gffSmearedCoeff d N a mass f j *
+        gffOrthonormalCoord d N a mass ha hmass j ω := by
+  have hf : f = ∑ x, f x • (Pi.single x (1 : ℝ) : FinLatticeField d N) := by
+    funext y
+    simp only [Finset.sum_apply, Pi.smul_apply, Pi.single_apply, smul_eq_mul,
+      mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+  conv_lhs => rw [hf, map_sum]
+  simp_rw [map_smul, smul_eq_mul,
+    omega_eval_delta_eq_sum_gamma_xi d N a mass ha hmass, Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [gffSmearedCoeff, Finset.sum_mul]
+  refine Finset.sum_congr rfl fun x _ => ?_
+  ring
+
+/-- Smeared analogue of `wickMonomial_at_site_eq_eigen_sum`: the Wick monomial of
+the smeared field, with matched Wick constant `∑_j Γ_j(f)² = Var ω(f)`, expands
+over eigenbasis multi-indices of total degree `n`. -/
+private lemma wickMonomial_at_smeared_eq_eigen_sum
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (n : ℕ) (f : FinLatticeField d N)
+    (ω : Configuration (FinLatticeField d N)) :
+    wickMonomial n (∑ j, (gffSmearedCoeff d N a mass f j) ^ 2) (ω f) =
+      ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+        (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+          ∏ j, gffSmearedCoeff d N a mass f j ^ (α j)) *
+          gffMultiWickMonomial d N a mass ha hmass α ω := by
+  rw [omega_eval_smeared_eq_sum_gamma_xi d N a mass ha hmass f ω,
+    wickMonomial_pow_sum_expansion_of_totalDegree
+      (γ := fun j => gffSmearedCoeff d N a mass f j)
+      (ξ := fun j => gffOrthonormalCoord d N a mass ha hmass j ω) (k := n)]
+  refine Finset.sum_congr rfl fun α _ => ?_
+  rfl
+
+/-- **Smeared two-field Wick power formula on the lattice GFF.** For smeared
+lattice fields `f, g` and Wick powers `n, m` (each with the matched Wick constant
+`∑_j Γ_j(·)² = Var ω(·)`), the integral of the product under the lattice GFF
+measure equals `n! · (∑_j Γ_j(f) Γ_j(g))^n = n! · ⟨φ(f) φ(g)⟩^n` when `n = m`,
+zero otherwise. Generalises `gff_wickPower_two_site_inner` from sites to test
+functions; the single-site case is `f = Pi.single x 1`, `g = Pi.single y 1`.
+
+This is the connected-correlator input for the perturbative four-point: with
+`n = m = 4` it gives `∫ :φ(f)⁴: :φ(g)⁴: dμ_GFF = 4! · ⟨φ(f)φ(g)⟩⁴`, the
+Wick/Mehler kernel. -/
+theorem gff_wickPower_two_smeared_inner
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
+    (n m : ℕ) (f g : FinLatticeField d N) :
+    ∫ ω, wickMonomial n (∑ j, (gffSmearedCoeff d N a mass f j) ^ 2) (ω f) *
+          wickMonomial m (∑ j, (gffSmearedCoeff d N a mass g j) ^ 2) (ω g)
+        ∂(latticeGaussianMeasure d N a mass ha hmass) =
+    if n = m then
+      (n.factorial : ℝ) * (gffSmearedCovariance d N a mass f g) ^ n
+    else 0 := by
+  classical
+  let coeff :=
+    fun (k : ℕ) (h : FinLatticeField d N) (α : FinLatticeSites d N → ℕ) =>
+      ((k.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+        ∏ j, gffSmearedCoeff d N a mass h j ^ α j
+  let diagFac := fun (α : FinLatticeSites d N → ℕ) => ∏ j, ((α j).factorial : ℝ)
+  have h_summand_int :
+      ∀ α β, MeasureTheory.Integrable
+        (fun ω =>
+          (coeff n f α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+            (coeff m g β * gffMultiWickMonomial d N a mass ha hmass β ω))
+        (latticeGaussianMeasure d N a mass ha hmass) := by
+    intro α β
+    have h_base := (integrable_gffMultiWickMonomial_mul d N a mass ha hmass α β).const_mul
+      (coeff n f α * coeff m g β)
+    refine h_base.congr ?_
+    filter_upwards with ω
+    ring
+  have h_expand :
+      ∀ ω : Configuration (FinLatticeField d N),
+        wickMonomial n (∑ j, (gffSmearedCoeff d N a mass f j) ^ 2) (ω f) *
+            wickMonomial m (∑ j, (gffSmearedCoeff d N a mass g j) ^ 2) (ω g) =
+          (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            coeff n f α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+          (∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            coeff m g β * gffMultiWickMonomial d N a mass ha hmass β ω) := by
+    intro ω
+    rw [wickMonomial_at_smeared_eq_eigen_sum d N a mass ha hmass n f ω,
+      wickMonomial_at_smeared_eq_eigen_sum d N a mass ha hmass m g ω]
+  simp_rw [h_expand]
+  have h_distrib :
+      ∀ ω : Configuration (FinLatticeField d N),
+        (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            coeff n f α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+          (∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            coeff m g β * gffMultiWickMonomial d N a mass ha hmass β ω) =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            (coeff n f α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+              (coeff m g β * gffMultiWickMonomial d N a mass ha hmass β ω) := by
+    intro ω
+    rw [Finset.sum_mul_sum]
+  simp_rw [h_distrib]
+  rw [MeasureTheory.integral_finset_sum _ (fun α hα => by
+    apply MeasureTheory.integrable_finset_sum
+    intro β hβ
+    exact h_summand_int α β)]
+  have h_outer :
+      (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∫ ω, ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            (coeff n f α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+              (coeff m g β * gffMultiWickMonomial d N a mass ha hmass β ω)
+          ∂(latticeGaussianMeasure d N a mass ha hmass)) =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) m,
+            (coeff n f α * coeff m g β) *
+              (if α = β then diagFac α else 0) := by
+    refine Finset.sum_congr rfl ?_
+    intro α hα
+    rw [MeasureTheory.integral_finset_sum _ (fun β hβ => h_summand_int α β)]
+    refine Finset.sum_congr rfl ?_
+    intro β hβ
+    rw [show
+        (fun ω =>
+          (coeff n f α * gffMultiWickMonomial d N a mass ha hmass α ω) *
+            (coeff m g β * gffMultiWickMonomial d N a mass ha hmass β ω)) =
+          (fun ω =>
+            (coeff n f α * coeff m g β) *
+              (gffMultiWickMonomial d N a mass ha hmass α ω *
+                gffMultiWickMonomial d N a mass ha hmass β ω)) from by
+        ext ω
+        ring]
+    rw [MeasureTheory.integral_const_mul,
+      gffMultiWickMonomial_orthogonality d N a mass ha hmass]
+    simp [diagFac]
+  rw [h_outer]
+  by_cases hnm : n = m
+  · subst hnm
+    rw [if_pos rfl]
+    have h_collapse :
+        (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            (coeff n f α * coeff n g β) * (if α = β then diagFac α else 0)) =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          (coeff n f α * coeff n g α) * diagFac α := by
+      refine Finset.sum_congr rfl ?_
+      intro α hα
+      rw [Finset.sum_eq_single_of_mem α hα]
+      · simp [diagFac]
+      · intro β hβ hβα
+        have hneq : α ≠ β := by
+          intro h
+          exact hβα h.symm
+        simp [hneq, diagFac]
+    have h_diag_term :
+        ∀ α, α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n →
+          (coeff n f α * coeff n g α) * diagFac α =
+            (n.factorial : ℝ) *
+              (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                ∏ j, (gffSmearedCoeff d N a mass f j *
+                  gffSmearedCoeff d N a mass g j) ^ α j) := by
+      intro α hα
+      have hprod_mul :
+          (∏ j, gffSmearedCoeff d N a mass f j ^ α j) *
+              (∏ j, gffSmearedCoeff d N a mass g j ^ α j) =
+            ∏ j, (gffSmearedCoeff d N a mass f j *
+              gffSmearedCoeff d N a mass g j) ^ α j := by
+        rw [← Finset.prod_mul_distrib]
+        refine Finset.prod_congr rfl ?_
+        intro j hj
+        rw [mul_pow]
+      have hprod_pos : (0 : ℝ) < ∏ j, ((α j).factorial : ℝ) := by
+        apply Finset.prod_pos
+        intro j hj
+        exact_mod_cast Nat.factorial_pos (α j)
+      have hprod_ne : (∏ j, ((α j).factorial : ℝ)) ≠ 0 := ne_of_gt hprod_pos
+      calc
+        (coeff n f α * coeff n g α) * diagFac α
+            = (n.factorial : ℝ) *
+                (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                  ((∏ j, gffSmearedCoeff d N a mass f j ^ α j) *
+                    (∏ j, gffSmearedCoeff d N a mass g j ^ α j))) := by
+              unfold coeff diagFac
+              field_simp [hprod_ne]
+        _ = (n.factorial : ℝ) *
+              (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+                ∏ j, (gffSmearedCoeff d N a mass f j *
+                  gffSmearedCoeff d N a mass g j) ^ α j) := by
+              rw [hprod_mul]
+    calc
+      (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            (coeff n f α * coeff n g β) * (if α = β then diagFac α else 0))
+          =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          (coeff n f α * coeff n g α) * diagFac α := h_collapse
+      _ =
+        ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+          (n.factorial : ℝ) *
+            (((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+              ∏ j, (gffSmearedCoeff d N a mass f j *
+                gffSmearedCoeff d N a mass g j) ^ α j) := by
+          refine Finset.sum_congr rfl ?_
+          intro α hα
+          exact h_diag_term α hα
+      _ = (n.factorial : ℝ) *
+          (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
+            ((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
+              ∏ j, (gffSmearedCoeff d N a mass f j *
+                gffSmearedCoeff d N a mass g j) ^ α j) := by
+          rw [← Finset.mul_sum]
+      _ = (n.factorial : ℝ) *
+          (∑ j, gffSmearedCoeff d N a mass f j *
+            gffSmearedCoeff d N a mass g j) ^ n := by
+          rw [sum_pow_eq_sum_multiIndices d N
+            (fun j => gffSmearedCoeff d N a mass f j *
+              gffSmearedCoeff d N a mass g j) n]
+      _ = (n.factorial : ℝ) * (gffSmearedCovariance d N a mass f g) ^ n := by
+          rw [gffSmearedCovariance]
   · rw [if_neg hnm]
     apply Finset.sum_eq_zero
     intro α hα
