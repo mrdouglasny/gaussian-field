@@ -110,8 +110,19 @@ automation:
     - method: "agent"
       models: ["claude-opus-4-8"]
       framework: "Claude Code"
-      prompting_notes: "Cycle-by-cycle proving with compiler-guided repair."
-  notes: "Build excludes future/ ; `lake build All` checks non-default targets."
+      prompting_notes: "Primary prover: cycle-by-cycle proving with compiler-guided repair."
+    - method: "agent"
+      models: ["gpt-5-codex"]
+      framework: "Codex"
+      prompting_notes: "Auxiliary proving / refactoring on some files (per commit co-author trailers)."
+    - method: "other"
+      models: ["gemini-3-pro"]
+      framework: "Gemini (deep-think / chat)"
+      prompting_notes: "Cross-vetting of analytic estimates and corrections; not used as a prover."
+  notes: >
+    Build excludes future/ ; `lake build All` checks non-default targets.
+    Models inferred from commit co-author trailers (Opus primary; Gemini, Codex/GPT-5
+    auxiliary) and docs; exact auxiliary-model versions varied over the project.
 
 fidelity:
   divergences: >
