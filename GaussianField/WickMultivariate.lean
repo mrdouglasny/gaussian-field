@@ -714,6 +714,43 @@ lemma gffPositionCovariance_self
   refine Finset.sum_congr rfl fun j _ => ?_
   ring
 
+/-- **Eigenbasis ↔ operator covariance bridge.** The eigenbasis position covariance
+`gffPositionCovariance x y = Σ_j γ_j(x)γ_j(y)` equals the Glimm–Jaffe operator covariance
+`⟨T_GJ δ_x, T_GJ δ_y⟩ = covariance (latticeCovarianceGJ) δ_x δ_y`. Both are
+`(a^d)⁻¹ Σ_k λ_k⁻¹ e_k(x) e_k(y)`. This connects the smeared Wick kernel (stated in the eigenbasis)
+to the operator-form lattice covariance used downstream (e.g. pphi2's `wickConstant`). -/
+lemma gffPositionCovariance_eq_covarianceGJ
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (x y : FinLatticeSites d N) :
+    gffPositionCovariance d N a mass x y =
+    GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass)
+      (Pi.single x (1 : ℝ)) (Pi.single y (1 : ℝ)) := by
+  rw [lattice_covariance_GJ_eq_spectral d N a mass ha hmass]
+  unfold gffPositionCovariance gffEigenCoeff
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  simp only [Pi.single_apply, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq',
+    Finset.mem_univ, if_true]
+  have hpos : (0 : ℝ) < a ^ d * massEigenvalues d N a mass k :=
+    mul_pos (pow_pos ha d) (massOperatorMatrix_eigenvalues_pos d N a mass ha hmass k)
+  have hsq : Real.sqrt (a ^ d * massEigenvalues d N a mass k) *
+      Real.sqrt (a ^ d * massEigenvalues d N a mass k) = a ^ d * massEigenvalues d N a mass k :=
+    Real.mul_self_sqrt hpos.le
+  have ha_ne : (a ^ d : ℝ) ≠ 0 := (pow_pos ha d).ne'
+  have hlam_ne : massEigenvalues d N a mass k ≠ 0 :=
+    (massOperatorMatrix_eigenvalues_pos d N a mass ha hmass k).ne'
+  rw [div_mul_div_comm, hsq]
+  field_simp
+
+/-- Diagonal form of the eigenbasis ↔ operator covariance bridge:
+`gffSiteVariance x = ⟨T_GJ δ_x, T_GJ δ_x⟩`. -/
+lemma gffSiteVariance_eq_covarianceGJ
+    (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (x : FinLatticeSites d N) :
+    gffSiteVariance d N a mass ha hmass x =
+    GaussianField.covariance (latticeCovarianceGJ d N a mass ha hmass)
+      (Pi.single x (1 : ℝ)) (Pi.single x (1 : ℝ)) := by
+  rw [← gffPositionCovariance_self d N a mass ha hmass x,
+    gffPositionCovariance_eq_covarianceGJ d N a mass ha hmass x x]
+
 /-- Eigenbasis expansion of a single-site Wick monomial as an explicit
 sum over multi-indices of total degree `n`. Refines
 `siteWickMonomial_eigenbasis_expansion` by exposing the explicit
