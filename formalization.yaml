@@ -18,6 +18,7 @@ sources:
     id: "ISBN:978-1-4704-2662-5"
     type: "textbook"
     license: "proprietary"
+    note: "nuclear spaces; the kernel theorem (tensor products of nuclear spaces)"
   - title: "The free Markoff field"
     authors: ["Edward Nelson"]
     id: "10.1016/0022-1236(73)90025-6"
@@ -36,13 +37,15 @@ sources:
 
 status:
   scope: >
-    Construction of centered Gaussian probability measures on the weak dual E'
-    of a nuclear Frechet space E, from a continuous linear map T : E -> H into a
-    separable Hilbert space, satisfying the characteristic-functional identity
-    E[exp(i<w,f>)] = exp(-||T f||^2 / 2). Includes the Cameron-Martin / Gel'fand
-    triple, a support theorem under Hilbert-Schmidt T, and Nelson
-    hypercontractivity via log-Sobolev. Lattice + cylinder QFT infrastructure
-    for downstream projects (pphi2, OSforGFF).
+    A Mathlib library for Gaussian measures on duals of nuclear Frechet spaces.
+    Core pieces: (1) nuclearity of the Schwartz space via the Dynin-Mityagin
+    rapid-decay characterization; (2) a nuclear tensor product of nuclear spaces
+    with its universal property (kernel theorem) and functoriality; (3) the
+    construction of a centered Gaussian measure on E' from a CLM T : E -> H with
+    characteristic functional exp(-||T f||^2/2), its Gaussianity and a support
+    theorem under Hilbert-Schmidt T; (4) Nelson hypercontractivity; (5) lattice
+    field-theory infrastructure: FKG inequality, lattice->continuum convergence
+    of the Green's function, and Green's-function invariances.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms:
@@ -50,6 +53,26 @@ status:
     - fourierMultiplier_schwartz_bound        # SchwartzFourier/ResolventUniformBound.lean
     - hermiteGalerkinTrunc_tendsto_schwartz   # SchwartzNuclear/HermiteGalerkin.lean
   main_results:
+    # --- nuclear spaces + tensor product (the structural core) ---
+    - declaration: "GaussianField.schwartz_dyninMityaginSpace"
+      file: "SchwartzNuclear/HermiteNuclear.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "the Schwartz space S(R^d) is a nuclear (Dynin-Mityagin) space"
+          source: "ISBN:978-1-4704-2662-5"
+    - declaration: "GaussianField.nuclear_bilinear_extension_existsUnique"
+      file: "Nuclear/NuclearExtension.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "bounded bilinear maps factor uniquely through the nuclear tensor product (kernel theorem)"
+          source: "ISBN:978-1-4704-2662-5"
+    - declaration: "GaussianField.nuclearTensorProduct_mapCLM"
+      file: "Nuclear/TensorProductFunctorAxioms.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "functoriality of the nuclear tensor product (map on morphisms; id/comp laws)"
+          source: "ISBN:978-1-4704-2662-5"
+    # --- Gaussian measure construction ---
     - declaration: "GaussianField.measure_isGaussian"
       file: "GaussianField/IsGaussian.lean"
       sorry_count: 0
@@ -68,6 +91,19 @@ status:
       literature_dependencies:
         - statement: "Nelson hypercontractive estimate via log-Sobolev"
           source: "10.1016/0022-1236(73)90025-6"
+    # --- lattice field theory ---
+    - declaration: "GaussianField.fkg_lattice_gaussian"
+      file: "Lattice/FKG.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "FKG inequality for the lattice Gaussian field (via Ahlswede-Daykin)"
+          source: "ISBN:978-0-691-08144-3"
+    - declaration: "GaussianField.lattice_green_tendsto_continuum"
+      file: "Lattice/Convergence.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "convergence of the lattice Green's function to the continuum"
+          source: "ISBN:978-0-387-96477-7"
 
 automation:
   methods:
@@ -82,6 +118,8 @@ fidelity:
     Generalized beyond the GFF special case: the construction is
     application-agnostic over any nuclear Frechet space E and any CLM T into any
     separable Hilbert space, rather than specialized to S(R^d) and (-Δ+m^2)^{-1/2}.
+    The nuclear tensor product is built concretely via Dynin-Mityagin coordinates
+    (rapid-decay sequences) rather than the abstract projective tensor product.
 
 review:
   status: "self-assessed"
@@ -91,6 +129,21 @@ review:
 alignment:
   namespace: "GaussianField"
   statements:
+    - source: "ISBN:978-1-4704-2662-5"
+      lean: "GaussianField.schwartz_dyninMityaginSpace"
+      module: "GaussianField.HermiteNuclear"
+      status: "proved"
+      note: "Schwartz space is nuclear (Dynin-Mityagin); fallback axiom retired."
+    - source: "ISBN:978-1-4704-2662-5"
+      lean: "GaussianField.nuclear_bilinear_extension_existsUnique"
+      module: "GaussianField.NuclearExtension"
+      status: "proved"
+      note: "universal property of the nuclear tensor product (kernel theorem)."
+    - source: "ISBN:978-1-4704-2662-5"
+      lean: "GaussianField.nuclearTensorProduct_mapCLM"
+      module: "GaussianField.TensorProductFunctorAxioms"
+      status: "proved"
+      note: "functoriality; id and comp laws also proved."
     - source: "10.1016/0022-1236(73)90025-6"
       lean: "GaussianField.hypercontractive_gaussianReal"
       module: "GaussianField.HypercontractiveNat"
