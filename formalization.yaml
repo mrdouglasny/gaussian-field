@@ -1,0 +1,104 @@
+# formalization.yaml — https://github.com/mathlib-initiative/formalization.yaml (v0.3)
+# Describes the `main` branch state (0 sorries, 3 axioms; see status.md).
+version: "v0.3"
+
+project:
+  name: "gaussian-field"
+  authors: ["Michael R. Douglas"]
+  license: "Apache-2.0"
+
+sources:
+  - title: "Gaussian Measures"
+    authors: ["V. I. Bogachev"]
+    id: "ISBN:978-0-8218-1054-5"
+    type: "textbook"
+    license: "proprietary"
+  - title: "Generalized Functions, Volume 4: Applications of Harmonic Analysis"
+    authors: ["I. M. Gel'fand", "N. Ya. Vilenkin"]
+    id: "ISBN:978-1-4704-2662-5"
+    type: "textbook"
+    license: "proprietary"
+  - title: "The free Markoff field"
+    authors: ["Edward Nelson"]
+    id: "10.1016/0022-1236(73)90025-6"
+    type: "paper"
+    license: "proprietary"
+  - title: "The P(φ)₂ Euclidean (Quantum) Field Theory"
+    authors: ["Barry Simon"]
+    id: "ISBN:978-0-691-08144-3"
+    type: "textbook"
+    license: "proprietary"
+  - title: "Quantum Physics: A Functional Integral Point of View"
+    authors: ["James Glimm", "Arthur Jaffe"]
+    id: "ISBN:978-0-387-96477-7"
+    type: "textbook"
+    license: "proprietary"
+
+status:
+  scope: >
+    Construction of centered Gaussian probability measures on the weak dual E'
+    of a nuclear Frechet space E, from a continuous linear map T : E -> H into a
+    separable Hilbert space, satisfying the characteristic-functional identity
+    E[exp(i<w,f>)] = exp(-||T f||^2 / 2). Includes the Cameron-Martin / Gel'fand
+    triple, a support theorem under Hilbert-Schmidt T, and Nelson
+    hypercontractivity via log-Sobolev. Lattice + cylinder QFT infrastructure
+    for downstream projects (pphi2, OSforGFF).
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms:
+    - embed_l2_uniform_bound                  # Cylinder/MethodOfImages.lean
+    - fourierMultiplier_schwartz_bound        # SchwartzFourier/ResolventUniformBound.lean
+    - hermiteGalerkinTrunc_tendsto_schwartz   # SchwartzNuclear/HermiteGalerkin.lean
+  main_results:
+    - declaration: "GaussianField.measure_isGaussian"
+      file: "GaussianField/IsGaussian.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "characteristic functional / Gaussianity of the constructed measure"
+          source: "10.1016/0022-1236(73)90025-6"
+    - declaration: "GaussianField.support_of_hilbertSchmidt"
+      file: "GaussianField/Support.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "support of a Gaussian measure under Hilbert-Schmidt covariance"
+          source: "ISBN:978-0-8218-1054-5"
+    - declaration: "GaussianField.hypercontractive_gaussianReal"
+      file: "GaussianField/HypercontractiveNat.lean"
+      sorry_count: 0
+      literature_dependencies:
+        - statement: "Nelson hypercontractive estimate via log-Sobolev"
+          source: "10.1016/0022-1236(73)90025-6"
+
+automation:
+  methods:
+    - method: "agent"
+      models: ["claude-opus-4-8"]
+      framework: "Claude Code"
+      prompting_notes: "Cycle-by-cycle proving with compiler-guided repair."
+  notes: "Build excludes future/ ; `lake build All` checks non-default targets."
+
+fidelity:
+  divergences: >
+    Generalized beyond the GFF special case: the construction is
+    application-agnostic over any nuclear Frechet space E and any CLM T into any
+    separable Hilbert space, rather than specialized to S(R^d) and (-Δ+m^2)^{-1/2}.
+
+review:
+  status: "self-assessed"
+  reviewers: []
+  notes: "0 sorries on the active build (main); 3 named analytic axioms remain (see status.md)."
+
+alignment:
+  namespace: "GaussianField"
+  statements:
+    - source: "10.1016/0022-1236(73)90025-6"
+      lean: "GaussianField.hypercontractive_gaussianReal"
+      module: "GaussianField.HypercontractiveNat"
+      status: "proved"
+      note: "Nelson's estimate via the log-Sobolev / Rothaus-Simon route."
+    - source: "ISBN:978-0-8218-1054-5"
+      lean: "GaussianField.support_of_hilbertSchmidt"
+      module: "GaussianField.Support"
+      status: "proved"
+
+acknowledgements: ""
