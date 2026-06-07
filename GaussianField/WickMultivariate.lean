@@ -375,7 +375,7 @@ private noncomputable def gffEigenCoeff
 /-- Pointwise completeness of the eigenbasis:
 `∑ j, e_j(x) · e_j(y) = δ_{xy}`. The (x,y) entry of `M Mᵀ = I` for
 the orthonormal basis matrix `M`. -/
-private lemma eigenbasis_completeness
+lemma eigenbasis_completeness
     (a mass : ℝ) (x y : FinLatticeSites d N) :
     ∑ j, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x *
         (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) y =
