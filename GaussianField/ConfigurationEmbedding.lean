@@ -125,8 +125,8 @@ theorem instMeasurableSpaceConfiguration_eq_comap :
     · -- Partial sums converge to ω(f') by DM expansion
       rw [tendsto_pi_nhds]
       intro ω
-      have h := (DyninMityaginSpace.hasSum_basis (E := E) f').mapL (show E →L[ℝ] ℝ from ω)
-      simp only [ContinuousLinearMap.map_smul, smul_eq_mul] at h
+      have h := (DyninMityaginSpace.hasSum_basis (E := E) f').map ω (map_continuous ω)
+      simp only [Function.comp_def, map_smul, smul_eq_mul] at h
       show Tendsto (fun n => S n ω) atTop (nhds (ω f'))
       exact h.tendsto_sum_nat
   · exact configBasisEval_measurable.comap_le
@@ -627,8 +627,8 @@ theorem prokhorov_configuration
       rw [tendsto_iff_forall_eval_tendsto_topDualPairing]
       intro e; simp only [topDualPairing_apply]
       -- By DM expansion: ω(e) = Σ_m coeff_m(e) * ω(basis_m)
-      have h := (DyninMityaginSpace.hasSum_basis (E := E) e).mapL (show E →L[ℝ] ℝ from ω)
-      simp only [ContinuousLinearMap.map_smul, smul_eq_mul] at h
+      have h := (DyninMityaginSpace.hasSum_basis (E := E) e).map ω (map_continuous ω)
+      simp only [Function.comp_def, map_smul, smul_eq_mul] at h
       -- Rewrite the CLM sum evaluation to match the DM HasSum
       have h_eq : ∀ n, ((Finset.range n).sum fun m =>
           ω (DyninMityaginSpace.basis m) • DyninMityaginSpace.coeff m) e =
