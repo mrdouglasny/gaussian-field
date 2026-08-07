@@ -49,7 +49,8 @@ lemma summable_one_add_rpow_neg_two :
   have h := (summable_nat_add_iff (f := fun n => (↑n : ℝ) ^ ((-2) : ℝ)) 1).mpr
     (Real.summable_nat_rpow.mpr (by norm_num : ((-2) : ℝ) < -1))
   simp only [Nat.cast_add, Nat.cast_one] at h
-  convert h using 1; ext m; simp [add_comm]
+  -- v4.33: `convert` emits an AddCommMonoid instance goal that ext cannot discharge
+  exact h.congr fun m => by rw [add_comm]
 
 /-! ## Finset sup of polynomial bounds -/
 
@@ -103,7 +104,7 @@ theorem clm_image_growth
     ∃ (C : ℝ) (p₁ : ℕ), 0 < C ∧
       ∀ m : ℕ, ‖T (DyninMityaginSpace.basis m)‖ ≤ C * (1 + (m : ℝ)) ^ p₁ := by
   have hcont : Continuous ((normSeminorm ℝ H).comp T.toLinearMap) := by
-    convert T.continuous.norm using 1
+    exact T.continuous.norm
   obtain ⟨s, C₀, hC₀_ne, hle⟩ :=
     Seminorm.bound_of_continuous DyninMityaginSpace.h_with _ hcont
   have hfinset_bound : ∃ (C₁ : ℝ) (p₁ : ℕ), 0 < C₁ ∧

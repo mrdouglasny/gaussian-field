@@ -65,6 +65,7 @@ theorem ell2_basis_orthonormal : Orthonormal ℝ ell2_basis := by
     rw [lp.inner_eq_tsum]
     simp only [lp.coeFn_single, Pi.single_apply]
     convert tsum_zero (α := ℝ) (β := ℕ) with i
+    rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
     simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
     split_ifs <;> simp_all
 
@@ -304,7 +305,7 @@ theorem finset_sum_isCompactOperator
     (hF : ∀ m ∈ s, IsCompactOperator (F m)) :
     IsCompactOperator (∑ m ∈ s, F m) := by
   induction s using Finset.induction with
-  | empty => convert isCompactOperator_zero with x
+  | empty => simpa using isCompactOperator_zero
   | @insert a s ha ih =>
     rw [Finset.sum_insert ha]
     exact (hF _ (Finset.mem_insert_self _ _)).add
@@ -612,6 +613,7 @@ theorem nuclear_sequence_svd
     have h2 := h.mul_left ((σ_ n)⁻¹ ^ 2)
     simp only [← mul_pow] at h2
     convert h2 using 1
+    rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
     rw [mul_pow, inv_pow, h_adjnorm, show σ_ n = Real.sqrt (μ_ n) from rfl,
         Real.sq_sqrt (hμ_nn n)]
     have hμ_ne : μ_ n ≠ 0 := by
@@ -633,11 +635,11 @@ theorem nuclear_sequence_svd
     rw [h_adj_orth] at h
     have h2 : HasSum (fun m => (A.adjoint (e n) : ℕ → ℝ) m *
         (A.adjoint (e k) : ℕ → ℝ) m) 0 := by
-      convert h using 1; ext m
+      refine h.congr_fun fun m => ?_
       rw [real_inner_eq_re_inner ℝ, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]; ring
     have h3 := h2.mul_left ((σ_ n)⁻¹ * (σ_ k)⁻¹)
     simp only [mul_zero] at h3
-    convert h3 using 1; ext m; ring
+    exact h3.congr_fun fun m => by ring
   · -- (8) Zero rows
     intro n hσ m
     show (if σ_ n = 0 then 0 else (σ_ n)⁻¹ * (A.adjoint (e n) : ℕ → ℝ) m) = 0
