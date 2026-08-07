@@ -850,7 +850,7 @@ theorem deriv_hermiteFunction (n : ℕ) (x : ℝ) :
        (hermiteR n).eval (x * Real.sqrt 2) * (-x * e)) x := by
     have := hpoly_hasderiv.mul hexp_hasderiv
     rw [he_def] at this
-    convert this using 2
+    convert this using 2 <;> first | rfl | ring
   -- Compute HasDerivAt for the full hermiteFunction = c_n * (poly * exp)
   have hfn_eq : hermiteFunction n = fun u =>
       hermiteFunctionNormConst n * ((hermiteR n).eval (u * Real.sqrt 2) * Real.exp (-(u ^ 2) / 2)) := by

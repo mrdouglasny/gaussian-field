@@ -191,7 +191,7 @@ private lemma coeff_sq_summable (T : E →L[ℝ] H)
   simp only [ENNReal.toReal_ofNat] at hsumm
   have hsumm' : Summable (fun n => ‖(c : ℕ → ℝ) n‖^(2 : ℕ)) := by
     simp only [← Real.rpow_natCast] at hsumm ⊢
-    convert hsumm using 2
+    convert hsumm using 2 <;> first | rfl | ring | norm_num
   convert hsumm' using 2 with n
   rw [coeff, show adaptedONB T h_inf n = adaptedBasis T h_inf n from
     (adaptedBasis_eq_ONB T h_inf).symm ▸ rfl]
@@ -211,7 +211,7 @@ private lemma coeff_parseval (T : E →L[ℝ] H)
   simp only [ENNReal.toReal_ofNat] at hlp
   have hlp' : ‖c‖^(2 : ℕ) = ∑' n, ‖(c : ℕ → ℝ) n‖^(2 : ℕ) := by
     simp only [← Real.rpow_natCast] at hlp ⊢
-    convert hlp using 2
+    convert hlp using 2 <;> first | rfl | ring | norm_num
   calc ∑' n, (coeff T h_inf n f)^2
       = ∑' n, ‖(c : ℕ → ℝ) n‖^2 := by
         congr 1; ext n
