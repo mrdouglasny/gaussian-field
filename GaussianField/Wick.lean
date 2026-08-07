@@ -235,7 +235,7 @@ private lemma hasDerivAt_charFun_leibniz (f₀ h : E) :
       rwa [mul_comm] at hexp)
   -- Extract the HasDerivAt from the conjunction and simplify at t=0
   convert hleibniz.2 using 2
-  ext ω; simp
+  all_goals first | rfl | (ext ω; simp)
 
 theorem gaussian_ibp (f₀ h : E) :
     ∫ ω : Configuration E,
@@ -341,9 +341,9 @@ private lemma hasDerivAt_weighted_exp_leibniz
       have hfinal := (hc.cexp).const_mul (P ω)
       -- hfinal : HasDerivAt (fun t' => P ω * exp(I * ↑(t'*ωg+ωh)))
       --   (P ω * (exp(...) * (I * ↑(ωg)))) t
-      convert hfinal using 1; ring)
+      convert hfinal using 1 <;> first | rfl | (ring))
   convert hleibniz.2 using 2
-  ext ω; simp
+  all_goals first | rfl | (ext ω; simp)
 
 /-! ## Generalized Gaussian IBP
 
@@ -592,7 +592,7 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
       intro ω; simp only [Fin.prod_univ_succ, Fin.prod_univ_zero, mul_one]
     simp_rw [hg1, hg2]
     simp only [Fin.sum_univ_succ, Fin.sum_univ_zero, add_zero]
-    convert hderiv using 1; ring
+    convert hderiv using 1 <;> first | rfl | (ring)
   | succ n ih =>
     -- We need to show the statement for n+2 polynomial factors.
     -- Strategy: apply IH with h replaced by t·g_last + h, differentiate at t=0.
@@ -721,7 +721,7 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
       by
         have h_sum := HasDerivAt.sum (fun j (_ : j ∈ Finset.univ) =>
           (hA_j j).const_mul (↑(@inner ℝ H _ (T f₀) (T (g' j)))))
-        convert h_sum using 1; ext; simp [Finset.sum_apply]
+        convert h_sum using 1 <;> first | rfl | (ext; simp [Finset.sum_apply])
     -- HasDerivAt for the product part B(t) * I * C(t)
     have hProd : HasDerivAt
         (fun (t : ℝ) => ↑(@inner ℝ H _ (T f₀) (T (t • g_last + h))) * Complex.I *
@@ -738,7 +738,7 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
             Complex.exp (Complex.I * ↑(ω h)) ∂(measure T))
         (0 : ℝ) := by
       have h1 := (hB.mul_const Complex.I).mul hC
-      convert h1 using 1; simp only [zero_smul, zero_add]
+      convert h1 using 1 <;> first | rfl | (simp only [zero_smul, zero_add])
     have hRHS_indep := hSum.add hProd
     -- Now use HasDerivAt.unique to equate the two derivatives
     have hderiv_eq := hRHS_eq.unique hRHS_indep

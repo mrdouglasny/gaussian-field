@@ -149,22 +149,22 @@ private lemma hasDerivAt_exp_half_sq (t : ℝ) :
   have h : HasDerivAt (fun t : ℝ => t ^ 2 / 2) t t := by
     have := (hasDerivAt_pow 2 t).div_const (2 : ℝ)
     simp at this; exact this
-  convert h.exp using 1; ring
+  convert h.exp using 1 <;> first | rfl | (ring)
 
 private lemma hasDerivAt_t_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => t * rexp (t ^ 2 / 2))
       ((1 + t ^ 2) * rexp (t ^ 2 / 2)) t := by
   have h1 : HasDerivAt (fun t : ℝ => t) 1 t := hasDerivAt_id t
   have := h1.mul (hasDerivAt_exp_half_sq t)
-  convert this using 1; ring
+  convert this using 1 <;> first | rfl | (ring)
 
 private lemma hasDerivAt_quad_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => (1 + t ^ 2) * rexp (t ^ 2 / 2))
       ((3 * t + t ^ 3) * rexp (t ^ 2 / 2)) t := by
   have hp : HasDerivAt (fun t : ℝ => 1 + t ^ 2) (2 * t) t := by
-    convert (hasDerivAt_pow 2 t).const_add 1 using 1; simp
+    convert (hasDerivAt_pow 2 t).const_add 1 using 1 <;> first | rfl | (simp)
   have := hp.mul (hasDerivAt_exp_half_sq t)
-  convert this using 1; ring
+  convert this using 1 <;> first | rfl | (ring)
 
 private lemma hasDerivAt_cubic_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => (3 * t + t ^ 3) * rexp (t ^ 2 / 2))
@@ -172,9 +172,9 @@ private lemma hasDerivAt_cubic_mul_exp (t : ℝ) :
   have hp : HasDerivAt (fun t : ℝ => 3 * t + t ^ 3) (3 + 3 * t ^ 2) t := by
     have h1 := (hasDerivAt_id t).const_mul 3
     have h2 := hasDerivAt_pow 3 t
-    convert h1.add h2 using 1; simp [mul_comm]
+    convert h1.add h2 using 1 <;> first | rfl | (simp [mul_comm])
   have := hp.mul (hasDerivAt_exp_half_sq t)
-  convert this using 1; ring
+  convert this using 1 <;> first | rfl | (ring)
 
 lemma fourth_moment_standard_gaussian :
     ∫ x : ℝ, x ^ 4 ∂(gaussianReal 0 1) = 3 := by
