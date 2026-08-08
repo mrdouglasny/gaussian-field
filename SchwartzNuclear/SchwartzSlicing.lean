@@ -499,6 +499,12 @@ private lemma contDiff_parametric_hermiteCoeff (d : ℕ)
     (fun m => by -- hι_bound: ‖D^m_y[f(ι(·,t))](y)‖ ≤ C uniformly in y,t
       exact ⟨f.seminorm ℝ 0 m, fun y t => by
         have := schwartz_slice_y_le_seminorm d f t 0 m y
+        have h_slice :
+            (fun y' : EuclideanSpace ℝ (Fin (d + 1)) =>
+              f (euclideanSnoc (d + 1) y' t)) = ⇑(schwartz_slice_y d f t) := by
+          ext y'
+          simp [schwartz_slice_y]
+        rw [h_slice]
         simpa using this⟩)
 
 /-- Smoothness of the partial Hermite coefficient: the function
@@ -620,8 +626,8 @@ lemma integral_euclidean_snoc (d : ℕ) (g : EuclideanSpace ℝ (Fin (d + 2)) �
   congr 1; funext t
   -- Show the composed function equals g (euclideanSnoc ...)
   show F (t, y') = g (euclideanSnoc (d + 1) ((MeasurableEquiv.toLp 2 _) y') t)
-  simp only [F, e, MeasurableEquiv.piFinSuccAbove_symm_apply, MeasurableEquiv.toLp,
-    MeasurableEquiv.coe_mk]
+  simp only [F, e, MeasurableEquiv.piFinSuccAbove_symm_apply,
+    MeasurableEquiv.toLp_apply]
   congr 1
   ext i
   simp only [euclideanSnoc, WithLp.equiv_symm_apply]

@@ -168,7 +168,9 @@ private lemma schwartz_product_decay
       (fun j y => ‖iteratedFDeriv ℝ (c j) (fs j) y‖) (fun j y => norm_nonneg _)
       (fun j => by
         obtain ⟨C, hC⟩ := (fs j).decay' 0 (c j)
-        exact ⟨C, le_trans (by positivity) (hC 0), fun y => by simpa using hC y⟩)
+        exact ⟨C, le_trans (by positivity) (hC 0), fun y => by
+          change ‖iteratedFDeriv ℝ (c j) (fs j).toFun y‖ ≤ C
+          simpa only [pow_zero, one_mul] using hC y⟩)
       (fun j => by
         obtain ⟨C, hC⟩ := (fs j).decay' k (c j)
         exact ⟨C, le_trans (by positivity) (hC 0), hC⟩)
@@ -257,9 +259,9 @@ private noncomputable def curryCLE (n d : ℕ) :
   refine ContinuousLinearEquiv.mk (LinearEquiv.curry ℝ ℝ (Fin n) (Fin d)) ?_ ?_
   · simpa [LinearEquiv.curry, Function.curry] using
       (continuous_pi fun i => continuous_pi fun j => continuous_apply (i, j))
-  · simpa [LinearEquiv.curry, Function.uncurry] using
-      (continuous_pi fun p : Fin n × Fin d =>
-        ((continuous_apply p.2).comp (continuous_apply p.1)))
+  · apply continuous_pi
+    intro p
+    exact (continuous_apply p.2).comp (continuous_apply p.1)
 
 /-- Flatten a finite family of Euclidean blocks into one Euclidean space. -/
 noncomputable def flattenEuclidean (n d : ℕ) :
@@ -302,7 +304,7 @@ private lemma equivFin_symm_basisVec (d : ℕ) (hd : 0 < d) (m : ℕ)
     simp [RapidDecaySeq.basisVec, hermiteFunctionNd, multiIndexEquiv, euclideanFin1Equiv]
   · simp only [schwartzRapidDecayEquivFin]
     rw [schwartzRapidDecayEquivNd_symm_apply]
-    simp [RapidDecaySeq.basisVec]; rfl
+    simp [RapidDecaySeq.basisVec]
 
 /-- Cast roundtrip: applying `multiIndexEquiv.symm ∘ multiIndexEquiv` to a Fin-cast
 multi-index and casting back recovers the original. Uses proof irrelevance and

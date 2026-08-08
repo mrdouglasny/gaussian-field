@@ -122,11 +122,13 @@ theorem spectralCLM_coord (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) (f : E) (m 
 /-- spectralCLM with the zero sequence is zero. -/
 theorem spectralCLM_zero :
     spectralCLM (E := E) (fun _ => 0) ⟨0, fun _ => by simp⟩ = 0 := by
+  let hzero : IsBoundedSeq (fun _ => (0 : ℝ)) := ⟨0, fun _ => by simp⟩
+  change spectralCLM (E := E) (fun _ => 0) hzero = 0
   ext f : 1
   refine Subtype.ext (funext fun m => ?_)
+  change (spectralCLM (E := E) (fun _ => 0) hzero f : ℕ → ℝ) m = 0
   rw [spectralCLM_coord]
-  simp only [zero_mul, ContinuousLinearMap.zero_apply]
-  rfl
+  simp
 
 /-- spectralCLM respects scalar multiplication:
     spectralCLM (c • σ) = c • spectralCLM σ. -/

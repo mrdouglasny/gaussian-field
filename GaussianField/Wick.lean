@@ -209,7 +209,11 @@ private lemma hasDerivAt_charFun_leibniz (f₀ h : E) :
           (fun ω : Configuration E => Complex.exp (Complex.I * ↑(ω h)))
           (measure T) :=
         charFun_integrand_measurable T h
-      simpa using (hmeas_eval.const_mul Complex.I).mul hmeas_exp)
+      simp only [zero_smul, zero_add]
+      change AEStronglyMeasurable
+        ((fun ω : Configuration E => Complex.I * ↑(ω f₀)) *
+          fun ω => Complex.exp (Complex.I * ↑(ω h))) (measure T)
+      exact (hmeas_eval.const_mul Complex.I).mul hmeas_exp)
     -- (5) ‖F' t ω‖ ≤ bound ω for all t ∈ s
     (.of_forall fun ω => by
       intro t _
@@ -507,9 +511,11 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
           t * @inner ℝ H _ (T f₀) (T (g 0)) + @inner ℝ H _ (T f₀) (T h) := by
         intro t; simp [map_add, map_smul, inner_add_right, inner_smul_right]
       simp_rw [hlin]
-      convert (((hasDerivAt_id (0 : ℝ)).mul_const _).add_const
+      convert (((hasDerivAt_id (0 : ℝ)).mul_const
+        (@inner ℝ H _ (T f₀) (T (g 0)))).add_const
         (@inner ℝ H _ (T f₀) (T h))).ofReal_comp using 1
-      push_cast; ring
+      · funext t; simp
+      · push_cast; ring
     -- Step 2: HasDerivAt for B(t) = ∫ exp(I*↑(ω(t•g₀+h))) dμ
     have hB := hasDerivAt_charFun_leibniz T (g 0) h
     -- Step 3: Product rule for G(t) = A(t) * B(t)
@@ -687,9 +693,11 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
           t * @inner ℝ H _ (T f₀) (T g_last) + @inner ℝ H _ (T f₀) (T h) := by
         intro t; simp [map_add, map_smul, inner_add_right, inner_smul_right]
       simp_rw [hlin]
-      convert (((hasDerivAt_id (0 : ℝ)).mul_const _).add_const
+      convert (((hasDerivAt_id (0 : ℝ)).mul_const
+        (@inner ℝ H _ (T f₀) (T g_last))).add_const
         (@inner ℝ H _ (T f₀) (T h))).ofReal_comp using 1
-      push_cast; ring
+      · funext t; simp
+      · push_cast; ring
     -- C(t) = ∫ ∏ ω(g'ᵢ) * exp(iω(t·g_last+h)) dμ
     have hC : HasDerivAt
         (fun (t : ℝ) => ∫ ω : Configuration E,

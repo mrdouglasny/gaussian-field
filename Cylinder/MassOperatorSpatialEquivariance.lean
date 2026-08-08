@@ -61,7 +61,9 @@ private def massInnerCLM_left
       let hpair : Continuous fun f : CylinderTestFunction L =>
           ((cylinderMassOperator L mass hmass f), cylinderMassOperator L mass hmass g) :=
         ((cylinderMassOperator L mass hmass).continuous).prodMk continuous_const
-      simpa [massInnerBilinear] using continuous_inner.comp hpair }
+      apply (continuous_inner.comp hpair).congr
+      intro f
+      rfl }
 
 @[simp] private theorem massInnerCLM_left_apply
     (mass : ℝ) (hmass : 0 < mass)
@@ -199,6 +201,7 @@ private theorem massInner_spatialTranslation_pure
     have hσ : σ m = Nat.pair (modePartner (Nat.unpair m).1) (Nat.unpair m).2 := by
       simp [σ, Nat.pairEquiv, modePartnerEquiv, Function.Involutive.toPerm,
         Equiv.prodCongrLeft, Function.uncurry]
+      rfl
     set a := (Nat.unpair m).1
     set b := (Nat.unpair m).2
     have hωf :

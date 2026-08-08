@@ -83,8 +83,8 @@ theorem continuous_eval_at (x : ℝ) :
 def circleRestrictionLM (N : ℕ) [NeZero N] :
     SmoothMap_Circle L ℝ →ₗ[ℝ] (ZMod N → ℝ) where
   toFun f k := Real.sqrt (circleSpacing L N) * f (circlePoint L N k)
-  map_add' f g := by ext k; simp [add_apply, mul_add]
-  map_smul' r f := by ext k; simp [smul_apply, mul_left_comm]
+  map_add' f g := by ext k; simp [SmoothMap_Circle.add_apply, mul_add]
+  map_smul' r f := by ext k; simp [SmoothMap_Circle.smul_apply, mul_left_comm]
 
 /-- The circle restriction map: sample a smooth periodic function at N lattice points.
 

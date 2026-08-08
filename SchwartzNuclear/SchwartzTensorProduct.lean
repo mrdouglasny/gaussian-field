@@ -338,7 +338,8 @@ theorem schwartzPointwiseProduct_apply (d : ℕ)
   set a := schwartzRapidDecayEquivNd d f
   set b := schwartzRapidDecayEquiv1D g
   -- Step 1: Unfold to the Hermite series tsum
-  show (schwartzRapidDecayEquivNd (d + 1)).symm (NuclearTensorProduct.pure f g) x = _
+  show (schwartzRapidDecayEquivNd (d + 1)).symm
+    (show RapidDecaySeq from NuclearTensorProduct.pure f g) x = _
   rw [schwartzRapidDecayEquivNd_symm_apply]
   -- Step 2: Rewrite each summand using pure tensor factorization and basis factorization
   -- (pure f g).val n = a.val (unpair n).1 * b.val (unpair n).2

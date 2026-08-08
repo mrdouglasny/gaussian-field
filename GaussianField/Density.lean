@@ -216,6 +216,14 @@ theorem gaussianDensity_measurable (a mass : ℝ) :
         (continuous_apply x).mul
           ((continuous_apply x).comp (massOperator d N a mass).continuous)))).measurable
 
+theorem gaussianDensity_continuous (a mass : ℝ) :
+    Continuous (gaussianDensity d N a mass) := by
+  unfold gaussianDensity
+  exact Real.continuous_exp.comp (continuous_const.mul
+    (continuous_finset_sum _ fun x _ =>
+      (continuous_apply x).mul
+        ((continuous_apply x).comp (massOperator d N a mass).continuous)))
+
 def gaussianDensityWeight (a mass : ℝ) : FinLatticeField d N → ENNReal :=
   fun φ => ENNReal.ofReal (gaussianDensity d N a mass φ)
 
@@ -524,13 +532,17 @@ theorem latticeGaussianFieldLaw_pairing_is_gaussian
       Measure.map (fun ω : Configuration (FinLatticeField d N) =>
           ∑ x : FinLatticeSites d N, f x * (evalMap d N ω) x)
         (latticeGaussianMeasure d N a mass ha hmass) := by
-    simpa [Function.comp] using
-      (Measure.map_map
+    calc
+      _ = Measure.map ((fun φ : FinLatticeField d N =>
+          ∑ x : FinLatticeSites d N, f x * φ x) ∘ evalMap d N)
+          (latticeGaussianMeasure d N a mass ha hmass) :=
+        Measure.map_map
         (g := fun φ : FinLatticeField d N => ∑ x : FinLatticeSites d N, f x * φ x)
         (f := evalMap d N)
         (μ := latticeGaussianMeasure d N a mass ha hmass)
         (measurable_sitePairing (d := d) (N := N) f)
-        (measurable_evalMap (d := d) (N := N)))
+        (measurable_evalMap (d := d) (N := N))
+      _ = _ := by rfl
   rw [hmap]
   have hcoord :
       (fun ω : Configuration (FinLatticeField d N) =>
@@ -834,8 +846,9 @@ theorem normalizedGaussianDensityMeasure_linearFourier
       (integral_withDensity_eq_integral_toReal_smul
         (μ := volume) (f := gaussianDensityWeight d N a mass)
         (f_meas := by
-          simpa [gaussianDensityWeight] using
-            (gaussianDensity_measurable (d := d) (N := N) a mass).ennreal_ofReal)
+          change Measurable (fun φ : FinLatticeField d N =>
+            ENNReal.ofReal (gaussianDensity d N a mass φ))
+          exact (gaussianDensity_continuous (d := d) (N := N) a mass).measurable.ennreal_ofReal)
         (hf_lt_top := hflt)
         (g := fun φ : FinLatticeField d N =>
           Complex.exp (Complex.I * ↑(∑ x : FinLatticeSites d N, f x * φ x))))
@@ -1072,8 +1085,9 @@ theorem latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
 
 theorem gaussianDensityWeight_measurable (a mass : ℝ) :
     Measurable (gaussianDensityWeight d N a mass) := by
-  simpa [gaussianDensityWeight] using
-    (gaussianDensity_measurable (d := d) (N := N) a mass).ennreal_ofReal
+  change Measurable (fun φ : FinLatticeField d N =>
+    ENNReal.ofReal (gaussianDensity d N a mass φ))
+  exact (gaussianDensity_continuous (d := d) (N := N) a mass).measurable.ennreal_ofReal
 
 theorem gaussianDensityWeight_toReal (a mass : ℝ) (φ : FinLatticeField d N) :
     (gaussianDensityWeight d N a mass φ).toReal = gaussianDensity d N a mass φ := by
@@ -1251,7 +1265,10 @@ theorem integrable_mul_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < 
   have hField : Integrable F (latticeGaussianFieldLaw d N a mass ha hmass) := by
     rw [latticeGaussianFieldLaw]
     exact (integrable_map_measure hFm.aestronglyMeasurable
-      (measurable_evalMap (d := d) (N := N)).aemeasurable).mpr (by simpa [evalMap] using hF)
+      (measurable_evalMap (d := d) (N := N)).aemeasurable).mpr (by
+        change Integrable (fun ω => F (evalMap d N ω))
+          (latticeGaussianMeasure d N a mass ha hmass)
+        exact hF.congr <| Filter.Eventually.of_forall fun _ => rfl)
   exact integrable_mul_gaussianDensity_of_fieldLaw (d := d) (N := N) a mass ha hmass F hField
 
 theorem integrable_normalizedGaussianDensityMeasure_iff (a mass : ℝ)
@@ -1305,8 +1322,10 @@ theorem latticeGaussianMeasure_density_integral (a mass : ℝ)
       ∂(latticeGaussianMeasure d N a mass ha hmass) =
     (∫ φ, F φ * gaussianDensity d N a mass φ) /
     (∫ φ, gaussianDensity d N a mass φ) := by
-  simpa [evalMap] using
-    (latticeGaussianMeasure_density_integral_of_fieldLaw (d := d) (N := N) a mass ha hmass F hFm hFρi)
+  change ∫ ω, F (evalMap d N ω)
+      ∂(latticeGaussianMeasure d N a mass ha hmass) = _
+  exact latticeGaussianMeasure_density_integral_of_fieldLaw
+    (d := d) (N := N) a mass ha hmass F hFm hFρi
 
 theorem integrable_mul_gaussianDensity_of_comp_eval (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)

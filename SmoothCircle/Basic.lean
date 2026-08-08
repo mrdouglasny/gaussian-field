@@ -52,7 +52,7 @@ namespace SmoothMap_Circle
 
 instance instFunLike : FunLike (SmoothMap_Circle L ℝ) ℝ ℝ where
   coe f := f.toFun
-  coe_injective' f g h := by cases f; cases g; congr
+  coe_injective f g h := by cases f; cases g; congr
 
 @[ext]
 theorem ext {f g : SmoothMap_Circle L ℝ} (h : ∀ x, f x = g x) : f = g :=

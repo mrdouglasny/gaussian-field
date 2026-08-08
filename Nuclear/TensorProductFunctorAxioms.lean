@@ -247,20 +247,14 @@ theorem mapImage_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[�
   have hT₁_cont : Continuous ((s₁.sup DyninMityaginSpace.p).comp T₁.toLinearMap) := by
     apply Continuous.comp _ T₁.continuous
     apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum DyninMityaginSpace.p s₁)
-    show Continuous fun (x : E₁) =>
-      (Seminorm.coeFnAddMonoidHom ℝ E₁) (∑ i ∈ s₁, DyninMityaginSpace.p i) x
-    simp_rw [map_sum, Finset.sum_apply]
-    exact continuous_finset_sum _ fun i _ =>
+    exact Seminorm.continuous_finsetSum fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
   obtain ⟨t₁, C₁nn, hC₁nn, hle₁⟩ := Seminorm.bound_of_continuous
     DyninMityaginSpace.h_with _ hT₁_cont
   have hT₂_cont : Continuous ((s₂.sup DyninMityaginSpace.p).comp T₂.toLinearMap) := by
     apply Continuous.comp _ T₂.continuous
     apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum DyninMityaginSpace.p s₂)
-    show Continuous fun (x : E₂) =>
-      (Seminorm.coeFnAddMonoidHom ℝ E₂) (∑ i ∈ s₂, DyninMityaginSpace.p i) x
-    simp_rw [map_sum, Finset.sum_apply]
-    exact continuous_finset_sum _ fun i _ =>
+    exact Seminorm.continuous_finsetSum fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
   obtain ⟨t₂, C₂nn, hC₂nn, hle₂⟩ := Seminorm.bound_of_continuous
     DyninMityaginSpace.h_with _ hT₂_cont
@@ -490,10 +484,7 @@ private theorem norm_summable_coeff_comp_CLM
   have hT_cont : Continuous ((s₀.sup DyninMityaginSpace.p).comp T.toLinearMap) := by
     apply Continuous.comp _ T.continuous
     apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum DyninMityaginSpace.p s₀)
-    show Continuous fun (x : E) =>
-      (Seminorm.coeFnAddMonoidHom ℝ E) (∑ i ∈ s₀, DyninMityaginSpace.p i) x
-    simp_rw [map_sum, Finset.sum_apply]
-    exact continuous_finset_sum _ fun i _ =>
+    exact Seminorm.continuous_finsetSum fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
   obtain ⟨t, Dnn, hDnn, hle⟩ := Seminorm.bound_of_continuous
     DyninMityaginSpace.h_with _ hT_cont
@@ -704,10 +695,16 @@ theorem nuclearTensorProduct_mapCLM_comp
   rw [h_basis_comp]
   congr 1
   -- Goal: mapImage (T₁.comp S₁) (T₂.comp S₂) m = T_ST (basisVec m)
-  simp only [T_ST, ContinuousLinearMap.comp_apply, h_basis_S]
+  change mapImage (T₁.comp S₁) (T₂.comp S₂) m =
+    nuclearTensorProduct_mapCLM T₁ T₂
+      (nuclearTensorProduct_mapCLM S₁ S₂
+        (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂))
+  rw [h_basis_S]
   -- Goal: mapImage (T₁∘S₁) (T₂∘S₂) m = mapCLM T₁ T₂ (mapImage S₁ S₂ m)
-  simp only [mapImage, ContinuousLinearMap.comp_apply]
-  exact (nuclearTensorProduct_mapCLM_pure T₁ T₂ _ _).symm
+  simpa only [mapImage, ContinuousLinearMap.comp_apply] using
+    (nuclearTensorProduct_mapCLM_pure T₁ T₂
+      (S₁ (DyninMityaginSpace.basis (Nat.unpair m).1))
+      (S₂ (DyninMityaginSpace.basis (Nat.unpair m).2))).symm
 
 /-- **evalCLM commutes with mapCLM.**
 
@@ -734,29 +731,45 @@ theorem evalCLM_comp_mapCLM
   -- By rapidDecay_expansion, they must agree on all f.
   have key : ∀ m,
       (NuclearTensorProduct.evalCLM φ₁ φ₂).comp (nuclearTensorProduct_mapCLM T₁ T₂)
-        (RapidDecaySeq.basisVec m) =
+        (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂) =
       NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)
-        (RapidDecaySeq.basisVec m) := by
+        (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂) := by
     intro m
     have hbv := NuclearTensorProduct.basisVec_eq_pure hbasis₁ hbasis₂ m
-    simp only [ContinuousLinearMap.comp_apply]
+    change NuclearTensorProduct.evalCLM φ₁ φ₂
+        (nuclearTensorProduct_mapCLM T₁ T₂
+          (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂)) =
+      NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)
+        (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂)
     rw [hbv, nuclearTensorProduct_mapCLM_pure,
         NuclearTensorProduct.evalCLM_pure,
         NuclearTensorProduct.evalCLM_pure]
     simp only [ContinuousLinearMap.comp_apply]
   -- Expand both sides via rapidDecay_expansion and apply key
   have h1 := RapidDecaySeq.rapidDecay_expansion
-    ((NuclearTensorProduct.evalCLM φ₁ φ₂).comp (nuclearTensorProduct_mapCLM T₁ T₂)) f
+    (show RapidDecaySeq →L[ℝ] ℝ from
+      (NuclearTensorProduct.evalCLM φ₁ φ₂).comp
+        (nuclearTensorProduct_mapCLM T₁ T₂))
+    (show RapidDecaySeq from f)
+  change (NuclearTensorProduct.evalCLM φ₁ φ₂)
+      (nuclearTensorProduct_mapCLM T₁ T₂ f) =
+    ∑' m, f.val m * (NuclearTensorProduct.evalCLM φ₁ φ₂)
+      (nuclearTensorProduct_mapCLM T₁ T₂
+        (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂)) at h1
   have h2 := RapidDecaySeq.rapidDecay_expansion
-    (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)) f
-  simp only [ContinuousLinearMap.comp_apply] at h1
+    (show RapidDecaySeq →L[ℝ] ℝ from
+      NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂))
+    (show RapidDecaySeq from f)
+  change NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂) f =
+    ∑' m, f.val m * NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)
+      (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂) at h2
   calc (NuclearTensorProduct.evalCLM φ₁ φ₂) (nuclearTensorProduct_mapCLM T₁ T₂ f)
       = ∑' m, f.val m * (NuclearTensorProduct.evalCLM φ₁ φ₂)
-          (nuclearTensorProduct_mapCLM T₁ T₂ (RapidDecaySeq.basisVec m)) := h1
+          (nuclearTensorProduct_mapCLM T₁ T₂
+            (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂)) := h1
     _ = ∑' m, f.val m * (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂))
-          (RapidDecaySeq.basisVec m) := by
+          (RapidDecaySeq.basisVec m : NuclearTensorProduct E₁ E₂) := by
         congr 1; ext m
-        simp only [ContinuousLinearMap.comp_apply] at key
         congr 1; exact key m
     _ = (NuclearTensorProduct.evalCLM (φ₁.comp T₁) (φ₂.comp T₂)) f := h2.symm
 

@@ -1055,17 +1055,24 @@ theorem pure_continuous :
     rw [nhds_prod_eq]
     apply Filter.mem_of_superset (Filter.prod_mem_prod h_mem₁ h_mem₂)
     intro ⟨e₁, e₂⟩ ⟨he₁, he₂⟩
-    simp only [Set.mem_setOf_eq, sub_zero] at he₁ he₂ ⊢
-    calc RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂)
+    simp only [Set.mem_setOf_eq] at he₁ he₂ ⊢
+    have hpure : RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂) < ε := by
+      calc RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂)
         ≤ ↑C * (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ :=
           hbound e₁ e₂
-      _ ≤ ↑C * 1 * (ε / (↑C + 1)) := by
+        _ ≤ ↑C * 1 * (ε / (↑C + 1)) := by
           apply mul_le_mul (mul_le_mul_of_nonneg_left he₁.le (NNReal.coe_nonneg C))
             he₂.le (apply_nonneg _ _) (mul_nonneg (NNReal.coe_nonneg C) (by linarith))
-      _ = ↑C * ε / (↑C + 1) := by ring
-      _ < ε := by
+        _ = ↑C * ε / (↑C + 1) := by ring
+        _ < ε := by
           rw [div_lt_iff₀ (by positivity : (0 : ℝ) < ↑C + 1)]
           linarith [NNReal.coe_nonneg C]
+    change RapidDecaySeq.rapidDecaySeminorm k
+      ((show RapidDecaySeq from f e₁ e₂) - 0) < ε
+    rw [sub_zero]
+    change RapidDecaySeq.rapidDecaySeminorm k
+      (show RapidDecaySeq from pure e₁ e₂) < ε
+    exact hpure
   · -- Continuity of f x at 0 for each x
     intro e₁
     exact (pureCLM_right e₁).continuous.continuousAt

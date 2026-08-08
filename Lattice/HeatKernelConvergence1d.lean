@@ -279,6 +279,10 @@ theorem latticeEigenvalue1d_tendsto_continuum (m : ℕ) :
       atTop (nhds (HasLaplacianEigenvalues.eigenvalue
         (E := SmoothMap_Circle L ℝ) m)) := by
   simp only [latticeEigenvalue1d, circleSpacing]
+  change Tendsto (fun N : ℕ =>
+    4 / (L / ↑(N + 1)) ^ 2 *
+      sin (π * ↑(SmoothMap_Circle.fourierFreq m) / ↑(N + 1)) ^ 2)
+    atTop (nhds ((2 * π * ↑(SmoothMap_Circle.fourierFreq m) / L) ^ 2))
   -- (4 / (L/(N+1))²) * sin²(π·freq/((N+1))) → (2π·freq/L)²
   -- = (4(N+1)²/L²) * sin²(π·freq/(N+1)) → (2π·freq/L)²
   -- which is exactly latticeEigenvalue1d_tendsto applied to k = fourierFreq m

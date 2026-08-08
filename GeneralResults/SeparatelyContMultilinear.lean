@@ -184,8 +184,7 @@ theorem multilinear_continuous_of_separatelyContinuous
         rwa [abs_of_nonneg (apply_nonneg pSup _)] at hk₀
       have hpk_eq : p k₀ (fs_seq k₀ 0 - fs₀ 0) =
           ‖Phi.curryLeft (fs_seq k₀ 0 - fs₀ 0) (Fin.tail (fs_seq k₀))‖ := by
-        simp only [p, φ, Seminorm.comp_apply, coe_normSeminorm,
-          LinearMap.coe_mk, AddHom.coe_mk]
+        rfl
       linarith [hfs_bound k₀]
     · -- MAIN TERM: Phi.curryLeft (fs₀ 0) (tail fs) → Phi(fs₀)
       rw [hPhi_eq fs₀]
