@@ -53,7 +53,7 @@ private theorem spectral_decay_bound (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) 
   obtain ⟨Cσ, hCσ⟩ := hσ
   obtain ⟨C, hC_pos, s, hdecay⟩ := DyninMityaginSpace.coeff_decay (E := E) 2
   refine ⟨s, |Cσ| * C + 1, by positivity, fun m f => ?_⟩
-  simp only [ContinuousLinearMap.smul_apply, smul_eq_mul]
+  simp only [smul_apply, smul_eq_mul]
   have hpos : (0 : ℝ) < 1 + (↑m : ℝ) := by positivity
   have hm2_pos : (0 : ℝ) < (1 + (↑m : ℝ)) ^ 2 := by positivity
   have hcd := hdecay f m
@@ -116,7 +116,7 @@ theorem spectralCLM_coord (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) (f : E) (m 
     (spectral_decay_bound σ hσ).choose_spec.choose
     (spectral_decay_bound σ hσ).choose_spec.choose_spec.choose
     (spectral_decay_bound σ hσ).choose_spec.choose_spec.choose_spec).choose_spec f m
-  simp only [ContinuousLinearMap.smul_apply, smul_eq_mul] at h
+  simp only [smul_apply, smul_eq_mul] at h
   exact h
 
 /-- spectralCLM with the zero sequence is zero. -/
@@ -138,7 +138,7 @@ theorem spectralCLM_smul (c : ℝ) (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ)
       c • spectralCLM σ hσ := by
   ext f : 1
   refine Subtype.ext (funext fun m => ?_)
-  simp only [ContinuousLinearMap.smul_apply, lp.coeFn_smul, Pi.smul_apply, smul_eq_mul]
+  simp only [smul_apply, lp.coeFn_smul, Pi.smul_apply, smul_eq_mul]
   rw [spectralCLM_coord, spectralCLM_coord]
   ring
 

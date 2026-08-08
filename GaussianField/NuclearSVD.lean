@@ -66,7 +66,7 @@ theorem ell2_basis_orthonormal : Orthonormal ℝ ell2_basis := by
     simp only [lp.coeFn_single, Pi.single_apply]
     convert tsum_zero (α := ℝ) (β := ℕ) with i
     rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
-    simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
+    simp only [RCLike.inner_apply, conj_trivial]
     split_ifs <;> simp_all
 
 /-- ℓ² is infinite-dimensional. -/
@@ -275,7 +275,7 @@ theorem inner_ell2_basis_eq_coord (x : ell2') (m : ℕ) :
     arg 1; ext k
     rw [show @inner ℝ ℝ _ (if k = m then (1 : ℝ) else 0) ((x : ℕ → ℝ) k) =
         if k = m then (x : ℕ → ℝ) k else 0 by
-      simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
+      simp only [RCLike.inner_apply, conj_trivial]
       split_ifs <;> simp]
   rw [tsum_eq_single m (fun k hk => if_neg hk)]
   simp
@@ -331,7 +331,7 @@ theorem nuclear_clm_isCompact (y : ℕ → K) (hy : Summable (fun m => ‖y m‖
   let A_N : ℕ → (ell2' →L[ℝ] K) := fun N => ∑ m ∈ Finset.range N, T m
   have hA_compact : ∀ N, IsCompactOperator (A_N N) := fun N => by
     show IsCompactOperator ⇑(∑ m ∈ Finset.range N, T m)
-    rw [ContinuousLinearMap.coe_sum']
+    rw [FunLike.coe_sum]
     exact finset_sum_isCompactOperator
       (fun m _ => smulRight_isCompactOperator (innerSL ℝ (ell2_basis m)) (y m))
   have hA_tend_tsum : Tendsto A_N atTop (nhds (∑' m, T m)) :=
@@ -453,14 +453,14 @@ theorem summable_sqrt_eigenvalues
     have : (↑(A.adjoint (e n)) : ℕ → ℝ) m =
         @inner ℝ ell2' _ (ell2_basis m) (A.adjoint (e n)) := by
       unfold ell2_basis; rw [lp.inner_single_left]
-      simp [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
+      simp [RCLike.inner_apply, conj_trivial]
     rw [this, ContinuousLinearMap.adjoint_inner_right, hA_basis, real_inner_comm]
   have hc_sum : ∀ n,
       Summable (fun m => (↑(w n) : ℕ → ℝ) m * @inner ℝ K _ (e n) (y m)) := by
     intro n
     exact (lp.summable_inner (𝕜 := ℝ) (w n) (A.adjoint (e n))).congr
       (fun m => by
-        simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real, h_coord]; ring)
+        simp only [RCLike.inner_apply, conj_trivial, h_coord]; ring)
   have hσ_tsum : ∀ n ∈ S, Real.sqrt (μ_ n) =
       ∑' m, (↑(w n) : ℕ → ℝ) m * @inner ℝ K _ (e n) (y m) := by
     intro n _
@@ -474,7 +474,7 @@ theorem summable_sqrt_eigenvalues
             real_inner_self_eq_norm_mul_norm, ← hσ_eq]; field_simp
       rw [← key, ← (lp.hasSum_inner (𝕜 := ℝ) (w n) (A.adjoint (e n))).tsum_eq]
       congr 1; ext m
-      simp only [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real, h_coord]; ring
+      simp only [RCLike.inner_apply, conj_trivial, h_coord]; ring
   calc ∑ n ∈ S, Real.sqrt (μ_ n)
       = ∑ n ∈ S, ∑' m, (↑(w n) : ℕ → ℝ) m * @inner ℝ K _ (e n) (y m) :=
         Finset.sum_congr rfl hσ_tsum
@@ -506,7 +506,7 @@ theorem summable_sqrt_eigenvalues
                     (↑(w n) : ℕ → ℝ) m := by
                   intro n; rw [real_inner_comm]; unfold ell2_basis
                   rw [lp.inner_single_left]
-                  simp [real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real]
+                  simp [RCLike.inner_apply, conj_trivial]
                 simp only [h_conv] at hw_b
                 exact (Real.sqrt_le_sqrt hw_b).trans (by rw [Real.sqrt_one])
               · have he_b := he_bessel (y m) S

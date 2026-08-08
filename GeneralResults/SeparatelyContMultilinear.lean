@@ -136,8 +136,8 @@ theorem multilinear_continuous_of_separatelyContinuous
       set φ : ℕ → E →L[𝕜] 𝕜 := fun k =>
         { toLinearMap :=
             { toFun := fun h => Phi.curryLeft h (Fin.tail (fs_seq k))
-              map_add' := by intro x y; simp [map_add, MultilinearMap.add_apply]
-              map_smul' := by intro c x; simp [map_smul, MultilinearMap.smul_apply] }
+              map_add' := by intro x y; simp [map_add]
+              map_smul' := by intro c x; simp [map_smul] }
           cont := hcont_h (Fin.tail (fs_seq k)) }
       -- Seminorms: p_k(h) = ‖φ_k(h)‖
       set p : ℕ → Seminorm 𝕜 E := fun k => (normSeminorm 𝕜 𝕜).comp (φ k).toLinearMap

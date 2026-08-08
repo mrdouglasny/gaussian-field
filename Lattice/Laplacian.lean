@@ -462,8 +462,7 @@ noncomputable def infiniteLaplacian (d : ℕ) (a : ℝ) :
     set C_val : ℝ := |a⁻¹| ^ 2 * (↑d * (2 * 2 ^ k + 2))
     have hC_nonneg : 0 ≤ C_val := by positivity
     refine ⟨{k}, ⟨⟨C_val, hC_nonneg⟩, fun g => ?_⟩⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def,
-      NNReal.coe_mk]
+    simp only [Seminorm.comp_apply, Finset.sup_singleton]
     -- Goal: seminorm_k(Δg) ≤ C * seminorm_k(g)
     show ∑' x, |(infiniteLaplacianLM d a g).val x| * (1 + latticeNorm x) ^ k ≤
       C_val * (∑' x, |g.val x| * (1 + latticeNorm x) ^ k)
@@ -608,8 +607,8 @@ theorem massOperator_pos_def (d N : ℕ) [NeZero N] (a mass : ℝ)
     (ha : 0 < a) (hmass : 0 < mass)
     (f : FinLatticeField d N) (hf : f ≠ 0) :
     0 < ∑ x, f x * (massOperator d N a mass f) x := by
-  simp only [massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply,
     smul_eq_mul]
   have split : ∀ x : FinLatticeSites d N,

@@ -28,7 +28,7 @@ noncomputable section
 
 namespace GaussianField
 
-open Matrix Finset
+open _root_.GaussianField.Matrix Finset
 
 variable (N : ℕ) [NeZero N]
 
@@ -55,8 +55,8 @@ theorem dft_1d_eigenvalue_pointwise (a : ℝ) (ha : a ≠ 0)
         (fun x : FinLatticeSites 1 N => latticeFourierBasisFun N m (x 0))) y from by
     simp only [negLaplacianMatrix]
     rw [← massOperator_eq_matrix_mulVec]] at hev
-  simp only [massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
     Pi.smul_apply, smul_eq_mul, sq, mul_zero, zero_mul, add_zero] at hev
   simp only [finiteLaplacian, ContinuousLinearMap.coe_mk',
@@ -78,8 +78,8 @@ theorem massOperator_product_eigenvector (a mass : ℝ) (ha : a ≠ 0)
         latticeFourierBasisFun N m₁ (y 0) * latticeFourierBasisFun N m₂ (y 1))) x =
     (latticeEigenvalue1d N a m₁ + latticeEigenvalue1d N a m₂ + mass ^ 2) *
       (latticeFourierBasisFun N m₁ (x 0) * latticeFourierBasisFun N m₂ (x 1)) := by
-  simp only [massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
     Pi.smul_apply, smul_eq_mul]
   simp only [finiteLaplacian, ContinuousLinearMap.coe_mk',

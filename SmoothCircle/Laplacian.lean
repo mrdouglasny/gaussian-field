@@ -75,8 +75,8 @@ theorem derivSC_continuous : Continuous (derivSCLM L : SmoothMap_Circle L ℝ �
     smoothCircle_withSeminorms smoothCircle_withSeminorms
   intro k
   refine ⟨{k + 1}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
-  simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply,
-    NNReal.smul_def, derivSCLM]
+  simp only [Seminorm.comp_apply, Finset.sup_singleton,
+    derivSCLM]
   -- p_k(f') = sup |f'^(k)(x)| = sup |f^(k+1)(x)| = p_{k+1}(f)
   apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
   rintro _ ⟨x, hx, rfl⟩

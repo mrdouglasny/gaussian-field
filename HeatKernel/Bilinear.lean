@@ -315,7 +315,7 @@ theorem greenFunctionBilinear_nonneg [HasLaplacianEigenvalues E]
 Since `coeff_m(f)² / (μ_m + mass²) ≥ 0` for all m, and at least one
 coefficient is nonzero (by the expansion property of DMS), so the sum
 is strictly positive. -/
-theorem greenFunctionBilinear_pos [HasLaplacianEigenvalues E] [T1Space E]
+theorem greenFunctionBilinear_pos [HasLaplacianEigenvalues E]
     (mass : ℝ) (hmass : 0 < mass) (f : E) (hf : f ≠ 0) :
     0 < greenFunctionBilinear mass hmass f f := by
   -- Step 1: f ≠ 0 implies some coefficient is nonzero
@@ -450,7 +450,7 @@ theorem greenFunctionBilinear_continuous_diag [HasLaplacianEigenvalues E]
   · -- Step 2: Partial sums are continuous (they are finite sums of continuous functions)
     apply Filter.Frequently.of_forall
     intro t
-    apply continuous_finset_sum
+    apply continuous_finsetSum
     intro m _
     show Continuous (fun f : E => greenTerm (E := E) mass f f m)
     simp only [greenTerm]

@@ -189,7 +189,7 @@ private def clmRestrictReal {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ 
   map_add' := W.map_add
   map_smul' r f := by
     have h1 : (r : ℝ) • f = ((↑r : ℂ) • f : SchwartzMap D ℂ) := by
-      ext x; simp [SchwartzMap.smul_apply]
+      ext x; simp [smul_apply]
     rw [h1, W.map_smul]
     show ↑r * W f = r • W f
     rw [Complex.real_smul]
@@ -417,7 +417,6 @@ private theorem multilinear_fun_eq_of_real_eq
           simpa [Fin.cons_update] using hBsmul (Fin.cons (ι a) gs) i.succ z f)
         (by
           intro gs
-          change A (Fin.cons (ι a) (fun i => ι (gs i))) = B (Fin.cons (ι a) (fun i => ι (gs i)))
           have hcons : (fun i : Fin (n + 1) => ι (Fin.cases a gs i)) =
               Fin.cons (ι a) (fun i => ι (gs i)) := by
             ext i
@@ -445,7 +444,6 @@ private theorem multilinear_fun_eq_of_real_eq
           simpa [Fin.cons_update] using hBsmul (Fin.cons (ι b) gs) i.succ z f)
         (by
           intro gs
-          change A (Fin.cons (ι b) (fun i => ι (gs i))) = B (Fin.cons (ι b) (fun i => ι (gs i)))
           have hcons : (fun i : Fin (n + 1) => ι (Fin.cases b gs i)) =
               Fin.cons (ι b) (fun i => ι (gs i)) := by
             ext i
@@ -498,14 +496,14 @@ private lemma productTensor_update_add
     (schwartzProductTensor_schwartz n hn (Function.update gs jj g)).choose := by
   ext x
   rw [(schwartzProductTensor_schwartz n hn (Function.update gs jj (f + g))).choose_spec,
-      SchwartzMap.add_apply,
+      add_apply,
       (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose_spec,
       (schwartzProductTensor_schwartz n hn (Function.update gs jj g)).choose_spec]
   conv_lhs => rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
   conv_rhs =>
     rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj),
         ← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
-  simp only [Function.update_self, SchwartzMap.add_apply]
+  simp only [Function.update_self, add_apply]
   have htail : ∀ (h : SchwartzMap D ℝ), ∏ i ∈ Finset.univ.erase jj,
       Function.update gs jj h i (x i) = ∏ i ∈ Finset.univ.erase jj, gs i (x i) := by
     intro h; apply Finset.prod_congr rfl; intro i hi
@@ -524,11 +522,11 @@ private lemma productTensor_update_smul
     a • (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose := by
   ext x
   rw [(schwartzProductTensor_schwartz n hn (Function.update gs jj (a • f))).choose_spec,
-      SchwartzMap.smul_apply, smul_eq_mul,
+      smul_apply, smul_eq_mul,
       (schwartzProductTensor_schwartz n hn (Function.update gs jj f)).choose_spec]
   conv_lhs => rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
   conv_rhs => rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ jj)]
-  simp only [Function.update_self, SchwartzMap.smul_apply, smul_eq_mul]
+  simp only [Function.update_self, smul_apply, smul_eq_mul]
   have htail : ∀ (h : SchwartzMap D ℝ), ∏ i ∈ Finset.univ.erase jj,
       Function.update gs jj h i (x i) = ∏ i ∈ Finset.univ.erase jj, gs i (x i) := by
     intro h; apply Finset.prod_congr rfl; intro i hi
@@ -580,7 +578,7 @@ private def slotInsertionCLM
           ‖w G‖ ≤ (C_w : ℝ) * (s_w.sup (schwartzSeminormFamily ℝ (Fin n → D) ℝ)) G := by
         intro G
         have h := hq_bound G
-        simp only [Seminorm.smul_apply, NNReal.smul_def, smul_eq_mul, q,
+        simp only [smul_apply, NNReal.smul_def, smul_eq_mul, q,
           Seminorm.comp_apply, coe_normSeminorm] at h
         exact h
       -- Step 2: Product tensor slot-insertion combined seminorm estimate.
@@ -848,7 +846,7 @@ theorem schwartz_nuclear_extension (d n : ℕ)
       -- fs = Fin.elim0 since Fin 0 → X is a subsingleton
       have hfs : fs = Fin.elim0 := Subsingleton.elim fs Fin.elim0
       subst hfs
-      simp only [ContinuousLinearMap.smul_apply, smul_eq_mul, schwartzPointEvalCLM_apply,
+      simp only [smul_apply, smul_eq_mul, schwartzPointEvalCLM_apply,
         complexProductTensor_apply, Finset.univ_eq_empty, Finset.prod_empty, mul_one]
     · -- n ≥ 1: the main case
       haveI : Inhabited (Fin n) := ⟨⟨0, hn⟩⟩
@@ -922,14 +920,14 @@ theorem schwartz_nuclear_extension (d n : ℕ)
             have hRe : Re_map (z • f) = z.re • Re_map f - z.im • Im_map f := by
               ext x
               simp only [Re_map, Im_map, SchwartzMap.postcompCLM_apply,
-                Complex.reCLM_apply, Complex.imCLM_apply, SchwartzMap.sub_apply,
-                SchwartzMap.smul_apply, smul_eq_mul]
+                Complex.reCLM_apply, Complex.imCLM_apply, sub_apply,
+                smul_apply, smul_eq_mul]
               simp [Complex.mul_re]
             have hIm : Im_map (z • f) = z.im • Re_map f + z.re • Im_map f := by
               ext x
               simp only [Re_map, Im_map, SchwartzMap.postcompCLM_apply,
-                Complex.reCLM_apply, Complex.imCLM_apply, SchwartzMap.add_apply,
-                SchwartzMap.smul_apply, smul_eq_mul]
+                Complex.reCLM_apply, Complex.imCLM_apply, add_apply,
+                smul_apply, smul_eq_mul]
               simp [Complex.mul_im]; ring
             simp only [RingHom.id_apply]
             apply Complex.ext
@@ -1289,7 +1287,7 @@ theorem schwartz_nuclear_extension (d n : ℕ)
       set cpt0 := complexProductTensor (Fin.elim0 : Fin 0 → SchwartzMap D ℂ)
       have hιf : ι f = (↑(f 0) : ℂ) • cpt0 := by
         ext x
-        simp only [SchwartzMap.smul_apply, smul_eq_mul]
+        simp only [smul_apply, smul_eq_mul]
         show ↑(f x) = ↑(f 0) * cpt0 x
         simp only [cpt0, complexProductTensor_apply, Finset.univ_eq_empty,
           Finset.prod_empty, mul_one, Subsingleton.elim x 0]
@@ -1342,7 +1340,7 @@ theorem schwartz_nuclear_extension (d n : ℕ)
   ext f
   show V f = 0
   rw [schwartz_complex_decomp f]
-  simp only [V, ContinuousLinearMap.sub_apply, map_add, map_smul]
+  simp only [V, sub_apply, map_add, map_smul]
   -- V(ι(Re f)) = 0 and V(ι(Im f)) = 0 by hVι
   have h1 : Vr (ι (SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.reCLM f)) = 0 :=
     hVι _

@@ -182,8 +182,8 @@ theorem nuclear_ell2_embedding_from_decay
     refine ⟨s, ⟨⟨B, hB_nn⟩, ?_⟩⟩
     rw [Seminorm.le_def]
     intro f
-    simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
-               NNReal.smul_def, smul_eq_mul]
+    simp only [Seminorm.comp_apply, coe_normSeminorm,
+               ]
     exact h_norm_bound f
   exact ⟨⟨j_lin, j_cont⟩, fun f m => rfl⟩
 
@@ -238,7 +238,7 @@ theorem nuclear_clm_target_factorization
     intro f w
     rw [DyninMityaginSpace.expansion_H T w f]
     congr 1; ext m
-    simp only [hφ_def, hy_def, ContinuousLinearMap.smul_apply, smul_eq_mul, inner_smul_right]
+    simp only [hφ_def, hy_def, smul_apply, smul_eq_mul, inner_smul_right]
     have hpos : (0 : ℝ) < 1 + (↑m : ℝ) := by positivity
     rw [Real.rpow_neg (le_of_lt hpos)]
     have hne : (1 + (↑m : ℝ)) ^ s_real ≠ 0 := (Real.rpow_pos_of_pos hpos s_real).ne'
@@ -253,7 +253,7 @@ theorem nuclear_clm_target_factorization
       |φ m f| ≤ (C_d * (s_d.sup DyninMityaginSpace.p) f) *
         (1 + (m : ℝ)) ^ ((-2 : ℤ) : ℝ) := by
     intro m f
-    simp only [hφ_def, ContinuousLinearMap.smul_apply, smul_eq_mul]
+    simp only [hφ_def, smul_apply, smul_eq_mul]
     rw [abs_mul, abs_of_pos (Real.rpow_pos_of_pos (by positivity : (0:ℝ) < 1 + ↑m) s_real)]
     have hpos : (0 : ℝ) < 1 + (↑m : ℝ) := by positivity
     have hd := hdecay_strong f m

@@ -305,7 +305,7 @@ theorem gffMultiWickMonomial_orthogonality
       ((latticeGaussianMeasure d N a mass ha hmass).map
         (gffOrthonormalProj d N a mass ha hmass)) := by
     apply Continuous.aestronglyMeasurable
-    apply continuous_finset_prod
+    apply continuous_finsetProd
     intro k _
     exact ((h_wick_cont _).comp (continuous_apply k)).mul
       ((h_wick_cont _).comp (continuous_apply k))
@@ -815,7 +815,7 @@ private lemma integrable_polynomial_gaussianReal_one (p : Polynomial ℝ) :
     ext x
     rw [Polynomial.eval_eq_sum_range]
   rw [h_eval]
-  exact MeasureTheory.integrable_finset_sum _ fun i hi =>
+  exact MeasureTheory.integrable_finsetSum _ fun i hi =>
     (integrable_pow_gaussianReal_one i).const_mul (p.coeff i)
 
 private lemma integrable_wickMonomial_mul_gaussianReal_one (m n : ℕ) :
@@ -974,8 +974,8 @@ theorem gff_wickPower_two_site_inner
     intro ω
     rw [Finset.sum_mul_sum]
   simp_rw [h_distrib]
-  rw [MeasureTheory.integral_finset_sum _ (fun α hα => by
-    apply MeasureTheory.integrable_finset_sum
+  rw [MeasureTheory.integral_finsetSum _ (fun α hα => by
+    apply MeasureTheory.integrable_finsetSum
     intro β hβ
     exact h_summand_int α β)]
   have h_outer :
@@ -990,7 +990,7 @@ theorem gff_wickPower_two_site_inner
               (if α = β then diagFac α else 0) := by
     refine Finset.sum_congr rfl ?_
     intro α hα
-    rw [MeasureTheory.integral_finset_sum _ (fun β hβ => h_summand_int α β)]
+    rw [MeasureTheory.integral_finsetSum _ (fun β hβ => h_summand_int α β)]
     refine Finset.sum_congr rfl ?_
     intro β hβ
     rw [show
@@ -1260,8 +1260,8 @@ theorem gff_wickPower_two_smeared_inner
     intro ω
     rw [Finset.sum_mul_sum]
   simp_rw [h_distrib]
-  rw [MeasureTheory.integral_finset_sum _ (fun α hα => by
-    apply MeasureTheory.integrable_finset_sum
+  rw [MeasureTheory.integral_finsetSum _ (fun α hα => by
+    apply MeasureTheory.integrable_finsetSum
     intro β hβ
     exact h_summand_int α β)]
   have h_outer :
@@ -1276,7 +1276,7 @@ theorem gff_wickPower_two_smeared_inner
               (if α = β then diagFac α else 0) := by
     refine Finset.sum_congr rfl ?_
     intro α hα
-    rw [MeasureTheory.integral_finset_sum _ (fun β hβ => h_summand_int α β)]
+    rw [MeasureTheory.integral_finsetSum _ (fun β hβ => h_summand_int α β)]
     refine Finset.sum_congr rfl ?_
     intro β hβ
     rw [show
@@ -1417,9 +1417,9 @@ theorem integrable_wickMonomial_smeared_mul
     refine Finset.sum_congr rfl fun α _ => Finset.sum_congr rfl fun β _ => ?_
     ring
   rw [MeasureTheory.integrable_congr (Filter.Eventually.of_forall hcongr)]
-  apply MeasureTheory.integrable_finset_sum
+  apply MeasureTheory.integrable_finsetSum
   intro α _
-  apply MeasureTheory.integrable_finset_sum
+  apply MeasureTheory.integrable_finsetSum
   intro β _
   exact (integrable_gffMultiWickMonomial_mul d N a mass ha hmass α β).const_mul _
 

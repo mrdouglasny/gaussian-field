@@ -1983,7 +1983,7 @@ private def liftToConfig (φ : FinLatticeField d N) :
       simp only [Pi.add_apply, add_mul, Finset.sum_add_distrib]
     map_smul' := fun r f => by
       simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.mul_sum, mul_assoc]
-    cont := continuous_finset_sum _ (fun i _ =>
+    cont := continuous_finsetSum _ (fun i _ =>
       (continuous_apply i).mul continuous_const) }
 
 /-- Lifting preserves delta function evaluation: `(liftToConfig φ)(δ_x) = φ(x)`. -/
@@ -2047,8 +2047,8 @@ theorem massOperator_offDiag_nonpos (d N : ℕ) [NeZero N] (a mass : ℝ)
     ∀ x y : FinLatticeSites d N, x ≠ y → massOperatorEntry d N a mass x y ≤ 0 := by
   intro x y hxy
   -- Unfold mass operator entry to CLM operations
-  simp only [massOperatorEntry, massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperatorEntry, massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply, smul_eq_mul]
   -- The delta function at y evaluates to 0 at x ≠ y
   have hδ : finLatticeDelta d N y x = 0 := by
@@ -2131,8 +2131,8 @@ theorem gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
   have hQ_bound : ∀ φ : FinLatticeField d N,
       mass ^ 2 * ∑ x, φ x ^ 2 ≤ ∑ x, φ x * (massOperator d N a mass φ) x := by
     intro φ
-    simp only [massOperator, ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+    simp only [massOperator, add_apply,
+      neg_apply, smul_apply,
       ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply, smul_eq_mul]
     have split : ∀ x : FinLatticeSites d N,
         φ x * (-(finiteLaplacian d N a φ) x + mass ^ 2 * φ x) =
@@ -2174,7 +2174,7 @@ theorem gaussianDensity_integrable (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
   -- Step 4: Dominated by integrable function
   exact hprod.mono
     (Real.continuous_exp.comp (continuous_const.mul
-      (continuous_finset_sum _ fun x _ =>
+      (continuous_finsetSum _ fun x _ =>
         (continuous_apply x).mul
           ((continuous_apply x).comp (massOperator d N a mass).continuous)))).aestronglyMeasurable
     (ae_of_all _ fun φ => by

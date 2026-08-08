@@ -96,7 +96,7 @@ private theorem massInner_invariant_of_pure
         massInnerCLM_left L mass hmass f
     have hψB : ∀ n, ψB (DyninMityaginSpace.basis n) = 0 := by
       intro n
-      simp only [ψB, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+      simp only [ψB, sub_apply, ContinuousLinearMap.comp_apply,
         massInnerCLM_left_apply, sub_eq_zero]
       rw [show (DyninMityaginSpace.basis (E := CylinderTestFunction L) n :
           CylinderTestFunction L) =
@@ -119,7 +119,7 @@ private theorem massInner_invariant_of_pure
       rw [hexp]
       convert tsum_zero with n
       rw [hψB, mul_zero]
-    simp only [ψB, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+    simp only [ψB, sub_apply, ContinuousLinearMap.comp_apply,
       massInnerCLM_left_apply, sub_eq_zero] at hzero
     rwa [massInnerBilinear_symm L mass hmass (S g) (S f),
       massInnerBilinear_symm L mass hmass g f] at hzero
@@ -129,7 +129,7 @@ private theorem massInner_invariant_of_pure
       massInnerCLM_left L mass hmass (NuclearTensorProduct.pure e₁' e₂')
   have hψA : ∀ n, ψA (DyninMityaginSpace.basis n) = 0 := by
     intro n
-    simp only [ψA, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+    simp only [ψA, sub_apply, ContinuousLinearMap.comp_apply,
       massInnerCLM_left_apply, sub_eq_zero]
     rw [show (DyninMityaginSpace.basis (E := CylinderTestFunction L) n :
         CylinderTestFunction L) =
@@ -144,7 +144,7 @@ private theorem massInner_invariant_of_pure
     rw [hexp]
     convert tsum_zero with n
     rw [hψA, mul_zero]
-  simpa only [ψA, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+  simpa only [ψA, sub_apply, ContinuousLinearMap.comp_apply,
     massInnerCLM_left_apply, sub_eq_zero] using hzero
 
 omit hL in
@@ -200,7 +200,7 @@ private theorem massInner_spatialTranslation_pure
   · intro m
     have hσ : σ m = Nat.pair (modePartner (Nat.unpair m).1) (Nat.unpair m).2 := by
       simp [σ, Nat.pairEquiv, modePartnerEquiv, Function.Involutive.toPerm,
-        Equiv.prodCongrLeft, Function.uncurry]
+        Equiv.prodCongrLeft]
       rfl
     set a := (Nat.unpair m).1
     set b := (Nat.unpair m).2
