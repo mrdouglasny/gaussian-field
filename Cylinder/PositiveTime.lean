@@ -234,8 +234,9 @@ theorem ntpSliceSchwartz_pure (a : ℕ)
   have h_extract : ntpExtractSlice a (NuclearTensorProduct.pure g h) =
       DyninMityaginSpace.coeff a g • schwartzRapidDecayEquiv1D h := by
     apply RapidDecaySeq.ext; intro b
-    simp only [ntpExtractSlice_val, NuclearTensorProduct.pure_val,
-      Nat.unpair_pair, RapidDecaySeq.smul_val]
+    change (NuclearTensorProduct.pure g h).val (Nat.pair a b) = _
+    rw [NuclearTensorProduct.pure_val, Nat.unpair_pair,
+      RapidDecaySeq.smul_val]
     -- coeff b h = (schwartzRapidDecayEquiv1D h).val b by definition of ofRapidDecayEquiv
     rfl
   -- Step 2: Apply equiv.symm
@@ -347,9 +348,9 @@ theorem cylinderPositiveTime_negativeTime_disjoint :
       have h1 : schwartzRapidDecayEquiv1D.symm (ntpExtractSlice a f) = 0 := h
       rw [← map_zero schwartzRapidDecayEquiv1D.symm] at h1
       exact schwartzRapidDecayEquiv1D.symm.injective h1
-    have h3 : (ntpExtractSlice a f).val b = (0 : RapidDecaySeq).val b := by
-      rw [h2]
-    simpa using h3
+    have h3 := congrArg (fun x : RapidDecaySeq => x.val b) h2
+    change f.val (Nat.pair a b) = 0 at h3
+    exact h3
   -- Since Nat.pair is surjective, f.val m = 0 for all m
   apply RapidDecaySeq.ext
   intro m

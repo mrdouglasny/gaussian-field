@@ -338,12 +338,9 @@ theorem symmetric_second_diff_bound (f : SmoothMap_Circle L ℝ) (x h : ℝ) :
     have hd : HasDerivAt (fun s => (f : ℝ → ℝ) (x - s)) (-deriv (⇑f) x) 0 := by
       have hf_da : DifferentiableAt ℝ (⇑f) x :=
         (f.smooth.differentiable (by simp)).differentiableAt
-      have h1 : HasDerivAt (⇑f) (deriv (⇑f) x) ((fun s => x - s) 0) := by
-        simp only [sub_zero]; exact hf_da.hasDerivAt
-      have h2 : HasDerivAt (fun s : ℝ => x - s) (-1 : ℝ) (0 : ℝ) := by
-        simpa using (hasDerivAt_const (0 : ℝ) x).sub (hasDerivAt_id (0 : ℝ))
-      have h3 := h1.comp (0 : ℝ) h2
-      simp at h3; convert h3 using 1
+      have h1 : HasDerivAt (⇑f) (deriv (⇑f) x) (x - 0) := by
+        simpa only [sub_zero] using hf_da.hasDerivAt
+      exact h1.comp_const_sub x 0
     exact hd.deriv
   rw [hP₁, hDW_f] at hc₁_eq; simp only [add_sub_cancel_left] at hc₁_eq
   rw [hQ₁, hDW_g] at hc₂_eq; simp only [sub_zero] at hc₂_eq

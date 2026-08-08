@@ -96,7 +96,10 @@ def circleReflection : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ w
     change sobolevSeminorm k (lm f) ≤ (1 : ℝ) • sobolevSeminorm k f
     rw [one_smul]
     refine sobolevSeminorm_affine_precomp_le (-1) 0 (by norm_num) k f _ ?_
-    intro x; simp [lm, neg_mul]
+    intro x
+    change f (-x) = f (-1 * x + 0)
+    congr 1
+    ring
 
 /-- Translation of a smooth periodic function: `(T_v f)(x) = f(x - v)`. -/
 def circleTranslation (v : ℝ) :
@@ -139,7 +142,8 @@ theorem circleReflection_involution :
     (circleReflection L).comp (circleReflection L) =
     ContinuousLinearMap.id ℝ _ := by
   ext f x
-  simp [circleReflection, neg_neg]
+  change f (-(-x)) = f x
+  rw [neg_neg]
 
 /-- Translation by zero is the identity. -/
 theorem circleTranslation_zero :
@@ -152,7 +156,9 @@ theorem circleTranslation_add (u v : ℝ) :
     (circleTranslation L v).comp (circleTranslation L u) =
     circleTranslation L (u + v) := by
   ext f x
-  simp [circleTranslation, sub_sub, add_comm u v]
+  change f ((x - v) - u) = f (x - (u + v))
+  congr 1
+  ring
 
 /-! ## Torus-level symmetry actions -/
 
@@ -234,9 +240,9 @@ theorem torusConfigReflection_involution (ω : Configuration (TorusTestFunction 
     torusConfigReflection L (torusConfigReflection L ω) = ω := by
   apply ContinuousLinearMap.ext
   intro f
-  simp only [torusConfigReflection, ContinuousLinearMap.comp_apply]
-  -- Goal: ω (torusTimeReflection L (torusTimeReflection L f)) = ω f
-  congr 1
-  exact ContinuousLinearMap.ext_iff.mp (torusTimeReflection_involution L) f
+  change ω (torusTimeReflection L (torusTimeReflection L f)) = ω f
+  have h := DFunLike.congr_fun (torusTimeReflection_involution L) f
+  exact congrArg ω <| by
+    simpa only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.id_apply] using h
 
 end GaussianField

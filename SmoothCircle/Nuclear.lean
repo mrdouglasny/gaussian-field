@@ -149,10 +149,10 @@ private theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
         ((contDiff_infty_iff_deriv.mp f.smooth).2.continuous.intervalIntegrable 0 L)
         (((Real.continuous_cos.comp (continuous_const.mul continuous_id)).intervalIntegrable 0 L))
       -- Clean up: v' = cos(cx) = cos(2πmx/L)
-      have h_rw : (fun x => Real.cos (c * x)) = fun x =>
+      have h_rw : ∀ x, Real.cos (c * x) =
           Real.cos (2 * Real.pi * ↑m * x / L) := by
-        ext x; simp [hc_def]; ring_nf
-      rw [h_rw] at h_ibp; clear h_rw
+        intro x; simp [hc_def]; ring_nf
+      simp_rw [h_rw] at h_ibp; clear h_rw
       simp only [h_ibp, hv0, hvL, mul_zero, sub_zero, zero_sub]
       -- The remaining integral: ∫ (deriv f) · v = (L/(2πm)) ∫ (deriv f) · sin
       rw [show (fun x => deriv (⇑f) x * v x) =
@@ -198,10 +198,10 @@ private theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
         (fun x _ => hw_deriv x)
         ((contDiff_infty_iff_deriv.mp f.smooth).2.continuous.intervalIntegrable 0 L)
         (((Real.continuous_sin.comp (continuous_const.mul continuous_id)).intervalIntegrable 0 L))
-      have h_rw : (fun x => Real.sin (c * x)) = fun x =>
+      have h_rw : ∀ x, Real.sin (c * x) =
           Real.sin (2 * Real.pi * ↑m * x / L) := by
-        ext x; simp [hc_def']; ring_nf
-      rw [h_rw] at h_ibp; clear h_rw
+        intro x; simp [hc_def']; ring_nf
+      simp_rw [h_rw] at h_ibp; clear h_rw
       rw [h_ibp, hw_eq, sub_self, zero_sub]
       rw [show (fun x => deriv (⇑f) x * w x) =
           fun x => -(L / (2 * Real.pi * m)) * ((derivSC f) x * Real.cos (c * x)) from by

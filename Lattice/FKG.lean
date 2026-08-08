@@ -979,16 +979,15 @@ theorem fubini_pi_decomp {ι : Type*} [Fintype ι] [DecidableEq ι]
   have hfe : Integrable
       (fun y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) => f (e.symm y))
       (volume.prod volume) := by
-    simpa [Function.comp] using hmp.symm.integrable_comp_of_integrable (g := f) hf
+    exact (hmp.symm.integrable_comp_of_integrable (g := f) hf).congr <|
+      Filter.Eventually.of_forall fun _ => rfl
   calc
     ∫ x, f x = ∫ y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ), f (e.symm y) := by
-      simpa [Function.comp] using
-        (hmp.symm.integral_comp e.symm.measurableEmbedding (fun x => f x)).symm
+      exact (hmp.symm.integral_comp e.symm.measurableEmbedding (fun x => f x)).symm
     _ = ∫ x' : ({j : ι // p j} → ℝ), ∫ y0 : ({j : ι // ¬ p j} → ℝ), f (e.symm (x', y0)) := by
-      simpa using
-        (integral_prod
+      exact integral_prod
           (f := fun y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) => f (e.symm y))
-          hfe)
+          hfe
     _ = ∫ x' : ({j : ι // p j} → ℝ), ∫ t : ℝ,
         f (fun j => if h : j = i then t else x' ⟨j, by simpa [p] using h⟩) := by
       apply integral_congr_ae
@@ -1039,14 +1038,12 @@ theorem fubini_pi_decomp_lintegral {ι : Type*} [Fintype ι] [DecidableEq ι]
     volume_preserving_piEquivPiSubtypeProd (fun _ : ι => ℝ) p
   calc
     ∫⁻ x, f x = ∫⁻ y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ), f (e.symm y) := by
-      simpa [Function.comp] using
-        (hmp.symm.lintegral_comp_emb e.symm.measurableEmbedding (f := f)).symm
+      exact (hmp.symm.lintegral_comp_emb e.symm.measurableEmbedding (f := f)).symm
     _ = ∫⁻ x' : ({j : ι // p j} → ℝ), ∫⁻ y0 : ({j : ι // ¬ p j} → ℝ), f (e.symm (x', y0)) := by
-      simpa using
-        (lintegral_prod (μ := (volume : Measure ({j : ι // p j} → ℝ)))
+      exact lintegral_prod (μ := (volume : Measure ({j : ι // p j} → ℝ)))
           (ν := (volume : Measure ({j : ι // ¬ p j} → ℝ)))
           (f := fun y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) => f (e.symm y))
-          ((hf.comp e.symm.measurable).aemeasurable))
+          ((hf.comp e.symm.measurable).aemeasurable)
     _ = ∫⁻ x' : ({j : ι // p j} → ℝ), ∫⁻ t : ℝ,
         f (fun j => if h : j = i then t else x' ⟨j, by simpa [p] using h⟩) := by
       apply lintegral_congr_ae
@@ -1099,7 +1096,8 @@ theorem integrable_marginal {ι : Type*} [Fintype ι] [DecidableEq ι]
   have hfe : Integrable
       (fun y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) => f (e.symm y))
       (volume.prod volume) := by
-    simpa [Function.comp] using hmp.symm.integrable_comp_of_integrable (g := f) hf
+    exact (hmp.symm.integrable_comp_of_integrable (g := f) hf).congr <|
+      Filter.Eventually.of_forall fun _ => rfl
   have hleft : Integrable (fun x' : ({j : ι // p j} → ℝ) =>
       ∫ y0 : ({j : ι // ¬ p j} → ℝ), f (e.symm (x', y0))) :=
     hfe.integral_prod_left
@@ -1144,9 +1142,11 @@ theorem measurable_marginal_lintegral {ι : Type*} [Fintype ι] [DecidableEq ι]
     by_cases hj : j = i
     · simpa [g, hj] using
         (measurable_snd : Measurable (fun x : ({k : ι // k ≠ i} → ℝ) × ℝ => x.2))
-    · simpa [g, hj] using
-        (measurable_pi_apply ⟨j, hj⟩).comp
-          (measurable_fst : Measurable (fun x : ({j : ι // j ≠ i} → ℝ) × ℝ => x.1))
+    · simp only [g, hj, dite_false]
+      let jj : {k : ι // k ≠ i} := ⟨j, hj⟩
+      have heval : Measurable (fun q : {k : ι // k ≠ i} → ℝ => q jj) :=
+        measurable_pi_apply jj
+      exact heval.comp measurable_fst
   have hgf : Measurable (fun p => f (g p)) := hf.comp hg
   simpa [g] using (Measurable.lintegral_prod_right' (f := fun p => f (g p)) hgf)
 
@@ -1171,7 +1171,8 @@ theorem integrable_fiber_ae {ι : Type*} [Fintype ι] [DecidableEq ι]
   have hfe : Integrable
       (fun y : ({j : ι // p j} → ℝ) × ({j : ι // ¬ p j} → ℝ) => f (e.symm y))
       (volume.prod volume) := by
-    simpa [Function.comp] using hmp.symm.integrable_comp_of_integrable (g := f) hf
+    exact (hmp.symm.integrable_comp_of_integrable (g := f) hf).congr <|
+      Filter.Eventually.of_forall fun _ => rfl
   have hslice : ∀ᵐ x' : ({j : ι // p j} → ℝ) ∂volume,
       Integrable (fun y0 : ({j : ι // ¬ p j} → ℝ) => f (e.symm (x', y0))) :=
     hfe.prod_right_ae
@@ -1392,7 +1393,8 @@ theorem ad_marginal_preservation_lintegral {ι : Type*} [Fintype ι] [DecidableE
     intro j
     by_cases hj : j = i
     · subst hj
-      simpa using measurable_id
+      simp only [dite_true]
+      exact measurable_id
     · simp [hj]
   have hm₁_fib : AEMeasurable (fun t : ℝ => f₁ (fun j => if h : j = i then t else p.1 ⟨j, h⟩))
       volume := (hm₁.comp (hIns p.1)).aemeasurable
@@ -1453,19 +1455,22 @@ theorem ad_marginal_preservation_ennreal {ι : Type*} [Fintype ι] [DecidableEq 
     intro j
     by_cases hj : j = i
     · subst hj
-      simpa using measurable_id
+      simp only [dite_true]
+      exact measurable_id
     · simp [hj]
-  simpa [F₁, F₂, F₃, F₄] using
-    (ahlswede_daykin_one_dim_ennreal F₁ F₂ F₃ F₄
+  change (∫⁻ t, F₁ t) * (∫⁻ t, F₂ t) ≤
+    (∫⁻ t, F₃ t) * (∫⁻ t, F₄ t)
+  exact ahlswede_daykin_one_dim_ennreal F₁ F₂ F₃ F₄
       (hm₁.comp (hIns x'))
       (hm₂.comp (hIns y'))
       (hm₃.comp (hIns (x' ⊔ y')))
       (hm₄.comp (hIns (x' ⊓ y')))
       (fun t s => by
+        simp only [F₁, F₂, F₃, F₄]
         simpa [sup_dite_eq, inf_dite_eq] using
           (hAD
             (fun j => if h : j = i then t else x' ⟨j, h⟩)
-            (fun j => if h : j = i then s else y' ⟨j, h⟩))))
+            (fun j => if h : j = i then s else y' ⟨j, h⟩)))
 
 /-! ### n-dimensional Ahlswede-Daykin by induction -/
 
@@ -1841,9 +1846,11 @@ theorem fkg_from_lattice_condition {ι : Type*} [Fintype ι]
       linarith [sup_le_sup_right (hG hab) (-(n : ℝ))]
     -- FKG for F', G' (nonneg version)
     have hF'_meas : Measurable F' := by
-      simpa [hF'_def, hFn_def] using (hFm.sup measurable_const).add measurable_const
+      rw [hF'_def, hFn_def]
+      fun_prop
     have hG'_meas : Measurable G' := by
-      simpa [hG'_def, hGn_def] using (hGm.sup measurable_const).add measurable_const
+      rw [hG'_def, hGn_def]
+      fun_prop
     have h := fkg_from_lattice_condition_nonneg ρ hρ_nn hρ_lattice F' G'
       hF'_mono hG'_mono hF'_nn hG'_nn hρm hF'_meas hG'_meas hρi
       (by -- Integrable (F'·ρ) = Integrable ((Fn n + n) · ρ)
@@ -2422,8 +2429,8 @@ theorem fkg_perturbed (a mass : ℝ)
   have hρm : Measurable ρ := by
     simpa [hρ_def] using gaussianDensity_measurable (d := d) (N := N) a mass
   have hρ'm : Measurable ρ' := by
-    simpa [hρ'_def] using hρm.mul ((Real.continuous_exp.measurable.comp hV'm.neg)
-      )
+    rw [hρ'_def]
+    fun_prop
   have hfkg := fkg_from_lattice_condition ρ' hρ'_nn hρ'_fkg F' G'
     (isFieldMonotone_lift d N hF) (isFieldMonotone_lift d N hG) hρ'm hF'm hG'm
     hρ'i hFρ'i hGρ'i hFGρ'i

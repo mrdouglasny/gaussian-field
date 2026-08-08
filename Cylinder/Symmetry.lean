@@ -313,8 +313,9 @@ theorem cylinderConfigReflection_involution (ω : Configuration (CylinderTestFun
     cylinderConfigReflection L (cylinderConfigReflection L ω) = ω := by
   apply ContinuousLinearMap.ext
   intro f
-  simp only [cylinderConfigReflection, ContinuousLinearMap.comp_apply]
-  congr 1
-  exact ContinuousLinearMap.ext_iff.mp (cylinderTimeReflection_involution L) f
+  change ω (cylinderTimeReflection L (cylinderTimeReflection L f)) = ω f
+  have h := DFunLike.congr_fun (cylinderTimeReflection_involution L) f
+  exact congrArg ω <| by
+    simpa only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.id_apply] using h
 
 end GaussianField

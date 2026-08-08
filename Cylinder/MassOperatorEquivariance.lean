@@ -185,7 +185,7 @@ theorem cylinderMassOperator_normSq_eq_sum_perMode
             (resolventMultiplierCLM (resolventFreq_pos L mass hmass (Nat.unpair n).1)
               (ntpSliceSchwartz L (Nat.unpair n).1 f))) ^ 2) := by
       funext n
-      simp [F, Nat.pairEquiv]
+      simp [F, Nat.pairEquiv_symm_apply]
     rw [← hF_unpair]
     exact Equiv.tsum_eq Nat.pairEquiv.symm F
   rw [hreindex]
@@ -212,7 +212,7 @@ theorem cylinderMassOperator_normSq_eq_sum_perMode
       funext n
       show (((cylinderMassOperator L mass hmass f) : ℕ → ℝ) n) ^ 2 = F _
       rw [cylinderMassOperator_formula]
-      simp [F, Nat.pairEquiv]
+      simp [F, Nat.pairEquiv_symm_apply]
     rw [h_eq] at h_lp_sum
     exact (Equiv.summable_iff Nat.pairEquiv.symm).mp h_lp_sum
   rw [hF_summable.tsum_prod]

@@ -153,7 +153,7 @@ theorem conjugatedMatrix_sub_entry (M : Matrix Λ Λ ℝ) (α : ℝ)
     (dist : Λ → Λ → ℝ) (y₀ : Λ) (x z : Λ) :
     (conjugatedMatrix M α dist y₀ - M) x z =
       (exp (α * (dist x y₀ - dist z y₀)) - 1) * M x z := by
-  simp only [sub_apply, conjugatedMatrix_entry']
+  simp only [Matrix.sub_apply, conjugatedMatrix_entry']
   ring
 
 /-! ## Perturbation bound -/
@@ -648,7 +648,7 @@ theorem exponential_decay (M : Matrix Λ Λ ℝ)
   · -- If ‖M‖ = 0 then M = 0; if Λ is nonempty this contradicts IsUnit M.det
     have hMeq : M = 0 := by rwa [norm_eq_zero] at hM_zero
     by_cases hne : Nonempty Λ
-    · exfalso; rw [hMeq, Matrix.det_zero hne] at hM_inv; exact not_isUnit_zero hM_inv
+    · exfalso; rw [hMeq, Matrix.det_zero] at hM_inv; exact not_isUnit_zero hM_inv
     · -- Λ is empty: the bound holds vacuously
       rw [not_nonempty_iff] at hne
       exact ⟨1, 1, one_pos, one_pos, fun x => (hne.false x).elim⟩

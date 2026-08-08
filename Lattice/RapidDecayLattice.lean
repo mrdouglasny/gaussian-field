@@ -188,11 +188,10 @@ and coordinate peeling (`Fin.succFunEquiv`). -/
 pairing. Constructed using `Fin.succFunEquiv` (peeling off one coordinate)
 and `Denumerable.eqv` (encoding products and ℤ as ℕ). -/
 private def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
-  | 0 => (Equiv.funUnique (Fin 1) ℤ).trans (Denumerable.eqv ℤ)
+  | 0 => (Equiv.funUnique (Fin 1) ℤ).trans Equiv.intEquivNat
   | d + 1 =>
     (Fin.succFunEquiv ℤ (d + 1)).trans
-      (((latticeEnumSucc d).prodCongr (Denumerable.eqv ℤ)).trans
-        (Denumerable.eqv (ℕ × ℕ)))
+      (((latticeEnumSucc d).prodCongr Equiv.intEquivNat).trans Nat.pairEquiv)
 
 /-- Shell enumeration of ℤ^d: bijection with ℕ (requires `d ≥ 1`).
 For `d = 0`, `(Fin 0 → ℤ)` is a singleton, so no such bijection exists. -/
@@ -342,18 +341,11 @@ private theorem latticeEnumSucc_norm_bound :
               ≤ C * (1 + (m : ℝ)) ^ (p + 1) + (1 + (m : ℝ)) ^ (p + 1) := by
                   gcongr
           _ = (C + 1) * (1 + (m : ℝ)) ^ (p + 1) := by ring
-      have hpair : (Denumerable.eqv (ℕ × ℕ)).symm m = Nat.unpair m := rfl
-      have hint :
-          (Denumerable.eqv ℤ).symm ((Denumerable.eqv (ℕ × ℕ)).symm m).2 =
-            Equiv.intEquivNat.symm ((Denumerable.eqv (ℕ × ℕ)).symm m).2 := rfl
       calc
         latticeNorm ((latticeEnumSucc (d + 1)).symm m)
-            = latticeNorm ((latticeEnumSucc d).symm ((Denumerable.eqv (ℕ × ℕ)).symm m).1) +
-              |((Equiv.intEquivNat.symm ((Denumerable.eqv (ℕ × ℕ)).symm m).2 : ℤ) : ℝ)| := by
-                simp [latticeEnumSucc, latticeNorm_succFunEquiv_symm, hint]
-        _ = latticeNorm ((latticeEnumSucc d).symm (Nat.unpair m).1) +
+            = latticeNorm ((latticeEnumSucc d).symm (Nat.unpair m).1) +
               |((Equiv.intEquivNat.symm (Nat.unpair m).2 : ℤ) : ℝ)| := by
-                simp [hpair]
+                simp [latticeEnumSucc, latticeNorm_succFunEquiv_symm]
         _ ≤ C * (1 + ((Nat.unpair m).1 : ℝ)) ^ p +
               |((Equiv.intEquivNat.symm (Nat.unpair m).2 : ℤ) : ℝ)| := by
                 gcongr

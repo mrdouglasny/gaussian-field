@@ -51,7 +51,7 @@ def derivSC (f : SmoothMap_Circle L ℝ) : SmoothMap_Circle L ℝ where
 theorem derivSC_add (f g : SmoothMap_Circle L ℝ) :
     derivSC L (f + g) = derivSC L f + derivSC L g := by
   ext x
-  simp only [derivSC_apply, add_apply]
+  simp only [derivSC_apply, SmoothMap_Circle.add_apply]
   have hf := (f.contDiffAt_of_smooth 1 x).differentiableAt_one
   have hg := (g.contDiffAt_of_smooth 1 x).differentiableAt_one
   exact deriv_add hf hg
@@ -59,7 +59,7 @@ theorem derivSC_add (f g : SmoothMap_Circle L ℝ) :
 theorem derivSC_smul (r : ℝ) (f : SmoothMap_Circle L ℝ) :
     derivSC L (r • f) = r • derivSC L f := by
   ext x
-  simp only [derivSC_apply, smul_apply]
+  simp only [derivSC_apply, SmoothMap_Circle.smul_apply]
   have hf := (f.contDiffAt_of_smooth 1 x).differentiableAt_one
   exact deriv_const_smul r hf
 
@@ -83,15 +83,15 @@ theorem derivSC_continuous : Continuous (derivSCLM L : SmoothMap_Circle L ℝ �
   -- iteratedDeriv k (deriv f) = iteratedDeriv (k+1) f
   have eq : iteratedDeriv k (deriv (⇑f)) x = iteratedDeriv (k + 1) (⇑f) x := by
     rw [iteratedDeriv_succ']
-  have : iteratedDeriv k (⇑(derivSC L f)) x = iteratedDeriv (k + 1) (⇑f) x := eq
+  have hderiv : iteratedDeriv k (⇑(derivSC L f)) x = iteratedDeriv (k + 1) (⇑f) x := eq
   have bound := norm_iteratedDeriv_le_sobolevSeminorm f (k + 1) hx
-  convert bound using 1
-  · -- beta reduce and use iteratedDeriv k (derivSC f) = iteratedDeriv (k+1) f
-    show ‖iteratedDeriv k (⇑(derivSC L f)) x‖ = ‖iteratedDeriv (k + 1) (⇑f) x‖
-    rw [this]
-  · -- ⟨1, _⟩ • p = p
-    show (⟨1, _⟩ : NNReal) • (sobolevSeminorm (k + 1)) f = _
-    exact one_smul _ _
+  calc
+    ‖iteratedDeriv k (⇑(derivSC L f)) x‖ =
+        ‖iteratedDeriv (k + 1) (⇑f) x‖ := congrArg norm hderiv
+    _ ≤ (sobolevSeminorm (k + 1)) f := bound
+    _ = (⟨1, by norm_num⟩ : NNReal) • (sobolevSeminorm (k + 1)) f := by
+      change _ = (1 : ℝ) * _
+      ring
 
 /-- The derivative as a CLM on smooth periodic functions. -/
 def derivSCCLM : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ where
@@ -110,7 +110,7 @@ def circleLaplacian : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ :=
 
 theorem circleLaplacian_apply (f : SmoothMap_Circle L ℝ) (x : ℝ) :
     (circleLaplacian L f) x = -(deriv (deriv f) x) := by
-  simp [circleLaplacian, derivSCCLM, derivSCLM, derivSC, neg_apply]
+  simp [circleLaplacian, derivSCCLM, derivSCLM, derivSC, SmoothMap_Circle.neg_apply]
 
 /-! ## Derivatives of Fourier basis functions
 
@@ -137,8 +137,8 @@ private theorem hasDerivAt_cos_phase (k : ℕ) (x : ℝ) :
         Real.sin (2 * Real.pi * (k : ℝ) * x / L)) x := by
   have h1 := (Real.hasDerivAt_cos (2 * Real.pi * (k : ℝ) * x / L)).comp x
     (hasDerivAt_fourierPhase L k x)
-  convert (hasDerivAt_const x (Real.sqrt (2 / L))).mul h1 using 1
-  ring
+  convert (hasDerivAt_const x (Real.sqrt (2 / L))).mul h1 using 1 <;>
+    first | rfl | ring
 
 omit hL in
 /-- First derivative of `A · sin(2πkx/L)`. -/
@@ -148,8 +148,8 @@ private theorem hasDerivAt_sin_phase (k : ℕ) (x : ℝ) :
         Real.cos (2 * Real.pi * (k : ℝ) * x / L)) x := by
   have h1 := (Real.hasDerivAt_sin (2 * Real.pi * (k : ℝ) * x / L)).comp x
     (hasDerivAt_fourierPhase L k x)
-  convert (hasDerivAt_const x (Real.sqrt (2 / L))).mul h1 using 1
-  ring
+  convert (hasDerivAt_const x (Real.sqrt (2 / L))).mul h1 using 1 <;>
+    first | rfl | ring
 
 omit hL in
 /-- Second derivative of `A · cos(2πkx/L)`. -/
@@ -158,7 +158,8 @@ private theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
         Real.sin (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * (fourierOmega L k) ^ 2 *
         Real.cos (2 * Real.pi * (k : ℝ) * x / L)) x := by
-  convert (hasDerivAt_sin_phase L k x).const_mul (-fourierOmega L k) using 1 <;> ring_nf
+  convert (hasDerivAt_sin_phase L k x).const_mul (-fourierOmega L k) using 1 <;>
+    first | rfl | ring
 
 omit hL in
 /-- Second derivative of `A · sin(2πkx/L)`. -/
@@ -167,7 +168,8 @@ private theorem hasDerivAt_deriv_sin (k : ℕ) (x : ℝ) :
         Real.cos (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * (fourierOmega L k) ^ 2 *
         Real.sin (2 * Real.pi * (k : ℝ) * x / L)) x := by
-  convert (hasDerivAt_cos_phase L k x).const_mul (fourierOmega L k) using 1 <;> ring_nf
+  convert (hasDerivAt_cos_phase L k x).const_mul (fourierOmega L k) using 1 <;>
+    first | rfl | ring
 
 /-! ## Eigenvalue equation -/
 
@@ -194,7 +196,7 @@ theorem circleLaplacian_fourierBasis (n : ℕ) :
       SmoothMap_Circle.fourierBasis n := by
   ext x
   rw [circleLaplacian_apply]
-  simp only [smul_apply, SmoothMap_Circle.fourierBasis_apply]
+  simp only [SmoothMap_Circle.smul_apply, SmoothMap_Circle.fourierBasis_apply]
   -- Unfold eigenvalue
   show -(deriv (deriv (fourierBasisFun (L := L) n)) x) =
     HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) n *

@@ -236,11 +236,11 @@ theorem cylinderMassOperator_injective (mass : ℝ) (hmass : 0 < mass) :
     change schwartzRapidDecayEquiv1D (ntpSliceSchwartz L a' (f - g)) = 0
     rw [h, map_zero]
   -- f.val m - g.val m = (f - g).val m = (f - g).val (pair a b) = (extract a (f-g)).val b = 0
-  have : (ntpExtractSlice a (f - g)).val b = 0 := by
-    rw [hExtract a]; rfl
-  rw [ntpExtractSlice_val] at this
-  rw [show Nat.pair a b = m from Nat.pair_unpair m] at this
-  simpa using this
+  have hval := congrArg (fun x : RapidDecaySeq => x.val b) (hExtract a)
+  change (f - g).val (Nat.pair a b) = 0 at hval
+  rw [show Nat.pair a b = m from Nat.pair_unpair m] at hval
+  change (f - g).val m = 0
+  exact hval
 
 /-- The cylinder Green's function is strictly positive on nonzero functions.
 

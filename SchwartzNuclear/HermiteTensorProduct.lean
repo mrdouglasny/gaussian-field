@@ -628,6 +628,7 @@ private lemma multiIndexEquiv_succ_apply (d : ℕ) (α : MultiIndex (d + 2)) :
       Nat.pair (multiIndexEquiv d ((Fin.succFunEquiv ℕ (d + 1) α).1))
         ((Fin.succFunEquiv ℕ (d + 1) α).2) := by
   simp [multiIndexEquiv, Equiv.trans_apply, Equiv.prodCongr_apply, Nat.pairEquiv]
+  rfl
 
 /-- Auxiliary: `(multiIndexEquiv (d+1)).symm` unfolds through unpairing. -/
 private lemma multiIndexEquiv_succ_symm (d : ℕ) (n : ℕ) :
@@ -935,8 +936,9 @@ private lemma hermiteFunctionNd_decay (d : ℕ) (α : MultiIndex d) (k n : ℕ) 
     -- ‖x‖² = ∑ |x j|² ≤ (∑ |x j|)² by sum_sq_le_sq_sum_of_nonneg
     have hsq : ∑ j : Fin (d + 1), ‖x j‖ ^ 2 ≤
         (∑ j : Fin (d + 1), |x j|) ^ 2 := by
-      convert Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
-        (fun j _ => abs_nonneg (x j)) using 2
+      simpa only [Real.norm_eq_abs] using
+        Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
+          (fun j _ => abs_nonneg (x j))
     calc √(∑ j, ‖x j‖ ^ 2) ≤ √((∑ j, |x j|) ^ 2) :=
           Real.sqrt_le_sqrt hsq
       _ = ∑ j, |x j| := by
@@ -1410,9 +1412,9 @@ private lemma hermiteCoeffNd_injective_succ (d' : ℕ)
     exact congr_fun (congrArg SchwartzMap.toFun (h_slice y)) t
   have h_val := h_zero (euclideanInit (d' + 1) x) (x (Fin.last (d' + 1)))
   rw [schwartz_slice_eq] at h_val
-  convert h_val using 1
-  congr 1
-  exact (euclideanSnoc_init_last (d' + 1) x).symm
+  change f x = 0
+  rw [← euclideanSnoc_init_last (d' + 1) x]
+  exact h_val
 
 /-- If all multi-dimensional Hermite coefficients are zero, the Schwartz function is zero.
 For `d = d' + 1 ≥ 1`, proved by induction on `d'`:
@@ -1766,8 +1768,9 @@ private lemma schwartzHermiteBasisNd_growth (d : ℕ) (k l : ℕ) :
     rw [EuclideanSpace.norm_eq]
     have hsq : ∑ j : Fin (d + 1), ‖x j‖ ^ 2 ≤
         (∑ j : Fin (d + 1), |x j|) ^ 2 := by
-      convert Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
-        (fun j _ => abs_nonneg (x j)) using 2
+      simpa only [Real.norm_eq_abs] using
+        Finset.sum_sq_le_sq_sum_of_nonneg (s := Finset.univ)
+          (fun j _ => abs_nonneg (x j))
     calc √(∑ j, ‖x j‖ ^ 2) ≤ √((∑ j, |x j|) ^ 2) :=
           Real.sqrt_le_sqrt hsq
       _ = ∑ j, |x j| := by

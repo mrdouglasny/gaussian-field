@@ -48,7 +48,9 @@ private lemma schwartz_sup_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace
     (f : SchwartzMap E ℂ) (c : ℕ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ y : E, ‖iteratedFDeriv ℝ c (⇑f) y‖ ≤ C := by
   obtain ⟨C, hC⟩ := f.decay' 0 c
-  exact ⟨C, le_trans (by positivity) (hC 0), fun y => by simpa using hC y⟩
+  exact ⟨C, le_trans (by positivity) (hC 0), fun y => by
+    change ‖iteratedFDeriv ℝ c f.toFun y‖ ≤ C
+    simpa only [pow_zero, one_mul] using hC y⟩
 
 /-- Schwartz k-decay bound: `∃ C, ∀ y, ‖y‖^k * ‖D^c f y‖ ≤ C`. -/
 private lemma schwartz_k_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
@@ -664,7 +666,10 @@ private def slotInsertionCLM
                         ∏ j ∈ Finset.univ.erase i, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) ((Function.update gs jj f) j)) :=
                   Finset.sum_le_sum fun i _ => mul_le_mul
                     (SchwartzMap.le_seminorm ℝ k _ _ (x i))
-                    (Finset.prod_le_prod (fun j _ => norm_nonneg _) fun j _ => by simpa using SchwartzMap.le_seminorm ℝ 0 _ _ (x j))
+                    (Finset.prod_le_prod (fun j _ => norm_nonneg _) fun j _ => by
+                      have h := SchwartzMap.le_seminorm ℝ 0
+                        (p.val.count j) ((Function.update gs jj f) j) (x j)
+                      simpa only [pow_zero, one_mul] using h)
                     (Finset.prod_nonneg fun j _ => norm_nonneg _)
                     (le_trans (by positivity) (SchwartzMap.le_seminorm ℝ k _ _ (x i)))
               _ = ((SchwartzMap.seminorm ℝ k (p.val.count jj)) ((Function.update gs jj f) jj) *

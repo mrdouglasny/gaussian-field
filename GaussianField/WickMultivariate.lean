@@ -101,8 +101,6 @@ noncomputable def multiIndicesUpToDegree (d N D : ℕ) [NeZero N] :
     Finset (FinLatticeSites d N → ℕ) :=
   haveI : Fintype (ZMod N) := ZMod.fintype N
   haveI : Fintype (FinLatticeSites d N) := Pi.instFintype
-  haveI : DecidableEq (FinLatticeSites d N) :=
-    Classical.decEq (FinLatticeSites d N)
   Fintype.piFinset (fun _ : FinLatticeSites d N => Finset.range (D + 1))
 
 /-- Multi-indices on `FinLatticeSites d N` with total degree exactly `k`
@@ -581,16 +579,28 @@ variable (d N : ℕ) [NeZero N]
 
 /-- The lattice-side `multiIndicesOfDegree d N k` equals the generic
 `multiIndicesOfTotalDegree (FinLatticeSites d N) k`. The two differ
-only by (i) the `MultiIndexLattice.totalDegree` wrapper unfolding to
-`∑ j, α j` and (ii) the choice of `DecidableEq` instance for
-`FinLatticeSites d N` used inside `Fintype.piFinset`. -/
+only by the `MultiIndexLattice.totalDegree` wrapper unfolding to
+`∑ j, α j`. -/
 private lemma multiIndicesOfDegree_eq_generic (k : ℕ) :
     multiIndicesOfDegree d N k =
       multiIndicesOfTotalDegree (FinLatticeSites d N) k := by
+  classical
   ext α
-  simp only [multiIndicesOfDegree, multiIndicesUpToDegree,
-    multiIndicesOfTotalDegree, MultiIndexLattice.totalDegree,
-    Finset.mem_filter, Fintype.mem_piFinset, Finset.mem_range]
+  unfold multiIndicesOfDegree multiIndicesOfTotalDegree
+  rw [Finset.mem_filter, Finset.mem_filter]
+  constructor
+  · rintro ⟨hα, hdegree⟩
+    refine ⟨?_, ?_⟩
+    · rw [Fintype.mem_piFinset]
+      intro a
+      rw [multiIndicesUpToDegree, Fintype.mem_piFinset] at hα
+      exact hα a
+    · simpa [MultiIndexLattice.totalDegree] using hdegree
+  · rintro ⟨hα, hdegree⟩
+    refine ⟨?_, ?_⟩
+    · rw [multiIndicesUpToDegree, Fintype.mem_piFinset]
+      exact Fintype.mem_piFinset.mp hα
+    · simpa [MultiIndexLattice.totalDegree] using hdegree
 
 /-- **Site Wick monomial expansion in the eigenbasis.**
 
@@ -784,9 +794,8 @@ private lemma integrable_pow_gaussianReal_one (k : ℕ) :
       have h_mem0 :=
         ProbabilityTheory.memLp_id_gaussianReal
           (μ := (0 : ℝ)) (v := (1 : NNReal)) (p := (Nat.succ k : NNReal))
-      have h_mem : MeasureTheory.MemLp (fun x : ℝ => x) (Nat.succ k)
-          (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
-        simpa using h_mem0
+      have h_mem : MeasureTheory.MemLp id (Nat.succ k)
+          (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := h_mem0
       have h_norm : MeasureTheory.Integrable (fun x : ℝ => ‖x‖ ^ Nat.succ k)
           (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
         simpa using h_mem.integrable_norm_pow'

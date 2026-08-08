@@ -103,7 +103,7 @@ theorem nuclear_ell2_embedding_from_decay
       have h := (summable_nat_add_iff (f := fun n => (↑n : ℝ) ^ ((-4 : ℤ) : ℝ)) 1).mpr
         (Real.summable_nat_rpow.mpr (by norm_num : ((-4 : ℤ) : ℝ) < -1))
       simp only [Nat.cast_add, Nat.cast_one] at h
-      convert h using 1; ext m; push_cast; ring_nf
+      exact h.congr fun m => by push_cast; ring_nf
     exact Summable.of_nonneg_of_le
       (fun m => by positivity)
       hsq_bound
@@ -125,7 +125,7 @@ theorem nuclear_ell2_embedding_from_decay
     have h := (summable_nat_add_iff (f := fun n => (↑n : ℝ) ^ ((-4 : ℤ) : ℝ)) 1).mpr
       (Real.summable_nat_rpow.mpr (by norm_num : ((-4 : ℤ) : ℝ) < -1))
     simp only [Nat.cast_add, Nat.cast_one] at h
-    convert h using 1; ext m; push_cast; ring_nf
+    exact h.congr fun m => by push_cast; ring_nf
   set ζ4 := ∑' (m : ℕ), (1 + (m : ℝ)) ^ ((-4 : ℤ) : ℝ) with hζ4_def
   have h_norm_sq : ∀ f : E, ‖j_fun f‖ ^ 2 ≤
       C ^ 2 * ζ4 * ((s.sup DyninMityaginSpace.p) f) ^ 2 := by

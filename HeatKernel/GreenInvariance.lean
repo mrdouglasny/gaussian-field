@@ -172,6 +172,7 @@ theorem greenFunctionBilinear_swap_pure
   have hσ_apply : ∀ m, σ m = Nat.pair (Nat.unpair m).2 (Nat.unpair m).1 := by
     intro m
     simp [hσ_def, Nat.pairEquiv, Equiv.prodComm_apply, Function.uncurry, Prod.swap]
+    rfl
   -- coeff m (pure e₁ e₂) = (pure e₁ e₂).val m (definitionally)
   -- pure_val: (pure e₁ e₂).val m = coeff (unpair m).1 e₁ * coeff (unpair m).2 e₂
   have h_eq : ∀ m, DyninMityaginSpace.coeff m (pure f₂ f₁) *
@@ -346,6 +347,7 @@ private theorem greenFunctionBilinear_translation_factor1
     have hσ : σ m = Nat.pair (modePartner (Nat.unpair m).1) (Nat.unpair m).2 := by
       simp [σ, Nat.pairEquiv, modePartnerEquiv, Function.Involutive.toPerm,
         Equiv.prodCongrLeft, Function.uncurry]
+      rfl
     -- Convert coeff to .val, use pure_val, unfold NTP eigenvalue
     show (pure (circleTranslation L v f₁) f₂).val m *
         (pure (circleTranslation L v g₁) g₂).val m /

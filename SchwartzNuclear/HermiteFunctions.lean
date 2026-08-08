@@ -297,7 +297,7 @@ private theorem deriv_hermiteEval_mul_gaussian (m : ℕ) (x : ℝ) :
   have hexp : deriv (fun u : ℝ => Real.exp (-(u ^ 2 / 2))) x = -x * gaussian x := by
     have h1 : HasDerivAt (fun u : ℝ => -(u ^ 2 / 2)) (-x) x := by
       have := ((hasDerivAt_pow 2 x).div_const 2).neg
-      convert this using 1; ring
+      convert this using 1 <;> first | rfl | ring
     exact h1.exp.deriv.trans (mul_comm _ _)
   rw [hexp]
   -- Hermite recurrence: H_{m+1}(x) = x · Hₘ(x) - Hₘ'(x)
@@ -840,7 +840,7 @@ theorem deriv_hermiteFunction (n : ℕ) (x : ℝ) :
   have hexp_hasderiv : HasDerivAt (fun u : ℝ => Real.exp (-(u ^ 2) / 2)) (-x * e) x := by
     have h1 : HasDerivAt (fun u : ℝ => -(u ^ 2) / 2) (-x) x := by
       have := ((hasDerivAt_pow 2 x).neg.div_const 2)
-      convert this using 1; ring
+      convert this using 1 <;> first | rfl | ring
     have h2 := h1.exp
     rw [he_def]
     convert h2 using 1; ring
@@ -850,7 +850,7 @@ theorem deriv_hermiteFunction (n : ℕ) (x : ℝ) :
        (hermiteR n).eval (x * Real.sqrt 2) * (-x * e)) x := by
     have := hpoly_hasderiv.mul hexp_hasderiv
     rw [he_def] at this
-    convert this using 2
+    convert this using 2 <;> first | rfl | ring
   -- Compute HasDerivAt for the full hermiteFunction = c_n * (poly * exp)
   have hfn_eq : hermiteFunction n = fun u =>
       hermiteFunctionNormConst n * ((hermiteR n).eval (u * Real.sqrt 2) * Real.exp (-(u ^ 2) / 2)) := by
@@ -994,7 +994,7 @@ private lemma hasDerivAt_hermiteFunction_sq (n : ℕ) (x : ℝ) :
   have hd : HasDerivAt (hermiteFunction n) (deriv (hermiteFunction n) x) x :=
     ((hermiteFunction_contDiff n 1).differentiable one_ne_zero x).hasDerivAt
   have := hd.mul hd
-  convert this using 1; ring
+  convert this using 1 <;> first | rfl | ring
 
 /-- The derivative of hermiteFunction n is in L² (as a MemLp function). -/
 private lemma deriv_hermiteFunction_memLp (n : ℕ) :
@@ -1358,7 +1358,7 @@ theorem sobolevHermite_hs_sum_bound (s : ℝ) (hs : 1/2 < s) :
     have h := (summable_nat_add_iff (f := fun n => (↑n : ℝ) ^ (-2 * s)) 1).mpr
       (Real.summable_nat_rpow.mpr hexp)
     simp only [Nat.cast_add, Nat.cast_one] at h
-    convert h using 1; ext m; simp [add_comm]
+    exact h.congr fun m => by rw [add_comm]
   exact ⟨∑' (i : ℕ), (1 + (i : ℝ)) ^ (-2 * s), fun N =>
     hsumm.sum_le_tsum (Finset.range N) (fun i _ =>
       Real.rpow_nonneg (by positivity : (0 : ℝ) ≤ 1 + ↑i) _)⟩

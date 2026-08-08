@@ -125,8 +125,8 @@ theorem instMeasurableSpaceConfiguration_eq_comap :
     · -- Partial sums converge to ω(f') by DM expansion
       rw [tendsto_pi_nhds]
       intro ω
-      have h := (DyninMityaginSpace.hasSum_basis (E := E) f').mapL (show E →L[ℝ] ℝ from ω)
-      simp only [ContinuousLinearMap.map_smul, smul_eq_mul] at h
+      have h := (DyninMityaginSpace.hasSum_basis (E := E) f').map ω (map_continuous ω)
+      simp only [Function.comp_def, map_smul, smul_eq_mul] at h
       show Tendsto (fun n => S n ω) atTop (nhds (ω f'))
       exact h.tendsto_sum_nat
   · exact configBasisEval_measurable.comap_le
@@ -189,7 +189,10 @@ theorem prokhorov_sequential {X : Type*} [TopologicalSpace X]
             simp only [Real.norm_eq_abs] at this; exact this
         _ ≤ C + C := add_le_add (hC x) (hC y)
         _ = 2 * C := by ring⟩⟩
-  simpa using hφ_tend f_bcf
+  have ht := hφ_tend f_bcf
+  change Tendsto (fun n => ∫ x, f x ∂(μ (φ n))) atTop
+    (nhds (∫ x, f x ∂ν)) at ht
+  exact ht
 
 /-! ## Prokhorov for Configuration spaces
 
@@ -608,13 +611,15 @@ theorem prokhorov_configuration
     -- g_n(ω) = f(Σ_{m<n} ω(basis_m) • coeff_m)
     apply measurable_of_tendsto_metrizable
       (f := fun n (ω : Configuration E) => f ((Finset.range n).sum fun m =>
-        ω (DyninMityaginSpace.basis m) • DyninMityaginSpace.coeff m))
+        ω (DyninMityaginSpace.basis m) •
+          StrongDual.toWeakDual (DyninMityaginSpace.coeff (E := E) m)))
     · -- Each g_n is measurable: factors as (continuous fn) ∘ configBasisEval
       intro n
       have h_eq : (fun ω : Configuration E => f ((Finset.range n).sum fun m =>
-          ω (DyninMityaginSpace.basis m) • DyninMityaginSpace.coeff m)) =
+          ω (DyninMityaginSpace.basis m) •
+            StrongDual.toWeakDual (DyninMityaginSpace.coeff (E := E) m))) =
         (fun x : ℕ → ℝ => f ((Finset.range n).sum fun m =>
-          x m • DyninMityaginSpace.coeff (E := E) m)) ∘
+          x m • StrongDual.toWeakDual (DyninMityaginSpace.coeff (E := E) m))) ∘
         configBasisEval (E := E) := by ext ω; rfl
       rw [h_eq]
       exact (hf_cont.comp (continuous_finset_sum _ fun m _ =>
@@ -625,20 +630,24 @@ theorem prokhorov_configuration
       apply hf_cont.continuousAt.tendsto.comp
       -- π_n(ω) → ω in the weak-* topology on Configuration E
       rw [tendsto_iff_forall_eval_tendsto_topDualPairing]
-      intro e; simp only [topDualPairing_apply]
+      intro e
+      change Tendsto (fun i => ((Finset.range i).sum fun m =>
+        ω (DyninMityaginSpace.basis m) •
+          StrongDual.toWeakDual (DyninMityaginSpace.coeff (E := E) m)) e)
+        atTop (nhds (ω e))
       -- By DM expansion: ω(e) = Σ_m coeff_m(e) * ω(basis_m)
-      have h := (DyninMityaginSpace.hasSum_basis (E := E) e).mapL (show E →L[ℝ] ℝ from ω)
-      simp only [ContinuousLinearMap.map_smul, smul_eq_mul] at h
+      have h := (DyninMityaginSpace.hasSum_basis (E := E) e).map ω (map_continuous ω)
+      simp only [Function.comp_def, map_smul, smul_eq_mul] at h
       -- Rewrite the CLM sum evaluation to match the DM HasSum
       have h_eq : ∀ n, ((Finset.range n).sum fun m =>
-          ω (DyninMityaginSpace.basis m) • DyninMityaginSpace.coeff m) e =
+          ω (DyninMityaginSpace.basis m) •
+            StrongDual.toWeakDual (DyninMityaginSpace.coeff (E := E) m)) e =
         (Finset.range n).sum fun m =>
           (DyninMityaginSpace.coeff m) e * ω (DyninMityaginSpace.basis m) := by
-        intro n; induction n with
-        | zero => simp
-        | succ n ih =>
-          simp only [Finset.sum_range_succ, ContinuousLinearMap.add_apply, ih,
-            ContinuousLinearMap.smul_apply, smul_eq_mul, mul_comm]
+        intro n
+        rw [← WeakDual.toStrongDual_apply]
+        simp only [map_sum, map_smul, StrongDual.toStrongDual_toWeakDual,
+          _root_.sum_apply, _root_.smul_apply, smul_eq_mul, mul_comm]
       exact (h.tendsto_sum_nat).congr (fun n => (h_eq n).symm)
 
 end GaussianField

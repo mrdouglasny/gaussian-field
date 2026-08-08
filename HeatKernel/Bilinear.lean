@@ -391,16 +391,8 @@ theorem greenFunctionBilinear_continuous_diag [HasLaplacianEigenvalues E]
   have hq_cont : Continuous q := by
     -- sup of continuous seminorms is continuous: sup ≤ sum, and sum is continuous
     refine Seminorm.continuous_of_le ?_ (Seminorm.finset_sup_le_sum _ _)
-    -- Need: Continuous ⇑(∑ i ∈ s, DyninMityaginSpace.p i)
-    show Continuous (fun x : E => (∑ i ∈ s, DyninMityaginSpace.p (E := E) i : Seminorm ℝ E) x)
-    have : (fun x : E => (∑ i ∈ s, DyninMityaginSpace.p (E := E) i : Seminorm ℝ E) x) =
-        (fun x : E => ∑ i ∈ s, DyninMityaginSpace.p (E := E) i x) := by
-      ext x
-      change (Seminorm.coeFnAddMonoidHom ℝ E) (∑ i ∈ s, DyninMityaginSpace.p i) x =
-        ∑ i ∈ s, DyninMityaginSpace.p i x
-      rw [map_sum]; simp [Seminorm.coeFnAddMonoidHom]
-    rw [this]
-    exact continuous_finset_sum _ fun i _ => DyninMityaginSpace.h_with.continuous_seminorm i
+    exact Seminorm.continuous_finsetSum fun i _ =>
+      DyninMityaginSpace.h_with.continuous_seminorm i
   have hmass_sq_pos : (0 : ℝ) < mass ^ 2 := sq_pos_of_pos hmass
   -- Summability of 1/(1+m)^2
   have h1sq : Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
