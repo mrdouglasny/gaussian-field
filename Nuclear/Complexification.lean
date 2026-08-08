@@ -194,7 +194,7 @@ noncomputable def schwartzComplexificationEquiv :
       ext x
       show ↑((p.re + q.re) x) + Complex.I * ↑((p.im + q.im) x) =
         (↑(p.re x) + Complex.I * ↑(p.im x)) + (↑(q.re x) + Complex.I * ↑(q.im x))
-      simp only [SchwartzMap.add_apply, Complex.ofReal_add]
+      simp only [add_apply, Complex.ofReal_add]
       ring
     map_smul' := fun z p => by
       ext x

@@ -286,7 +286,7 @@ instance instCompleteSpace :
     have h_sum_lim : Filter.Tendsto
         (fun n => ∑ m ∈ s, |(u n).val m| * (1 + (m : ℝ)) ^ k)
         Filter.atTop (nhds (∑ m ∈ s, |a m| * (1 + (m : ℝ)) ^ k)) := by
-      apply tendsto_finset_sum
+      apply tendsto_finsetSum
       intro m _
       exact (Filter.Tendsto.abs (ha m)).mul tendsto_const_nhds
     -- Each partial sum ≤ seminorm k (u n) ≤ B
@@ -327,7 +327,7 @@ instance instCompleteSpace :
   have h_lim : Filter.Tendsto
       (fun j => ∑ m ∈ s, |(u n).val m - (u j).val m| * (1 + (m : ℝ)) ^ k)
       Filter.atTop (nhds (∑ m ∈ s, |(u n).val m - a m| * (1 + (m : ℝ)) ^ k)) := by
-    apply tendsto_finset_sum
+    apply tendsto_finsetSum
     intro m _
     exact ((tendsto_const_nhds.sub (ha m)).abs).mul tendsto_const_nhds
   apply le_of_tendsto h_lim
@@ -611,7 +611,7 @@ DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
     have h_bound : RapidDecaySeq.rapidDecaySeminorm k (equiv f) ≤
         (C_nn : ℝ) * (s_fin.sup p) f := by
       have := hle f
-      simp only [Seminorm.smul_apply,
+      simp only [smul_apply,
         NNReal.smul_def, smul_eq_mul] at this
       exact this
     show |(RapidDecaySeq.coeffCLM m (equiv f))| * (1 + (m : ℝ)) ^ k ≤
@@ -619,7 +619,7 @@ DyninMityaginSpace instance using `basis m := equiv.symm (basisVec m)` and
     exact le_trans h_le_tsum h_bound
 
 /-- `ofRapidDecayEquiv` always produces a biorthogonal DM space. -/
-@[reducible] def DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
+theorem DyninMityaginSpace.ofRapidDecayEquiv_hasBiorthogonalBasis
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     {ι : Type} [Countable ι] (p : ι → Seminorm ℝ E) (hp : WithSeminorms p)
@@ -986,7 +986,7 @@ def pureCLM_right (e₁ : E₁) : E₂ →L[ℝ] NuclearTensorProduct E₁ E₂ 
     obtain ⟨C, s₁, s₂, hbound⟩ := pure_seminorm_bound (E₁ := E₁) (E₂ := E₂) k
     refine ⟨s₂, ⟨C * (s₁.sup DyninMityaginSpace.p) e₁,
       mul_nonneg (NNReal.coe_nonneg C) (apply_nonneg _ _)⟩, fun e₂ => ?_⟩
-    simp only [Seminorm.comp_apply]
+    simp only []
     exact hbound e₁ e₂
 
 /-- For fixed `e₂`, the map `e₁ ↦ pure e₁ e₂` is continuous. -/
@@ -1002,7 +1002,7 @@ theorem pure_continuous_left (e₂ : E₂) :
   obtain ⟨C, s₁, s₂, hbound⟩ := pure_seminorm_bound (E₁ := E₁) (E₂ := E₂) k
   refine ⟨s₁, ⟨C * (s₂.sup DyninMityaginSpace.p) e₂,
     mul_nonneg (NNReal.coe_nonneg C) (apply_nonneg _ _)⟩, fun e₁ => ?_⟩
-  simp only [Seminorm.comp_apply]
+  simp only []
   calc RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂)
       ≤ ↑C * (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ :=
         hbound e₁ e₂
@@ -1271,8 +1271,8 @@ def lift
       (norm_withSeminorms ℝ G)
     intro _
     refine ⟨{N}, ⟨K, le_of_lt hK⟩, fun a => ?_⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton,
-      coe_normSeminorm, liftLM]
+    simp only [Finset.sup_singleton,
+      liftLM]
     exact hbound a
 
 /-- The lift factors through pure: `lift B (pure e₁ e₂) = B e₁ e₂`.
@@ -1376,11 +1376,6 @@ end Lift
 /-! ### Bilinear evaluation: tensor product of functionals -/
 
 section Eval
-
-variable [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
-    [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
-    [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
-    [IsTopologicalAddGroup E₂] [ContinuousSMul ℝ E₂] [DyninMityaginSpace E₂]
 
 /-- The bilinear multiplication form `(x, y) ↦ x * y` as a bilinear map ℝ →ₗ ℝ →ₗ ℝ. -/
 private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where

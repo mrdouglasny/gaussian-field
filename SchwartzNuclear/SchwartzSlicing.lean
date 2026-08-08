@@ -863,7 +863,7 @@ lemma schwartz_partial_hermiteCoeff_iteratedFDeriv (d : ℕ)
       iteratedFDeriv_const_smul_apply'
         (((schwartz_slice_y d f t).smooth'.of_le
           (WithTop.coe_le_coe.mpr le_top)).contDiffAt)
-    rw [h_smul, ContinuousMultilinearMap.smul_apply, smul_eq_mul, mul_comm]
+    rw [h_smul, _root_.smul_apply, smul_eq_mul, mul_comm]
     -- schwartz_slice_y d f t = f ∘ euclideanSnoc · t (definitional)
     rfl
   -- Step 3: Pull evaluation at v inside the integral using integral_apply

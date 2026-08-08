@@ -93,8 +93,7 @@ private lemma reindexLM_isBounded (σ : ℕ ≃ ℕ)
   -- and (1+m)^k = (1 + σ.symm n)^k ≤ (C(1+n)^p)^k = C^k (1+n)^{pk}
   set k' := p * k
   refine ⟨{k'}, ⟨C ^ k, by positivity⟩, fun a => ?_⟩
-  simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply,
-    NNReal.smul_def, smul_eq_mul]
+  simp only [Seminorm.comp_apply, Finset.sup_singleton]
   show ∑' m, |a.val (σ m)| * (1 + (m : ℝ)) ^ k ≤
     C ^ k * (∑' n, |a.val n| * (1 + (n : ℝ)) ^ k')
   -- Change of variables n = σ m (so m = σ⁻¹ n):

@@ -389,7 +389,7 @@ private theorem rapidDecay_hermite_hasSum (a : RapidDecaySeq) :
             intro t; induction t using Finset.cons_induction with
             | empty => simp
             | cons a' t' ha' ih =>
-              simp [SchwartzMap.smul_apply, smul_eq_mul, schwartzHermiteBasis1D_apply, g]
+              simp [smul_eq_mul, schwartzHermiteBasis1D_apply, g]
           exact this s
         -- Step 3: iteratedFDeriv of the finite sum
         have h_iFD_sum : iteratedFDeriv ℝ l
@@ -411,7 +411,7 @@ private theorem rapidDecay_hermite_hasSum (a : RapidDecaySeq) :
               (contDiff_const.mul (hermiteFunction_contDiff i l)).of_le le_rfl)
           have hcoe_r : (⇑r : ℝ → ℝ) = fun y =>
               (∑' n, a.val n * hermiteFunction n y) - ∑ i ∈ s, g i y := by
-            ext y; simp only [hr_def, SchwartzMap.sub_apply, rapidDecay_schwartzMap_apply]
+            ext y; simp only [hr_def, sub_apply, rapidDecay_schwartzMap_apply]
             exact congrArg ((∑' n, a.val n * hermiteFunction n y) - ·) (hsum_coe y)
           rw [hcoe_r]
           set h_sum := fun y => ∑ i ∈ s, g i y with h_sum_def
@@ -547,8 +547,7 @@ private lemma fromRapidDecay1DLM_isBounded :
   intro ⟨k, l⟩
   obtain ⟨C, hC, s, hbound⟩ := fromRapidDecay1DLM_bound k l
   exact ⟨{s}, ⟨C, hC.le⟩, fun a => by
-    simp only [Seminorm.comp_apply, schwartzSeminormFamily, Finset.sup_singleton,
-      Seminorm.smul_apply, NNReal.smul_def, smul_eq_mul]
+    simp only [Seminorm.comp_apply, schwartzSeminormFamily, Finset.sup_singleton]
     exact hbound a⟩
 
 /-- The backward CLM: `RapidDecaySeq → SchwartzMap ℝ ℝ` via Hermite expansion. -/
@@ -1252,7 +1251,7 @@ private lemma schwartz_partial_hermiteCoeff_seminorm_bound (d : ℕ) (k' l' : �
     -- Evaluate: (c • D^l' g(y)) v = c * (D^l' g(y) v)
     have heval : ‖(c • iteratedFDeriv ℝ l' g y) v‖ =
         c * ‖iteratedFDeriv ℝ l' g y v‖ := by
-      rw [ContinuousMultilinearMap.smul_apply, norm_smul, Real.norm_of_nonneg hc_nonneg]
+      rw [smul_apply, norm_smul, Real.norm_of_nonneg hc_nonneg]
     rw [heval]
     -- Connect to 1D via schwartz_partial_hermiteCoeff_iteratedFDeriv
     have h_comm := schwartz_partial_hermiteCoeff_iteratedFDeriv d f n l' y v
@@ -1480,7 +1479,7 @@ private lemma hermiteCoeffNd_decay (d' : ℕ) (k : ℝ) :
         ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm ⟨k', l'⟩).comp T.continuous
       obtain ⟨s, C, hCne, hle⟩ := Seminorm.bound_of_continuous hw_src p hp
       exact ⟨s, ↑C, by exact_mod_cast pos_iff_ne_zero.mpr hCne, fun f => by
-        have := hle f; simp only [Seminorm.smul_apply] at this; exact this⟩
+        have := hle f; simp only [smul_apply] at this; exact this⟩
     -- Package the per-index bounds into a finset bound
     have h_clm : ∃ (C₂ : ℝ) (q₂ : Finset (ℕ × ℕ)), 0 < C₂ ∧
         ∀ f, (Finset.Iic q₁).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) (T f) ≤
@@ -2102,7 +2101,7 @@ private lemma toRapidDecayNdLM_isBounded (d' : ℕ) :
       (fun n => by show ((↑(n + 1) : ℝ)) ^ ((-2) : ℝ) = _; simp [add_comm])
   set L := ∑' n : ℕ, (1 + (n : ℝ)) ^ ((-2) : ℝ)
   refine ⟨q, ⟨D * C₁ ^ (k + 2) * L, by positivity⟩, fun f => ?_⟩
-  simp only [Seminorm.comp_apply, Seminorm.smul_apply, NNReal.smul_def, smul_eq_mul]
+  simp only [Seminorm.comp_apply]
   set S := q.sup (schwartzSeminormFamily ℝ (EuclideanSpace ℝ (Fin (d' + 1))) ℝ) f
   show ∑' n, |hermiteCoeffNd (d' + 1) ((multiIndexEquiv d').symm n) f| * (1 + ↑n) ^ k ≤
     D * C₁ ^ (k + 2) * L * S
@@ -2347,7 +2346,7 @@ private theorem rapidDecay_hermite_hasSumNd (d : ℕ) (a : RapidDecaySeq) :
             intro t; induction t using Finset.cons_induction with
             | empty => simp
             | cons a' t' ha' ih =>
-              simp [SchwartzMap.smul_apply, smul_eq_mul, g]
+              simp [smul_eq_mul, g]
           exact this s
         have h_iFD_sum : iteratedFDeriv ℝ l
             (⇑(∑ i ∈ s, a.val i • flatBasisNd d i :
@@ -2370,7 +2369,7 @@ private theorem rapidDecay_hermite_hasSumNd (d : ℕ) (a : RapidDecaySeq) :
               (contDiff_const.mul (flatBasisNd d i).smooth').of_le (mod_cast le_top))
           have hcoe_r : (⇑r : EuclideanSpace ℝ (Fin (d + 1)) → ℝ) = fun y =>
               (∑' n, a.val n * flatBasisNd d n y) - ∑ i ∈ s, g i y := by
-            ext y; simp only [hr_def, SchwartzMap.sub_apply,
+            ext y; simp only [hr_def, sub_apply,
               rapidDecay_schwartzMapNd_apply]
             exact congrArg
               ((∑' n, a.val n * flatBasisNd d n y) - ·) (hsum_coe y)
@@ -2511,8 +2510,7 @@ private lemma fromRapidDecayNdLM_isBounded (d : ℕ) :
   intro ⟨k, l⟩
   obtain ⟨C, hC, s, hbound⟩ := fromRapidDecayNdLM_bound d k l
   exact ⟨{s}, ⟨C, hC.le⟩, fun a => by
-    simp only [Seminorm.comp_apply, schwartzSeminormFamily, Finset.sup_singleton,
-      Seminorm.smul_apply, NNReal.smul_def, smul_eq_mul]
+    simp only [Seminorm.comp_apply, schwartzSeminormFamily, Finset.sup_singleton]
     exact hbound a⟩
 
 /-- The backward continuous linear map for the d-dimensional Hermite expansion.
@@ -2613,8 +2611,7 @@ theorem schwartzRapidDecayEquivNd_symm_apply (d' : ℕ) (a : RapidDecaySeq)
     ((schwartzRapidDecayEquivNd d').symm a) x =
       ∑' n, a.val n * hermiteFunctionNd (d' + 1) ((multiIndexEquiv d').symm n) x := by
   -- The symm of equivOfInverse f₁ f₂ h₁ h₂ applies f₂
-  simp only [schwartzRapidDecayEquivNd, ContinuousLinearEquiv.symm_equivOfInverse,
-    ContinuousLinearEquiv.equivOfInverse_apply]
+  simp only [schwartzRapidDecayEquivNd]
   -- Now the goal is fromRapidDecayNdCLM (d'+1) a x = tsum
   -- fromRapidDecayNdCLM (d'+1) for d'+1 ≥ 1 gives fromRapidDecayNdLM d' a
   -- which is rapidDecay_schwartzMapNd d' a

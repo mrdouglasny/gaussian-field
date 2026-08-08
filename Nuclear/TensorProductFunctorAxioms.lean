@@ -147,7 +147,7 @@ def nuclearTensorProduct_swapCLM
             ℕ → Seminorm ℝ (NuclearTensorProduct E₂ E₁)))
       intro k
       refine ⟨{2 * k}, ⟨(4 : ℝ) ^ k, by positivity⟩, fun f => ?_⟩
-      simp only [Finset.sup_singleton, Seminorm.comp_apply]
+      simp only [Finset.sup_singleton]
       exact swap_seminorm_bound k f }
 
 theorem nuclearTensorProduct_swapCLM_pure

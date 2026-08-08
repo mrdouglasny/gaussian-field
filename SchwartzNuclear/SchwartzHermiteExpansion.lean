@@ -448,7 +448,7 @@ private def harmonicOscillator : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap �
 -- Pointwise: (H f)(x) = -f''(x) + x²f(x)
 private lemma harmonicOscillator_apply (f : SchwartzMap ℝ ℝ) (x : ℝ) :
     harmonicOscillator f x = -(iteratedDeriv 2 (⇑f) x) + x ^ 2 * f x := by
-  simp only [harmonicOscillator, ContinuousLinearMap.add_apply, ContinuousLinearMap.neg_apply,
+  simp only [harmonicOscillator, add_apply, neg_apply,
     ContinuousLinearMap.comp_apply]
   -- SchwartzMap add_apply/neg_apply and derivCLM_apply are rfl; use change to make pointwise
   change -(deriv (deriv (⇑f)) x) + (smulLeftCLM ℝ (fun x : ℝ => x ^ 2) f) x =
@@ -475,7 +475,7 @@ private lemma hermiteCoeff1D_harmonicOscillator_pow :
   | zero => intro n f; simp
   | succ k ih =>
     intro n f
-    rw [pow_succ, ContinuousLinearMap.mul_apply, ih n (harmonicOscillator f),
+    rw [pow_succ, mul_apply_eq_comp, ih n (harmonicOscillator f),
       hermiteCoeff1D_harmonicOscillator, pow_succ]; ring
 
 -- L² norm ≤ sup-seminorms for Schwartz functions
@@ -572,7 +572,7 @@ private lemma clm_finset_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ]
     have h_a : ∀ f : SchwartzMap ℝ ℝ, SchwartzMap.seminorm ℝ a.1 a.2 (T f) ≤
         (C_a : ℝ) * s_a.sup snf f := fun f => by
       have := hle_a f
-      simp only [Seminorm.comp_apply, Seminorm.smul_apply, NNReal.smul_def] at this
+      simp only [Seminorm.comp_apply, smul_apply, NNReal.smul_def] at this
       exact this
     -- Take q large enough
     set q₁ := max q_s.1 (s_a.sup Prod.fst)
@@ -630,7 +630,7 @@ private lemma pow_clm_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (S
     obtain ⟨q_T, C_T, hC_T, h_T⟩ := clm_sup_seminorm_bound T q_k
     refine ⟨q_T, C_k * C_T, by positivity, fun f => ?_⟩
     -- T^(k+1) f = T^k (T f)
-    rw [pow_succ, ContinuousLinearMap.mul_apply]
+    rw [pow_succ, mul_apply_eq_comp]
     calc (Finset.Iic q₀).sup (fun p => SchwartzMap.seminorm ℝ p.1 p.2) ((T ^ k) (T f))
         ≤ C_k * (Finset.Iic q_k).sup (fun p => SchwartzMap.seminorm ℝ p.1 p.2) (T f) :=
           h_k (T f)
@@ -770,7 +770,7 @@ private lemma partial_sum_mul_hermite_integrable (f : SchwartzMap ℝ ℝ) (N m 
     Integrable (fun x => (∑ n ∈ Finset.range N,
       hermiteCoeff1D n f * hermiteFunction n x) * hermiteFunction m x) volume := by
   simp_rw [Finset.sum_mul]
-  apply integrable_finset_sum
+  apply integrable_finsetSum
   intro n _
   exact ((hermite_mul_hermite_integrable n m).const_mul _).congr
     (by filter_upwards with x; ring)
@@ -781,7 +781,7 @@ private lemma partial_sum_inner_hermite (f : SchwartzMap ℝ ℝ) (N m : ℕ) (h
       hermiteCoeff1D n f * hermiteFunction n x) * hermiteFunction m x =
     hermiteCoeff1D m f := by
   simp_rw [Finset.sum_mul]
-  rw [integral_finset_sum _ (fun n _ => by
+  rw [integral_finsetSum _ (fun n _ => by
     exact ((hermite_mul_hermite_integrable n m).const_mul _).congr
       (by filter_upwards with x; ring))]
   simp_rw [show ∀ n, (fun x => hermiteCoeff1D n f * hermiteFunction n x * hermiteFunction m x) =
@@ -802,7 +802,7 @@ private lemma partial_sum_l2_norm_sq (f : SchwartzMap ℝ ℝ) (N : ℕ) :
         ((∑ n ∈ Finset.range N, hermiteCoeff1D n f * hermiteFunction n x) *
           hermiteFunction m x) := by
     congr 1; ext x; simp only [sq, Finset.mul_sum]; congr 1; ext m; ring
-  rw [h1, integral_finset_sum _ (fun m _ =>
+  rw [h1, integral_finsetSum _ (fun m _ =>
     (partial_sum_mul_hermite_integrable f N m).const_mul _)]
   simp_rw [integral_const_mul]
   apply Finset.sum_congr rfl
@@ -815,7 +815,7 @@ private lemma cross_term_integral (f : SchwartzMap ℝ ℝ) (N : ℕ) :
       hermiteCoeff1D n f * hermiteFunction n x) =
     ∑ n ∈ Finset.range N, hermiteCoeff1D n f ^ 2 := by
   simp_rw [Finset.mul_sum]
-  rw [integral_finset_sum _ (fun n _ =>
+  rw [integral_finsetSum _ (fun n _ =>
     ((schwartz_mul_hermite_integrable f n).const_mul (hermiteCoeff1D n f)).congr
       (by filter_upwards with x; ring))]
   congr 1; ext n
@@ -834,7 +834,7 @@ private lemma bessel_identity (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     ((f.memLp 2 volume).integrable_mul (f.memLp 2 volume)).congr
       (by filter_upwards with x; show f x * f x = f x ^ 2; ring)
   have hint_S_memLp : MemLp S 2 volume := by
-    apply memLp_finset_sum; intro n _; exact (hermiteFunction_memLp n).const_mul _
+    apply memLp_finsetSum; intro n _; exact (hermiteFunction_memLp n).const_mul _
   have hint_fS : Integrable (fun x => f x * S x) volume :=
     (f.memLp 2 volume).integrable_mul hint_S_memLp
   have hint_S2 : Integrable (fun x => (S x) ^ 2) volume :=
@@ -932,7 +932,7 @@ private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
     ∑ n ∈ Finset.range N, hermiteCoeff1D n f * hermiteFunction n x with hS_def
   -- Partial sums are in L²
   have hS_memLp : ∀ N, MemLp (S N) 2 volume := fun N => by
-    apply memLp_finset_sum; intro n _; exact (hermiteFunction_memLp n).const_mul _
+    apply memLp_finsetSum; intro n _; exact (hermiteFunction_memLp n).const_mul _
   -- Partial sums converge pointwise to the tsum
   have hS_tendsto : ∀ x, Filter.Tendsto (fun N => S N x) Filter.atTop
       (nhds (∑' n, hermiteCoeff1D n f * hermiteFunction n x)) := fun x =>
@@ -1055,7 +1055,7 @@ private lemma integral_tsum_mul_hermite (f : SchwartzMap ℝ ℝ) (m : ℕ) :
         -- We have ∫ ‖ψₙ * ψₘ‖ = ∫ |ψₙ * ψₘ| ≤ 1
         calc ∫⁻ a, ↑‖hermiteFunction n a * hermiteFunction m a‖₊
             = ∫⁻ a, ENNReal.ofReal ‖hermiteFunction n a * hermiteFunction m a‖ := by
-              congr 1; ext a; exact (ofReal_norm_eq_enorm _).symm
+              congr 1; ext a; exact (ofReal_norm _).symm
           _ = ENNReal.ofReal (∫ a, ‖hermiteFunction n a * hermiteFunction m a‖) := by
               exact (ofReal_integral_eq_lintegral_ofReal hint.norm
                 (Filter.Eventually.of_forall (fun _ => norm_nonneg _))).symm
@@ -1136,7 +1136,7 @@ private lemma parseval_identity (f : SchwartzMap ℝ ℝ) :
     have hS_sq_int : ∀ N, Integrable (fun x => (S N x) ^ 2) volume := by
       intro N
       have hSmemLp : MemLp (S N) 2 volume := by
-        apply memLp_finset_sum; intro n _; exact (hermiteFunction_memLp n).const_mul _
+        apply memLp_finsetSum; intro n _; exact (hermiteFunction_memLp n).const_mul _
       exact (hSmemLp.integrable_mul hSmemLp).congr
         (by filter_upwards with x; show S N x * S N x = S N x ^ 2; ring)
     have hT_sq_aesm : AEStronglyMeasurable (fun x => (T x) ^ 2) volume :=
@@ -1296,7 +1296,7 @@ private lemma schwartz_seminorm_remainder_le (f : SchwartzMap ℝ ℝ) (k l : �
         ∑ i ∈ t, g i y := by
       intro t; induction t using Finset.cons_induction with
       | empty => simp
-      | cons a t' ha ih => simp [SchwartzMap.smul_apply, smul_eq_mul,
+      | cons a t' ha ih => simp [smul_eq_mul,
           schwartzHermiteBasis1D_apply, g]
     exact this s
   -- Step 3: iteratedFDeriv of the finite sum = ∑_{i∈s} iteratedFDeriv(gᵢ)
@@ -1321,7 +1321,7 @@ private lemma schwartz_seminorm_remainder_le (f : SchwartzMap ℝ ℝ) (k l : �
         (contDiff_const.mul (hermiteFunction_contDiff i l)).of_le le_rfl)
     -- ⇑r = ⇑f - (finite sum function)
     have hcoe_r : (⇑r : ℝ → ℝ) = fun y => f y - ∑ i ∈ s, g i y := by
-      ext y; simp only [hr_def, SchwartzMap.sub_apply]
+      ext y; simp only [hr_def, sub_apply]
       exact congrArg (f y - ·) (hsum_coe y)
     rw [hcoe_r]
     -- Compute iteratedFDeriv of (f - sum) via iteratedFDeriv_add + iteratedFDeriv_neg

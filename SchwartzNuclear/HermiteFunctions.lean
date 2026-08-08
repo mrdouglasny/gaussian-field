@@ -620,11 +620,11 @@ private lemma poly_mul_gaussian_schwartz (P : ℝ[X]) :
     obtain ⟨φp, hφp⟩ := hp
     obtain ⟨φq, hφq⟩ := hq
     exact ⟨φp + φq, fun x => by
-      simp only [SchwartzMap.add_apply, Polynomial.eval_add, add_mul, hφp x, hφq x]⟩
+      simp only [add_apply, Polynomial.eval_add, add_mul, hφp x, hφq x]⟩
   | monomial k a =>
     obtain ⟨ψ, hψ⟩ := pow_mul_gaussian_schwartz k
     exact ⟨a • ψ, fun x => by
-      simp only [SchwartzMap.smul_apply, smul_eq_mul, Polynomial.eval_monomial, hψ x]
+      simp only [smul_apply, smul_eq_mul, Polynomial.eval_monomial, hψ x]
       ring⟩
 
 /-- Each Hermite function is a Schwartz function. -/
@@ -634,7 +634,7 @@ theorem hermiteFunction_schwartz (n : ℕ) :
   set Q := (hermiteR n).comp (C (Real.sqrt 2) * X) with hQ_def
   obtain ⟨ψ, hψ⟩ := poly_mul_gaussian_schwartz Q
   refine ⟨hermiteFunctionNormConst n • ψ, fun x => ?_⟩
-  simp only [SchwartzMap.smul_apply, smul_eq_mul, hψ x]
+  simp only [smul_apply, smul_eq_mul, hψ x]
   unfold hermiteFunction
   -- Q.eval x = (hermiteR n).eval (x * √2) = (hermite n).map(...).eval (x * √2)
   have hQeval : Q.eval x = ((hermite n).map (Int.castRingHom ℝ)).eval (x * Real.sqrt 2) := by
@@ -850,7 +850,7 @@ theorem deriv_hermiteFunction (n : ℕ) (x : ℝ) :
        (hermiteR n).eval (x * Real.sqrt 2) * (-x * e)) x := by
     have := hpoly_hasderiv.mul hexp_hasderiv
     rw [he_def] at this
-    convert this using 2 <;> first | rfl | ring
+    convert this using 2 <;> rfl
   -- Compute HasDerivAt for the full hermiteFunction = c_n * (poly * exp)
   have hfn_eq : hermiteFunction n = fun u =>
       hermiteFunctionNormConst n * ((hermiteR n).eval (u * Real.sqrt 2) * Real.exp (-(u ^ 2) / 2)) := by
@@ -1501,7 +1501,7 @@ private lemma integral_f_xpow_gaussian_zero
         ∑ i ∈ Finset.range (R.natDegree + 1),
           R.coeff i * ∫ x, f x * (x ^ i * Real.exp (-(x ^ 2 / 2))) := by
       simp_rw [hR_eval, Finset.mul_sum]
-      rw [integral_finset_sum _ (fun i _ => ?_)]
+      rw [integral_finsetSum _ (fun i _ => ?_)]
       · congr 1; ext i
         rw [show (fun x => f x * (R.coeff i * (x ^ i * Real.exp (-(x ^ 2 / 2))))) =
           fun x => R.coeff i * (f x * (x ^ i * Real.exp (-(x ^ 2 / 2)))) from by ext x; ring,
@@ -1749,7 +1749,7 @@ private lemma fourierIntegral_f_mul_gaussian_eq_zero
     intro N
     show ∫ x, expPartialSum (z x) N * g_ℂ x = 0
     simp only [expPartialSum, Finset.sum_mul]
-    rw [integral_finset_sum _ (fun k _ => h_summand_int k)]
+    rw [integral_finsetSum _ (fun k _ => h_summand_int k)]
     apply Finset.sum_eq_zero
     intro k _
     rw [h_summand_eq]
