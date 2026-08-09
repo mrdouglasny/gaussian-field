@@ -91,7 +91,7 @@ def circleReflection : SmoothMap_Circle L ℝ →L[ℝ] SmoothMap_Circle L ℝ w
     apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms smoothCircle_withSeminorms
     intro k
     refine ⟨{k}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def]
+    simp only [Seminorm.comp_apply, Finset.sup_singleton]
     -- Goal: sobolevSeminorm k (lm f) ≤ ↑⟨1,_⟩ • sobolevSeminorm k f; the coe is defeq 1
     change sobolevSeminorm k (lm f) ≤ (1 : ℝ) • sobolevSeminorm k f
     rw [one_smul]
@@ -131,7 +131,7 @@ def circleTranslation (v : ℝ) :
     apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms smoothCircle_withSeminorms
     intro k
     refine ⟨{k}, ⟨⟨1, by norm_num⟩, fun f => ?_⟩⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply, NNReal.smul_def]
+    simp only [Seminorm.comp_apply, Finset.sup_singleton]
     change sobolevSeminorm k (lm f) ≤ (1 : ℝ) • sobolevSeminorm k f
     rw [one_smul]
     refine sobolevSeminorm_affine_precomp_le 1 (-v) (by norm_num) k f _ ?_

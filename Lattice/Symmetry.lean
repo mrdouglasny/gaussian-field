@@ -36,7 +36,7 @@ noncomputable section
 
 namespace GaussianField
 
-open Matrix
+open _root_.GaussianField.Matrix
 
 variable (d N : ℕ) [NeZero N]
 
@@ -127,7 +127,7 @@ theorem negLaplacianMatrix_toeplitz (a : ℝ) (v : FinLatticeSites d N)
     negLaplacianMatrix d N a x y := by
   simp only [negLaplacianMatrix, massOperatorMatrix, massOperatorEntry]
   simp only [massOperator, sq, mul_zero, zero_smul, add_zero,
-    ContinuousLinearMap.neg_apply]
+    neg_apply]
   congr 1
   rw [finLatticeDelta_shift d N v y,
       finiteLaplacian_translation_commute d N a v (finLatticeDelta d N y)]
@@ -229,7 +229,7 @@ theorem negLaplacianMatrix_neg_invariant (a : ℝ)
     negLaplacianMatrix d N a x y := by
   simp only [negLaplacianMatrix, massOperatorMatrix, massOperatorEntry]
   simp only [massOperator, sq, mul_zero, zero_smul, add_zero,
-    ContinuousLinearMap.neg_apply]
+    neg_apply]
   congr 1
   rw [finLatticeDelta_neg d N y,
       finiteLaplacian_reflection_commute d N a (finLatticeDelta d N y)]

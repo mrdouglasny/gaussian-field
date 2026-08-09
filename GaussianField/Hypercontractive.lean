@@ -149,7 +149,7 @@ private lemma hasDerivAt_exp_half_sq (t : ℝ) :
   have h : HasDerivAt (fun t : ℝ => t ^ 2 / 2) t t := by
     have := (hasDerivAt_pow 2 t).div_const (2 : ℝ)
     simp at this; exact this
-  convert h.exp using 1 <;> first | rfl | (ring)
+  convert h.exp using 1 ; first | rfl | (ring)
 
 private lemma hasDerivAt_t_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => t * rexp (t ^ 2 / 2))

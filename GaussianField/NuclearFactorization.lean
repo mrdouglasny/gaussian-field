@@ -67,7 +67,7 @@ private lemma finset_sup_seminorm_poly_bound
   induction s using Finset.cons_induction with
   | empty =>
     refine ⟨1, 0, one_pos, fun m => ?_⟩
-    simp only [Finset.sup_empty, Seminorm.bot_eq_zero, Seminorm.zero_apply]
+    simp only [Finset.sup_empty, Seminorm.bot_eq_zero, zero_apply]
     positivity
   | cons a s' ha ih =>
     obtain ⟨C_prev, p_prev, hC_prev, h_prev⟩ := ih
@@ -118,7 +118,7 @@ theorem clm_image_growth
     calc ‖T (DyninMityaginSpace.basis m)‖
         ≤ C₀ * (s.sup DyninMityaginSpace.p) (DyninMityaginSpace.basis m) := by
           have := hle (DyninMityaginSpace.basis m)
-          simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
+          simp only [Seminorm.comp_apply, coe_normSeminorm, smul_apply,
                      NNReal.smul_def, smul_eq_mul] at this
           exact this
       _ ≤ C₀ * (C₁ * (1 + (m : ℝ)) ^ p₁) :=
@@ -172,7 +172,7 @@ theorem nuclear_clm_representation
   · -- (ii) Equicontinuity of φ_m
     obtain ⟨C_s, hCs_pos, s, hdecay_s⟩ := DyninMityaginSpace.coeff_decay (E := E) s_exp
     exact ⟨s, C_s, hCs_pos, fun m f => by
-      simp only [hφ_def, ContinuousLinearMap.smul_apply, smul_eq_mul]
+      simp only [hφ_def, smul_apply, smul_eq_mul]
       rw [abs_mul, abs_of_pos (Real.rpow_pos_of_pos (by positivity : (0:ℝ) < 1 + ↑m) s_real)]
       rw [hs_def, Real.rpow_natCast, mul_comm]
       exact hdecay_s f m⟩
@@ -181,7 +181,7 @@ theorem nuclear_clm_representation
     rw [DyninMityaginSpace.expansion_H T w f]
     congr 1
     ext m
-    simp only [hφ_def, hy_def, ContinuousLinearMap.smul_apply, smul_eq_mul,
+    simp only [hφ_def, hy_def, smul_apply, smul_eq_mul,
                inner_smul_right]
     have hpos : (0 : ℝ) < 1 + (↑m : ℝ) := by positivity
     rw [Real.rpow_neg (le_of_lt hpos)]

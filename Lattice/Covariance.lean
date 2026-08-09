@@ -175,7 +175,7 @@ theorem latticeCovariance_GJ_eq_inv_smul_bare (a mass : ℝ)
   have hsqrt_sq : Real.sqrt (a^d) * Real.sqrt (a^d) = a^d :=
     Real.mul_self_sqrt (le_of_lt ha_d_pos)
   unfold latticeCovarianceGJ covariance
-  simp only [ContinuousLinearMap.smul_apply, inner_smul_left, inner_smul_right]
+  simp only [smul_apply, inner_smul_left, inner_smul_right]
   -- Reduce conj-on-ℝ and combine the two scalar factors
   show (Real.sqrt (a^d))⁻¹ *
         ((Real.sqrt (a^d))⁻¹ *

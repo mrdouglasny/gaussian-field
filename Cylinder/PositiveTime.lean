@@ -307,7 +307,7 @@ private theorem schwartz_posNeg_disjoint :
   rw [Submodule.eq_bot_iff]
   intro h ⟨hpos, hneg⟩
   ext x
-  simp only [SchwartzMap.zero_apply]
+  simp only [zero_apply]
   by_cases hx : x ≤ 0
   · exact hpos x hx
   · push Not at hx; exact hneg x (le_of_lt hx)

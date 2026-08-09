@@ -107,11 +107,13 @@ We extract the factorization data from `nuclear_clm_target_factorization` using
 noncomputable choice. This gives us the adapted ONB, intermediate space K, CLM j,
 and nuclear vectors v. -/
 
+set_option linter.defProp false in
 /-- The full factorization result, privately stored. -/
 private noncomputable def fullFactorization
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :=
   nuclear_clm_target_factorization h_inf T
 
+set_option linter.defProp false in
 private noncomputable def factProps (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec
@@ -191,7 +193,7 @@ private lemma coeff_sq_summable (T : E →L[ℝ] H)
   simp only [ENNReal.toReal_ofNat] at hsumm
   have hsumm' : Summable (fun n => ‖(c : ℕ → ℝ) n‖^(2 : ℕ)) := by
     simp only [← Real.rpow_natCast] at hsumm ⊢
-    convert hsumm using 2 <;> first | rfl | ring | norm_num
+    convert hsumm using 2; rfl
   convert hsumm' using 2 with n
   rw [coeff, show adaptedONB T h_inf n = adaptedBasis T h_inf n from
     (adaptedBasis_eq_ONB T h_inf).symm ▸ rfl]
@@ -211,7 +213,7 @@ private lemma coeff_parseval (T : E →L[ℝ] H)
   simp only [ENNReal.toReal_ofNat] at hlp
   have hlp' : ‖c‖^(2 : ℕ) = ∑' n, ‖(c : ℕ → ℝ) n‖^(2 : ℕ) := by
     simp only [← Real.rpow_natCast] at hlp ⊢
-    convert hlp using 2 <;> first | rfl | ring | norm_num
+    convert hlp using 2 <;> rfl
   calc ∑' n, (coeff T h_inf n f)^2
       = ∑' n, ‖(c : ℕ → ℝ) n‖^2 := by
         congr 1; ext n
@@ -367,7 +369,7 @@ private theorem hilbert_gaussian_series_converges
     simp_rw [lintegral_mul_const _ (h_meas_f _), h_eval, ENNReal.tsum_mul_left]
     exact ENNReal.mul_ne_top hC hv_ennreal
   -- A.e. finiteness from finite lintegral
-  have h_ae := ae_lt_top (Measurable.ennreal_tsum h_meas) h_finite
+  have h_ae := ae_lt_top (Measurable.tsum h_meas) h_finite
   -- Convert ∑ ‖ξₙ‖₊ * ‖vₙ‖₊ < ⊤ to Summable (fun n => ξ n • v n)
   exact h_ae.mono fun ξ hξ => by
     simp_rw [← ENNReal.coe_mul] at hξ
@@ -455,7 +457,7 @@ omit [CompleteSpace H] [SeparableSpace H] in
 private lemma hilbertEmbedding_apply (hfin : FiniteDimensional ℝ H) (x : H) :
     hilbertEmbedding hfin x = ∑ i : Fin (Module.finrank ℝ H),
       @inner ℝ H _ ((stdOrthonormalBasis ℝ H) i) x • ell2_basis i.val := by
-  simp only [hilbertEmbedding, ContinuousLinearMap.sum_apply,
+  simp only [hilbertEmbedding, sum_apply,
              ContinuousLinearMap.smulRight_apply, innerSL_apply_apply]
 
 omit [CompleteSpace H] [SeparableSpace H] in

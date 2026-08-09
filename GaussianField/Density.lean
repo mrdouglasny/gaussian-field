@@ -212,7 +212,7 @@ theorem gaussianDensity_measurable (a mass : ℝ) :
     Measurable (gaussianDensity d N a mass) := by
   unfold gaussianDensity
   exact (Real.continuous_exp.comp (continuous_const.mul
-      (continuous_finset_sum _ fun x _ =>
+      (continuous_finsetSum _ fun x _ =>
         (continuous_apply x).mul
           ((continuous_apply x).comp (massOperator d N a mass).continuous)))).measurable
 
@@ -220,7 +220,7 @@ theorem gaussianDensity_continuous (a mass : ℝ) :
     Continuous (gaussianDensity d N a mass) := by
   unfold gaussianDensity
   exact Real.continuous_exp.comp (continuous_const.mul
-    (continuous_finset_sum _ fun x _ =>
+    (continuous_finsetSum _ fun x _ =>
       (continuous_apply x).mul
         ((continuous_apply x).comp (massOperator d N a mass).continuous)))
 
@@ -247,7 +247,7 @@ theorem measurable_sitePairing (f : FinLatticeField d N) :
     Measurable (fun φ : FinLatticeField d N =>
       ∑ x : FinLatticeSites d N, f x * φ x) := by
   simpa using
-    (continuous_finset_sum _ (fun x _ => continuous_const.mul (continuous_apply x))).measurable
+    (continuous_finsetSum _ (fun x _ => continuous_const.mul (continuous_apply x))).measurable
 
 /-- Site pairing expanded in the mass-eigenvector basis coordinates. -/
 theorem sitePairing_eq_massEigenbasis_sum (a mass : ℝ)
@@ -575,7 +575,7 @@ theorem latticeGaussianFieldLaw_fourier (a mass : ℝ) (ha : 0 < a) (hmass : 0 <
         ((latticeGaussianMeasure d N a mass ha hmass).map (evalMap d N)) := by
     refine (Complex.continuous_exp.comp ?_).aestronglyMeasurable
     refine (continuous_const.mul (Complex.continuous_ofReal.comp ?_))
-    refine continuous_finset_sum _ (fun x _ => ?_)
+    refine continuous_finsetSum _ (fun x _ => ?_)
     exact (continuous_const.mul (continuous_apply x))
   rw [integral_map (measurable_evalMap (d := d) (N := N)).aemeasurable hmeas]
   have hcoord : ∀ ω : Configuration (FinLatticeField d N),
@@ -652,7 +652,7 @@ theorem normalizedGaussianDensityMeasure_eq_normalizedQuadraticGaussianMeasure
         φ x * (((a^d : ℝ) • massOperator d N a mass) φ) x =
         a^d * (φ x * (massOperator d N a mass φ) x) := by
       intro x
-      simp only [ContinuousLinearMap.smul_apply, Pi.smul_apply, smul_eq_mul]
+      simp only [smul_apply, Pi.smul_apply, smul_eq_mul]
       ring
     simp_rw [h_smul]
     rw [← Finset.mul_sum]
@@ -1179,7 +1179,7 @@ theorem gaussianDensity_integral_pos (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
   apply integral_pos_of_integrable_nonneg_nonzero (x := 0)
   · unfold gaussianDensity
     exact Real.continuous_exp.comp (continuous_const.mul
-      (continuous_finset_sum _ fun x _ =>
+      (continuous_finsetSum _ fun x _ =>
         (continuous_apply x).mul
           ((continuous_apply x).comp (massOperator d N a mass).continuous)))
   · exact integrable_gaussianDensity d N a mass ha hmass

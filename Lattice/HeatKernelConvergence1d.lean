@@ -37,7 +37,7 @@ noncomputable section
 
 namespace GaussianField
 
-open Filter Real Matrix
+open Filter Real _root_.GaussianField.Matrix
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 

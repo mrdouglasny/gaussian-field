@@ -453,7 +453,7 @@ private lemma weighted_poly_exp_bound_integrable (f₀ : E) (n : ℕ) (f : Fin n
     intro ω
     -- RHS = f_all(0) * ∏_{Fin(n+1)} f_all(succ i) = f₀ * ∏_{Fin(n+1)} f_all(succ i)
     rw [Fin.prod_univ_succ]
-    simp only [f_all, Fin.val_zero, dite_true]
+    simp only [f_all, Fin.val_zero]
     -- Goal: ω f₀ * (∏ i, ω (f i)) * ω g = ω f₀ * ∏ i : Fin (n+1), ω(f_all(succ i))
     rw [mul_assoc]
     congr 1
@@ -598,7 +598,7 @@ theorem gaussian_ibp_general (n : ℕ) (f₀ : E) (g : Fin (n + 1) → E) (h : E
       intro ω; simp only [Fin.prod_univ_succ, Fin.prod_univ_zero, mul_one]
     simp_rw [hg1, hg2]
     simp only [Fin.sum_univ_succ, Fin.sum_univ_zero, add_zero]
-    convert hderiv using 1 <;> first | rfl | (ring)
+    convert hderiv using 1 ; first | rfl | (ring)
   | succ n ih =>
     -- We need to show the statement for n+2 polynomial factors.
     -- Strategy: apply IH with h replaced by t·g_last + h, differentiate at t=0.

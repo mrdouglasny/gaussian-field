@@ -90,7 +90,7 @@ def finLatticeSeminorm : Seminorm ℝ (FinLatticeField d N) where
   smul' r f := by
     simp only [Pi.smul_apply, smul_eq_mul, nnnorm_mul, NNReal.coe_mul]
     simp only [show (↑‖r‖₊ : ℝ) = ‖r‖ from rfl]
-    have := Finset.comp_sup'_eq_sup'_comp (s := Finset.univ)
+    have := Finset.apply_sup'_eq_sup'_comp (s := Finset.univ)
       Finset.univ_nonempty (f := fun x => (↑‖f x‖₊ : ℝ)) (g := (‖r‖ * ·))
       (fun _ _ => mul_max_of_nonneg _ _ (norm_nonneg r))
     simp only [Function.comp] at this
@@ -122,7 +122,7 @@ noncomputable instance finLatticeField_dyninMityaginSpace :
       -- Step 1: pull coercion out of sup'
       have h1 : Finset.univ.sup' Finset.univ_nonempty (fun x : FinLatticeSites d N => (↑‖f x‖₊ : ℝ)) =
           ↑(Finset.univ.sup' Finset.univ_nonempty (fun x : FinLatticeSites d N => ‖f x‖₊)) :=
-        (Finset.comp_sup'_eq_sup'_comp Finset.univ_nonempty
+        (Finset.apply_sup'_eq_sup'_comp Finset.univ_nonempty
           (g := NNReal.toReal)
           (fun a b => NNReal.coe_mono.map_sup a b)).symm
       rw [h1]
@@ -140,7 +140,7 @@ noncomputable instance finLatticeField_dyninMityaginSpace :
       intro m hm
       unfold finLatticeCoeffCLM finLatticeBasisVec
       simp only [show ¬(m < Fintype.card (FinLatticeSites d N)) from hm, dite_false,
-        ContinuousLinearMap.zero_apply, map_zero, mul_zero]
+        zero_apply, map_zero, mul_zero]
     -- Convert tprod to finite sum
     rw [tsum_eq_sum (s := Finset.range C) (fun m hm => by
       simp only [Finset.mem_range, not_lt] at hm
@@ -209,7 +209,7 @@ noncomputable instance finLatticeField_dyninMityaginSpace :
           ≤ sem * (1 + ↑(Fintype.card (FinLatticeSites d N))) ^ k :=
             mul_le_mul hcoeff hpow (by positivity) hsem_nn
         _ = (1 + ↑(Fintype.card (FinLatticeSites d N))) ^ k * sem := by ring
-    · simp only [h, dite_false, ContinuousLinearMap.zero_apply, abs_zero, zero_mul]
+    · simp only [h, dite_false, zero_apply, abs_zero, zero_mul]
       positivity⟩
 
 end GaussianField

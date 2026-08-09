@@ -142,7 +142,7 @@ theorem schwartzPositiveTime_disjoint_reflected
   intro hΘf
   apply hne
   ext x
-  simp only [SchwartzMap.zero_apply]
+  simp only [_root_.zero_apply]
   by_cases hx : x ≤ 0
   · exact hf x hx
   · push Not at hx
@@ -166,8 +166,8 @@ theorem schwartzTranslation_preserves_positiveTime
 Bounded by the (0,0)-seminorm: |f(t)| ≤ seminorm 0 0 f. -/
 noncomputable def schwartzEvalCLM (t : ℝ) : SchwartzMap ℝ ℝ →L[ℝ] ℝ :=
   SchwartzMap.mkCLMtoNormedSpace (fun f => f t)
-    (fun f g => by simp [SchwartzMap.add_apply])
-    (fun a f => by simp [SchwartzMap.smul_apply])
+    (fun f g => by simp [_root_.add_apply])
+    (fun a f => by simp [_root_.smul_apply])
     ⟨{(0, 0)}, 1, zero_le_one, fun f => by
       simp only [one_mul, Finset.sup_singleton, SchwartzMap.schwartzSeminormFamily_apply]
       exact SchwartzMap.norm_le_seminorm ℝ f t⟩

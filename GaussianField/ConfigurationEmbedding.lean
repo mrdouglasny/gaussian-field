@@ -390,7 +390,7 @@ theorem prokhorov_configuration
       Measure.comap_apply₀ configBasisEval ν_lim configBasisEval_injective h_nmeas
         (configBasisEval_measurable hT).nullMeasurableSet,
       Set.image_preimage_eq_inter_range]
-    have h_split := measure_inter_add_diff₀ T h_range_nm
+    have h_split := measure_inter_add_sdiff₀ T h_range_nm
     rw [show T \ Set.range (configBasisEval (E := E)) =
         T ∩ (Set.range configBasisEval)ᶜ from rfl,
       measure_mono_null Set.inter_subset_right h_conc, add_zero] at h_split
@@ -622,7 +622,7 @@ theorem prokhorov_configuration
           x m • StrongDual.toWeakDual (DyninMityaginSpace.coeff (E := E) m))) ∘
         configBasisEval (E := E) := by ext ω; rfl
       rw [h_eq]
-      exact (hf_cont.comp (continuous_finset_sum _ fun m _ =>
+      exact (hf_cont.comp (continuous_finsetSum _ fun m _ =>
         (continuous_apply m).smul continuous_const)).measurable.comp
         configBasisEval_measurable
     · -- Pointwise convergence: g_n(ω) → f(ω) by DM expansion + continuity

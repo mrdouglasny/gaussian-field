@@ -171,7 +171,7 @@ theorem greenFunctionBilinear_swap_pure
   -- Key lemma: σ m simplifies to Nat.pair (Nat.unpair m).2 (Nat.unpair m).1
   have hσ_apply : ∀ m, σ m = Nat.pair (Nat.unpair m).2 (Nat.unpair m).1 := by
     intro m
-    simp [hσ_def, Nat.pairEquiv, Equiv.prodComm_apply, Function.uncurry, Prod.swap]
+    simp [hσ_def, Nat.pairEquiv, Equiv.prodComm_apply, Prod.swap]
     rfl
   -- coeff m (pure e₁ e₂) = (pure e₁ e₂).val m (definitionally)
   -- pure_val: (pure e₁ e₂).val m = coeff (unpair m).1 e₁ * coeff (unpair m).2 e₂
@@ -346,7 +346,7 @@ private theorem greenFunctionBilinear_translation_factor1
     -- σ m = pair(modePartner n₁, n₂) where (n₁, n₂) = unpair m
     have hσ : σ m = Nat.pair (modePartner (Nat.unpair m).1) (Nat.unpair m).2 := by
       simp [σ, Nat.pairEquiv, modePartnerEquiv, Function.Involutive.toPerm,
-        Equiv.prodCongrLeft, Function.uncurry]
+        Equiv.prodCongrLeft]
       rfl
     -- Convert coeff to .val, use pure_val, unfold NTP eigenvalue
     show (pure (circleTranslation L v f₁) f₂).val m *
@@ -563,7 +563,7 @@ theorem greenFunctionBilinear_invariant_of_pure
        greenCLM_left mass hmass f
     have hψ_B : ∀ n, ψ_B (DyninMityaginSpace.basis n) = 0 := by
       intro n
-      simp only [ψ_B, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+      simp only [ψ_B, sub_apply, ContinuousLinearMap.comp_apply,
         greenCLM_left_apply, sub_eq_zero]
       rw [ntp_basis_eq_pure hbasis₁ hbasis₂ n,
           greenFunctionBilinear_symm mass hmass (S _) (S f),
@@ -572,7 +572,7 @@ theorem greenFunctionBilinear_invariant_of_pure
     have hexp := DyninMityaginSpace.expansion ψ_B g
     have hzero : ψ_B g = 0 := by
       rw [hexp]; convert tsum_zero with n; rw [hψ_B, mul_zero]
-    simp only [ψ_B, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+    simp only [ψ_B, sub_apply, ContinuousLinearMap.comp_apply,
       greenCLM_left_apply, sub_eq_zero] at hzero
     rwa [greenFunctionBilinear_symm mass hmass (S g) (S f),
          greenFunctionBilinear_symm mass hmass g f] at hzero
@@ -583,14 +583,14 @@ theorem greenFunctionBilinear_invariant_of_pure
      greenCLM_left mass hmass (pure e₁' e₂')
   have hψ_A : ∀ n, ψ_A (DyninMityaginSpace.basis n) = 0 := by
     intro n
-    simp only [ψ_A, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+    simp only [ψ_A, sub_apply, ContinuousLinearMap.comp_apply,
       greenCLM_left_apply, sub_eq_zero]
     rw [ntp_basis_eq_pure hbasis₁ hbasis₂ n]
     exact hpure _ _ e₁' e₂'
   have hexp := DyninMityaginSpace.expansion ψ_A f'
   have hzero : ψ_A f' = 0 := by
     rw [hexp]; convert tsum_zero with n; rw [hψ_A, mul_zero]
-  simp only [ψ_A, ContinuousLinearMap.sub_apply, ContinuousLinearMap.comp_apply,
+  simp only [ψ_A, sub_apply, ContinuousLinearMap.comp_apply,
     greenCLM_left_apply, sub_eq_zero] at hzero
   exact hzero
 

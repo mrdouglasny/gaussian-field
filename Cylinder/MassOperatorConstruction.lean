@@ -395,7 +395,7 @@ theorem resolventRDS_uniformBound
   have hA : RapidDecaySeq.rapidDecaySeminorm k (schwartzRapidDecayEquiv1D h) ≤
       ↑C_fwd * (s_fwd.sup (schwartzSeminormFamily ℝ ℝ ℝ)) h := by
     have := Seminorm.le_def.mp hle_fwd h
-    simp only [q_fwd, Seminorm.comp_apply, Seminorm.smul_apply, NNReal.smul_def,
+    simp only [q_fwd, Seminorm.comp_apply, smul_apply, NNReal.smul_def,
       smul_eq_mul, ContinuousLinearMap.coe_coe] at this
     exact this
   -- Step B: s_fwd.sup p h ≤ C_res * s_res.sup p (equiv⁻¹ g)
@@ -622,7 +622,7 @@ theorem massOperatorCoord_decay (mass : ℝ) (hmass : 0 < mass) :
 /-! ## Mass operator definition -/
 
 /-- Helper: package the decay bound for `nuclear_ell2_embedding_from_decay`. -/
-private def massOperator_ell2_embedding (mass : ℝ) (hmass : 0 < mass) :
+private theorem massOperator_ell2_embedding (mass : ℝ) (hmass : 0 < mass) :
     ∃ (j : CylinderTestFunction L →L[ℝ] ell2'),
       ∀ (f : CylinderTestFunction L) (m : ℕ),
         (j f : ℕ → ℝ) m = massOperatorCoord L mass hmass m f := by

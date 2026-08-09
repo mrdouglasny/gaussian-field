@@ -119,7 +119,7 @@ private theorem enorm_tsum_ne_top (T : E →L[ℝ] H) (hHS : IsHilbertSchmidt T)
         ‖(ω (DyninMityaginSpace.basis n)) ^ 2‖ₑ) =
         (fun ω : Configuration E =>
         ENNReal.ofReal ((ω (DyninMityaginSpace.basis n)) ^ 2))
-      from by ext ω; rw [← ofReal_norm_eq_enorm,
+      from by ext ω; rw [← ofReal_norm,
                           Real.norm_of_nonneg (sq_nonneg _)]]
     rw [← ofReal_integral_eq_lintegral_ofReal
       (basis_sq_integrable T n) (ae_of_all _ (fun ω => sq_nonneg _))]
@@ -163,7 +163,7 @@ theorem support_of_hilbertSchmidt (T : E →L[ℝ] H) (hHS : IsHilbertSchmidt T)
     fun ω => ∑' n, ENNReal.ofReal ((ω (DyninMityaginSpace.basis n)) ^ 2) with hg_def
   -- g is measurable (tsum of measurable functions)
   have hg_meas : Measurable g := by
-    apply Measurable.ennreal_tsum
+    apply Measurable.tsum
     intro n
     exact ENNReal.measurable_ofReal.comp
       ((configuration_eval_measurable (DyninMityaginSpace.basis n)).pow_const 2)
@@ -241,7 +241,7 @@ theorem weighted_support (T : E →L[ℝ] H) (w : ℕ → ℝ) (hw : ∀ n, 0 �
     fun n => ENNReal.measurable_ofReal.comp
       (measurable_const.mul
         ((configuration_eval_measurable (DyninMityaginSpace.basis n)).pow_const 2))
-  have hg_meas : Measurable g := Measurable.ennreal_tsum hg_comp_meas
+  have hg_meas : Measurable g := Measurable.tsum hg_comp_meas
   have hg_int : ∫⁻ ω, g ω ∂(measure T) ≠ ⊤ := by
     have h_eq_tsum : ∫⁻ ω, g ω ∂(measure T) = ∑' n,
         ∫⁻ ω : Configuration E,

@@ -269,14 +269,14 @@ argument: if ‖I - M⁻¹·M_α‖ < 1, then M_α is invertible.
 
 More precisely, we use the quadratic form bound: for symmetric matrices,
 the spectral gap controls the operator norm of the inverse. -/
-theorem spectral_gap_preserved (M : Matrix Λ Λ ℝ) (γ : ℝ) (hγ : 0 < γ)
+theorem spectral_gap_preserved (M : Matrix Λ Λ ℝ) (γ : ℝ) (_hγ : 0 < γ)
     (hgap : HasSpectralGap M γ)
     (hM_symm : M.IsHermitian) (α R : ℝ) (hα : 0 ≤ α) (hR : 0 ≤ R)
     (dist : Λ → Λ → ℝ) (y₀ : Λ)
     (hrange : IsFiniteRange M dist R)
     (htri : IsTriangleIneq dist)
     (hsymm : DistSymm dist)
-    (hsmall : (exp (α * R) - 1) * (letI := @Matrix.linftyOpNormedAddCommGroup Λ Λ ℝ _ _ _; ‖M‖) < γ) :
+    (_hsmall : (exp (α * R) - 1) * (letI := @Matrix.linftyOpNormedAddCommGroup Λ Λ ℝ _ _ _; ‖M‖) < γ) :
     HasSpectralGap (conjugatedMatrix M α dist y₀) (γ - (exp (α * R) - 1) *
       (letI := @Matrix.linftyOpNormedAddCommGroup Λ Λ ℝ _ _ _; ‖M‖)) := by
   intro f
@@ -397,8 +397,8 @@ At entry (x, y₀):
 since d(y₀,y₀) = 0. -/
 theorem inverse_conjugation_identity (M : Matrix Λ Λ ℝ)
     (α : ℝ) (dist : Λ → Λ → ℝ) (y₀ : Λ)
-    (hself : DistSelfZero dist)
-    (hM_inv : IsUnit M.det) :
+    (_hself : DistSelfZero dist)
+    (_hM_inv : IsUnit M.det) :
     M⁻¹ = conjugationMatrixInv α dist y₀ *
       (conjugatedMatrix M α dist y₀)⁻¹ *
       conjugationMatrix α dist y₀ := by
@@ -455,7 +455,7 @@ theorem entry_le_opNorm (A : Matrix Λ Λ ℝ) (i j : Λ) :
   -- |A i j| ≤ ∑ k, ‖A i k‖₊ ≤ sup_i ∑ k ‖A i k‖₊ = ‖A‖
   rw [Matrix.linfty_opNorm_def]
   have h_nnnorm : |A i j| = ↑(‖A i j‖₊) := by
-    simp [Real.nnnorm_of_nonneg (abs_nonneg _), NNReal.coe_mk, abs_abs]
+    simp
   rw [h_nnnorm]
   push_cast
   -- Chain: ‖A i j‖₊ ≤ ∑ k ‖A i k‖₊ ≤ sup_i ∑ k ‖A i k‖₊
@@ -473,7 +473,7 @@ For a positive definite matrix with spectral gap γ > 0,
 This follows from: if ⟨f, Mf⟩ ≥ γ‖f‖² for all f, then
 all eigenvalues are ≥ γ, so all eigenvalues of M⁻¹ are ≤ 1/γ. -/
 theorem inverse_opNorm_bound (M : Matrix Λ Λ ℝ) (γ : ℝ)
-    (hγ : 0 < γ) (hgap : HasSpectralGap M γ) (hM_symm : M.IsHermitian)
+    (hγ : 0 < γ) (hgap : HasSpectralGap M γ) (_hM_symm : M.IsHermitian)
     (hM_inv : IsUnit M.det) :
     letI := @Matrix.linftyOpNormedAddCommGroup Λ Λ ℝ _ _ _
     ‖M⁻¹‖ ≤ (Fintype.card Λ : ℝ) / γ := by
@@ -491,7 +491,7 @@ theorem inverse_opNorm_bound (M : Matrix Λ Λ ℝ) (γ : ℝ)
     have h1 : ∀ i, (∑ j : Λ, ‖M⁻¹ i j‖₊ : ℝ) ≤ (Fintype.card Λ : ℝ) / γ := by
       intro i
       calc (∑ j : Λ, ‖M⁻¹ i j‖₊ : ℝ) = ∑ j, |M⁻¹ i j| := by
-            simp [NNNorm.nnnorm, Real.norm_eq_abs, NNReal.coe_sum]
+            simp [NNNorm.nnnorm, Real.norm_eq_abs]
         _ ≤ _ := hrow i
     have hle : (univ.sup fun i => ∑ j, ‖M⁻¹ i j‖₊) ≤
         ⟨(Fintype.card Λ : ℝ) / γ, div_nonneg (Nat.cast_nonneg _) (le_of_lt hγ)⟩ := by
@@ -559,7 +559,7 @@ theorem inverse_opNorm_bound' (M : Matrix Λ Λ ℝ) (γ : ℝ)
     have h1 : ∀ i, (∑ j : Λ, ‖M⁻¹ i j‖₊ : ℝ) ≤ (Fintype.card Λ : ℝ) / γ := by
       intro i
       calc (∑ j : Λ, ‖M⁻¹ i j‖₊ : ℝ) = ∑ j, |M⁻¹ i j| := by
-            simp [NNNorm.nnnorm, Real.norm_eq_abs, NNReal.coe_sum]
+            simp [NNNorm.nnnorm, Real.norm_eq_abs]
         _ ≤ _ := hrow i
     have hle : (Finset.univ.sup fun i => ∑ j, ‖M⁻¹ i j‖₊) ≤
         ⟨(Fintype.card Λ : ℝ) / γ, div_nonneg (Nat.cast_nonneg _) (le_of_lt hγ)⟩ := by
@@ -633,7 +633,7 @@ theorem exponential_decay (M : Matrix Λ Λ ℝ)
     (htri : IsTriangleIneq dist)
     (hsymm : DistSymm dist)
     (hself : DistSelfZero dist)
-    (hnonneg : DistNonneg dist)
+    (_hnonneg : DistNonneg dist)
     (hM_inv : IsUnit M.det) :
     ∃ (C α : ℝ), 0 < C ∧ 0 < α ∧
       ∀ x y, |M⁻¹ x y| ≤ C * exp (-(α * dist x y)) := by

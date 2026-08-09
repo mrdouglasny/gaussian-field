@@ -31,7 +31,7 @@ noncomputable section
 
 namespace GaussianField
 
-open Real Matrix Filter
+open Real _root_.GaussianField.Matrix Filter
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
@@ -540,7 +540,7 @@ theorem latticeEigenvalue1d_ge_quadratic (N m : ℕ) [NeZero N]
       _ ≤ (N : ℝ) / 2 := by
           have h := Nat.div_mul_le_self N 2
           have : (↑(N / 2) : ℝ) * 2 ≤ ↑N := by exact_mod_cast h
-          push_cast at this ⊢; linarith
+          linarith
   -- Jordan's inequality: sin(πj/M) ≥ 2j/M
   have harg : 0 ≤ π * j / M := by positivity
   have harg_le : π * j / M ≤ π / 2 := by
@@ -1001,8 +1001,8 @@ theorem negLaplacian1d_cos_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (_ha : a �
     simp only [negLaplacianMatrix]
     rw [← massOperator_eq_matrix_mulVec]]
   -- Expand massOperator = -finiteLaplacian + 0²·id
-  simp only [massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
     Pi.smul_apply, smul_eq_mul]
   -- Unfold finiteLaplacian
@@ -1048,8 +1048,8 @@ theorem negLaplacian1d_sin_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (_ha : a �
       (massOperator 1 N a 0 v) x from by
     simp only [negLaplacianMatrix]
     rw [← massOperator_eq_matrix_mulVec]]
-  simp only [massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply,
     Pi.smul_apply, smul_eq_mul]
   simp only [finiteLaplacian, ContinuousLinearMap.coe_mk',

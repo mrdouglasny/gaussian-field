@@ -89,7 +89,7 @@ theorem cylinderHeatSemigroup_spatialTranslation_comm {t : ℝ} (ht : 0 ≤ t)
     cylinderHeatSemigroup L ht mass (cylinderSpatialTranslation L v f) =
     cylinderSpatialTranslation L v (cylinderHeatSemigroup L ht mass f) := by
   simp only [cylinderHeatSemigroup, cylinderSpatialTranslation,
-    ContinuousLinearMap.smul_apply, map_smul]
+    _root_.smul_apply, map_smul]
   congr 1
   have h_comp1 : (nuclearTensorProduct_mapCLM (circleHeatSemigroup L ht)
       (freeHeatSemigroup ht)).comp
@@ -136,7 +136,7 @@ theorem cylinderHeatSemigroup_timeTranslation_comm {t : ℝ} (ht : 0 ≤ t)
     cylinderHeatSemigroup L ht mass (cylinderTimeTranslation L τ f) =
     cylinderTimeTranslation L τ (cylinderHeatSemigroup L ht mass f) := by
   simp only [cylinderHeatSemigroup, cylinderTimeTranslation,
-    ContinuousLinearMap.smul_apply, map_smul]
+    _root_.smul_apply, map_smul]
   congr 1
   have h_comp1 : (nuclearTensorProduct_mapCLM (circleHeatSemigroup L ht)
       (freeHeatSemigroup ht)).comp
@@ -182,7 +182,7 @@ theorem cylinderHeatSemigroup_timeReflection_comm {t : ℝ} (ht : 0 ≤ t)
     cylinderHeatSemigroup L ht mass (cylinderTimeReflection L f) =
     cylinderTimeReflection L (cylinderHeatSemigroup L ht mass f) := by
   simp only [cylinderHeatSemigroup, cylinderTimeReflection,
-    ContinuousLinearMap.smul_apply, map_smul]
+    _root_.smul_apply, map_smul]
   congr 1
   have h_comp1 : (nuclearTensorProduct_mapCLM (circleHeatSemigroup L ht)
       (freeHeatSemigroup ht)).comp

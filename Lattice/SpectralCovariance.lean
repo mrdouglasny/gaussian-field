@@ -64,8 +64,8 @@ theorem massOperator_selfAdjoint (a mass : ℝ)
     (f g : FinLatticeField d N) :
     ∑ x, f x * (massOperator d N a mass g) x =
     ∑ x, (massOperator d N a mass f) x * g x := by
-  simp only [massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [massOperator, _root_.add_apply,
+    _root_.neg_apply, _root_.smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply,
     smul_eq_mul]
   -- Split into Laplacian and mass terms

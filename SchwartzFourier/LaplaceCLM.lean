@@ -108,7 +108,7 @@ private def laplaceEvalLinear (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ �
       r • (f.toFun t * exp (-ω * t)) :=
       fun t => by
         show (r • f) t * exp (-ω * t) = r * (f.toFun t * exp (-ω * t))
-        simp only [SchwartzMap.smul_apply, smul_eq_mul]
+        simp only [smul_apply, smul_eq_mul]
         have : f t = f.toFun t := rfl
         rw [this]; ring
     simp_rw [h, integral_smul]

@@ -436,8 +436,8 @@ def fourierCoeffCLM (n : ℕ) : SmoothMap_Circle L ℝ →L[ℝ] ℝ where
     set M := max (1 / Real.sqrt L) (Real.sqrt (2 / L))
     refine ⟨{0}, ⟨M * L, mul_nonneg (le_max_of_le_right (Real.sqrt_nonneg _))
       (le_of_lt hL.out)⟩, fun f => ?_⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton, NNReal.smul_def, Seminorm.smul_apply,
-      coe_normSeminorm, NNReal.coe_mk]
+    simp only [Seminorm.comp_apply, Finset.sup_singleton,
+      coe_normSeminorm]
     exact fourierCoeffReal_bound n f
 
 /-! ### Orthogonality -/

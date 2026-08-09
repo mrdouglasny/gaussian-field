@@ -410,7 +410,7 @@ theorem toRapidDecay_continuous : Continuous (toRapidDecayLM (L := L)) := by
   obtain ⟨C, hC, hbound⟩ := fourierCoeffReal_decay (L := L) (k + 2)
   set Z := ∑' n : ℕ, 1 / ((n : ℝ) + 1) ^ 2
   refine ⟨{0, k + 2}, ⟨C * Z, by positivity⟩, fun f => ?_⟩
-  simp only [Seminorm.comp_apply, NNReal.smul_def, Seminorm.smul_apply, NNReal.coe_mk]
+  simp only [Seminorm.comp_apply]
   show ∑' m, |fourierCoeffReal m f| * (1 + (m : ℝ)) ^ k ≤
     C * Z * (({0, k + 2} : Finset ℕ).sup sobolevSeminorm) f
   set S := (({0, k + 2} : Finset ℕ).sup sobolevSeminorm) f
@@ -526,8 +526,8 @@ theorem fromRapidDecay_continuous : Continuous (fromRapidDecayLM (L := L)) := by
   intro k
   obtain ⟨C, hC, hbound⟩ := sobolevSeminorm_fourierBasis_le (L := L) k
   refine ⟨{k}, ⟨C, le_of_lt hC⟩, fun a => ?_⟩
-  simp only [Finset.sup_singleton, Seminorm.comp_apply, NNReal.smul_def,
-    Seminorm.smul_apply, NNReal.coe_mk]
+  simp only [Finset.sup_singleton, Seminorm.comp_apply,
+    ]
   -- Goal: sobolevSeminorm k (fromRapidDecayLM a) ≤ C * rapidDecaySeminorm k a
   -- Bound the sSup pointwise
   apply csSup_le (Set.Nonempty.image _ (Set.nonempty_Icc.mpr (le_of_lt hL.out)))

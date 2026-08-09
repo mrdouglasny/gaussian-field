@@ -69,8 +69,7 @@ theorem continuous_eval_at (x : ℝ) :
   apply WithSeminorms.continuous_of_isBounded smoothCircle_withSeminorms (norm_withSeminorms ℝ ℝ)
   intro _
   refine ⟨{0}, ⟨1, by norm_num⟩, fun f => ?_⟩
-  simp only [Seminorm.comp_apply, Finset.sup_singleton, NNReal.smul_def,
-    Seminorm.smul_apply, NNReal.coe_mk]
+  simp only [Seminorm.comp_apply, Finset.sup_singleton]
   -- Goal: (normSeminorm ℝ ℝ) (lm f) ≤ 1 • sobolevSeminorm 0 f
   show (normSeminorm ℝ ℝ) (lm f) ≤ (1 : ℝ) • (sobolevSeminorm 0) f
   rw [one_smul, coe_normSeminorm, Real.norm_eq_abs]
@@ -149,7 +148,7 @@ noncomputable def circleRestrictionGJ (N : ℕ) [NeZero N] :
     circleRestrictionGJ L N f k =
       circleSpacing L N * f (circlePoint L N k) := by
   unfold circleRestrictionGJ
-  rw [ContinuousLinearMap.smul_apply, Pi.smul_apply, smul_eq_mul,
+  rw [_root_.smul_apply, Pi.smul_apply, smul_eq_mul,
     circleRestriction_apply]
   have h_nn : (0 : ℝ) ≤ circleSpacing L N :=
     le_of_lt (circleSpacing_pos L N)

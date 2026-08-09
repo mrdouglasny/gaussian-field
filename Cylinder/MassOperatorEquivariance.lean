@@ -155,7 +155,7 @@ theorem cylinderMassOperator_normSq_eq_sum_perMode
   rw [lp.inner_eq_tsum]
   -- Step C: real-fiber inner ⟪a, a⟫_ℝ = a * a = a^2
   simp_rw [show ∀ a : ℝ, @inner ℝ ℝ _ a a = a ^ 2 from
-    fun a => by simp [inner, RCLike.re, conj_trivial, sq]]
+    fun a => by simp [inner, RCLike.re, sq]]
   -- Step D: substitute cylinderMassOperator_formula
   rw [show (∑' i : ℕ, (cylinderMassOperator L mass hmass f i : ℝ) ^ 2) =
       ∑' i : ℕ,

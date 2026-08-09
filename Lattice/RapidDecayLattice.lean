@@ -655,8 +655,8 @@ noncomputable def latticeRapidDecayEquiv (d : ℕ) [NeZero d] :
     obtain ⟨C, hC, q, hidx⟩ := latticeEnum_index_bound d
     let k' : ℕ := q * k
     refine ⟨{k'}, ⟨(C + 1) ^ k, by positivity⟩, fun a => ?_⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply,
-      NNReal.smul_def, smul_eq_mul, toRapidDecayLM]
+    simp only [Seminorm.comp_apply, Finset.sup_singleton,
+      toRapidDecayLM]
     show ∑' m, |a.val (e.symm m)| * (1 + (m : ℝ)) ^ k ≤
       (C + 1) ^ k * (∑' x, |a.val x| * (1 + latticeNorm x) ^ k')
     set f : (Fin d → ℤ) → ℝ := fun x => |a.val x| * (1 + (e x : ℝ)) ^ k
@@ -703,8 +703,8 @@ noncomputable def latticeRapidDecayEquiv (d : ℕ) [NeZero d] :
     obtain ⟨C, hC, p, hnorm⟩ := latticeEnum_norm_bound d
     let k' : ℕ := p * k
     refine ⟨{k'}, ⟨(C + 1) ^ k, by positivity⟩, fun a => ?_⟩
-    simp only [Seminorm.comp_apply, Finset.sup_singleton, Seminorm.smul_apply,
-      NNReal.smul_def, smul_eq_mul, fromRapidDecayLM]
+    simp only [Seminorm.comp_apply, Finset.sup_singleton,
+      fromRapidDecayLM]
     show ∑' x, |a.val (e x)| * (1 + latticeNorm x) ^ k ≤
       (C + 1) ^ k * (∑' m, |a.val m| * (1 + (m : ℝ)) ^ k')
     set g : ℕ → ℝ := fun m => |a.val m| * (1 + latticeNorm (e.symm m)) ^ k

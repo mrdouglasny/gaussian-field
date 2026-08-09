@@ -126,7 +126,7 @@ def torusEmbedCLM (N : ℕ) [NeZero N]
   map_smul' r f := by
     simp only [map_smul, smul_eq_mul, mul_left_comm, Finset.mul_sum, RingHom.id_apply]
   cont := by
-    apply continuous_finset_sum
+    apply continuous_finsetSum
     intro x _
     exact continuous_const.mul (evalTorusAtSite L N x).cont
 
@@ -182,7 +182,7 @@ def torusEmbedCLMGJ (N : ℕ) [NeZero N]
   map_smul' r f := by
     simp only [map_smul, smul_eq_mul, mul_left_comm, Finset.mul_sum, RingHom.id_apply]
   cont := by
-    apply continuous_finset_sum
+    apply continuous_finsetSum
     intro x _
     exact continuous_const.mul (evalTorusAtSiteGJ L N x).cont
 
@@ -198,7 +198,7 @@ def torusEmbedCLMGJ (N : ℕ) [NeZero N]
     (x : FinLatticeSites 2 N) (f : TorusTestFunction L) :
     evalTorusAtSiteGJ L N x f = circleSpacing L N * evalTorusAtSite L N x f := by
   unfold evalTorusAtSiteGJ
-  rw [ContinuousLinearMap.smul_apply, smul_eq_mul]
+  rw [smul_apply, smul_eq_mul]
 
 /-- Swap of lattice sites: (x₀, x₁) ↦ (x₁, x₀). -/
 def swapSites (N : ℕ) (x : FinLatticeSites 2 N) : FinLatticeSites 2 N :=
