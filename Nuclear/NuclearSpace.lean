@@ -31,11 +31,14 @@ DM structure directly from the Hermite basis.
 - Pietsch, "Nuclear Locally Convex Spaces" (1972)
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4
 -/
+module
 
-import Nuclear.DyninMityagin
-import Mathlib.Analysis.Convex.Cone.Extension
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Analysis.PSeries
+public import Nuclear.DyninMityagin
+public import Mathlib.Analysis.Convex.Cone.Extension
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Analysis.PSeries
+
+@[expose] public section
 
 noncomputable section
 

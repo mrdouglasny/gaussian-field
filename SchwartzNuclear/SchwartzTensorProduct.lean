@@ -22,9 +22,12 @@ and the general result follows by induction on `n`.
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. 3-4
 - Trèves, "Topological Vector Spaces, Distributions and Kernels", Ch. 51
 -/
+module
 
-import SchwartzNuclear.HermiteNuclear
-import Nuclear.NuclearTensorProduct
+public import SchwartzNuclear.HermiteNuclear
+public import Nuclear.NuclearTensorProduct
+
+@[expose] public section
 
 noncomputable section
 
@@ -128,7 +131,7 @@ def reindexCLM (σ : ℕ ≃ ℕ) (hσ_inv : IsPolyBounded σ.symm) :
   toLinearMap := reindexLM σ hσ_inv
   cont := WithSeminorms.continuous_of_isBounded
     rapidDecay_withSeminorms rapidDecay_withSeminorms
-    _ (reindexLM_isBounded σ hσ_inv)
+    _ (by exact reindexLM_isBounded σ hσ_inv)
 
 /-- The reindexing continuous linear equivalence.
 Given a polynomially bounded permutation `σ` (with polynomially bounded inverse),
@@ -154,7 +157,7 @@ namespace NuclearTensorProduct
 /-- The associativity permutation for Cantor pairing.
 Maps the "left-associated" index `pair(pair(i,j), k)` to the
 "right-associated" index `pair(i, pair(j,k))`. -/
-private def assocPerm : ℕ ≃ ℕ :=
+def assocPerm : ℕ ≃ ℕ :=
   -- ℕ → ℕ×ℕ → (ℕ×ℕ)×ℕ → ℕ×(ℕ×ℕ) → ℕ
   Nat.pairEquiv.symm.trans <|
     (Equiv.prodCongr Nat.pairEquiv.symm (Equiv.refl ℕ)).trans <|
@@ -270,7 +273,8 @@ Cantor pairing associativity permutation. -/
 def assoc (E₁ E₂ E₃ : Type*) :
     NuclearTensorProduct (NuclearTensorProduct E₁ E₂) E₃ ≃L[ℝ]
     NuclearTensorProduct E₁ (NuclearTensorProduct E₂ E₃) :=
-  RapidDecaySeq.reindex assocPerm assocPerm_polyBounded assocPerm_symm_polyBounded
+  RapidDecaySeq.reindex assocPerm (by exact assocPerm_polyBounded)
+    (by exact assocPerm_symm_polyBounded)
 
 end NuclearTensorProduct
 

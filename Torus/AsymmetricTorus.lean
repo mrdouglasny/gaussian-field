@@ -31,9 +31,12 @@ The symmetric torus `TorusTestFunction L` is the special case `Lt = Ls = L`.
 - Glimm-Jaffe, *Quantum Physics*, Chapter 19
 - Simon, *The P(φ)₂ Euclidean QFT*, Chapter VIII
 -/
+module
 
-import Torus.Restriction
-import Torus.Symmetry
+public import Torus.Restriction
+public import Torus.Symmetry
+
+@[expose] public section
 
 noncomputable section
 
@@ -110,7 +113,7 @@ def asymTorusEmbedCLM (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
   map_smul' r f := by
     simp only [map_smul, smul_eq_mul, mul_left_comm, Finset.mul_sum, RingHom.id_apply]
   cont := by
-    apply continuous_finset_sum
+    apply continuous_finsetSum
     intro x _
     exact continuous_const.mul (evalAsymTorusAtSite Lt Ls Nt Ns x).cont
 

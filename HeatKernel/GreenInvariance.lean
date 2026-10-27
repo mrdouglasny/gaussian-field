@@ -38,9 +38,12 @@ share eigenvalues.
 
 - Glimm-Jaffe, *Quantum Physics*, §6.4
 -/
+module
 
-import SmoothCircle.FourierTranslation
-import Nuclear.TensorProductFunctorAxioms
+public import SmoothCircle.FourierTranslation
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 

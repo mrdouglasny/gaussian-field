@@ -1,4 +1,8 @@
-import Lattice.CirculantDFT2d
+module
+
+public import Lattice.CirculantDFT2d
+
+@[expose] public section
 
 noncomputable section
 
@@ -325,7 +329,9 @@ theorem sum_latticeEigenvalue_two_eq_sum_latticeEigenvalue1d_pair
                     ((4 / a ^ 2) * Real.sin (Real.pi * (ZMod.val p.2 : ℝ) / N) ^ 2) +
                     mass ^ 2)) ?_
               intro s
-              simp [siteEquiv]
+              show _ = F (((4 / a ^ 2) * Real.sin (Real.pi * (ZMod.val (s 0) : ℝ) / N) ^ 2) +
+                ((4 / a ^ 2) * Real.sin (Real.pi * (ZMod.val (s 1) : ℝ) / N) ^ 2) + mass ^ 2)
+              simp
               congr 1
               ring
     _ = ∑ z₁ : ZMod N, ∑ z₂ : ZMod N,

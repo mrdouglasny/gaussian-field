@@ -8,10 +8,13 @@ Authors: Michael R. Douglas
 Proves that the cylinder mass operator has dense range in `ell2'` by
 constructing explicit preimages of the standard basis vectors.
 -/
+module
 
-import Cylinder.MassOperatorConstruction
-import HeatKernel.GreenInvariance
-import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Cylinder.MassOperatorConstruction
+public import HeatKernel.GreenInvariance
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 noncomputable section
 

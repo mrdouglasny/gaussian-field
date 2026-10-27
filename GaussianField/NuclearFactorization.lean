@@ -23,12 +23,15 @@ seminorm) and y_m ∈ H.
 
 - Gel'fand, Vilenkin, "Generalized Functions" Vol 4, Ch 3-4
 -/
+module
 
-import Nuclear.DyninMityagin
-import Mathlib.Analysis.PSeries
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+public import Nuclear.DyninMityagin
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+@[expose] public section
 
 open scoped BigOperators
 open Finset

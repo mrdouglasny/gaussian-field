@@ -3,9 +3,11 @@ Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael R. Douglas
 -/
-import Lattice.AsymCovariance
-import Lattice.AsymFiniteField
-import GaussianField.Density
+module
+
+public import Lattice.AsymCovariance
+public import Lattice.AsymFiniteField
+public import GaussianField.Density
 
 /-!
 # Asymmetric-lattice Gaussian density bridge
@@ -27,6 +29,8 @@ precision is `a²·Q`).
 This is the GaussianField-side input to the Layer-B2 measure↔operator bridge in `pphi2`
 (crux-1); see `docs/generic-density-bridge-plan.md` for the eventual generic consolidation.
 -/
+
+@[expose] public section
 
 open MeasureTheory
 open scoped BigOperators
@@ -133,7 +137,7 @@ theorem gaussianDensityAsym_measurable (a mass : ℝ) :
     Measurable (gaussianDensityAsym Nt Ns a mass) := by
   unfold gaussianDensityAsym
   exact (Real.continuous_exp.comp (continuous_const.mul
-      (continuous_finset_sum _ fun x _ =>
+      (continuous_finsetSum _ fun x _ =>
         (continuous_apply x).mul
           ((continuous_apply x).comp (massOperatorAsym Nt Ns a mass).continuous)))).measurable
 
@@ -407,7 +411,7 @@ theorem lattice_covariance_AsymGJ_eq_spectral (a mass : ℝ)
     Real.mul_self_sqrt (le_of_lt ha2_pos)
   rw [← covariance_spectralLatticeCovarianceAsym_eq Nt Ns a mass ha hmass f g]
   unfold latticeCovarianceAsymGJ covariance
-  simp only [ContinuousLinearMap.smul_apply, inner_smul_left, inner_smul_right]
+  simp only [smul_apply, inner_smul_left, inner_smul_right]
   show (Real.sqrt (a ^ 2))⁻¹ *
         ((Real.sqrt (a ^ 2))⁻¹ *
           inner ℝ (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass f)
@@ -442,7 +446,7 @@ theorem measurable_sitePairingAsym (f : AsymLatticeField Nt Ns) :
     Measurable (fun φ : AsymLatticeField Nt Ns =>
       ∑ x : AsymLatticeSites Nt Ns, f x * φ x) := by
   simpa using
-    (continuous_finset_sum _ (fun x _ => continuous_const.mul (continuous_apply x))).measurable
+    (continuous_finsetSum _ (fun x _ => continuous_const.mul (continuous_apply x))).measurable
 
 /-! ### Fourier identity, abstract side (asym) -/
 
@@ -464,7 +468,7 @@ theorem latticeGaussianFieldLawAsym_fourier (a mass : ℝ) (ha : 0 < a) (hmass :
           (evalMapAsym Nt Ns)) := by
     refine (Complex.continuous_exp.comp ?_).aestronglyMeasurable
     refine (continuous_const.mul (Complex.continuous_ofReal.comp ?_))
-    exact continuous_finset_sum _ (fun x _ => continuous_const.mul (continuous_apply x))
+    exact continuous_finsetSum _ (fun x _ => continuous_const.mul (continuous_apply x))
   rw [integral_map (measurable_evalMapAsym Nt Ns).aemeasurable hmeas]
   have hcoord : ∀ ω : Configuration (AsymLatticeField Nt Ns),
       (∑ x : AsymLatticeSites Nt Ns, f x * (evalMapAsym Nt Ns ω) x) = ω f := by
@@ -653,8 +657,9 @@ theorem normalizedGaussianDensityMeasureAsym_linearFourier
       (integral_withDensity_eq_integral_toReal_smul
         (μ := volume) (f := gaussianDensityWeightAsym Nt Ns a mass)
         (f_meas := by
-          simpa [gaussianDensityWeightAsym] using
-            (gaussianDensityAsym_measurable Nt Ns a mass).ennreal_ofReal)
+          change Measurable (fun φ : AsymLatticeField Nt Ns =>
+            ENNReal.ofReal (gaussianDensityAsym Nt Ns a mass φ))
+          exact (gaussianDensityAsym_measurable Nt Ns a mass).ennreal_ofReal)
         (hf_lt_top := hflt)
         (g := fun φ : AsymLatticeField Nt Ns =>
           Complex.exp (Complex.I * ↑(∑ x : AsymLatticeSites Nt Ns, f x * φ x))))
@@ -879,7 +884,7 @@ theorem normalizedGaussianDensityMeasureAsym_eq_normalizedQuadraticGaussianMeasu
         φ x * (((a ^ 2 : ℝ) • massOperatorAsym Nt Ns a mass) φ) x =
         a ^ 2 * (φ x * (massOperatorAsym Nt Ns a mass φ) x) := by
       intro x
-      simp only [ContinuousLinearMap.smul_apply, Pi.smul_apply, smul_eq_mul]
+      simp only [smul_apply, Pi.smul_apply, smul_eq_mul]
       ring
     simp_rw [h_smul]
     rw [← Finset.mul_sum]
@@ -903,7 +908,7 @@ theorem latticeGaussianFieldLawAsym_eq_normalizedQuadraticGaussianMeasure
     letI : MeasureTheory.IsProbabilityMeasure
         (latticeGaussianFieldLawAsym Nt Ns a mass ha hmass) := by
       rw [latticeGaussianFieldLawAsym]
-      exact Measure.isProbabilityMeasure_map (measurable_evalMapAsym Nt Ns).aemeasurable
+      exact inferInstance
     infer_instance
   exact MeasureTheory.Measure.ext_of_charFunDual <|
     (normalizedGaussianDensityMeasureAsym_charFunDual_eq_latticeGaussianFieldLawAsym

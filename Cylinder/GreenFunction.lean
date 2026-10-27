@@ -84,12 +84,15 @@ The DMS basis for 𝓢(ℝ) is Hermite functions, but the resolvent
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II, §X.12
 -/
+module
 
-import Cylinder.MassOperatorConstruction
-import Cylinder.MassOperatorEquivariance
-import Cylinder.MassOperatorSpatialEquivariance
-import Cylinder.MassOperatorRangeDense
-import Mathlib.Analysis.Normed.Operator.Extend
+public import Cylinder.MassOperatorConstruction
+public import Cylinder.MassOperatorEquivariance
+public import Cylinder.MassOperatorSpatialEquivariance
+public import Cylinder.MassOperatorRangeDense
+public import Mathlib.Analysis.Normed.Operator.Extend
+
+@[expose] public section
 
 noncomputable section
 

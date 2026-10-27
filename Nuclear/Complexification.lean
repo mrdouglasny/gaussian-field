@@ -11,10 +11,14 @@ complex scalar action (a + bi)(f + ig) = (af - bg) + i(ag + bf).
 We represent this as a structure with `re` and `im` fields (rather than
 `E × E`) to avoid typeclass diamonds with `Prod.instModule`.
 -/
+module
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.OperatorNorm
-import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.OperatorNorm
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+public import Mathlib.Analysis.Calculus.ContDiff.Bounds
+
+@[expose] public section
 
 namespace GaussianField
 
@@ -139,7 +143,7 @@ private theorem norm_iteratedFDeriv_clm_comp_schwartz
 
 /-- Post-compose a real-valued Schwartz map with `Complex.ofRealCLM` to get a
 ℂ-valued Schwartz map. This is ℝ-linear. -/
-private noncomputable def schwartzOfReal (f : SchwartzMap D ℝ) : SchwartzMap D ℂ :=
+noncomputable def schwartzOfReal (f : SchwartzMap D ℝ) : SchwartzMap D ℂ :=
   ⟨fun x => ↑(f x), Complex.ofRealCLM.contDiff.comp (f.smooth _), fun k n => by
     rcases f.decay k n with ⟨C, hC, hbound⟩
     refine ⟨C, fun x => ?_⟩
@@ -149,7 +153,7 @@ private noncomputable def schwartzOfReal (f : SchwartzMap D ℝ) : SchwartzMap D
         _ ≤ C := by rw [Complex.ofRealCLM_norm, one_mul]; exact hbound x⟩
 
 /-- Extract the real part of a ℂ-valued Schwartz map. -/
-private noncomputable def schwartzRe (f : SchwartzMap D ℂ) : SchwartzMap D ℝ :=
+noncomputable def schwartzRe (f : SchwartzMap D ℂ) : SchwartzMap D ℝ :=
   ⟨fun x => (f x).re, Complex.reCLM.contDiff.comp (f.smooth _), fun k n => by
     rcases f.decay k n with ⟨C, hC, hbound⟩
     refine ⟨C, fun x => ?_⟩
@@ -159,7 +163,7 @@ private noncomputable def schwartzRe (f : SchwartzMap D ℂ) : SchwartzMap D ℝ
         _ ≤ C := by rw [Complex.reCLM_norm, one_mul]; exact hbound x⟩
 
 /-- Extract the imaginary part of a ℂ-valued Schwartz map. -/
-private noncomputable def schwartzIm (f : SchwartzMap D ℂ) : SchwartzMap D ℝ :=
+noncomputable def schwartzIm (f : SchwartzMap D ℂ) : SchwartzMap D ℝ :=
   ⟨fun x => (f x).im, Complex.imCLM.contDiff.comp (f.smooth _), fun k n => by
     rcases f.decay k n with ⟨C, hC, hbound⟩
     refine ⟨C, fun x => ?_⟩

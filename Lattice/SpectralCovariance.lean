@@ -27,13 +27,16 @@ density bridge (showing the Gaussian measure has density exp(-½⟨φ,Qφ⟩)).
 - Reed-Simon, Vol. 1, §VI (Spectral theorem)
 - Glimm-Jaffe, §19 (Gaussian measures and covariance operators)
 -/
+module
 
-import Lattice.Laplacian
-import Lattice.FiniteField
-import HeatKernel.Axioms
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Lattice.Laplacian
+public import Lattice.FiniteField
+public import HeatKernel.Axioms
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 noncomputable section
 

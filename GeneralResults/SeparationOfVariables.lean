@@ -45,11 +45,14 @@ currently live in `LinearAlgebra/TensorProduct/...`, but a
 pointwise/algebraic version on product eigenfunctions over an
 arbitrary commutative ring is missing).
 -/
+module
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic.Ring
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 namespace GaussianField
 

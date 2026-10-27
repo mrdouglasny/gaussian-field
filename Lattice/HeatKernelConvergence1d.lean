@@ -26,12 +26,15 @@ As N → ∞, `sinc(πk/N) → 1`, so `λ_k → (2πk/L)²` = continuum eigenval
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
+module
 
-import Lattice.HeatKernel
-import SmoothCircle.Restriction
-import SmoothCircle.Eigenvalues
-import SmoothCircle.Nuclear
-import HeatKernel.Bilinear
+public import Lattice.HeatKernel
+public import SmoothCircle.Restriction
+public import SmoothCircle.Eigenvalues
+public import SmoothCircle.Nuclear
+public import HeatKernel.Bilinear
+
+@[expose] public section
 
 noncomputable section
 
@@ -188,7 +191,7 @@ theorem latticeDFTCoeff1d_zero_of_ge (N : ℕ) [NeZero N]
     (f : SmoothMap_Circle L ℝ) (m : ℕ) (hm : N ≤ m) :
     latticeDFTCoeff1d L N f m = 0 := by
   unfold latticeDFTCoeff1d
-  rw [if_neg (not_lt.mpr hm)]
+  rw [ite_eq_right (not_lt.mpr hm)]
 
 /-- **Flat uniform bound on DFT coefficients.**
 
@@ -202,7 +205,7 @@ theorem latticeDFTCoeff1d_flat_bound (f : SmoothMap_Circle L ℝ) :
       Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f := by
   intro N m
   by_cases hm : m < N + 1
-  · simp only [latticeDFTCoeff1d, if_pos hm]
+  · simp only [latticeDFTCoeff1d, ite_eq_left hm]
     set M := N + 1 with hM_def
     have hM_pos : (0 : ℝ) < M := by positivity
     have h_term : ∀ z : ZMod M,
@@ -482,7 +485,7 @@ private theorem latticeDFTCoeff1d_eq_riemann_sum
     latticeDFTCoeff1d L N f m =
     ∑ z : ZMod N, (L / N) * (f (circlePoint L N z) *
       SmoothMap_Circle.fourierBasisFun (L := L) m (circlePoint L N z)) := by
-  simp only [latticeDFTCoeff1d, if_pos hm]
+  simp only [latticeDFTCoeff1d, ite_eq_left hm]
   congr 1; ext z
   exact restriction_times_latticeBasis L N f m hm z
 

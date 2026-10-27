@@ -31,11 +31,14 @@ The resulting sequence is in ℓ² because:
 - Glimm-Jaffe, *Quantum Physics*, §6.1, §19.1
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
+module
 
-import Cylinder.FreeHeatSemigroup
-import Cylinder.PositiveTime
-import GaussianField.Construction
-import SchwartzFourier.ResolventUniformBound
+public import Cylinder.FreeHeatSemigroup
+public import Cylinder.PositiveTime
+public import GaussianField.Construction
+public import SchwartzFourier.ResolventUniformBound
+
+@[expose] public section
 
 noncomputable section
 
@@ -622,7 +625,7 @@ theorem massOperatorCoord_decay (mass : ℝ) (hmass : 0 < mass) :
 /-! ## Mass operator definition -/
 
 /-- Helper: package the decay bound for `nuclear_ell2_embedding_from_decay`. -/
-private theorem massOperator_ell2_embedding (mass : ℝ) (hmass : 0 < mass) :
+theorem massOperator_ell2_embedding (mass : ℝ) (hmass : 0 < mass) :
     ∃ (j : CylinderTestFunction L →L[ℝ] ell2'),
       ∀ (f : CylinderTestFunction L) (m : ℕ),
         (j f : ℕ → ℝ) m = massOperatorCoord L mass hmass m f := by

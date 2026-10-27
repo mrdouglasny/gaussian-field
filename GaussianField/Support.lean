@@ -27,10 +27,13 @@ to the DyninMityaginSpace basis.
 - Glimm-Jaffe, *Quantum Physics: A Functional Integral Point of View*, Ch. 1
 - Simon, *The P(φ)₂ Euclidean (Quantum) Field Theory*, Ch. II
 -/
+module
 
-import GaussianField.Properties
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
-import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
+public import GaussianField.Properties
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
+
+@[expose] public section
 
 noncomputable section
 

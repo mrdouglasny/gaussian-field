@@ -30,18 +30,21 @@ No sorries.
   the pullback of the product σ-algebra through `configBasisEval`.
   Key: DM expansion + `measurable_of_tendsto_metrizable` for partial sums.
 -/
+module
 
-import GaussianField.Construction
-import Nuclear.DyninMityagin
-import Nuclear.NuclearSpace
-import Mathlib.MeasureTheory.Measure.Prokhorov
-import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
-import Mathlib.MeasureTheory.Measure.Comap
-import Mathlib.MeasureTheory.Measure.Portmanteau
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Metrizable
-import Mathlib.Topology.Sequences
-import Mathlib.Topology.Metrizable.Basic
-import Mathlib.Topology.TietzeExtension
+public import GaussianField.Construction
+public import Nuclear.DyninMityagin
+public import Nuclear.NuclearSpace
+public import Mathlib.MeasureTheory.Measure.Prokhorov
+public import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
+public import Mathlib.MeasureTheory.Measure.Comap
+public import Mathlib.MeasureTheory.Measure.Portmanteau
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Metrizable
+public import Mathlib.Topology.Sequences
+public import Mathlib.Topology.Metrizable.Basic
+public import Mathlib.Topology.TietzeExtension
+
+@[expose] public section
 
 noncomputable section
 
@@ -87,7 +90,7 @@ theorem configBasisEval_continuous :
 theorem configBasisEval_measurable :
     @Measurable _ _ instMeasurableSpaceConfiguration MeasurableSpace.pi
     (configBasisEval (E := E)) := by
-  apply measurable_pi_lambda
+  apply Measurable.of_eval
   intro n
   exact configuration_eval_measurable (DyninMityaginSpace.basis n)
 
@@ -113,7 +116,7 @@ theorem instMeasurableSpaceConfiguration_eq_comap :
       fun m => (measurable_pi_apply m).comp (comap_measurable (configBasisEval (E := E)))
     -- Each evaluation ω ↦ ω(f) is measurable as a limit of partial sums
     suffices h_eval : ∀ f' : E, Measurable (fun ω : Configuration E => ω f') by
-      exact (measurable_pi_lambda _ h_eval).comap_le
+      exact (Measurable.of_eval h_eval).comap_le
     intro f'
     -- Define partial sums
     let S : ℕ → Configuration E → ℝ := fun n ω =>
@@ -234,8 +237,7 @@ theorem prokhorov_configuration_pushforward
   -- Step 2: Pushforward measures are probability measures
   have hν_prob : ∀ n, IsProbabilityMeasure (ν_seq n) := by
     intro n; have := hμ_prob n
-    exact Measure.isProbabilityMeasure_map
-      (configBasisEval_measurable.aemeasurable (μ := μ n))
+    exact inferInstance
   -- Step 3: Tightness transfers through continuous maps
   have hν_tight : ∀ ε : ℝ, 0 < ε →
       ∃ K : Set (ℕ → ℝ), IsCompact K ∧ ∀ n, 1 - ε ≤ (ν_seq n K).toReal := by
@@ -465,7 +467,7 @@ theorem prokhorov_configuration
       -- Construct ProbabilityMeasure convergence
       let P_seq : ℕ → ProbabilityMeasure (ℕ → ℝ) := fun n =>
         ⟨Measure.map configBasisEval (μ (φ n)),
-          Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable⟩
+          inferInstance⟩
       let P_lim : ProbabilityMeasure (ℕ → ℝ) := ⟨ν_lim, hν_lim_prob⟩
       have hPM_tend : Tendsto P_seq atTop (nhds P_lim) := by
         rw [ProbabilityMeasure.tendsto_iff_forall_integral_tendsto]
@@ -544,7 +546,7 @@ theorem prokhorov_configuration
           by_cases hω : ω ∈ K
           · simp [hg_agree ω hω, Set.indicator, hω]
           · simp only [Set.indicator, Set.mem_compl_iff, hω, not_false_eq_true,
-                if_true, Pi.one_apply, mul_one]
+                ite_true, Pi.one_apply, mul_one]
             calc |f ω - g (configBasisEval ω)|
                 ≤ |f ω| + |g (configBasisEval ω)| := by
                   calc |f ω - g (configBasisEval ω)|

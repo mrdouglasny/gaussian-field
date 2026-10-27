@@ -18,11 +18,14 @@ uniquely to a continuous linear functional on the Schwartz space of the product 
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. I §3
 - Reed-Simon, "Methods of Modern Mathematical Physics I", Theorem V.13
 -/
+module
 
-import SchwartzNuclear.HermiteNuclear
-import SchwartzNuclear.TsumBound
-import GeneralResults.SchwartzProducts
-import Mathlib.Topology.Algebra.InfiniteSum.Ring
+public import SchwartzNuclear.HermiteNuclear
+public import SchwartzNuclear.TsumBound
+public import GeneralResults.SchwartzProducts
+public import Mathlib.Topology.Algebra.InfiniteSum.Ring
+
+@[expose] public section
 
 noncomputable section
 
@@ -86,7 +89,7 @@ theorem DyninMityaginSpace.summable_coeff_mul_polyBounded
   exact this.congr (fun m => by rw [one_div]; congr 1; ring)
 
 /-- The linear map `f ↦ Σ coeff_m(f) · v_m`. -/
-private def DyninMityaginSpace.extensionLM (v : ℕ → ℝ) (hv : PolyBounded v) :
+def DyninMityaginSpace.extensionLM (v : ℕ → ℝ) (hv : PolyBounded v) :
     E →ₗ[ℝ] ℝ where
   toFun f := ∑' m, DyninMityaginSpace.coeff (E := E) m f * v m
   map_add' f g := by
@@ -392,7 +395,7 @@ theorem multilinear_on_basis_bound
           exact mul_le_mul_of_nonneg_left hPhi_gs.le h_prod_pos.le
       _ = ∏ i : Fin n, c i := mul_one _
       _ ≤ ∏ i : Fin n, (2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg) := by
-          apply Finset.prod_le_prod (fun i _ => (hc_pos i).le) (fun i _ => ?_)
+          apply Finset.prod_le_prod₀ (fun i _ => (hc_pos i).le) (fun i _ => ?_)
           show 2 * (q (DyninMityaginSpace.basis (ks i)) + 1) / δ ≤
             2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg
           rw [div_mul_eq_mul_div]
@@ -436,7 +439,7 @@ theorem multilinear_on_basis_polyBounded
       ≤ C * ∏ i : Fin n, (1 + (βs m i : ℝ)) ^ s := h_bound (βs m)
     _ ≤ C * ∏ _i : Fin n, A ^ s :=
         mul_le_mul_of_nonneg_left
-          (Finset.prod_le_prod (fun i _ => by positivity) (fun i _ => h_each i)) hC.le
+          (Finset.prod_le_prod₀ (fun i _ => by positivity) (fun i _ => h_each i)) hC.le
     _ = C * A ^ (Finset.card (Finset.univ : Finset (Fin n)) * s) := by
         rw [Finset.prod_const]; ring
     _ = C * A ^ (n * s) := by rw [Finset.card_fin]

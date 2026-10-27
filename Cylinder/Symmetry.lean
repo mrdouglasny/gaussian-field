@@ -40,10 +40,13 @@ giving a clean decomposition into future and past. No wraparound issues.
 - Glimm-Jaffe, *Quantum Physics*, §6.4
 - Osterwalder-Schrader (1973), Axiom (A3)
 -/
+module
 
-import Cylinder.Basic
-import Torus.Symmetry
-import Nuclear.TensorProductFunctorAxioms
+public import Cylinder.Basic
+public import Torus.Symmetry
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 

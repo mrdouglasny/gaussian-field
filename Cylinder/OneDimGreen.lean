@@ -4,7 +4,9 @@ Released under Apache 2.0 license.
 
 Ported from Phi4/GreenFunction/OneDimGreen.lean to gaussian-field.
 -/
-import Cylinder.Basic
+module
+
+public import Cylinder.Basic
 
 /-!
 # 1D Green's Function and Reflection Positivity
@@ -30,6 +32,8 @@ a perfect square, hence is non-negative.
 
 * [Glimm-Jaffe] Section 7.10
 -/
+
+@[expose] public section
 
 noncomputable section
 

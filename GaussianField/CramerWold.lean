@@ -3,9 +3,10 @@ Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael R. Douglas
 -/
+module
 
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 
 /-!
 # Cramér-Wold Theorem
@@ -20,6 +21,8 @@ are equal if they assign the same distribution to every linear functional `x ↦
 2. `charFun_map_eq_charFunDual_smul` gives `charFunDual ν L = charFun (ν.map ⇑L) 1`.
 3. Equal pushforwards → equal `charFunDual` → equal measures (by `ext_of_charFunDual`).
 -/
+
+@[expose] public section
 
 namespace GaussianField
 

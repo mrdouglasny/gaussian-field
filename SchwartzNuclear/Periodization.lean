@@ -28,12 +28,15 @@ uniformly on `[0, L]` for any `n` and any `N > 1`. This gives:
 - Stein-Weiss, *Introduction to Fourier Analysis on Euclidean Spaces*, Ch. VII
 - Grafakos, *Classical Fourier Analysis*, §3.1.2
 -/
+module
 
-import SmoothCircle.Nuclear
-import SchwartzNuclear.HermiteNuclear
-import Torus.Symmetry
-import Cylinder.Symmetry
-import Mathlib.Topology.Algebra.InfiniteSum.TsumUniformlyOn
+public import SmoothCircle.Nuclear
+public import SchwartzNuclear.HermiteNuclear
+public import Torus.Symmetry
+public import Cylinder.Symmetry
+public import Mathlib.Topology.Algebra.InfiniteSum.TsumUniformlyOn
+
+@[expose] public section
 
 noncomputable section
 
@@ -318,7 +321,7 @@ private theorem bump_periodize_iteratedFDeriv_bound
     intro m; rw [Filter.eventually_cofinite]
     refine (Set.finite_Icc (-(K m : ℤ)) (K m : ℤ)).subset ?_
     intro k hk
-    simp only [Set.mem_setOf_eq, not_forall, not_le] at hk
+    simp only [Set.mem_ofPred_eq, not_forall, not_le] at hk
     obtain ⟨x, hx⟩ := hk
     rw [Set.mem_Icc]; by_contra habs
     simp only [not_and_or, not_le] at habs
@@ -394,7 +397,7 @@ theorem periodizeSmoothCircle_add (f g : SchwartzMap ℝ ℝ) :
   apply SmoothMap_Circle.ext; intro t
   unfold periodizeSmoothCircle
   simp only [SmoothMap_Circle.add_apply, SmoothMap_Circle.coe_mk, periodizeFun]
-  simp only [SchwartzMap.add_apply]
+  simp only [add_apply]
   exact (periodize_summable L f t).tsum_add (periodize_summable L g t)
 
 theorem periodizeSmoothCircle_smul (r : ℝ) (h : SchwartzMap ℝ ℝ) :
@@ -473,11 +476,11 @@ private lemma schwartz_shifted_summable_bound (h : SchwartzMap ℝ ℝ) (m : ℕ
       have := summable_inv_int_sq_mul C₁ 1; simp only [mul_one] at this; exact this
     exact htail.congr_cofinite (Filter.eventually_cofinite.mpr
       ((Set.finite_Icc (-(N : ℤ)) N).subset (fun j hj => by
-        simp only [Set.mem_setOf_eq] at hj
+        simp only [Set.mem_ofPred_eq] at hj
         rw [Set.mem_Icc]
         by_contra h_abs; push Not at h_abs
         apply hj; show _ = u j; simp only [u]
-        exact (if_neg (show ¬ (|j| : ℤ) ≤ ↑N from by
+        exact (ite_eq_right (show ¬ (|j| : ℤ) ≤ ↑N from by
           rw [not_le]; by_cases hjn : (-↑N : ℤ) ≤ j
           · exact Int.lt_of_lt_of_le (h_abs hjn) (le_abs_self j)
           · push Not at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
@@ -607,11 +610,11 @@ theorem periodize_sobolevSeminorm_le (k : ℕ) :
       have := summable_inv_int_sq_mul B 1; simp only [mul_one] at this; exact this
     exact htail.congr_cofinite (Filter.eventually_cofinite.mpr
       ((Set.finite_Icc (-(N : ℤ)) N).subset (fun j hj => by
-        simp only [Set.mem_setOf_eq] at hj
+        simp only [Set.mem_ofPred_eq] at hj
         rw [Set.mem_Icc]
         by_contra h_abs; push Not at h_abs
         apply hj; show _ = v j; simp only [v]
-        exact (if_neg (show ¬ (|j| : ℤ) ≤ ↑N from by
+        exact (ite_eq_right (show ¬ (|j| : ℤ) ≤ ↑N from by
           rw [not_le]; by_cases hjn : (-↑N : ℤ) ≤ j
           · exact Int.lt_of_lt_of_le (h_abs hjn) (le_abs_self j)
           · push Not at hjn; exact lt_of_lt_of_le (by omega : (N : ℤ) < -j) (neg_le_abs j))).symm)))
@@ -636,7 +639,7 @@ theorem periodize_sobolevSeminorm_le (k : ℕ) :
         · -- crude bound: ‖D^k h(y)‖ ≤ Semi h * A
           have hbd' : (1 + ‖x + ↑j * L‖) ^ (k + 2) *
               ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖ ≤ 2 ^ (k + 2) * Semi h := by
-            convert hbd using 2
+            convert hbd using 2; rfl
           have h1 : 1 ≤ (1 + ‖x + ↑j * L‖) ^ (k + 2) :=
             one_le_pow₀ (by linarith [norm_nonneg (x + ↑j * L)])
           linarith [le_mul_of_one_le_left
@@ -646,7 +649,7 @@ theorem periodize_sobolevSeminorm_le (k : ℕ) :
           -- Simplify hbd
           have hbd' : (1 + ‖x + ↑j * L‖) ^ (k + 2) *
               ‖iteratedDeriv k (⇑h) (x + ↑j * L)‖ ≤ 2 ^ (k + 2) * Semi h := by
-            convert hbd using 2
+            convert hbd using 2; rfl
           -- |j| ≥ 1
           have hj_pos : (0 : ℝ) < (↑|j| : ℝ) :=
             by exact_mod_cast (show 0 < |j| from by omega)
@@ -738,7 +741,7 @@ def periodizeCLM : SchwartzMap ℝ ℝ →L[ℝ] SmoothMap_Circle L ℝ where
     intro i
     obtain ⟨s, C, hC, hbound⟩ := periodize_sobolevSeminorm_le L i
     refine ⟨s, ⟨C, hC⟩, fun h => ?_⟩
-    simp only [Seminorm.comp_apply, NNReal.smul_def, Seminorm.smul_apply, NNReal.coe_mk]
+    simp only [Seminorm.comp_apply, NNReal.smul_def, smul_apply, NNReal.coe_mk]
     exact hbound h
 
 /-- Pointwise formula for periodization. -/

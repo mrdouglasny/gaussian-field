@@ -26,14 +26,17 @@ The tensor product s(ℕ) ⊗̂ s(ℕ) ≅ s(ℕ²) ≅ s(ℕ) via Cantor pairin
 - Dynin, Mityagin, "Criterion for nuclearity in terms of approximative dimension"
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4
 -/
+module
 
-import Nuclear.DyninMityagin
-import Nuclear.NuclearSpace
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.PSeries
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Topology.Algebra.InfiniteSum.Ring
+public import Nuclear.DyninMityagin
+public import Nuclear.NuclearSpace
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Topology.Algebra.InfiniteSum.Ring
+
+@[expose] public section
 
 noncomputable section
 
@@ -150,7 +153,7 @@ theorem rapidDecay_withSeminorms :
   ⟨rfl⟩
 
 instance instIsTopologicalAddGroup : IsTopologicalAddGroup RapidDecaySeq :=
-  rapidDecay_withSeminorms.topologicalAddGroup
+  rapidDecay_withSeminorms.isTopologicalAddGroup
 
 instance instContinuousSMul : ContinuousSMul ℝ RapidDecaySeq :=
   rapidDecay_withSeminorms.continuousSMul
@@ -442,15 +445,15 @@ theorem hasSum_basisVec (a : RapidDecaySeq) :
         (fun n => by split <;> simp [hg_nn])
         hg_sum
     have h_fin_summable : Summable (fun n => if (n ∈ s) then g n else (0 : ℝ)) :=
-      summable_of_ne_finset_zero (s := s) (fun n hn => if_neg hn)
+      summable_of_ne_finset_zero (s := s) (fun n hn => ite_eq_right hn)
     have h_split : ∑' n, g n =
         ∑' n, (if (n ∈ s) then g n else (0 : ℝ)) +
         ∑' n, (if (n ∈ s) then (0 : ℝ) else g n) := by
       rw [← h_fin_summable.tsum_add h_compl_summable]
       congr 1; ext n; split <;> simp
     have h_fin_eq : ∑' n, (if (n ∈ s) then g n else (0 : ℝ)) = ∑ n ∈ s, g n := by
-      rw [tsum_eq_sum (fun n hn => if_neg hn)]
-      exact Finset.sum_congr rfl (fun n hn => if_pos hn)
+      rw [tsum_eq_sum (fun n hn => ite_eq_right hn)]
+      exact Finset.sum_congr rfl (fun n hn => ite_eq_left hn)
     linarith⟩
 
 theorem rapidDecay_expansion (φ : RapidDecaySeq →L[ℝ] ℝ) (a : RapidDecaySeq) :
@@ -1022,7 +1025,7 @@ private theorem finsetSup_seminorm_ball_mem_nhds
       (show (0 : F) ∈ {x | q i x < ε} by simp [map_zero, hε])
   apply Filter.mem_of_superset hmem
   intro x hx
-  simp only [Set.mem_iInter, Set.mem_setOf_eq] at hx ⊢
+  simp only [Set.mem_iInter, Set.mem_ofPred_eq] at hx ⊢
   rcases Seminorm.zero_or_exists_apply_eq_finset_sup q t x with h | ⟨i, hi, heq⟩
   · linarith
   · linarith [hx i hi]
@@ -1055,7 +1058,7 @@ theorem pure_continuous :
     rw [nhds_prod_eq]
     apply Filter.mem_of_superset (Filter.prod_mem_prod h_mem₁ h_mem₂)
     intro ⟨e₁, e₂⟩ ⟨he₁, he₂⟩
-    simp only [Set.mem_setOf_eq] at he₁ he₂ ⊢
+    simp only [Set.mem_ofPred_eq] at he₁ he₂ ⊢
     have hpure : RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂) < ε := by
       calc RapidDecaySeq.rapidDecaySeminorm k (pure e₁ e₂)
         ≤ ↑C * (s₁.sup DyninMityaginSpace.p) e₁ * (s₂.sup DyninMityaginSpace.p) e₂ :=
@@ -1223,7 +1226,7 @@ private lemma lift_norm_bound
     _ = K * RapidDecaySeq.rapidDecaySeminorm N a := by rfl
 
 /-- The underlying linear map for `lift`. -/
-private def liftLM
+def liftLM
     (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
     {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
     {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
@@ -1378,7 +1381,7 @@ end Lift
 section Eval
 
 /-- The bilinear multiplication form `(x, y) ↦ x * y` as a bilinear map ℝ →ₗ ℝ →ₗ ℝ. -/
-private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
+def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
   toFun x :=
     { toFun := fun y => x * y
       map_add' := fun y₁ y₂ => mul_add x y₁ y₂
@@ -1387,7 +1390,7 @@ private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
   map_smul' r x := by ext; simp [mul_assoc]
 
 /-- Compose the multiplication bilinear form with CLMs on each factor. -/
-private def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
+def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
     E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] ℝ :=
   (mulBilin.comp φ₁.toLinearMap).compl₂ φ₂.toLinearMap
 
@@ -1424,7 +1427,7 @@ def evalCLM (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
     ((normSeminorm ℝ ℝ).comp φ₂.toLinearMap) hq₂
   -- The bilinear bound: ‖φ₁ e₁ * φ₂ e₂‖ ≤ (C₁ * C₂) * (s₁.sup p) e₁ * (s₂.sup p) e₂
   have hC_pos : (0 : ℝ) < C₁ * C₂ := by positivity
-  exact lift (compBilin φ₁ φ₂) hC_pos (fun e₁ e₂ => by
+  exact lift (compBilin φ₁ φ₂) (s₁ := s₁) (s₂ := s₂) hC_pos (fun e₁ e₂ => by
     simp only [compBilin_apply]
     rw [Real.norm_eq_abs, abs_mul]
     have h₁ : |φ₁ e₁| ≤ C₁ * (s₁.sup DyninMityaginSpace.p) e₁ := by

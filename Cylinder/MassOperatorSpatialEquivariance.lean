@@ -9,12 +9,15 @@ Discharges the remaining spatial-translation `_norm_eq` axiom by proving
 invariance of the bilinear form `⟪Tf, Tg⟫` on pure tensors and extending
 from pure tensors to all cylinder test functions by the DM basis expansion.
 -/
+module
 
-import Cylinder.MassOperatorConstruction
-import Cylinder.Symmetry
-import HeatKernel.GreenInvariance
-import SmoothCircle.HeatEquivariance
-import Nuclear.NuclearExtension
+public import Cylinder.MassOperatorConstruction
+public import Cylinder.Symmetry
+public import HeatKernel.GreenInvariance
+public import SmoothCircle.HeatEquivariance
+public import Nuclear.NuclearExtension
+
+@[expose] public section
 
 noncomputable section
 

@@ -9,30 +9,33 @@ Proves that the Schwartz seminorm `p_{k,l}(R_ω f)` of the resolvent multiplier
 
 ## Main results
 
+- `schwartz_seminorm_smulLeftCLM_le` — σ-uniform Leibniz bound for `σ • g` on Schwartz space
+- `fourierMultiplier_schwartz_bound` — `p_{k,l}(M_σ f) ≤ C' · q(f)` uniformly over symbols
+  whose first `deriv_order(k, l)` derivatives are bounded by `B (1 + |p|)^N`
 - `resolventSchwartz_uniformBound` — `p_{k,l}(R_ω f) ≤ C · q(f)` uniformly in ω ≥ mass
 
 ## Proof strategy
 
-Factor `R_ω = R_mass ∘ M_{τ_ω}` where `τ_ω(p) = √((p²+mass²)/(p²+ω²))`
-is the quotient of resolvent symbols. Then:
+1. `M_σ = re ∘ 𝓕⁻ ∘ (σ ·) ∘ 𝓕 ∘ ofReal`: the two outer maps are fixed CLMs, bounded by
+   finitely many seminorms (`Seminorm.bound_of_continuous`); multiplication by `σ` is bounded
+   by the Leibniz rule with constants depending only on the symbol bounds.
+2. The scaling identity `σ_ω(p) = ω⁻¹ σ₁(ω⁻¹ p)` gives derivative bounds on `σ_ω`, uniform
+   in `ω ≥ mass` (`resolventSymbol_uniform_deriv_bound`).
+3. Combining 1 and 2 gives `resolventSchwartz_uniformBound`.
 
-1. `R_mass` is a CLM, so `p_{k,l} ∘ R_mass` has a finite seminorm bound
-   from `Seminorm.bound_of_continuous`
-2. `M_{τ_ω}` is an equicontinuous family because `τ_ω` is uniformly
-   bounded (by 1) with uniformly bounded derivatives for `ω ≥ mass`
-3. Composing gives `p_{k,l}(R_ω f) ≤ C₁ · C₂ · q(f)` with ω-independent constants
-
-NOTE: The naive approach of comparing derivatives `∂ⁿσ_ω` vs `∂ⁿσ_mass`
-directly FAILS because the derivatives involve polynomial numerators in p
-that are NOT monotone in ω. The factorization avoids this issue.
+The quotient symbol `τ_ω = σ_ω / σ_mass` and the factorization `σ_mass · τ_ω = σ_ω`
+are also recorded below.
 
 ## References
 
 - Stein, *Singular Integrals*, Ch. VI (Fourier multiplier seminorm bounds)
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 -/
+module
 
-import Cylinder.FourierMultiplier
+public import Cylinder.FourierMultiplier
+
+@[expose] public section
 
 noncomputable section
 
@@ -40,8 +43,8 @@ namespace GaussianField
 
 /-! ## Resolvent symbol monotonicity
 
-The resolvent symbol and all its derivatives are monotone decreasing in ω.
-This is the key input for the uniform bound. -/
+The resolvent symbol is monotone decreasing in ω. (Its derivatives are not: see the note in
+the next section.) -/
 
 /-- The resolvent symbol is monotone decreasing in ω for ω > 0.
 
@@ -56,21 +59,18 @@ theorem resolventSymbol_antitone (p : ℝ) {ω₁ ω₂ : ℝ}
     exact_mod_cast this
   · norm_num
 
-/-! ## Quotient symbol for the factorization approach
+/-! ## Quotient symbol
 
-To prove the uniform bound, we factor `R_ω = R_mass ∘ M_{τ_ω}` where
+The quotient symbol
 
   `τ_ω(p) = σ_ω(p) / σ_mass(p) = √((p² + mass²) / (p² + ω²))`
 
-The key properties of the quotient symbol:
-- `0 < τ_ω(p) ≤ 1` for all p ∈ ℝ and ω ≥ mass (since p²+ω² ≥ p²+mass²)
-- All derivatives `∂ⁿτ_ω / ∂pⁿ` are uniformly bounded in p and ω ≥ mass
-- `τ_ω` has temperate growth uniformly in ω ≥ mass
+satisfies `0 < τ_ω(p) ≤ 1` for all p ∈ ℝ and ω ≥ mass, is even, and factorizes
+`σ_mass · τ_ω = σ_ω`, i.e. `R_ω = R_mass ∘ M_{τ_ω}` (proved below).
 
-NOTE: The naive approach of comparing derivatives of σ_ω and σ_mass
-directly FAILS because ∂ⁿσ_ω(p) involves polynomial numerators in p
-(e.g., ∂σ_ω/∂p = -p(p²+ω²)^{-3/2}), and these are NOT monotone in ω.
-The factorization approach avoids this issue entirely. -/
+NOTE: comparing derivatives of σ_ω and σ_mass pointwise fails because ∂ⁿσ_ω(p) involves
+polynomial numerators in p (e.g., ∂σ_ω/∂p = -p(p²+ω²)^{-3/2}), which are NOT monotone in ω.
+The uniform bound below instead uses the scaling identity `σ_ω(p) = ω⁻¹ σ₁(ω⁻¹ p)`. -/
 
 /-- The quotient symbol τ_ω(p) = √((p² + mass²) / (p² + ω²)).
 
@@ -121,50 +121,179 @@ theorem resolventQuotientSymbol_even (mass ω : ℝ) (p : ℝ) :
     resolventQuotientSymbol mass ω (-p) = resolventQuotientSymbol mass ω p := by
   unfold resolventQuotientSymbol; ring_nf
 
-/-! ## Hörmander multiplier theorem for S(ℝ)
+/-! ## Fourier multiplier seminorm bounds on S(ℝ), uniform over a symbol class
 
-The general Fourier multiplier Schwartz continuity theorem: a smooth symbol
-with polynomially bounded derivatives gives a continuous operator on S(ℝ),
-with seminorm bounds depending only on the derivative bound parameters.
-
-The key property: the output constants `(s, C')` depend only on the input
-parameters `(k, l, deriv_order, B, N)`, NOT on the specific symbol `σ`.
-This gives uniform bounds for families of symbols with uniform derivative bounds.
+A smooth symbol with polynomially bounded derivatives gives a continuous operator on S(ℝ),
+with seminorm bounds depending only on the derivative-bound parameters `(B, N)` and on how
+many symbol derivatives are controlled. The number of controlled derivatives must be allowed
+to depend on the target seminorm `(k, l)`: see `fourierMultiplier_schwartz_bound`.
 
 Reference: Stein, *Singular Integrals*, Ch. VI. -/
 
-/-- **Hörmander multiplier theorem for Schwartz space.**
+/-- **σ-uniform Leibniz bound for multiplication by a smooth real function.**
 
-For any smooth symbol σ : ℝ → ℝ with `|D^m σ(p)| ≤ B · (1 + |p|)^N` for m ≤ deriv_order,
-the Fourier multiplier `M_σ` satisfies:
+If `‖D^m σ(x)‖ ≤ B (1 + ‖x‖)^L` for all `m ≤ n`, then for every Schwartz `g`,
+`p_{k,n}(σ • g) ≤ 2^n · B · 2^(L+k) · sup_{(a,b) ≤ (L+k,n)} p_{a,b}(g)`. The constant depends
+on `σ` only through `(B, L)`. -/
+theorem schwartz_seminorm_smulLeftCLM_le {E F : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [NormedAddCommGroup F] [NormedSpace ℝ F]
+    {σ : E → ℝ} (hσ : σ.HasTemperateGrowth) {n L : ℕ} {B : ℝ}
+    (hB : ∀ m ≤ n, ∀ x : E, ‖iteratedFDeriv ℝ m σ x‖ ≤ B * (1 + ‖x‖) ^ L)
+    (k : ℕ) (g : SchwartzMap E F) :
+    SchwartzMap.seminorm ℝ k n (SchwartzMap.smulLeftCLM F σ g) ≤
+      2 ^ n * B * 2 ^ (L + k) *
+        (Finset.Iic (L + k, n)).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) g := by
+  have hB0 : 0 ≤ B := by
+    have h := hB 0 (Nat.zero_le n) 0
+    simp only [norm_zero, add_zero, one_pow, mul_one] at h
+    exact (norm_nonneg _).trans h
+  set S := (Finset.Iic (L + k, n)).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) g
+  have hS : 0 ≤ S := apply_nonneg _ _
+  refine SchwartzMap.seminorm_le_bound ℝ k n _ (by positivity) fun x => ?_
+  rw [SchwartzMap.smulLeftCLM_apply hσ]
+  have hLeib := norm_iteratedFDeriv_smul_le hσ.1 (g.smooth ⊤) x (n := n) (mod_cast le_top)
+  have hx : ‖x‖ ^ k ≤ (1 + ‖x‖) ^ k := by gcongr; linarith
+  calc ‖x‖ ^ k * ‖iteratedFDeriv ℝ n (fun y => σ y • g y) x‖
+      ≤ ‖x‖ ^ k * ∑ i ∈ Finset.range (n + 1), (n.choose i : ℝ) *
+          ‖iteratedFDeriv ℝ i σ x‖ * ‖iteratedFDeriv ℝ (n - i) g x‖ := by gcongr
+    _ ≤ ∑ i ∈ Finset.range (n + 1), (n.choose i : ℝ) * (B * 2 ^ (L + k) * S) := by
+        rw [Finset.mul_sum]
+        refine Finset.sum_le_sum fun i hi => ?_
+        have hi' : i ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+        have h1 := hB i hi' x
+        have h2 := SchwartzMap.one_add_le_sup_seminorm_apply (𝕜 := ℝ) (m := (L + k, n))
+          (k := L + k) (n := n - i) le_rfl (Nat.sub_le n i) g x
+        calc ‖x‖ ^ k * ((n.choose i : ℝ) * ‖iteratedFDeriv ℝ i σ x‖ *
+              ‖iteratedFDeriv ℝ (n - i) g x‖)
+            ≤ (1 + ‖x‖) ^ k * ((n.choose i : ℝ) * (B * (1 + ‖x‖) ^ L) *
+              ‖iteratedFDeriv ℝ (n - i) g x‖) := by gcongr
+          _ = (n.choose i : ℝ) * B * ((1 + ‖x‖) ^ (L + k) *
+              ‖iteratedFDeriv ℝ (n - i) g x‖) := by ring
+          _ ≤ (n.choose i : ℝ) * B * (2 ^ (L + k) * S) := by gcongr
+          _ = (n.choose i : ℝ) * (B * 2 ^ (L + k) * S) := by ring
+    _ = 2 ^ n * B * 2 ^ (L + k) * S := by
+        rw [← Finset.sum_mul]
+        have : (∑ i ∈ Finset.range (n + 1), (n.choose i : ℝ)) = 2 ^ n := by
+          exact_mod_cast Nat.sum_range_choose n
+        rw [this]; ring
 
-  `p_{k,l}(M_σ f) ≤ C' · q(f)`
+section MultiplierSchwartzBound
+attribute [local instance] SMulCommClass.symm
 
-where `C'` and `q` depend only on `(k, l, deriv_order, B, N)`, not on σ.
+/-- **Schwartz seminorm bound for real Fourier multipliers, uniform over a symbol class.**
 
-This enables uniform bounds for families: if `{σ_ω}` all satisfy the same derivative
-bounds, the same `C'` and `q` work for all ω.
+For every target seminorm `(k, l)` there is a number `deriv_order` of symbol derivatives such
+that, for all `B, N`, one finite set `s` of seminorms and one constant `C' > 0` work for every
+symbol `σ` with `‖D^m σ(p)‖ ≤ B (1 + |p|)^N` for `m ≤ deriv_order`:
 
-Note: for a useful bound on the `(k,l)`-seminorm, `deriv_order` should be at least `k`
-(the Leibniz rule for `D^k(σ · Ff)` involves derivatives of σ up to order k). -/
-axiom fourierMultiplier_schwartz_bound
-    (k l deriv_order : ℕ) (B N : ℝ) :
-    ∃ (s : Finset (ℕ × ℕ)) (C' : ℝ), 0 < C' ∧
+  `p_{k,l}(M_σ f) ≤ C' · (s.sup p)(f)`.
+
+Proof: `M_σ = re ∘ 𝓕⁻ ∘ (σ ·) ∘ 𝓕 ∘ ofReal`. The outer map `re ∘ 𝓕⁻` and the inner map
+`𝓕 ∘ ofReal` are fixed continuous linear maps, hence bounded by finitely many seminorms
+(`Seminorm.bound_of_continuous`); `deriv_order` is the largest derivative index among the
+seminorms bounding `p_{k,l} ∘ re ∘ 𝓕⁻`. Multiplication by `σ` is bounded σ-uniformly by the
+Leibniz rule (`schwartz_seminorm_smulLeftCLM_le`).
+
+This replaces an axiom that took `deriv_order` as an arbitrary input. That version is false:
+for `deriv_order = 0`, `k = 1`, `l = 0`, `B = 1`, `N = 0`, the symbols `σₙ(p) = cos(2πnp)`
+are admissible, but `M_{σₙ} f = (f(· + n) + f(· - n)) / 2`, so
+`p_{1,0}(M_{σₙ} f) ≥ n · |f(2n) + f(0)| / 2 → ∞` whenever `f(0) ≠ 0`. -/
+theorem fourierMultiplier_schwartz_bound (k l : ℕ) :
+    ∃ deriv_order : ℕ, ∀ (B N : ℝ), ∃ (s : Finset (ℕ × ℕ)) (C' : ℝ), 0 < C' ∧
     ∀ (σ : ℝ → ℝ) (hσ : σ.HasTemperateGrowth),
       (∀ (m : ℕ), m ≤ deriv_order →
         ∀ p : ℝ, ‖iteratedDeriv m σ p‖ ≤ B * (1 + |p|) ^ N) →
       ∀ f : SchwartzMap ℝ ℝ,
         SchwartzMap.seminorm ℝ k l (realFourierMultiplierCLM σ hσ f) ≤
-        C' * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f
+        C' * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
+  -- (i) the fixed output map `g ↦ re (𝓕⁻ g)` is continuous
+  let Tout : SchwartzMap ℝ ℂ →L[ℝ] SchwartzMap ℝ ℝ :=
+    schwartzToReal.comp (FourierTransform.fourierInvCLM ℝ (SchwartzMap ℝ ℂ))
+  have hcont₁ : Continuous ((SchwartzMap.seminorm ℝ k l).comp Tout.toLinearMap) :=
+    ((schwartz_withSeminorms ℝ ℝ ℝ).continuous_seminorm (k, l)).comp Tout.continuous
+  obtain ⟨s₁, C₁, -, h₁⟩ := Seminorm.bound_of_continuous (schwartz_withSeminorms ℝ ℝ ℂ) _ hcont₁
+  set K₀ := s₁.sup Prod.fst
+  set n₀ := s₁.sup Prod.snd
+  have hs₁ : s₁ ⊆ Finset.Iic (K₀, n₀) := fun m hm =>
+    Finset.mem_Iic.mpr ⟨Finset.le_sup (f := Prod.fst) hm, Finset.le_sup (f := Prod.snd) hm⟩
+  refine ⟨n₀, fun B N => ?_⟩
+  set L := ⌈N⌉₊
+  -- (iii) the fixed input map `f ↦ 𝓕 (ofReal ∘ f)` is continuous
+  let Tin : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℂ :=
+    (FourierTransform.fourierCLM ℝ (SchwartzMap ℝ ℂ)).comp schwartzToComplex
+  have hcont₃ : Continuous
+      (((Finset.Iic (L + K₀, n₀)).sup (schwartzSeminormFamily ℝ ℝ ℂ)).comp Tin.toLinearMap) :=
+    (Seminorm.continuous_finsetSup fun i _ =>
+      (schwartz_withSeminorms ℝ ℝ ℂ).continuous_seminorm i).comp Tin.continuous
+  obtain ⟨s₂, C₃, -, h₃⟩ := Seminorm.bound_of_continuous (schwartz_withSeminorms ℝ ℝ ℝ) _ hcont₃
+  set C₂ : ℝ := 2 ^ n₀ * max B 0 * 2 ^ (L + K₀)
+  have hC₂ : 0 ≤ C₂ := by positivity
+  refine ⟨s₂, C₁ * C₂ * C₃ + 1, by positivity, fun σ hσ hderiv f => ?_⟩
+  -- the symbol bound in `iteratedFDeriv` form with an integer exponent
+  have hσB : ∀ m ≤ n₀, ∀ x : ℝ, ‖iteratedFDeriv ℝ m σ x‖ ≤ max B 0 * (1 + ‖x‖) ^ L := by
+    intro m hm x
+    rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs x]
+    have hx : 1 ≤ 1 + |x| := by linarith [abs_nonneg x]
+    calc ‖iteratedDeriv m σ x‖ ≤ B * (1 + |x|) ^ N := hderiv m hm x
+      _ ≤ max B 0 * (1 + |x|) ^ N := by gcongr; exact le_max_left _ _
+      _ ≤ max B 0 * (1 + |x|) ^ (L : ℝ) :=
+          mul_le_mul_of_nonneg_left (Real.rpow_le_rpow_of_exponent_le hx (Nat.le_ceil N))
+            (le_max_right _ _)
+      _ = max B 0 * (1 + |x|) ^ L := by rw [Real.rpow_natCast]
+  set g := SchwartzMap.smulLeftCLM ℂ σ (Tin f)
+  have hfac : realFourierMultiplierCLM σ hσ f = Tout g := rfl
+  -- (ii) σ-uniform Leibniz bound on the finitely many seminorms in `s₁`
+  have h₂ : (Finset.Iic (K₀, n₀)).sup (schwartzSeminormFamily ℝ ℝ ℂ) g ≤
+      C₂ * (Finset.Iic (L + K₀, n₀)).sup (schwartzSeminormFamily ℝ ℝ ℂ) (Tin f) := by
+    refine Seminorm.finset_sup_apply_le (by positivity) fun m hm => ?_
+    obtain ⟨hm1, hm2⟩ := Finset.mem_Iic.mp hm
+    have hmono : (Finset.Iic (L + m.1, m.2)).sup (schwartzSeminormFamily ℝ ℝ ℂ) (Tin f) ≤
+        (Finset.Iic (L + K₀, n₀)).sup (schwartzSeminormFamily ℝ ℝ ℂ) (Tin f) :=
+      Seminorm.le_def.mp (Finset.sup_mono (Finset.Iic_subset_Iic.mpr
+        (Prod.mk_le_mk.mpr ⟨by omega, hm2⟩))) _
+    calc schwartzSeminormFamily ℝ ℝ ℂ m g
+        ≤ 2 ^ m.2 * max B 0 * 2 ^ (L + m.1) *
+          (Finset.Iic (L + m.1, m.2)).sup (schwartzSeminormFamily ℝ ℝ ℂ) (Tin f) :=
+          schwartz_seminorm_smulLeftCLM_le hσ
+            (fun m' hm' x => hσB m' (hm'.trans hm2) x) m.1 (Tin f)
+      _ ≤ C₂ * (Finset.Iic (L + K₀, n₀)).sup (schwartzSeminormFamily ℝ ℝ ℂ) (Tin f) := by
+          refine mul_le_mul (?_ : _ ≤ C₂) hmono (apply_nonneg _ _) hC₂
+          have h1 : (2 : ℝ) ^ m.2 ≤ 2 ^ n₀ := pow_le_pow_right₀ (by norm_num) hm2
+          have h2 : (2 : ℝ) ^ (L + m.1) ≤ 2 ^ (L + K₀) :=
+            pow_le_pow_right₀ (by norm_num) (by omega)
+          have h3 : 0 ≤ max B 0 := le_max_right _ _
+          calc (2 : ℝ) ^ m.2 * max B 0 * 2 ^ (L + m.1)
+              ≤ 2 ^ n₀ * max B 0 * 2 ^ (L + K₀) := by gcongr
+            _ = C₂ := rfl
+  have hq₁ := h₁ g
+  have hq₃ := h₃ f
+  simp only [Seminorm.comp_apply, smul_apply, NNReal.smul_def, smul_eq_mul,
+    ContinuousLinearMap.coe_coe] at hq₁ hq₃
+  have hsub : s₁.sup (schwartzSeminormFamily ℝ ℝ ℂ) g ≤
+      (Finset.Iic (K₀, n₀)).sup (schwartzSeminormFamily ℝ ℝ ℂ) g :=
+    Seminorm.le_def.mp (Finset.sup_mono hs₁) g
+  have hpos : 0 ≤ s₂.sup (schwartzSeminormFamily ℝ ℝ ℝ) f := apply_nonneg _ _
+  rw [hfac]
+  calc SchwartzMap.seminorm ℝ k l (Tout g)
+      ≤ C₁ * s₁.sup (schwartzSeminormFamily ℝ ℝ ℂ) g := hq₁
+    _ ≤ C₁ * (C₂ * (C₃ * s₂.sup (schwartzSeminormFamily ℝ ℝ ℝ) f)) := by
+        gcongr
+        exact hsub.trans (h₂.trans (by gcongr))
+    _ = (C₁ * C₂ * C₃) * s₂.sup (schwartzSeminormFamily ℝ ℝ ℝ) f := by ring
+    _ ≤ (C₁ * C₂ * C₃ + 1) * s₂.sup (schwartzSeminormFamily ℝ ℝ ℝ) f := by
+        gcongr; linarith
 
-/-! ## Uniform resolvent bound from Hörmander theorem
+end MultiplierSchwartzBound
+
+/-! ## Uniform resolvent bound from the multiplier bound
 
 The resolvent family `σ_ω(p) = (p² + ω²)^{-1/2}` for `ω ≥ mass > 0` has
 uniform polynomial derivative bounds. The scaling identity
 `σ_ω(p) = ω⁻¹ · σ₁(ω⁻¹ p)` reduces all derivative estimates to the fixed symbol
 `σ₁`, and `σ₁` already has temperate growth by
 `resolventSymbol_hasTemperateGrowth`. Applying
-`fourierMultiplier_schwartz_bound` then yields the uniform seminorm bound. -/
+`fourierMultiplier_schwartz_bound` with the number of symbol derivatives it requires then
+yields the uniform seminorm bound. -/
 
 /-- Scaling identity for the resolvent symbol. -/
 private theorem resolventSymbol_scaling' {ω : ℝ} (hω : 0 < ω) :
@@ -262,11 +391,13 @@ theorem resolventSchwartz_uniformBound
       SchwartzMap.seminorm ℝ k l
         (resolventMultiplierCLM (lt_of_lt_of_le hmass (show mass ≤ ω from hω)) f) ≤
       C * (s.sup (fun m => SchwartzMap.seminorm (𝕜 := ℝ) (F := ℝ) (E := ℝ) m.1 m.2)) f := by
-  -- Step 1: Get uniform derivative bounds for the resolvent family
-  obtain ⟨B, N, hB, h_deriv⟩ := resolventSymbol_uniform_deriv_bound mass hmass (k + l)
-  -- Step 2: Apply the Hörmander multiplier theorem with these bounds
-  obtain ⟨s, C', hC', h_mult⟩ := fourierMultiplier_schwartz_bound k l (k + l) B N
-  -- Step 3: Package
+  -- Step 1: the number of symbol derivatives needed for the `(k, l)` seminorm
+  obtain ⟨D, hD⟩ := fourierMultiplier_schwartz_bound k l
+  -- Step 2: uniform bounds on those derivatives for the resolvent family
+  obtain ⟨B, N, -, h_deriv⟩ := resolventSymbol_uniform_deriv_bound mass hmass D
+  -- Step 3: the multiplier bound with these parameters
+  obtain ⟨s, C', hC', h_mult⟩ := hD B N
+  -- Step 4: package
   refine ⟨s, C', hC', fun ω hω f => ?_⟩
   -- resolventMultiplierCLM hω' = realFourierMultiplierCLM (resolventSymbol ω) hσ
   have hω' := lt_of_lt_of_le hmass hω

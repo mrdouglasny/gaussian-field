@@ -28,9 +28,12 @@ limit construction, specialized to periodic functions on [0,L].
 
 - Glimm-Jaffe, *Quantum Physics*, §6.1 (Lattice approximation)
 -/
+module
 
-import SmoothCircle.Basic
-import Mathlib.Data.ZMod.Basic
+public import SmoothCircle.Basic
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 noncomputable section
 

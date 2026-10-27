@@ -31,11 +31,14 @@ For the explicit seminorm bound, `‖h‖_{L¹} ≤ C · p_{k,0}(h)` for k ≥ 2
 
 - Reed-Simon II, §IX.3 (Schwartz space properties)
 -/
+module
 
-import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 noncomputable section
 
@@ -91,7 +94,7 @@ private lemma laplace_integral_le_l1_norm (f : SchwartzMap ℝ ℝ) (ω : ℝ) (
 /-! ## Laplace evaluation CLM construction -/
 
 /-- The Laplace evaluation as a linear map. -/
-private def laplaceEvalLinear (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →ₗ[ℝ] ℝ where
+def laplaceEvalLinear (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →ₗ[ℝ] ℝ where
   toFun f := ∫ t in Ici (0 : ℝ), f.toFun t * exp (-ω * t)
   map_add' f g := by
     show ∫ t in Ici (0 : ℝ), (f + g).toFun t * exp (-ω * t) = _

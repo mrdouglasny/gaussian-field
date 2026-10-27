@@ -16,9 +16,12 @@ and derives the Parseval identity for DM basis coefficients of Schwartz function
 
 - Thangavelu, *Lectures on Hermite and Laguerre Expansions*, Ch. 1
 -/
+module
 
-import SchwartzNuclear.HermiteNuclear
-import Mathlib.Analysis.InnerProductSpace.l2Space
+public import SchwartzNuclear.HermiteNuclear
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 noncomputable section
 

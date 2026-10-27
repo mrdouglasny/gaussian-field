@@ -13,8 +13,11 @@ isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` constructed in
 - `schwartz_dyninMityaginSpace`: the `DyninMityaginSpace` instance for Schwartz space
   on any nontrivial finite-dimensional real normed space.
 -/
+module
 
-import SchwartzNuclear.HermiteTensorProduct
+public import SchwartzNuclear.HermiteTensorProduct
+
+@[expose] public section
 
 noncomputable section
 

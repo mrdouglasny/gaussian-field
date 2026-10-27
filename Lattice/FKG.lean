@@ -83,12 +83,15 @@ massOperator_offDiag_nonpos → quadraticForm_submodular → gaussianDensity_fkg
 - Glimm-Jaffe, "Quantum Physics", §19 (Correlation inequalities)
 - Simon, "The P(φ)₂ Euclidean (Quantum) Field Theory", §IV
 -/
+module
 
-import Lattice.Covariance
-import GaussianField.Density
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Constructions.Pi
+public import Lattice.Covariance
+public import GaussianField.Density
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Constructions.Pi
+
+@[expose] public section
 
 noncomputable section
 
@@ -2052,13 +2055,13 @@ theorem massOperator_offDiag_nonpos (d N : ℕ) [NeZero N] (a mass : ℝ)
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply, smul_eq_mul]
   -- The delta function at y evaluates to 0 at x ≠ y
   have hδ : finLatticeDelta d N y x = 0 := by
-    simp only [finLatticeDelta, if_neg hxy]
+    simp only [finLatticeDelta, ite_eq_right hxy]
   rw [hδ, mul_zero, add_zero]
   -- Goal: -(finiteLaplacian d N a (δ_y) x) ≤ 0, i.e., the Laplacian value is ≥ 0
   apply neg_nonpos_of_nonneg
   -- Unfold to finiteLaplacianFun
   show 0 ≤ finiteLaplacianFun d N a (finLatticeDelta d N y) x
-  simp only [finiteLaplacianFun, finLatticeDelta, if_neg hxy, mul_zero, sub_zero]
+  simp only [finiteLaplacianFun, finLatticeDelta, ite_eq_right hxy, mul_zero, sub_zero]
   -- Goal: 0 ≤ a⁻¹² · Σᵢ (ite + ite) — each ite is 0 or 1
   apply mul_nonneg (sq_nonneg _)
   apply Finset.sum_nonneg

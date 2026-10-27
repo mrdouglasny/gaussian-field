@@ -24,16 +24,19 @@ Hilbert space, there exist a HilbertBasis of eigenvectors and eigenvalues
 - Conway, "A Course in Functional Analysis", Thm II.5.1, II.5.7
 - Brezis, "Functional Analysis", Thm 6.11
 -/
+module
 
-import Mathlib.Analysis.InnerProductSpace.Rayleigh
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
-import Mathlib.Analysis.InnerProductSpace.Spectrum
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Tactic.Module
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Analysis.InnerProductSpace.Rayleigh
+public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Tactic.Module
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 noncomputable section
 
@@ -438,7 +441,7 @@ private theorem eigenvector_basis
         (by rw [norm_smul, norm_inv, norm_norm, inv_mul_cancel₀ he_norm_ne])
   -- Step 5: Build HilbertBasis
   have h_range : (Submodule.span ℝ (Set.range ((↑) : S → E)))ᗮ = ⊥ := by
-    rwa [Subtype.range_coe_subtype, Set.setOf_mem_eq]
+    rwa [Subtype.range_coe_subtype, Set.ofPred_mem_eq]
   let b := HilbertBasis.mkOfOrthogonalEqBot hSo h_range
   have h_eig : ∀ (x : S), ∃ μ : ℝ, (T : E →ₗ[ℝ] E) (x : E) = μ • (x : E) := by
     intro ⟨x, hx⟩

@@ -38,9 +38,12 @@ Reflection `(Θf)(x) = f(-x)` preserves cosines and negates sines:
 - Grafakos, *Classical Fourier Analysis*, §3.1
 - Katznelson, *An Introduction to Harmonic Analysis*, Ch. I
 -/
+module
 
-import SmoothCircle.Eigenvalues
-import Torus.Symmetry
+public import SmoothCircle.Eigenvalues
+public import Torus.Symmetry
+
+@[expose] public section
 
 noncomputable section
 
@@ -57,7 +60,7 @@ omit hL in
 private lemma fourierBasisFun_even_cos (k : ℕ) (hk : 0 < k) (x : ℝ) :
     fourierBasisFun (L := L) (2 * k - 1) (-x) = fourierBasisFun (L := L) (2 * k - 1) x := by
   rw [show (2 * k - 1 : ℕ) = 2 * (k - 1) + 1 from by omega]
-  simp only [fourierBasisFun, if_pos (show 2 * (k - 1) % 2 = 0 from by omega)]
+  simp only [fourierBasisFun, ite_eq_left (show 2 * (k - 1) % 2 = 0 from by omega)]
   congr 1
   rw [show 2 * Real.pi * ↑(2 * (k - 1) / 2 + 1) * (-x) / L =
        -(2 * Real.pi * ↑(2 * (k - 1) / 2 + 1) * x / L) from by ring,
@@ -68,7 +71,7 @@ omit hL in
 private lemma fourierBasisFun_odd_sin (k : ℕ) (hk : 0 < k) (x : ℝ) :
     fourierBasisFun (L := L) (2 * k) (-x) = -(fourierBasisFun (L := L) (2 * k) x) := by
   rw [show (2 * k : ℕ) = (2 * k - 1) + 1 from by omega]
-  simp only [fourierBasisFun, if_neg (show ¬((2 * k - 1) % 2 = 0) from by omega)]
+  simp only [fourierBasisFun, ite_eq_right (show ¬((2 * k - 1) % 2 = 0) from by omega)]
   rw [show 2 * Real.pi * ↑((2 * k - 1) / 2 + 1) * (-x) / L =
        -(2 * Real.pi * ↑((2 * k - 1) / 2 + 1) * x / L) from by ring,
       Real.sin_neg, mul_neg]
@@ -108,7 +111,7 @@ private lemma fourierBasisFun_cos_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
     fourierBasisFun (L := L) (2 * k - 1) y =
     Real.sqrt (2 / L) * Real.cos (2 * Real.pi * ↑k * y / L) := by
   rw [show (2 * k - 1 : ℕ) = 2 * (k - 1) + 1 from by omega]
-  simp only [fourierBasisFun, if_pos (show 2 * (k - 1) % 2 = 0 from by omega),
+  simp only [fourierBasisFun, ite_eq_left (show 2 * (k - 1) % 2 = 0 from by omega),
     show (2 * (k - 1) / 2 + 1 : ℕ) = k from by omega]
 
 omit hL in
@@ -117,7 +120,7 @@ private lemma fourierBasisFun_sin_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
     fourierBasisFun (L := L) (2 * k) y =
     Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑k * y / L) := by
   rw [show (2 * k : ℕ) = (2 * k - 1) + 1 from by omega]
-  simp only [fourierBasisFun, if_neg (show ¬((2 * k - 1) % 2 = 0) from by omega),
+  simp only [fourierBasisFun, ite_eq_right (show ¬((2 * k - 1) % 2 = 0) from by omega),
     show ((2 * k - 1) / 2 + 1 : ℕ) = k from by omega]
 
 omit hL in

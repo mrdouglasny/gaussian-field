@@ -32,12 +32,15 @@ The standard proof proceeds via the Gross log-Sobolev inequality:
 - B. Simon, The P(φ)₂ Euclidean (Quantum) Field Theory, Ch. I
 - Glimm-Jaffe, Quantum Physics, Ch. 8
 -/
+module
 
-import GaussianField.Properties
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.MeasureTheory.Integral.Gamma
+public import GaussianField.Properties
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.MeasureTheory.Integral.Gamma
+
+@[expose] public section
 
 noncomputable section
 

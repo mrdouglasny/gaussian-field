@@ -29,10 +29,13 @@ This embedding is key for:
 - Multi-scale renormalization via `ZMod.castHom`
 - Fourier analysis on the lattice via AddCircle's Fourier theory
 -/
+module
 
-import Lattice.Sites
-import Mathlib.Topology.Instances.AddCircle.Real
-import Mathlib.Algebra.Group.Pi.Lemmas
+public import Lattice.Sites
+public import Mathlib.Topology.Instances.AddCircle.Real
+public import Mathlib.Algebra.Group.Pi.Lemmas
+
+@[expose] public section
 
 noncomputable section
 

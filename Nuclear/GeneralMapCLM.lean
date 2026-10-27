@@ -28,9 +28,12 @@ level: the input and output NTP spaces can be different.
 
 - Treves, *Topological Vector Spaces*, Ch. 50 (nuclear spaces)
 -/
+module
 
-import Nuclear.NuclearTensorProduct
-import Nuclear.TensorProductFunctorAxioms
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 
@@ -63,7 +66,7 @@ variable {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace 
 /-- The image of basis vector `m` under `T₁ ⊗ T₂` (general version):
 `Φ(m) = pure(T₁(ψ^{E₁}_a), T₂(ψ^{E₂}_b))` where `(a,b) = unpair(m)`,
 with the result living in `NTP F₁ F₂`. -/
-private def mapImageGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) (m : ℕ) :
+def mapImageGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) (m : ℕ) :
     NuclearTensorProduct F₁ F₂ :=
   NuclearTensorProduct.pure
     (T₁ (DyninMityaginSpace.basis (Nat.unpair m).1))
@@ -83,9 +86,9 @@ private theorem mapImageGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : 
     apply Continuous.comp _ T₁.continuous
     apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum DyninMityaginSpace.p s₁)
     show Continuous fun (x : F₁) =>
-      (Seminorm.coeFnAddMonoidHom ℝ F₁) (∑ i ∈ s₁, DyninMityaginSpace.p i) x
+      (FunLike.coeAddMonoidHom (Seminorm ℝ F₁) F₁ ℝ) (∑ i ∈ s₁, DyninMityaginSpace.p i) x
     simp_rw [map_sum, Finset.sum_apply]
-    exact continuous_finset_sum _ fun i _ =>
+    exact continuous_finsetSum _ fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
   obtain ⟨t₁, C₁nn, hC₁nn, hle₁⟩ := Seminorm.bound_of_continuous
     DyninMityaginSpace.h_with _ hT₁_cont
@@ -93,9 +96,9 @@ private theorem mapImageGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : 
     apply Continuous.comp _ T₂.continuous
     apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum DyninMityaginSpace.p s₂)
     show Continuous fun (x : F₂) =>
-      (Seminorm.coeFnAddMonoidHom ℝ F₂) (∑ i ∈ s₂, DyninMityaginSpace.p i) x
+      (FunLike.coeAddMonoidHom (Seminorm ℝ F₂) F₂ ℝ) (∑ i ∈ s₂, DyninMityaginSpace.p i) x
     simp_rw [map_sum, Finset.sum_apply]
-    exact continuous_finset_sum _ fun i _ =>
+    exact continuous_finsetSum _ fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
   obtain ⟨t₂, C₂nn, hC₂nn, hle₂⟩ := Seminorm.bound_of_continuous
     DyninMityaginSpace.h_with _ hT₂_cont
@@ -252,11 +255,11 @@ private theorem mapValGen_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[�
     _ = _ := tsum_mul_right
 
 /-- The mapped rapid decay sequence (general version). -/
-private def mapRapidDecayGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+def mapRapidDecayGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (f : RapidDecaySeq) : RapidDecaySeq where
   val n := ∑' m, f.val m * (mapImageGen T₁ T₂ m).val n
-  rapid_decay k :=
-    Summable.of_nonneg_of_le
+  rapid_decay k := by
+    exact Summable.of_nonneg_of_le
       (fun n => mul_nonneg (abs_nonneg _) (by positivity))
       (fun n => mapValGen_bound T₁ T₂ f n k)
       (NuclearTensorProduct.summable_inv_one_add_sq.mul_left _)
@@ -297,7 +300,7 @@ private theorem mapRapidDecayGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T�
 
 set_option maxHeartbeats 400000 in
 /-- The map as a linear map on RapidDecaySeq. -/
-private def mapLMGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) :
+def mapLMGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) :
     NuclearTensorProduct E₁ E₂ →ₗ[ℝ] NuclearTensorProduct F₁ F₂ where
   toFun := mapRapidDecayGen T₁ T₂
   map_add' f g := by
@@ -347,9 +350,9 @@ private theorem norm_summable_coeff_comp_CLM_general
     apply Continuous.comp _ T.continuous
     apply Seminorm.continuous_of_le _ (Seminorm.finset_sup_le_sum DyninMityaginSpace.p s₀)
     show Continuous fun (x : F) =>
-      (Seminorm.coeFnAddMonoidHom ℝ F) (∑ i ∈ s₀, DyninMityaginSpace.p i) x
+      (FunLike.coeAddMonoidHom (Seminorm ℝ F) F ℝ) (∑ i ∈ s₀, DyninMityaginSpace.p i) x
     simp_rw [map_sum, Finset.sum_apply]
-    exact continuous_finset_sum _ fun i _ =>
+    exact continuous_finsetSum _ fun i _ =>
       DyninMityaginSpace.h_with.continuous_seminorm i
   obtain ⟨t, Dnn, hDnn, hle⟩ := Seminorm.bound_of_continuous
     DyninMityaginSpace.h_with _ hT_cont

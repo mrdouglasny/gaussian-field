@@ -40,8 +40,11 @@ Then:
 - Simon, *The P(φ)₂ Euclidean QFT*, §I.3
 - Glimm-Jaffe, *Quantum Physics*, §8.6
 -/
+module
 
-import SchwartzNuclear.HermiteWick
+public import SchwartzNuclear.HermiteWick
+
+@[expose] public section
 
 noncomputable section
 
@@ -149,7 +152,7 @@ private theorem stein_even_moment_integrable (c : ℝ) (hc : 0 < c)
     -- Apply Stein to f(x) = x^(2m+1)
     have hstein := hμ_stein (fun x => x ^ (2 * m + 1)) (differentiable_pow _)
       ⟨1, 2 * m + 1, fun x => by
-        simp only; rw [abs_pow, one_mul]
+        rw [abs_pow, one_mul]
         exact pow_le_pow_left₀ (abs_nonneg x) (le_add_of_nonneg_left one_pos.le) _⟩
     -- Rewrite LHS: ∫ x * x^(2m+1) = ∫ x^(2(m+1))
     have hlhs : ∫ x : ℝ, x * x ^ (2 * m + 1) ∂μ = ∫ x : ℝ, x ^ (2 * (m + 1)) ∂μ := by
@@ -201,7 +204,7 @@ private theorem oneplusabs_pow_integrable (c : ℝ) (hc : 0 < c)
         (1 : ℝ) ^ k * |x| ^ (d - k) * ↑(d.choose k)) := by
     ext x; exact add_pow 1 |x| d
   rw [hfun]
-  exact integrable_finset_sum _ fun k _ => by
+  exact integrable_finsetSum _ fun k _ => by
     simp only [one_pow, one_mul]; exact (habs (d - k)).mul_const _
 
 /-- Integrability of `wickMonomial n c` under a probability measure satisfying Stein's

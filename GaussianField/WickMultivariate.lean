@@ -71,11 +71,15 @@ specializations (e.g. interaction polynomial $V_a$ in the chaos)
 live downstream in pphi2's `PolynomialChaosBridge.lean`; this file
 provides only the generic Gaussian-Hilbert-space identifications.
 -/
+module
 
-import GaussianField.StandardGaussianBridge
-import GaussianField.Wick
-import SchwartzNuclear.HermiteWick
-import SchwartzNuclear.HermiteFunctions
+public import GaussianField.StandardGaussianBridge
+public import GaussianField.Wick
+public import SchwartzNuclear.HermiteWick
+public import SchwartzNuclear.HermiteFunctions
+public import Mathlib.Data.Nat.Choose.Multinomial
+
+@[expose] public section
 
 noncomputable section
 
@@ -239,22 +243,22 @@ theorem multiWickMonomial_pi_gaussianReal_inner
   simp_rw [wickMonomial_inner_gaussianReal_one]
   -- Collapse per-coordinate indicators into the multi-index indicator
   by_cases hαβ : α = β
-  · rw [if_pos hαβ]
+  · rw [ite_eq_left hαβ]
     rw [show (∏ j : ι,
         if α j = β j then (((α j).factorial : ℕ) : ℝ) else 0) =
         ∏ j : ι, ((α j).factorial : ℝ) from by
       refine Finset.prod_congr rfl ?_
       intro j _
-      rw [if_pos (by rw [hαβ] : α j = β j)]]
+      rw [ite_eq_left (by rw [hαβ] : α j = β j)]]
     push_cast
     rfl
-  · rw [if_neg hαβ]
+  · rw [ite_eq_right hαβ]
     obtain ⟨j, hj⟩ : ∃ j, α j ≠ β j := by
       by_contra h
       push Not at h
       exact hαβ (funext h)
     apply Finset.prod_eq_zero (Finset.mem_univ j)
-    rw [if_neg hj]
+    rw [ite_eq_right hj]
 
 /-- **Orthogonality of GFF multivariate Wick monomials under the lattice
 GFF measure.**
@@ -321,23 +325,23 @@ theorem gffMultiWickMonomial_orthogonality
   simp_rw [wickMonomial_inner_gaussianReal_one]
   -- Step 4: combine the per-coordinate indicators into a single multi-index indicator.
   by_cases hαβ : α = β
-  · rw [if_pos hαβ]
+  · rw [ite_eq_left hαβ]
     rw [show (∏ k : FinLatticeSites d N,
         if α k = β k then (((α k).factorial : ℕ) : ℝ) else 0) =
         ∏ k : FinLatticeSites d N, ((α k).factorial : ℝ) from by
       refine Finset.prod_congr rfl ?_
       intro k _
-      rw [if_pos (by rw [hαβ] : α k = β k)]]
+      rw [ite_eq_left (by rw [hαβ] : α k = β k)]]
     push_cast
     rfl
-  · rw [if_neg hαβ]
+  · rw [ite_eq_right hαβ]
     -- Some k has α k ≠ β k, so that factor is 0.
     obtain ⟨k, hk⟩ : ∃ k, α k ≠ β k := by
       by_contra h
       push Not at h
       exact hαβ (funext h)
     apply Finset.prod_eq_zero (Finset.mem_univ k)
-    rw [if_neg hk]
+    rw [ite_eq_right hk]
 
 /-- The GFF site (auto-)variance at site `x`:
 `c_a(x) = ⟨φ(x), φ(x)⟩ = (a^d)⁻¹ · Σ_k λ_k⁻¹ · e_k(x)²`.
@@ -365,7 +369,7 @@ identity decouples `gffSiteVariance` from the explicit `(a^d)⁻¹` and
 `λ_j⁻¹` factors. -/
 
 /-- The orthogonalized eigenvector coefficient: `γ_j(x) = e_j(x) / √(a^d λ_j)`. -/
-private noncomputable def gffEigenCoeff
+noncomputable def gffEigenCoeff
     (a mass : ℝ) (j x : FinLatticeSites d N) : ℝ :=
   (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x /
     Real.sqrt (a^d * massEigenvalues d N a mass j)
@@ -502,7 +506,7 @@ private lemma siteWickExpansionCoeff_eq_zero
     (hα : MultiIndexLattice.totalDegree α ≠ k) :
     siteWickExpansionCoeff d N a mass k x α = 0 := by
   unfold siteWickExpansionCoeff
-  rw [if_neg hα]
+  rw [ite_eq_right hα]
 
 end GaussianField
 
@@ -659,7 +663,7 @@ theorem siteWickMonomial_eigenbasis_expansion
       simp only [Finset.mem_filter] at hα
       exact hα.2
     unfold siteWickExpansionCoeff
-    rw [if_pos h_deg]
+    rw [ite_eq_left h_deg]
     -- Both sides: (k!/∏α!) · (∏ γ_j(x)^{α_j}) · (∏_j wickMonomial α_j 1 (ξ_j ω)),
     -- where on the RHS the wickMonomial product is wrapped as `gffMultiWickMonomial α ω`.
     rfl
@@ -739,7 +743,7 @@ lemma gffPositionCovariance_eq_covarianceGJ
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun k _ => ?_
   simp only [Pi.single_apply, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq',
-    Finset.mem_univ, if_true]
+    Finset.mem_univ, ite_true]
   have hpos : (0 : ℝ) < a ^ d * massEigenvalues d N a mass k :=
     mul_pos (pow_pos ha d) (massOperatorMatrix_eigenvalues_pos d N a mass ha hmass k)
   have hsq : Real.sqrt (a ^ d * massEigenvalues d N a mass k) *
@@ -1009,7 +1013,7 @@ theorem gff_wickPower_two_site_inner
   rw [h_outer]
   by_cases hnm : n = m
   · subst hnm
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have h_collapse :
         (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
           ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
@@ -1089,7 +1093,7 @@ theorem gff_wickPower_two_site_inner
             (fun j => gffEigenCoeff d N a mass j x * gffEigenCoeff d N a mass j y) n]
       _ = (n.factorial : ℝ) * (gffPositionCovariance d N a mass x y) ^ n := by
           rw [gffPositionCovariance]
-  · rw [if_neg hnm]
+  · rw [ite_eq_right hnm]
     apply Finset.sum_eq_zero
     intro α hα
     apply Finset.sum_eq_zero
@@ -1149,7 +1153,7 @@ lemma gffSmearedCovariance_single_right
   rw [gffSmearedCovariance_eq_sum_position]
   refine Finset.sum_congr rfl fun x _ => ?_
   simp only [Pi.single_apply, mul_ite, mul_one, mul_zero, ite_mul, zero_mul,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- `gffSmearedCovariance f f = ∑_j Γ_j(f)²` — the smeared field variance `Var ω(f)`, i.e. the Wick
 constant in `gff_wickPower_two_smeared_inner`. -/
@@ -1169,7 +1173,7 @@ private lemma omega_eval_smeared_eq_sum_gamma_xi
   have hf : f = ∑ x, f x • (Pi.single x (1 : ℝ) : FinLatticeField d N) := by
     funext y
     simp only [Finset.sum_apply, Pi.smul_apply, Pi.single_apply, smul_eq_mul,
-      mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+      mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   conv_lhs => rw [hf, map_sum]
   simp_rw [map_smul, smul_eq_mul,
     omega_eval_delta_eq_sum_gamma_xi d N a mass ha hmass, Finset.mul_sum]
@@ -1295,7 +1299,7 @@ theorem gff_wickPower_two_smeared_inner
   rw [h_outer]
   by_cases hnm : n = m
   · subst hnm
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have h_collapse :
         (∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
           ∑ β ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
@@ -1376,7 +1380,7 @@ theorem gff_wickPower_two_smeared_inner
               gffSmearedCoeff d N a mass g j) n]
       _ = (n.factorial : ℝ) * (gffSmearedCovariance d N a mass f g) ^ n := by
           rw [gffSmearedCovariance]
-  · rw [if_neg hnm]
+  · rw [ite_eq_right hnm]
     apply Finset.sum_eq_zero
     intro α hα
     apply Finset.sum_eq_zero

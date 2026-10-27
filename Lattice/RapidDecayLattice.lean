@@ -29,15 +29,18 @@ one-dimensional case rather than via an `ℤ^d ≃ ℕ` reindexing.
 
 - Dynin-Mityagin, via the general transfer constructor `ofRapidDecayEquiv`
 -/
+module
 
-import Lattice.Sites
-import Nuclear.NuclearTensorProduct
-import Nuclear.PointEval
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Logic.Denumerable
-import Mathlib.Logic.Equiv.Fin.Basic
+public import Lattice.Sites
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.PointEval
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Basic.Denumerable
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -167,7 +170,7 @@ theorem lattice_withSeminorms :
   ⟨rfl⟩
 
 instance instIsTopologicalAddGroup : IsTopologicalAddGroup (RapidDecayLattice d) :=
-  lattice_withSeminorms.topologicalAddGroup
+  lattice_withSeminorms.isTopologicalAddGroup
 
 instance instContinuousSMul : ContinuousSMul ℝ (RapidDecayLattice d) :=
   lattice_withSeminorms.continuousSMul
@@ -187,7 +190,7 @@ and coordinate peeling (`Fin.succFunEquiv`). -/
 /-- Cantor-pairing enumeration of ℤ^{d+1}: bijection with ℕ via iterated
 pairing. Constructed using `Fin.succFunEquiv` (peeling off one coordinate)
 and `Denumerable.eqv` (encoding products and ℤ as ℕ). -/
-private def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
+def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
   | 0 => (Equiv.funUnique (Fin 1) ℤ).trans Equiv.intEquivNat
   | d + 1 =>
     (Fin.succFunEquiv ℤ (d + 1)).trans
@@ -209,13 +212,13 @@ private lemma natAbs_intEquivNat_symm_le_succ (n : ℕ) :
   change Int.natAbs (Sum.elim Int.ofNat Int.negSucc
     (if n.bodd = true then Sum.inr n.div2 else Sum.inl n.div2)) ≤ n + 1
   by_cases h : n.bodd = true
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     simp
     have hd : n.div2 ≤ n := by
       have hb := Nat.bodd_add_div2 n
       omega
     omega
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     simp
     have hd : n.div2 ≤ n := by
       have hb := Nat.bodd_add_div2 n

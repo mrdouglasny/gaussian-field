@@ -33,22 +33,23 @@ and uncomment the axiom block at the bottom of this file.
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. 3-4
 - Thangavelu, "Lectures on Hermite and Laguerre Expansions", Ch. 1
 -/
+module
 
-import SchwartzNuclear
-import Nuclear.NuclearTensorProduct
-import Nuclear.NuclearSpace
-import GaussianField.SpectralTheorem
-import GaussianField.NuclearSVD
-import GaussianField.NuclearFactorization
-import GaussianField.TargetFactorization
-import GaussianField.Construction
-import GaussianField.Properties
-import GaussianField.Hypercontractive
-import GaussianField.Wick
-import GaussianField.StandardGaussianBridge
-import GaussianField.WickMultivariate
-import GaussianField.Support
-import GaussianField.CramerWold
-import GaussianField.ConfigurationEmbedding
-import GaussianField.MeasureUniqueness
+public import SchwartzNuclear
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.NuclearSpace
+public import GaussianField.SpectralTheorem
+public import GaussianField.NuclearSVD
+public import GaussianField.NuclearFactorization
+public import GaussianField.TargetFactorization
+public import GaussianField.Construction
+public import GaussianField.Properties
+public import GaussianField.Hypercontractive
+public import GaussianField.Wick
+public import GaussianField.StandardGaussianBridge
+public import GaussianField.WickMultivariate
+public import GaussianField.Support
+public import GaussianField.CramerWold
+public import GaussianField.ConfigurationEmbedding
+public import GaussianField.MeasureUniqueness
 

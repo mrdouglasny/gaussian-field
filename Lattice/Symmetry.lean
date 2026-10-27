@@ -29,8 +29,11 @@ the Laplacian stencil is symmetric in `±eᵢ`.
 By `Commute.exp_right` (Mathlib), commuting with `-Δ` automatically gives
 commutation with `K_t = exp(-t·(-Δ))` and hence Green's function invariance.
 -/
+module
 
-import Lattice.HeatKernel
+public import Lattice.HeatKernel
+
+@[expose] public section
 
 noncomputable section
 

@@ -33,9 +33,12 @@ ensuring tensor product factorization: `K_t^{2D} = K_t^{1D} ⊗ K_t^{1D}`.
 - Glimm-Jaffe, *Quantum Physics*, §6.1, §19
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
+module
 
-import Lattice.SpectralCovariance
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Lattice.SpectralCovariance
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 noncomputable section
 
@@ -332,8 +335,8 @@ theorem Matrix.IsHermitian.mulVec_exp_of_eigenvector
     ext i
     have := h_all (Pi.single i 1)
     simp only [Pi.single_apply, boole_mul] at this
-    rw [Finset.sum_ite_eq', Finset.sum_ite_eq', if_pos (Finset.mem_univ i),
-         if_pos (Finset.mem_univ i)] at this
+    rw [Finset.sum_ite_eq', Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ i),
+         ite_eq_left (Finset.mem_univ i)] at this
     simp only [Pi.smul_apply, smul_eq_mul]
     exact this
   intro w

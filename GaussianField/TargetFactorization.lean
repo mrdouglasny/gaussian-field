@@ -21,9 +21,12 @@ This is the factorization theorem that drives the Gaussian construction.
 The key point is that the ONB is *output* (adapted to T's nuclear structure),
 not input — the construction fails for arbitrary ONBs.
 -/
+module
 
-import GaussianField.NuclearFactorization
-import GaussianField.NuclearSVD
+public import GaussianField.NuclearFactorization
+public import GaussianField.NuclearSVD
+
+@[expose] public section
 
 open scoped BigOperators
 open Filter TopologicalSpace

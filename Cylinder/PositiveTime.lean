@@ -41,8 +41,11 @@ means t ∈ (0, L/2) ⊂ ℝ/Lℤ and wraparound must be handled.
 - Osterwalder-Schrader (1973), Axiom (A3)
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 -/
+module
 
-import Cylinder.Symmetry
+public import Cylinder.Symmetry
+
+@[expose] public section
 
 noncomputable section
 
@@ -55,7 +58,7 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 /-! ## Positive-time submodule -/
 
 /-- The set of positive-time pure tensors: `g ⊗ h` where h vanishes on (-∞, 0]. -/
-private def positiveTimePureTensors :
+def positiveTimePureTensors :
     Set (CylinderTestFunction L) :=
   {f | ∃ (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ),
     h ∈ schwartzPositiveTimeSubmodule ∧ f = pure g h}
@@ -85,7 +88,7 @@ abbrev CylinderPositiveTimeTestFunction :=
 /-! ## Negative-time submodule -/
 
 /-- The set of negative-time pure tensors: `g ⊗ h` where h vanishes on [0, ∞). -/
-private def negativeTimePureTensors :
+def negativeTimePureTensors :
     Set (CylinderTestFunction L) :=
   {f | ∃ (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ),
     h ∈ schwartzNegativeTimeSubmodule ∧ f = pure g h}

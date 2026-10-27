@@ -24,8 +24,11 @@ full 1D lattice-to-continuum convergence.
 - Davis, *Circulant Matrices*, Ch. 3
 - Katznelson, *Harmonic Analysis*, §I.2
 -/
+module
 
-import Lattice.HeatKernelConvergence1d
+public import Lattice.HeatKernelConvergence1d
+
+@[expose] public section
 
 noncomputable section
 
@@ -187,7 +190,7 @@ theorem eigenvector_transfer (N : ℕ) [NeZero N]
          circleRestriction L N f (z - 1))) *
       latticeFourierBasisFun N m z := by
   -- Step 1: Unfold latticeDFTCoeff1d and pull eigenvalue into sum
-  simp only [latticeDFTCoeff1d, if_pos hm]
+  simp only [latticeDFTCoeff1d, ite_eq_left hm]
   rw [Finset.mul_sum]
   -- Step 2: Eigenvector property (pointwise)
   have h_eigvec : ∀ z : ZMod N,

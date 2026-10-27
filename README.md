@@ -302,8 +302,8 @@ moments, spectralCLM) for downstream consumers.
 
 ### 2f. Cylinder (Osterwalder-Schrader Axioms) — *WIP*
 
-> **Work in progress.** This module has axioms and sorries. It is NOT part of the
-> default build target (`lake build` builds only the axiom-free core).
+> **Work in progress.** This module is axiom- and sorry-free (since 2026-10-22) but is
+> NOT part of the default build target (`lake build` builds only the core).
 > Build with `lake build Cylinder` or `lake build All`.
 
 Test function space and symmetry infrastructure for the cylinder $S^1_L \times \mathbb{R}$,

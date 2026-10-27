@@ -13,8 +13,11 @@ needed for a `DyninMityaginSpace` instance:
 All three are proved from theorems in `HermiteFunctions.lean` and
 `SchwartzHermiteExpansion.lean`. No axioms.
 -/
+module
 
-import SchwartzNuclear.SchwartzHermiteExpansion
+public import SchwartzNuclear.SchwartzHermiteExpansion
+
+@[expose] public section
 
 open MeasureTheory Real SchwartzMap
 

@@ -24,8 +24,11 @@ tensor product, preserving composition and identity.
 
 - Trèves, *Topological Vector Spaces, Distributions, and Kernels*, Ch. 43, 50
 -/
+module
 
-import Nuclear.NuclearTensorProduct
+public import Nuclear.NuclearTensorProduct
+
+@[expose] public section
 
 noncomputable section
 
@@ -36,7 +39,7 @@ open NuclearTensorProduct
 /-! ## Swap implementation -/
 
 /-- Swap the components of a Cantor pair index. -/
-private def pairSwap (m : ℕ) : ℕ :=
+def pairSwap (m : ℕ) : ℕ :=
   Nat.pair (Nat.unpair m).2 (Nat.unpair m).1
 
 private theorem pairSwap_involutive : Function.Involutive pairSwap := fun m => by
@@ -66,7 +69,7 @@ private theorem one_add_le_sq_pairSwap (m : ℕ) :
     rw [hm]; exact_mod_cast nat_pair_bound a b
   nlinarith
 
-private def swapRapidDecay (f : RapidDecaySeq) : RapidDecaySeq where
+def swapRapidDecay (f : RapidDecaySeq) : RapidDecaySeq where
   val m := f.val (pairSwap m)
   rapid_decay k := by
     apply Summable.of_nonneg_of_le
@@ -120,7 +123,7 @@ private theorem swap_seminorm_bound (k : ℕ) (f : RapidDecaySeq) :
     exact (pairSwapEquiv.summable_iff.mpr (f.rapid_decay (2 * k))).const_smul ((4 : ℝ) ^ k)
   exact ((swapRapidDecay f).rapid_decay k).tsum_le_tsum h_term h_sum
 
-private def swapLM
+def swapLM
     {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
     [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
@@ -411,11 +414,11 @@ private theorem mapVal_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ]
     _ = _ := tsum_mul_right
 
 /-- The mapped rapid decay sequence. -/
-private def mapRapidDecay (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+def mapRapidDecay (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : RapidDecaySeq) : RapidDecaySeq where
   val n := ∑' m, f.val m * (mapImage T₁ T₂ m).val n
-  rapid_decay k :=
-    Summable.of_nonneg_of_le
+  rapid_decay k := by
+    exact Summable.of_nonneg_of_le
       (fun n => mul_nonneg (abs_nonneg _) (by positivity))
       (fun n => mapVal_bound T₁ T₂ f n k)
       (NuclearTensorProduct.summable_inv_one_add_sq.mul_left _)
@@ -456,7 +459,7 @@ private theorem mapRapidDecay_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ 
 
 set_option maxHeartbeats 400000 in
 /-- The map as a linear map on RapidDecaySeq. -/
-private def mapLM (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) :
+def mapLM (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) :
     RapidDecaySeq →ₗ[ℝ] RapidDecaySeq where
   toFun := mapRapidDecay T₁ T₂
   map_add' f g := by

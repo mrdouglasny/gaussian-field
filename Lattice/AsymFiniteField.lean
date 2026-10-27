@@ -3,7 +3,9 @@ Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael R. Douglas
 -/
-import Lattice.AsymCovariance
+module
+
+public import Lattice.AsymCovariance
 
 /-!
 # `DyninMityaginSpace` instance for the asymmetric lattice field
@@ -17,13 +19,15 @@ it, the asym Gaussian field measure cannot be formed.
 (Previously declared locally in `pphi2`; moved here as it is about a GaussianField type.)
 -/
 
+@[expose] public section
+
 open MeasureTheory
 open scoped BigOperators
 
 namespace GaussianField
 
 /-- Enumeration of heterogeneous lattice sites via Fintype. -/
-private noncomputable def asymLatticeSiteEnum (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
+noncomputable def asymLatticeSiteEnum (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
     AsymLatticeSites Nt Ns ≃ Fin (Fintype.card (AsymLatticeSites Nt Ns)) :=
   Fintype.equivFin _
 
@@ -61,7 +65,7 @@ def asymLatticeSeminorm (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
   smul' r f := by
     simp only [Pi.smul_apply, smul_eq_mul, nnnorm_mul, NNReal.coe_mul]
     simp only [show (↑‖r‖₊ : ℝ) = ‖r‖ from rfl]
-    have := Finset.comp_sup'_eq_sup'_comp (s := Finset.univ)
+    have := Finset.apply_sup'_eq_sup'_comp (s := Finset.univ)
       Finset.univ_nonempty (f := fun x => (↑‖f x‖₊ : ℝ)) (g := (‖r‖ * ·))
       (fun _ _ => mul_max_of_nonneg _ _ (norm_nonneg r))
     simp only [Function.comp] at this
@@ -90,7 +94,7 @@ noncomputable instance asymLatticeField_dyninMityaginSpace (Nt Ns : ℕ) [NeZero
             (fun x : AsymLatticeSites Nt Ns => (↑‖f x‖₊ : ℝ)) =
           ↑(Finset.univ.sup' Finset.univ_nonempty
             (fun x : AsymLatticeSites Nt Ns => ‖f x‖₊)) :=
-        (Finset.comp_sup'_eq_sup'_comp Finset.univ_nonempty
+        (Finset.apply_sup'_eq_sup'_comp Finset.univ_nonempty
           (g := NNReal.toReal)
           (fun a b => NNReal.coe_mono.map_sup a b)).symm
       rw [h1]
@@ -106,7 +110,7 @@ noncomputable instance asymLatticeField_dyninMityaginSpace (Nt Ns : ℕ) [NeZero
       intro m hm
       unfold asymLatticeCoeffCLM asymLatticeBasisVec
       simp only [show ¬(m < Fintype.card (AsymLatticeSites Nt Ns)) from hm, dite_false,
-        ContinuousLinearMap.zero_apply, map_zero, mul_zero]
+        zero_apply, map_zero, mul_zero]
     rw [tsum_eq_sum (s := Finset.range C) (fun m hm => by
       simp only [Finset.mem_range, not_lt] at hm
       exact hvanish m (not_lt.mpr hm))]
@@ -129,7 +133,7 @@ noncomputable instance asymLatticeField_dyninMityaginSpace (Nt Ns : ℕ) [NeZero
       · intro b hb hbm
         have hblt : b < Fintype.card (AsymLatticeSites Nt Ns) := Finset.mem_range.mp hb
         simp only [asymLatticeBasisVec, asymLatticeDelta, hblt, dite_true]
-        rw [if_neg]
+        rw [ite_eq_right]
         · ring
         · intro heq
           exact hbm ((Fin.val_eq_of_eq ((asymLatticeSiteEnum Nt Ns).symm.injective heq)).symm)
@@ -172,7 +176,7 @@ noncomputable instance asymLatticeField_dyninMityaginSpace (Nt Ns : ℕ) [NeZero
           ≤ sem * (1 + ↑(Fintype.card (AsymLatticeSites Nt Ns))) ^ k :=
             mul_le_mul hcoeff hpow (by positivity) hsem_nn
         _ = (1 + ↑(Fintype.card (AsymLatticeSites Nt Ns))) ^ k * sem := by ring
-    · simp only [h, dite_false, ContinuousLinearMap.zero_apply, abs_zero, zero_mul]
+    · simp only [h, dite_false, zero_apply, abs_zero, zero_mul]
       positivity⟩
 
 end GaussianField

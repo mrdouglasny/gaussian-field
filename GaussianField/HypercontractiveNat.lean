@@ -25,9 +25,12 @@ double factorials.
 - Simon, P(φ)₂, Theorem I.17
 - Glimm-Jaffe, Quantum Physics, Ch. 8
 -/
+module
 
-import GaussianField.Hypercontractive
-import Mathlib.Data.Nat.Factorial.DoubleFactorial
+public import GaussianField.Hypercontractive
+public import Mathlib.Data.Nat.Factorial.DoubleFactorial
+
+@[expose] public section
 
 noncomputable section
 
@@ -126,7 +129,7 @@ private lemma block_prod_bound (m : ℕ) (hm : 1 ≤ m) (i : ℕ) :
       ((2 * m - 1) * (2 * i + 1)) ^ m := by
   calc ∏ j ∈ Finset.range m, (2 * (m * i + j) + 1)
       ≤ ∏ _j ∈ Finset.range m, ((2 * m - 1) * (2 * i + 1)) :=
-        Finset.prod_le_prod' (fun j hj =>
+        Finset.prod_le_prod (fun j hj =>
           block_element_bound m hm i j (Finset.mem_range.mp hj))
     _ = ((2 * m - 1) * (2 * i + 1)) ^ m := by
         rw [Finset.prod_const, Finset.card_range]
@@ -142,7 +145,7 @@ theorem doubleFactorial_hypercontractive_bound (m n : ℕ) (hm : 1 ≤ m) :
   -- Each block: ∏_{j<m} (2*(m*i+j)+1) ≤ ((2m-1)*(2*i+1))^m
   calc ∏ i ∈ range n, ∏ j ∈ range m, (2 * (m * i + j) + 1)
       ≤ ∏ i ∈ range n, ((2 * m - 1) * (2 * i + 1)) ^ m :=
-        Finset.prod_le_prod' (fun i _ => block_prod_bound m hm i)
+        Finset.prod_le_prod (fun i _ => block_prod_bound m hm i)
     _ = ∏ i ∈ range n, ((2 * m - 1) ^ m * (2 * i + 1) ^ m) := by
         congr 1; ext i; exact Nat.mul_pow _ _ m
     _ = (2 * m - 1) ^ (m * n) * ∏ i ∈ range n, (2 * i + 1) ^ m := by

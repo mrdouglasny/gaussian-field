@@ -33,11 +33,14 @@ For the resolvent: `‖D^j σ_ω‖_∞ = ω^{-1-j} ‖D^j g‖_∞ ≤ mass^{-1
 - Stein, *Singular Integrals and Differentiability Properties of Functions*, Ch. VI
 - Hörmander, *The Analysis of Linear PDOs*, Vol. II, §18.1
 -/
+module
 
-import Cylinder.FourierMultiplier
-import SchwartzFourier.LaplaceCLM
-import SchwartzFourier.ResolventUniformBound
-import Mathlib.Analysis.Fourier.Inversion
+public import Cylinder.FourierMultiplier
+public import SchwartzFourier.LaplaceCLM
+public import SchwartzFourier.ResolventUniformBound
+public import Mathlib.Analysis.Fourier.Inversion
+
+@[expose] public section
 
 noncomputable section
 
@@ -177,7 +180,7 @@ theorem resolventMultiplier_pointwise_bound
         (1 / ω) * ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖) := by
       simpa using ((show Integrable (fun p =>
           ‖FourierTransform.fourier (Complex.ofReal ∘ ⇑f) p‖) from by
-        simpa [Function.comp] using
+        exact
           ((FourierTransform.fourier
             ((SchwartzMap.postcompCLM Complex.ofRealCLM) f)).integrable.norm)).const_mul (1 / ω))
     have hle : ∀ p, ‖h p‖ ≤

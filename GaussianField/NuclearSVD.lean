@@ -21,21 +21,24 @@ operator A : ℓ² → H, A(e_m) = y_m.
 4. Extract SVD: σₙ = √μₙ, right singular vectors from eigenbasis
 5. Verify all required properties
 -/
+module
 
-import GaussianField.SpectralTheorem
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
-import Mathlib.Analysis.Normed.Operator.ContinuousLinearMap
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Logic.Denumerable
-import Mathlib.Topology.Algebra.Module.Basic
+public import GaussianField.SpectralTheorem
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
+public import Mathlib.Analysis.Normed.Operator.ContinuousLinearMap
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Basic.Denumerable
+public import Mathlib.Topology.Algebra.Module.Basic
+
+@[expose] public section
 
 open scoped BigOperators
 open Filter TopologicalSpace
@@ -65,7 +68,6 @@ theorem ell2_basis_orthonormal : Orthonormal ℝ ell2_basis := by
     rw [lp.inner_eq_tsum]
     simp only [lp.coeFn_single, Pi.single_apply]
     convert tsum_zero (α := ℝ) (β := ℕ) with i
-    rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
     simp only [RCLike.inner_apply, conj_trivial]
     split_ifs <;> simp_all
 
@@ -254,7 +256,7 @@ theorem nuclear_clm_basis (y : ℕ → K) (hy : Summable (fun m => ‖y m‖))
              LinearMap.coe_mk, AddHom.coe_mk, ell2_basis]
   simp_rw [lp.coeFn_single, Pi.single_apply]
   simp_rw [ite_smul, one_smul, zero_smul]
-  rw [tsum_eq_single m (fun k hk => if_neg hk)]
+  rw [tsum_eq_single m (fun k hk => ite_eq_right hk)]
   simp
 
 end NuclearOperator
@@ -277,7 +279,7 @@ theorem inner_ell2_basis_eq_coord (x : ell2') (m : ℕ) :
         if k = m then (x : ℕ → ℝ) k else 0 by
       simp only [RCLike.inner_apply, conj_trivial]
       split_ifs <;> simp]
-  rw [tsum_eq_single m (fun k hk => if_neg hk)]
+  rw [tsum_eq_single m (fun k hk => ite_eq_right hk)]
   simp
 
 omit [CompleteSpace K] in
@@ -399,7 +401,7 @@ theorem summable_sqrt_eigenvalues
   set w : ℕ → ell2' := fun n =>
     if Real.sqrt (μ_ n) = 0 then 0 else (Real.sqrt (μ_ n))⁻¹ • A.adjoint (e n)
   have hw_norm : ∀ n, Real.sqrt (μ_ n) ≠ 0 → ‖w n‖ = 1 := by
-    intro n hσ; simp only [w, if_neg hσ, norm_smul, norm_inv, Real.norm_eq_abs]
+    intro n hσ; simp only [w, ite_eq_right hσ, norm_smul, norm_inv, Real.norm_eq_abs]
     rw [abs_of_nonneg (Real.sqrt_nonneg _), hσ_eq, inv_mul_cancel₀]
     rwa [hσ_eq] at hσ
   have hw_orth : ∀ n k, n ≠ k → @inner ℝ ell2' _ (w n) (w k) = 0 := by
@@ -606,14 +608,13 @@ theorem nuclear_sequence_svd
     intro n hσ_ne
     show HasSum (fun m => (if σ_ n = 0 then 0
       else (σ_ n)⁻¹ * (A.adjoint (e n) : ℕ → ℝ) m) ^ 2) 1
-    simp only [if_neg hσ_ne]
+    simp only [ite_eq_right hσ_ne]
     have h := lp.hasSum_inner (𝕜 := ℝ) (A.adjoint (e n)) (A.adjoint (e n))
     rw [real_inner_self_eq_norm_sq] at h
     simp only [real_inner_self_eq_norm_sq, Real.norm_eq_abs, sq_abs] at h
     have h2 := h.mul_left ((σ_ n)⁻¹ ^ 2)
     simp only [← mul_pow] at h2
     convert h2 using 1
-    rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
     rw [mul_pow, inv_pow, h_adjnorm, show σ_ n = Real.sqrt (μ_ n) from rfl,
         Real.sq_sqrt (hμ_nn n)]
     have hμ_ne : μ_ n ≠ 0 := by
@@ -624,7 +625,7 @@ theorem nuclear_sequence_svd
     show HasSum (fun m =>
       (if σ_ n = 0 then 0 else (σ_ n)⁻¹ * (A.adjoint (e n) : ℕ → ℝ) m) *
       (if σ_ k = 0 then 0 else (σ_ k)⁻¹ * (A.adjoint (e k) : ℕ → ℝ) m)) 0
-    simp only [if_neg hσn, if_neg hσk]
+    simp only [ite_eq_right hσn, ite_eq_right hσk]
     have h_adj_orth : @inner ℝ ell2' _ (A.adjoint (e n)) (A.adjoint (e k)) = 0 := by
       rw [ContinuousLinearMap.adjoint_inner_right A (A.adjoint (e n)) (e k)]
       conv_lhs => rw [show A (A.adjoint (e n)) = (A.comp A.adjoint) (e n) from

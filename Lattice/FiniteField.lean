@@ -14,13 +14,16 @@ with a natural DyninMityaginSpace instance via delta-function basis.
 - `DyninMityaginSpace` instance — finite-dimensional (delta basis)
 - `HasPointEval` instance — evaluation at lattice sites
 -/
+module
 
-import Lattice.Sites
-import Nuclear.DyninMityagin
-import Nuclear.NuclearTensorProduct
-import Nuclear.PointEval
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Lattice.Sites
+public import Nuclear.DyninMityagin
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.PointEval
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+
+@[expose] public section
 
 noncomputable section
 
@@ -51,7 +54,7 @@ This means rapid decay holds trivially (eventually-zero sequences). -/
 variable (d N : ℕ) [NeZero N]
 
 /-- Enumeration of finite lattice sites via Fintype. -/
-private noncomputable def finLatticeSiteEnum :
+noncomputable def finLatticeSiteEnum :
     FinLatticeSites d N ≃ Fin (Fintype.card (FinLatticeSites d N)) :=
   Fintype.equivFin _
 
@@ -167,7 +170,7 @@ noncomputable instance finLatticeField_dyninMityaginSpace :
       · intro b hb hbm
         have hblt : b < Fintype.card (FinLatticeSites d N) := Finset.mem_range.mp hb
         simp only [finLatticeBasisVec, finLatticeDelta, hblt, dite_true]
-        rw [if_neg]
+        rw [ite_eq_right]
         · ring
         · intro heq
           exact hbm ((Fin.val_eq_of_eq ((finLatticeSiteEnum d N).symm.injective heq)).symm)

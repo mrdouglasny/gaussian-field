@@ -28,12 +28,15 @@ where `r_N` is the circle restriction map (sampling with √(L/N) normalization)
 - Gel'fand-Vilenkin, *Generalized Functions* Vol. 4
 - Treves, *Topological Vector Spaces, Distributions, and Kernels* §43
 -/
+module
 
-import Torus.Restriction
-import Torus.Symmetry
-import Lattice.FiniteField
-import Nuclear.TensorProductFunctorAxioms
-import HeatKernel.GreenInvariance
+public import Torus.Restriction
+public import Torus.Symmetry
+public import Lattice.FiniteField
+public import Nuclear.TensorProductFunctorAxioms
+public import HeatKernel.GreenInvariance
+
+@[expose] public section
 
 noncomputable section
 

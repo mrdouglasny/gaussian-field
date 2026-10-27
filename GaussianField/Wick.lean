@@ -37,9 +37,12 @@ functional `charFun T f` (proved in `GaussianField.Construction`):
 - Simon, "The P(φ)₂ Euclidean (Quantum) Field Theory", §I.3
 - Glimm-Jaffe, "Quantum Physics", §6.1 (Wick ordering)
 -/
+module
 
-import GaussianField.Properties
-import Mathlib.Data.Nat.Factorial.DoubleFactorial
+public import GaussianField.Properties
+public import Mathlib.Data.Nat.Factorial.DoubleFactorial
+
+@[expose] public section
 
 noncomputable section
 
@@ -98,7 +101,7 @@ private theorem product_memLp : ∀ (n : ℕ) (f : Fin n → E) (p : ℝ≥0),
     have htail : MemLp (fun ω : Configuration E => ∏ i : Fin n, ω (f (Fin.succ i)))
         (↑(2 * p)) (measure T) :=
       ih (fun i => f (Fin.succ i)) (2 * p)
-    exact htail.mul' hf0
+    exact hf0.fun_mul htail
 
 /-- Finite products of evaluation functionals are integrable.
 

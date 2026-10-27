@@ -22,13 +22,16 @@ The covariance CLM satisfies `⟨Tf, Tg⟩_ℓ² = ⟨f, Q⁻¹g⟩_L²` where Q
 the mass operator. This is constructed via the spectral decomposition
 `T(f)(k) = λ_k^{-1/2} ⟪e_k, f⟫` where `{e_k}` are eigenvectors of Q.
 -/
+module
 
-import Lattice.FiniteField
-import Lattice.Laplacian
-import Lattice.SpectralCovariance
-import HeatKernel.Axioms
-import GaussianField.Construction
-import GaussianField.Properties
+public import Lattice.FiniteField
+public import Lattice.Laplacian
+public import Lattice.SpectralCovariance
+public import HeatKernel.Axioms
+public import GaussianField.Construction
+public import GaussianField.Properties
+
+@[expose] public section
 
 noncomputable section
 

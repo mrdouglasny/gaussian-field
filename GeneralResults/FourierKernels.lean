@@ -16,8 +16,11 @@ Key identities for the 1D resolvent/free kernel, ported from OSforGFF.
 - OSforGFF/General/FourierTransforms.lean (fourier_lorentzian_1d, exp_factorization_reflection)
 - Glimm-Jaffe, *Quantum Physics*, method-of-images
 -/
+module
 
-import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 noncomputable section
 

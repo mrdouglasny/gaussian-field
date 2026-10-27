@@ -21,8 +21,11 @@ and proves it acts on the Fourier basis by eigenvalue multiplication.
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II
 - Stein-Shakarchi, *Fourier Analysis*, Ch. 3
 -/
+module
 
-import SmoothCircle.Eigenvalues
+public import SmoothCircle.Eigenvalues
+
+@[expose] public section
 
 noncomputable section
 

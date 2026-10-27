@@ -23,16 +23,17 @@ variable (N : ℕ) (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
 #check latticeGaussianMeasure 2 N a mass ha hmass
 ```
 -/
+module
 
-import Lattice.Sites
-import Lattice.TorusEmbedding
-import Lattice.RapidDecayLattice
-import Lattice.FiniteField
-import Lattice.Laplacian
-import Lattice.HeatKernel
-import Lattice.Symmetry
-import Lattice.Covariance
-import Lattice.Convergence
-import Lattice.HeatKernelConvergence1d
-import Lattice.FKG
-import Lattice.CombesThomas
+public import Lattice.Sites
+public import Lattice.TorusEmbedding
+public import Lattice.RapidDecayLattice
+public import Lattice.FiniteField
+public import Lattice.Laplacian
+public import Lattice.HeatKernel
+public import Lattice.Symmetry
+public import Lattice.Covariance
+public import Lattice.Convergence
+public import Lattice.HeatKernelConvergence1d
+public import Lattice.FKG
+public import Lattice.CombesThomas

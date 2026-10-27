@@ -1,3 +1,5 @@
-import Torus.Restriction
-import Torus.Evaluation
-import Torus.Symmetry
+module
+
+public import Torus.Restriction
+public import Torus.Evaluation
+public import Torus.Symmetry

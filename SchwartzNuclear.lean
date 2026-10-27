@@ -17,9 +17,11 @@ sequence space isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`.
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. 3-4
 - Thangavelu, "Lectures on Hermite and Laguerre Expansions", Ch. 1
 -/
+module
 
-import SchwartzNuclear.HermiteFunctions
-import SchwartzNuclear.SchwartzHermiteExpansion
-import SchwartzNuclear.Basis1D
-import SchwartzNuclear.SchwartzSlicing
-import SchwartzNuclear.HermiteNuclear
+public import SchwartzNuclear.HermiteFunctions
+public import SchwartzNuclear.SchwartzHermiteExpansion
+public import SchwartzNuclear.Basis1D
+public import SchwartzNuclear.SchwartzSlicing
+public import SchwartzNuclear.HermiteNuclear
+public import SchwartzNuclear.HermiteGalerkin

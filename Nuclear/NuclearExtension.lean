@@ -38,8 +38,11 @@ Then use E₁ ⊗̂ (E₂ ⊗̂ ... ⊗̂ Eₙ) ≅ E₁ ⊗̂ E₂ ⊗̂ ... �
 - Reed-Simon, "Methods of Modern Mathematical Physics I", Theorem V.13
 - Treves, "Topological Vector Spaces", Ch. 51
 -/
+module
 
-import Nuclear.NuclearTensorProduct
+public import Nuclear.NuclearTensorProduct
+
+@[expose] public section
 
 noncomputable section
 

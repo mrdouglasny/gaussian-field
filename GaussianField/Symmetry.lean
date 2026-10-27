@@ -28,13 +28,16 @@ specialization of `measure_invariant_of_covariance_preserved`.
   Configuration-side negation invariance through `evalMap` to the
   field-law side.
 -/
+module
 
-import GaussianField.MeasureUniqueness
-import GaussianField.Properties
-import Lattice.Covariance
-import GaussianField.Density
-import Mathlib.MeasureTheory.Group.Measure
-import Mathlib.Topology.MetricSpace.Basic
+public import GaussianField.MeasureUniqueness
+public import GaussianField.Properties
+public import Lattice.Covariance
+public import GaussianField.Density
+public import Mathlib.MeasureTheory.Group.Measure
+public import Mathlib.Topology.MetricSpace.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -87,7 +90,7 @@ theorem integral_exp_pairing (f : E) :
     ∫ ω : Configuration E, Real.exp (ω f) ∂(measure T) =
       Real.exp ((1 / 2) * @inner ℝ H _ (T f) (T f)) := by
   have h_pair := pairing_is_gaussian T f
-  have h_mgf := mgf_gaussianReal h_pair 1
+  have h_mgf := mgf_gaussianReal ⟨(configuration_eval_measurable f).aemeasurable, h_pair⟩ 1
   have h_unfold : mgf (fun ω : Configuration E => ω f) (measure T) 1 =
       ∫ ω : Configuration E, Real.exp (ω f) ∂(measure T) := by
     simp [mgf, one_mul]
@@ -118,7 +121,7 @@ theorem measure_invariant_of_covariance_preserved
     (h_cov : ∀ f, @inner ℝ H _ (T (g f)) (T (g f)) = @inner ℝ H _ (T f) (T f)) :
     (measure T).map (configurationPullback g) = measure T := by
   haveI : IsProbabilityMeasure ((measure T).map (configurationPullback g)) :=
-    Measure.isProbabilityMeasure_map (measurable_configurationPullback g).aemeasurable
+    inferInstance
   -- Helper: pushforward integrals reduce to integrals against (measure T).
   -- Apply integral_map then the simp lemma configurationPullback_apply.
   have h_pull_exp : ∀ f : E,
@@ -184,8 +187,7 @@ instance latticeGaussianFieldLaw_isProbability
     MeasureTheory.IsProbabilityMeasure
       (latticeGaussianFieldLaw d N a mass ha hmass) := by
   unfold latticeGaussianFieldLaw
-  exact MeasureTheory.Measure.isProbabilityMeasure_map
-    (measurable_evalMap d N).aemeasurable
+  exact inferInstance
 
 /-- The evaluation map intertwines `Neg` on `Configuration` with pointwise
 `Neg` on `FinLatticeField`. Concretely:

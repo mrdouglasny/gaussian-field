@@ -28,14 +28,17 @@ to be exported:
 - `deriv_hermiteFunction` (derivative identity)
 - `hermiteFunction_contDiff` (smoothness)
 -/
+module
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
-import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
-import Mathlib.Analysis.PSeries
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Analysis.Distribution.TemperateGrowth
-import SchwartzNuclear.HermiteFunctions
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
+public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Analysis.Distribution.TemperateGrowth
+public import SchwartzNuclear.HermiteFunctions
+
+@[expose] public section
 
 open MeasureTheory Real SchwartzMap
 open scoped BigOperators
@@ -943,14 +946,14 @@ private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
     aestronglyMeasurable_of_tendsto_ae Filter.atTop
       (fun N => (hS_memLp N).aestronglyMeasurable)
       (ae_of_all _ hS_tendsto)
-  -- Split: MemLp = AEStronglyMeasurable ∧ eLpNorm < ∞
-  refine ⟨h_aesm, ?_⟩
+  -- MemLp = eLpNorm < ∞ (measurability is built into eLpNorm)
+  rw [memLp_iff]
   -- Use Fatou for eLpNorm: eLpNorm(limit) ≤ liminf eLpNorm(S_N)
   -- Then bound liminf by eLpNorm(f) using Bessel inequality
   apply lt_of_le_of_lt
   -- Step 1: Fatou gives eLpNorm(tsum) ≤ liminf eLpNorm(S_N)
   · exact Lp.eLpNorm_lim_le_liminf_eLpNorm
-      (fun N => (hS_memLp N).aestronglyMeasurable) _ (ae_of_all _ hS_tendsto)
+      (fun N => (hS_memLp N).aestronglyMeasurable) _ h_aesm (ae_of_all _ hS_tendsto)
   -- Step 2: liminf eLpNorm(S_N) ≤ eLpNorm(f) < ∞
   -- Helper: convert ∫⁻ ‖g‖ₑ^(ENNReal.toReal 2) to ENNReal.ofReal (∫ g^2)
   have h_lintegral_sq : ∀ (g : ℝ → ℝ) (hg : Integrable (fun x => g x ^ 2) volume),
@@ -966,8 +969,10 @@ private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
   -- Helper: eLpNorm(S_N) ≤ eLpNorm(f) for all N
   have h_eLpNorm_le : ∀ N, eLpNorm (S N) 2 volume ≤ eLpNorm f 2 volume := by
     intro N
-    rw [eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top,
-        eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top]
+    rw [eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top
+          (hS_memLp N).aestronglyMeasurable,
+        eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top
+          (f.memLp 2 volume).aestronglyMeasurable]
     apply ENNReal.rpow_le_rpow _ (by positivity)
     rw [h_lintegral_sq (S N) (hS_memLp N).integrable_sq,
         h_lintegral_sq f (f.memLp 2 volume).integrable_sq]
@@ -975,7 +980,7 @@ private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
   apply lt_of_le_of_lt
   · apply Filter.liminf_le_of_frequently_le'
     exact Filter.Frequently.of_forall (fun N => h_eLpNorm_le N)
-  · exact (f.memLp 2 volume).2
+  · exact (f.memLp 2 volume).eLpNorm_lt_top
 
 -- Helper: integral of tsum · ψₘ equals tsum of integrals
 -- Uses integral_tsum with dominated convergence

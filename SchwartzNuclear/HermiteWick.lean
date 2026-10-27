@@ -26,12 +26,15 @@ recurrence from `HermiteFunctions.lean`.
 - Simon, *The P(φ)₂ Euclidean QFT*, §I.3
 - Glimm-Jaffe, *Quantum Physics*, §8.6
 -/
+module
 
-import SchwartzNuclear.HermiteFunctions
-import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Factorial.BigOperators
-import Mathlib.Data.Fintype.Pi
+public import SchwartzNuclear.HermiteFunctions
+public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Factorial.BigOperators
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 noncomputable section
 
@@ -367,7 +370,7 @@ private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
       have hkne : k + 1 ≠ 0 := Nat.succ_ne_zero _
       have hksub : (k + 1 : ℕ) - 1 = k := by omega
       have hk2 : n + 2 - (k + 1) = n + 1 - k := by omega
-      rw [if_neg hkne, hksub, hk2]
+      rw [ite_eq_right hkne, hksub, hk2]
     -- B_top is essentially ∑_{k=0}^{n+1} C(n+1, k) W₁(k) W₂(n+2-k), but the exponent
     -- on W₂ is `n + 1 - k + 1` which we need to simplify to `n + 2 - k` for k ≤ n+1.
     have h_B_top :
@@ -396,7 +399,7 @@ private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
       refine Finset.sum_congr rfl (fun k hk => ?_)
       have hk' : k < n + 2 := Finset.mem_range.mp hk
       have hne : k ≠ n + 2 := Nat.ne_of_lt hk'
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
     -- Combine: A_top + B_top = bivariateSum(n+2) by Pascal.
     have h_top :
         (∑ k ∈ Finset.range (n + 2),
@@ -446,7 +449,7 @@ private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
             · -- j > n + 2
               have hne0 : j ≠ 0 := by omega
               have hne_n2 : j ≠ n + 2 := by omega
-              rw [if_neg hne0, if_neg hne_n2]
+              rw [ite_eq_right hne0, ite_eq_right hne_n2]
               have h1 : (n + 1).choose (j - 1) = 0 :=
                 Nat.choose_eq_zero_of_lt (by omega)
               have h2 : (n + 1).choose j = 0 :=
@@ -459,7 +462,7 @@ private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
               have hjeq : j = n + 2 := hj_eq.symm
               have hjsub : j - 1 = n + 1 := by omega
               have hne0 : j ≠ 0 := by omega
-              rw [if_neg hne0, hjsub, if_pos hjeq]
+              rw [ite_eq_right hne0, hjsub, ite_eq_left hjeq]
               rw [hjeq, Nat.choose_self, Nat.choose_self]
               push_cast; ring
       -- Apply.
@@ -611,7 +614,7 @@ private lemma multiIndicesSupportedIn_empty
     Finset.notMem_empty]
   rcases Nat.eq_zero_or_pos k with hk | hk
   · subst hk
-    simp only [if_true, Finset.mem_singleton, funext_iff]
+    simp only [ite_true, Finset.mem_singleton, funext_iff]
     constructor
     · rintro ⟨_, hα0, _⟩; intro j; exact hα0 j (by simp)
     · intro hα0
@@ -619,7 +622,7 @@ private lemma multiIndicesSupportedIn_empty
       · rw [hα0 i]; omega
       · simp_rw [hα0]; simp
   · have hk_ne : k ≠ 0 := Nat.ne_of_gt hk
-    simp only [hk_ne, if_false, Finset.notMem_empty, iff_false, not_and]
+    simp only [hk_ne, ite_false, Finset.notMem_empty, iff_false, not_and]
     intro hbound hα0
     -- α j = 0 for all j (since α has empty support), so ∑ α = 0 ≠ k.
     have hzero : ∀ j, α j = 0 := fun j => hα0 j (by simp)

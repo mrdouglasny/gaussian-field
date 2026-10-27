@@ -34,23 +34,26 @@ C(f,g) = ⟨T(f), T(g)⟩_H.
 - `charFun` — characteristic functional identity
 - See `Properties.lean` for moments and integrability.
 -/
+module
 
-import GaussianField.TargetFactorization
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.Distributions.Gaussian.Basic
-import Mathlib.Probability.ProductMeasure
-import Mathlib.Probability.Independence.InfinitePi
-import Mathlib.Probability.Independence.Integration
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Analysis.Fourier.BoundedContinuousFunctionChar
-import Mathlib.Analysis.Fourier.FourierTransform
-import Mathlib.Analysis.InnerProductSpace.Dual
-import Mathlib.Analysis.InnerProductSpace.ProdL2
-import Mathlib.Analysis.Normed.Lp.MeasurableSpace
-import Mathlib.MeasureTheory.Group.IntegralConvolution
-import Mathlib.MeasureTheory.Integral.Pi
-import Mathlib.MeasureTheory.Measure.FiniteMeasureExt
-import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
+public import GaussianField.TargetFactorization
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Probability.Distributions.Gaussian.Basic
+public import Mathlib.Probability.ProductMeasure
+public import Mathlib.Probability.Independence.InfinitePi
+public import Mathlib.Probability.Independence.Integration
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.Analysis.Fourier.BoundedContinuousFunctionChar
+public import Mathlib.Analysis.Fourier.FourierTransform
+public import Mathlib.Analysis.InnerProductSpace.Dual
+public import Mathlib.Analysis.InnerProductSpace.ProdL2
+public import Mathlib.Analysis.Normed.Lp.MeasurableSpace
+public import Mathlib.MeasureTheory.Group.IntegralConvolution
+public import Mathlib.MeasureTheory.Integral.Pi
+public import Mathlib.MeasureTheory.Measure.FiniteMeasureExt
+public import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
+
+@[expose] public section
 
 noncomputable section
 
@@ -85,7 +88,7 @@ theorem configuration_measurable_of_eval_measurable
   rw [measurable_iff_comap_le]
   show (MeasurableSpace.comap (fun ω f => ω f) MeasurableSpace.pi).comap g ≤ _
   rw [MeasurableSpace.comap_comp]
-  exact (measurable_pi_lambda _ h).comap_le
+  exact (Measurable.of_eval h).comap_le
 
 omit [DyninMityaginSpace E] in
 /-- Each evaluation map ω ↦ ω(f) is measurable w.r.t. the cylindrical σ-algebra. -/
@@ -193,7 +196,7 @@ private lemma coeff_sq_summable (T : E →L[ℝ] H)
   simp only [ENNReal.toReal_ofNat] at hsumm
   have hsumm' : Summable (fun n => ‖(c : ℕ → ℝ) n‖^(2 : ℕ)) := by
     simp only [← Real.rpow_natCast] at hsumm ⊢
-    convert hsumm using 2; rfl
+    convert hsumm using 2
   convert hsumm' using 2 with n
   rw [coeff, show adaptedONB T h_inf n = adaptedBasis T h_inf n from
     (adaptedBasis_eq_ONB T h_inf).symm ▸ rfl]
@@ -317,12 +320,12 @@ private noncomputable def seriesLimit
       convert h_cont using 1
       ext f
       show seriesLimitFun T h_inf ξ f = _
-      simp only [seriesLimitFun, if_pos h]
+      simp only [seriesLimitFun, ite_eq_left h]
       exact h_eq f
     · -- Bad noise: functional is 0, trivially continuous
       have h0 : (seriesLimitLinear T h_inf ξ).toFun = fun _ => 0 := by
         ext f; show seriesLimitFun T h_inf ξ f = 0
-        simp only [seriesLimitFun, if_neg h]
+        simp only [seriesLimitFun, ite_eq_right h]
       simp only [h0]
       exact continuous_const⟩
 
@@ -429,7 +432,7 @@ private theorem aemeasurable_seriesLimit (T : E →L[ℝ] H)
       ext ξ; simp only [Set.indicator]; split_ifs with h
       · have hgood := hS_sub ξ h
         show seriesLimitFun T h_inf ξ φ = _
-        simp only [seriesLimitFun, if_pos hgood]
+        simp only [seriesLimitFun, ite_eq_left hgood]
         exact ((hgood.scalar_summable φ).hasSum.tendsto_sum_nat).limUnder_eq.symm
       · rfl
     rw [h_eq]
@@ -477,11 +480,11 @@ private lemma hilbertEmbedding_inner (hfin : FiniteDimensional ℝ H) (x y : H) 
       @inner ℝ ell2' _ (ell2_basis i.val) (ell2_basis j.val) =
       if i = j then 1 else 0 from fun i j => by
     rcases eq_or_ne i j with h | h
-    · rw [if_pos h, h, real_inner_self_eq_norm_sq,
+    · rw [ite_eq_left h, h, real_inner_self_eq_norm_sq,
           ell2_basis_orthonormal.1 j.val, one_pow]
-    · rw [if_neg h]; exact ell2_basis_orthonormal.2 (show i.val ≠ j.val from
+    · rw [ite_eq_right h]; exact ell2_basis_orthonormal.2 (show i.val ≠ j.val from
         fun h' => h (Fin.ext h'))]
-  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   -- RHS: Parseval for the finite ONB
   rw [← (stdOrthonormalBasis ℝ H).repr.inner_map_map x y, PiLp.inner_apply]
   simp only [RCLike.inner_apply, conj_trivial,
@@ -495,6 +498,7 @@ private lemma hilbertEmbedding_inner (hfin : FiniteDimensional ℝ H) (x y : H) 
     variables under the series limit map. Works for both finite- and
     infinite-dimensional H: in the finite-dimensional case, H is embedded
     isometrically into ℓ² and the construction is applied there. -/
+@[no_expose]
 def measure (T : E →L[ℝ] H) :
     @Measure (Configuration E) instMeasurableSpaceConfiguration :=
   if hfin : FiniteDimensional ℝ H then
@@ -508,9 +512,8 @@ instance measure_isProbability (T : E →L[ℝ] H) :
     @IsProbabilityMeasure (Configuration E) instMeasurableSpaceConfiguration
       (measure T) := by
   unfold measure; split_ifs with hfin
-  · exact Measure.isProbabilityMeasure_map
-      (aemeasurable_seriesLimit ((hilbertEmbedding hfin).comp T) ell2_not_finiteDimensional)
-  · exact Measure.isProbabilityMeasure_map (aemeasurable_seriesLimit T hfin)
+  · infer_instance
+  · infer_instance
 
 /-! ## Characteristic Functional -/
 
@@ -526,7 +529,7 @@ private theorem partialSum_tendsto (T : E →L[ℝ] H)
   have hlimit : (seriesLimit T h_inf ξ f) =
       ∑' n, ξ n * coeff T h_inf n f := by
     show seriesLimitFun T h_inf ξ f = _
-    simp only [seriesLimitFun, if_pos hgood]
+    simp only [seriesLimitFun, ite_eq_left hgood]
   rw [hlimit]
   exact hsummable.hasSum.tendsto_sum_nat
 
@@ -554,7 +557,7 @@ private theorem noise_integral_factor (n : ℕ)
     simp only [Finset.mem_range] at ha; omega
   let X : NoiseSpace → (Finset.range n → ℝ) := fun ξ i => ξ i
   let Y : NoiseSpace → ℝ := fun ξ => ξ n
-  have hX_meas : Measurable X := measurable_pi_lambda _ (fun i => measurable_pi_apply _)
+  have hX_meas : Measurable X := Measurable.of_eval (fun i => measurable_pi_apply _)
   have hY_meas : Measurable Y := measurable_pi_apply n
   let Y' : NoiseSpace → ({n} : Finset ℕ) → ℝ := fun ξ i => ξ i
   have hindep' : IndepFun X Y' noiseMeasure :=
@@ -567,14 +570,14 @@ private theorem noise_integral_factor (n : ℕ)
   let extend_to_full : (Finset.range n → ℝ) → NoiseSpace :=
     fun f k => if hk : k < n then f ⟨k, Finset.mem_range.mpr hk⟩ else 0
   have hext_meas : Measurable extend_to_full := by
-    apply measurable_pi_lambda; intro k; by_cases hk : k < n
-    · simp only [extend_to_full, dif_pos hk]; exact measurable_pi_apply _
-    · simp only [extend_to_full, dif_neg hk]; exact measurable_const
+    apply Measurable.of_eval; intro k; by_cases hk : k < n
+    · simp only [extend_to_full, dite_eq_left hk]; exact measurable_pi_apply _
+    · simp only [extend_to_full, dite_eq_right hk]; exact measurable_const
   let g' : (Finset.range n → ℝ) → ℂ := g ∘ extend_to_full
   have hg'_meas : Measurable g' := hg_meas.comp hext_meas
   have hg_factor : ∀ ξ, g ξ = g' (X ξ) := by
     intro ξ; simp only [g', Function.comp_apply]
-    apply hg; intro k hk; simp only [extend_to_full, X, dif_pos hk]
+    apply hg; intro k hk; simp only [extend_to_full, X, dite_eq_left hk]
   have heval : MeasurePreserving Y noiseMeasure (gaussianReal 0 1) :=
     measurePreserving_eval_infinitePi (fun _ => gaussianReal 0 1) n
   have hY_int : ∫ x, h x ∂gaussianReal 0 1 = ∫ ξ, h (Y ξ) ∂noiseMeasure := by
@@ -706,7 +709,7 @@ theorem charFun (T : E →L[ℝ] H) (f : E) :
   unfold measure
   by_cases hfin : FiniteDimensional ℝ H
   · -- Finite-dimensional case: embed H into ℓ² isometrically
-    rw [dif_pos hfin]
+    rw [dite_eq_left hfin]
     rw [integral_map
       (aemeasurable_seriesLimit ((hilbertEmbedding hfin).comp T) ell2_not_finiteDimensional)
       (hmeas_integrand _)]
@@ -717,7 +720,7 @@ theorem charFun (T : E →L[ℝ] H) (f : E) :
     simp only [ContinuousLinearMap.comp_apply] at h
     rwa [hilbertEmbedding_inner] at h
   · -- Infinite-dimensional case: direct argument
-    rw [dif_neg hfin]
+    rw [dite_eq_right hfin]
     rw [integral_map (aemeasurable_seriesLimit T hfin) (hmeas_integrand _)]
     exact charFun_noise_integral T hfin f
 

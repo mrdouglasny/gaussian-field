@@ -56,31 +56,29 @@ lattice gauge theories), one wants:
 * **Implicit function theorem in finite dimensions** then gives a smooth
   (or analytic) family of solutions parameterised by `t`.
 
-This file provides (all real definitions; two textbook-grade axioms
-flag deferred discharge):
+This file provides (real definitions and proved theorems; no axioms):
 
 * `MultiIndex.below d_max d` — the Finset of multi-indices `α : Fin d → ℕ`
   with `α.abs ≤ d_max`. Finite and decidable.
 * `hermiteGalerkinTrunc d_max f` — Galerkin projection of a Schwartz
   function `f`, defined as `∑_{α ∈ MultiIndex.below d_max d}
   hermiteCoeffNd d α f • schwartzHermiteBasisNd d α`.
-* `hermiteGalerkinTrunc_tendsto_schwartz_holds` + axiom
+* `hermiteGalerkinTrunc_tendsto_schwartz_holds` + theorem
   `hermiteGalerkinTrunc_tendsto_schwartz` — Schwartz-topology
-  convergence as `d_max → ∞`. Textbook (Reed–Simon Vol. I), proof
-  deferred.
-* `hermiteFunctionNd_HO_eigenvalue_holds` + axiom
+  convergence as `d_max → ∞`, from the unconditional Hermite expansion
+  `schwartz_hermite_hasSum_multiIndex` and cofinality of the truncation
+  sets (`MultiIndex.tendsto_below`).
+* `hermiteFunctionNd_HO_eigenvalue_holds` + theorem
   `hermiteFunctionNd_HO_eigenvalue` — pointwise HO eigenvalue equation
   `(−Δ + ‖x‖²) h_α = (2|α| + d) h_α`, expressed via tensor-product
-  decomposition into 1D `iteratedDeriv` factors. Textbook (separation
-  of variables from Mathlib's 1D
-  `hermiteFunction_harmonic_oscillator_eigenvalue`), proof deferred.
+  decomposition into 1D `iteratedDeriv` factors (separation of variables
+  from Mathlib's 1D `hermiteFunction_harmonic_oscillator_eigenvalue`).
 * `galerkinCoeffs d_max f` — Hermite coefficient vector,
   `fun α => hermiteCoeffNd d α.val f`.
 
 ## Status (2026-05-02, post-vetting)
 
-**Skeleton**: definitions and statements without proofs. Discharge plan
-in the bottom-of-file status note.
+Definitions and proved statements; see the bottom-of-file status note.
 
 The previous file claimed an OU eigenvalue equation that was false at
 the type level — the misclaim has been replaced with the HO eigenvalue
@@ -98,10 +96,13 @@ plus the OU↔HO similarity-transform bridge in the docstring above.
   eigenvalue equation with eigenvalue `2n + 1`, the building block for
   the multi-D version stated below.
 -/
+module
 
-import SchwartzNuclear.HermiteTensorProduct
-import Mathlib.Data.Finset.Basic
-import GeneralResults.SeparationOfVariables
+public import SchwartzNuclear.HermiteTensorProduct
+public import Mathlib.Data.Finset.Basic
+public import GeneralResults.SeparationOfVariables
+
+@[expose] public section
 
 noncomputable section
 
@@ -150,74 +151,91 @@ basis functions with finite scalar weights). -/
   `P_{d_max} f := ∑_{α ∈ MultiIndex.below d_max d}
                     (hermiteCoeffNd d α f) • (schwartzHermiteBasisNd d α)`
 
-Replaces an earlier `:= 0` placeholder body. The convergence
-`P_{d_max} f → f` in the Schwartz topology as `d_max → ∞` is the
-textbook axiom `hermiteGalerkinTrunc_tendsto_schwartz` below. -/
+The convergence `P_{d_max} f → f` in the Schwartz topology as
+`d_max → ∞` is the theorem `hermiteGalerkinTrunc_tendsto_schwartz` below. -/
 noncomputable def hermiteGalerkinTrunc {d : ℕ} (d_max : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :
     SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ :=
   ∑ α ∈ MultiIndex.below d_max d, hermiteCoeffNd d α f • schwartzHermiteBasisNd d α
 
 /-- **Convergence of the Galerkin truncation** in the Schwartz topology:
-as `d_max → ∞`, `hermiteGalerkinTrunc d_max f → f`.
-
-Proof: this is the Hermite expansion convergence for Schwartz functions
-(`schwartzRapidDecayEquivNd`), restricted to the partial sums indexed by
-`MultiIndex.below d_max d`. As `d_max → ∞`, the partial-sum index set
-exhausts all of `MultiIndex d`, and the rapid-decay summability of the
-Hermite coefficients gives convergence in every Schwartz seminorm.
-
-Statement-only here; body uses `Filter.Tendsto.comp` on the existing
-`schwartzRapidDecayEquivNd` plus exhaustion of partial sums. -/
+as `d_max → ∞`, `hermiteGalerkinTrunc d_max f → f`. The statement as a `Prop`;
+it is proved by `hermiteGalerkinTrunc_tendsto_schwartz` below. -/
 def hermiteGalerkinTrunc_tendsto_schwartz_holds {d : ℕ}
     (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) : Prop :=
   Filter.Tendsto (fun d_max : ℕ => hermiteGalerkinTrunc d_max f)
     Filter.atTop (nhds f)
 
-/-- **Textbook axiom: Schwartz-topology convergence of the Hermite-Galerkin
-truncation.**
+/-- Membership in the truncation set: `α ∈ MultiIndex.below d_max d ↔ α.abs ≤ d_max`. -/
+theorem MultiIndex.mem_below {d_max d : ℕ} {α : MultiIndex d} :
+    α ∈ MultiIndex.below d_max d ↔ α.abs ≤ d_max := by
+  unfold MultiIndex.below
+  rw [Finset.mem_filter, Finset.mem_image]
+  refine ⟨fun h => h.2, fun h => ⟨⟨fun i => ⟨α i, ?_⟩, Finset.mem_univ _, rfl⟩, h⟩⟩
+  have hi : α i ≤ ∑ j, α j :=
+    Finset.single_le_sum (fun j _ => Nat.zero_le (α j)) (Finset.mem_univ i)
+  have habs : α.abs = ∑ j, α j := rfl
+  omega
 
-Asserts that for any Schwartz function `f : EuclideanSpace ℝ (Fin d) → ℝ`,
-the multi-index Hermite expansion converges to `f` in the Schwartz
-topology as the truncation degree `d_max → ∞`:
+/-- The truncation sets increase with the degree. -/
+theorem MultiIndex.below_mono (d : ℕ) : Monotone (fun d_max => MultiIndex.below d_max d) :=
+  fun _ _ hab _ hα => MultiIndex.mem_below.mpr ((MultiIndex.mem_below.mp hα).trans hab)
 
-  `hermiteGalerkinTrunc d_max f → f` in `nhds f` (Schwartz seminorms).
+/-- The truncation sets exhaust `MultiIndex d`: they tend to `atTop` in `Finset (MultiIndex d)`. -/
+theorem MultiIndex.tendsto_below (d : ℕ) :
+    Filter.Tendsto (fun d_max => MultiIndex.below d_max d) Filter.atTop Filter.atTop :=
+  Filter.tendsto_atTop_finset_of_monotone (MultiIndex.below_mono d)
+    (fun α => ⟨α.abs, MultiIndex.mem_below.mpr le_rfl⟩)
 
-**Proof strategy** (deferred; LOC estimate ~150–250 per Gemini).
+/-- In dimension `0` the truncation is the identity: `EuclideanSpace ℝ (Fin 0)` is a point
+of volume `1`, the only multi-index is the empty one and `h_∅ = 1`. -/
+theorem hermiteGalerkinTrunc_dim_zero (d_max : ℕ)
+    (f : SchwartzMap (EuclideanSpace ℝ (Fin 0)) ℝ) :
+    hermiteGalerkinTrunc d_max f = f := by
+  have hbelow : MultiIndex.below d_max 0 = {default} := by
+    ext α
+    rw [Finset.mem_singleton, Subsingleton.elim α default, MultiIndex.mem_below]
+    simp [MultiIndex.abs]
+  have hvol : (MeasureTheory.volume :
+      MeasureTheory.Measure (EuclideanSpace ℝ (Fin 0))).real Set.univ = 1 := by
+    have h := (PiLp.volume_preserving_ofLp (Fin 0)).measure_preimage
+      (s := Set.univ) MeasurableSet.univ.nullMeasurableSet
+    rw [Set.preimage_univ] at h
+    rw [MeasureTheory.Measure.real, h, MeasureTheory.volume_pi,
+      MeasureTheory.Measure.pi_univ]
+    simp
+  have hbasis : ∀ y, schwartzHermiteBasisNd 0 default y = 1 := fun y => by
+    change hermiteFunctionNd 0 default y = 1
+    simp [hermiteFunctionNd]
+  ext x
+  rw [hermiteGalerkinTrunc, hbelow, Finset.sum_singleton, smul_apply, hbasis, smul_eq_mul,
+    mul_one, hermiteCoeffNd, MeasureTheory.integral_unique, hvol, one_smul]
+  simp only [hermiteFunctionNd, Finset.univ_eq_empty, Finset.prod_empty, mul_one]
+  exact congrArg f (Subsingleton.elim _ _)
 
-1. The Hermite coefficient sequence `α ↦ hermiteCoeffNd d α f` of any
-   Schwartz `f` is rapidly decreasing in `|α|` (proof: integration by
-   parts against `hermiteFunctionNd d α`, using its `H_HO`-eigenfunction
-   property to convert each Hermite operator hit into an `H_HO`
-   action on `f`, plus Schwartz-seminorm bounds on `f`).
-2. Rapid decay of the coefficients implies that the partial sums
-   converge in every Schwartz seminorm `‖·‖_{k,ℓ}` simultaneously
-   (`SchwartzMap` is a Fréchet space; the seminorm-by-seminorm bound
-   follows from `iteratedFDeriv` of the partial sum being a finite
-   linear combination of derivatives of basis functions, controlled
-   uniformly by the rapid-decay tail). Convergence is absolute, hence
-   independent of the order of summation — the result holds for *any*
-   cofinal sequence of finite index sets, not just the total-degree
-   truncation used here.
-3. Cofinality of `MultiIndex.below d_max d` in `Finset (MultiIndex d)`
-   as `d_max → ∞` gives the `atTop`-limit form.
+/-- **Schwartz-topology convergence of the Hermite-Galerkin truncation.**
 
-**References.**
-* Reed–Simon, *Methods of Modern Mathematical Physics, Vol. I*, §V.3
-  (Hermite expansion in Schwartz space).
-* Simon, *A Comprehensive Course in Analysis*.
-* Bogachev, *Gaussian Measures*, AMS 1998, Thm 1.3.4.
+For any Schwartz function `f : EuclideanSpace ℝ (Fin d) → ℝ`,
+`hermiteGalerkinTrunc d_max f → f` in the Schwartz topology as `d_max → ∞`.
 
-**Status (2026-05-02)**: Postulated as textbook axiom. **Gemini-vetted
-Standard**: "a fundamental theorem of analysis on Schwartz space,
-stating that the Hermite functions form a topological basis
-(specifically, a Schauder basis) for `𝓢(ℝ^d)`. […] The convergence is
-absolute for each Schwartz semi-norm […] therefore the series converges
-for *any* cofinal sequence of finite index sets, not just the specific
-total-degree truncation used here." -/
-axiom hermiteGalerkinTrunc_tendsto_schwartz {d : ℕ}
+Proof. For `d = d' + 1` the multi-index Hermite expansion converges unconditionally in
+`𝓢(ℝ^d)` (`schwartz_hermite_hasSum_multiIndex`, i.e. the Hermite isomorphism
+`schwartzRapidDecayEquivNd`), so its finite partial sums converge along `atTop` in
+`Finset (MultiIndex d)`; the truncation sets `MultiIndex.below d_max d` tend to `atTop`
+(`MultiIndex.tendsto_below`). For `d = 0` the truncation is the identity
+(`hermiteGalerkinTrunc_dim_zero`).
+
+**References.** Reed–Simon, *Methods of Modern Mathematical Physics, Vol. I*, §V.3. -/
+theorem hermiteGalerkinTrunc_tendsto_schwartz {d : ℕ}
     (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :
-    hermiteGalerkinTrunc_tendsto_schwartz_holds f
+    hermiteGalerkinTrunc_tendsto_schwartz_holds f := by
+  unfold hermiteGalerkinTrunc_tendsto_schwartz_holds
+  cases d with
+  | zero =>
+    simp only [hermiteGalerkinTrunc_dim_zero]
+    exact tendsto_const_nhds
+  | succ d' =>
+    exact (schwartz_hermite_hasSum_multiIndex d' f).comp (MultiIndex.tendsto_below (d' + 1))
 
 /-! ## Harmonic oscillator generator on the Hermite-function basis
 
@@ -273,7 +291,7 @@ terms of Mathlib's 1D `hermiteFunction` and `iteratedDeriv` only —
 intentionally avoids defining a multi-D `Δ` operator on
 `EuclideanSpace ℝ (Fin d)`. The proof is separation of variables from
 Mathlib's 1D `hermiteFunction_harmonic_oscillator_eigenvalue`
-(eigenvalue `2n + 1`); see the axiom `hermiteFunctionNd_HO_eigenvalue`
+(eigenvalue `2n + 1`); see the theorem `hermiteFunctionNd_HO_eigenvalue`
 below. -/
 def hermiteFunctionNd_HO_eigenvalue_holds (d : ℕ) (α : MultiIndex d) : Prop :=
   ∀ x : EuclideanSpace ℝ (Fin d),
@@ -283,17 +301,17 @@ def hermiteFunctionNd_HO_eigenvalue_holds (d : ℕ) (α : MultiIndex d) : Prop :
       + (∑ i : Fin d, (x i) ^ 2) * hermiteFunctionNd d α x
     = (2 * (α.abs : ℝ) + d) * hermiteFunctionNd d α x
 
-/-- **Textbook axiom: multi-D harmonic-oscillator eigenvalue equation
-for the Hermite-function basis.**
+/-- **Multi-D harmonic-oscillator eigenvalue equation for the
+Hermite-function basis.**
 
-Asserts the pointwise identity `(−Δ + ‖x‖²) h_α = (2|α| + d) h_α` for
+The pointwise identity `(−Δ + ‖x‖²) h_α = (2|α| + d) h_α` for
 `h_α := hermiteFunctionNd d α` and `x ∈ EuclideanSpace ℝ (Fin d)`,
 expanded as a sum of 1D second derivatives via the tensor-product
 decomposition (see `hermiteFunctionNd_HO_eigenvalue_holds` for the
 literal Lean statement).
 
-**Proof strategy** (deferred; ~150 LOC of separation-of-variables
-boilerplate). Each 1D factor satisfies Mathlib's
+**Proof** (separation of variables,
+`separation_of_variables_eigenvalue`). Each 1D factor satisfies Mathlib's
 `hermiteFunction_harmonic_oscillator_eigenvalue`:
 
   `−(iteratedDeriv 2 (hermiteFunction n) y) + y² · hermiteFunction n y
@@ -312,7 +330,7 @@ because `‖x‖² = Σᵢ xᵢ²` on `EuclideanSpace`.
 * Bogachev, *Gaussian Measures*, AMS 1998, §1.3 (multi-index Hermite
   functions).
 
-**Status (2026-05-02)**: Postulated as textbook axiom. **Gemini-vetted
+**Statement review (2026-05-02)**: **Gemini-vetted
 Standard**: "the correct, canonical eigenvalue equation for the
 multi-dimensional quantum harmonic oscillator on `ℝ^d`. The
 multi-dimensional operator `H_d = −Δ + ‖x‖²` is separable. […] The
@@ -392,19 +410,18 @@ Real definitions (no sorry, no axiom):
   `hermiteFunctionNd_HO_eigenvalue_holds` — Prop statements (literal
   eigenvalue equation / Tendsto in Schwartz topology).
 
-Two textbook-grade axioms (Gemini-vetable):
+Proved theorems:
 
-* `hermiteFunctionNd_HO_eigenvalue` — multi-D HO eigenvalue equation.
-  Provable from Mathlib's 1D
-  `hermiteFunction_harmonic_oscillator_eigenvalue` + separation of
-  variables (~150 LOC). Reed–Simon Vol. I, §V.3.
+* `hermiteFunctionNd_HO_eigenvalue` — multi-D HO eigenvalue equation,
+  from Mathlib's 1D `hermiteFunction_harmonic_oscillator_eigenvalue` by
+  separation of variables. Reed–Simon Vol. I, §V.3.
 * `hermiteGalerkinTrunc_tendsto_schwartz` — Schwartz-topology
-  convergence of the Hermite expansion. Provable from rapid-decay
-  Hermite coefficients + Fréchet-space partial-sum control (~80 LOC).
+  convergence of the Hermite-Galerkin truncation, from the unconditional
+  Hermite expansion `schwartz_hermite_hasSum_multiIndex` and
+  `MultiIndex.tendsto_below`; `d = 0` is `hermiteGalerkinTrunc_dim_zero`.
   Reed–Simon Vol. I, §V.3.
 
-Both axioms have detailed proof-strategy docstrings and are flagged for
-discharge. They unblock the QHJ Phase B (continuity-method openness) in
+These serve the QHJ Phase B (continuity-method openness) in
 `pphi2N`, which works in finite-dim Galerkin truncations and needs both
 the eigenvalue equation (for invertibility of the linearisation) and
 the convergence (for the `d_max → ∞` Arzelà–Ascoli step).

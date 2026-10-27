@@ -21,11 +21,12 @@ key definitions and restates proved theorems in a clean axiomatic form.
 - Concrete space abbreviations → downstream repos
 - SpacetimeData instances → downstream repos
 -/
+module
 
-import GaussianField
-import Nuclear.PointEval
-import Nuclear.Complexification
-import HeatKernel
+public import GaussianField
+public import Nuclear.PointEval
+public import Nuclear.Complexification
+public import HeatKernel
 
 /-! ## Section 1: HasPointEval -/
 

@@ -35,14 +35,17 @@ intermediate axioms and `tendsto_tsum_of_dominated_convergence` (Tannery):
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
+module
 
-import Lattice.Covariance
-import Torus.Evaluation
-import HeatKernel.Bilinear
-import SmoothCircle.Eigenvalues
-import Lattice.HeatKernelConvergence1d
-import Lattice.CirculantDFT
-import Lattice.CirculantDFT2d
+public import Lattice.Covariance
+public import Torus.Evaluation
+public import HeatKernel.Bilinear
+public import SmoothCircle.Eigenvalues
+public import Lattice.HeatKernelConvergence1d
+public import Lattice.CirculantDFT
+public import Lattice.CirculantDFT2d
+
+@[expose] public section
 
 noncomputable section
 
@@ -112,8 +115,8 @@ theorem lattice_covariance_pure_eq_2d_spectral
     rw [← Fintype.sum_mul_sum]
     -- Identify with latticeDFTCoeff1d
     congr 1
-    · rw [latticeDFTCoeff1d, if_pos m₁.isLt]
-    · rw [latticeDFTCoeff1d, if_pos m₂.isLt]
+    · rw [latticeDFTCoeff1d, ite_eq_left m₁.isLt]
+    · rw [latticeDFTCoeff1d, ite_eq_left m₂.isLt]
   -- Step 3: Rewrite the inner DFT coefficients using hcoeff
   simp_rw [hcoeff]
   -- Step 4: Convert ∑ range (N+1) to ∑ Fin (N+1) on the RHS and match

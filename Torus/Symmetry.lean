@@ -43,10 +43,13 @@ because CLMs on DyninMityaginSpace have polynomial growth on the basis.
 - Trèves, *Topological Vector Spaces, Distributions, and Kernels*, Ch. 50
 - Glimm-Jaffe, *Quantum Physics*, §6.4
 -/
+module
 
-import Torus.Restriction
-import GaussianField.Construction
-import Nuclear.TensorProductFunctorAxioms
+public import Torus.Restriction
+public import GaussianField.Construction
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 

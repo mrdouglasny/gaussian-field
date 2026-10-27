@@ -27,9 +27,12 @@ with the 2×2 rotation matrix on each pair.
 
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II, §X.12
 -/
+module
 
-import SmoothCircle.HeatSemigroup
-import SmoothCircle.FourierTranslation
+public import SmoothCircle.HeatSemigroup
+public import SmoothCircle.FourierTranslation
+
+@[expose] public section
 
 noncomputable section
 

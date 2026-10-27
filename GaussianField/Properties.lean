@@ -21,10 +21,13 @@ Downstream consequences of the characteristic functional identity.
 - `pairing_integrable`: w(f) is integrable for all f
 - `pairing_memLp`: w(f) is in Lᵖ for all finite p (Fernique-type)
 -/
+module
 
-import GaussianField.Construction
-import Mathlib.Probability.Moments.Variance
-import Mathlib.MeasureTheory.Function.L2Space
+public import GaussianField.Construction
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.MeasureTheory.Function.L2Space
+
+@[expose] public section
 
 noncomputable section
 
@@ -52,7 +55,7 @@ theorem pairing_is_gaussian (f : E) :
       gaussianReal 0 (@inner ℝ H _ (T f) (T f) : ℝ).toNNReal := by
   haveI : IsProbabilityMeasure ((measure T).map
       (fun ω : Configuration E => ω f)) :=
-    Measure.isProbabilityMeasure_map (configuration_eval_measurable f).aemeasurable
+    inferInstance
   apply Measure.ext_of_charFun
   funext t
   -- LHS: charFun of the pushforward

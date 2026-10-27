@@ -26,8 +26,11 @@ Eigenvalues on (ℤ/Nℤ)²:
 
 The mass operator eigenvalues `λ + m²` satisfy `λ + m² ≥ m² > 0`.
 -/
+module
 
-import Lattice.Laplacian
+public import Lattice.Laplacian
+
+@[expose] public section
 
 noncomputable section
 
@@ -93,8 +96,8 @@ noncomputable def asymMassOperator (at' as' mass : ℝ) :
 theorem asymMassOperator_eq_symmetric (a mass : ℝ) :
     asymMassOperator N a a mass = massOperator 2 N a mass := by
   ext f x
-  simp only [asymMassOperator, massOperator, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.smul_apply,
+  simp only [asymMassOperator, massOperator, add_apply,
+    neg_apply, smul_apply,
     ContinuousLinearMap.id_apply, Pi.add_apply, Pi.neg_apply, Pi.smul_apply,
     smul_eq_mul]
   have h := asymFiniteLaplacian_eq_symmetric N a f x

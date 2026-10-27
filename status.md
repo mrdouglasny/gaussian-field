@@ -6,7 +6,8 @@ The gaussian-field library provides Gaussian free field theory on nuclear spaces
 lattice field theory infrastructure, the FKG inequality, and cylinder QFT
 infrastructure for use by downstream projects (pphi2, OSforGFF).
 
-**3 axioms, 0 sorries** (active build, excluding `future/`)
+**0 axioms, 0 sorries** (all library targets; `future/` holds no Lean files with
+`axiom` or `sorry` since 2026-10-22)
 
 *Updated 2026-05-02.* On 2026-05-02 the entire
 `Cylinder/ReflectionPositivity.lean` file was moved to `future/`
@@ -35,22 +36,26 @@ the active build. See "Cylinder reflection positivity" section below.
   matrices. `|M⁻¹(x,y)| ≤ C · exp(-α · dist(x,y))`. Used by pphi2N
   for the mass gap Green's function decay bound.
 
-## Active Axiom Inventory (4 axioms)
+## Active Axiom Inventory (0 axioms)
 
-### Cylinder Green's function (2 axioms)
+The last three active axioms were discharged on 2026-10-22 (fork
+`or4nge19/gaussian-field`, branch `fix-axioms`):
 
-| # | Name | File | Description |
-|---|------|------|-------------|
-| 1 | `resolventSchwartz_uniformBound` | SchwartzFourier/ResolventUniformBound | Resolvent Schwartz seminorm bounds uniform in $\omega \geq m$. Proof route: factorization $R_\omega = R_m \circ M_{\tau_\omega}$ with proved identity $\sigma_m \cdot \tau_\omega = \sigma_\omega$. (Relocated from Cylinder/MassOperatorConstruction.) |
-| 2 | `cylinderMassOperator_equivariant_of_heat_comm` | Cylinder/GreenFunction | Heat kernel equivariance principle: if CLM $S$ commutes with $e^{-tA}$ for all $t \geq 0$, then $T$ intertwines $S$ with an isometry $U$ on $\ell^2$. |
+| Name | File | Resolution |
+|------|------|------------|
+| `hermiteGalerkinTrunc_tendsto_schwartz` | SchwartzNuclear/HermiteGalerkin | Proved from the multi-index Hermite expansion `schwartz_hermite_hasSum_multiIndex` (cofinality of `MultiIndex.below`; `d = 0` separately). |
+| `fourierMultiplier_schwartz_bound` | SchwartzFourier/ResolventUniformBound | **False as stated** (`deriv_order = 0`, `k = 1`: `σₙ = cos(2πnp)` is bounded by `1` but `M_{σₙ} f = (f(·+n)+f(·−n))/2`). Restated with `∃ deriv_order` depending on `(k, l)` and proved (σ-uniform Leibniz bound `schwartz_seminorm_smulLeftCLM_le`). `resolventSchwartz_uniformBound` is unchanged and now axiom-free. |
+| `embed_l2_uniform_bound` | Cylinder/MethodOfImages | Proved (Bessel inequality on the circle + unfolding `∫_{[0,L]} Σ_k |h(t+kL)| = ∫_ℝ |h|`, uniform in `L ≥ 1`). |
 
-Note: `cylinderMassOperator` is now a **definition** (constructed from `ntpSliceSchwartz` + `resolventMultiplierCLM` + `nuclear_ell2_embedding_from_decay`). `cylinderGreen_pos` is a **proved theorem** from `cylinderMassOperator_injective`. `cylinderGreen_continuous_seminorm_bound` is a **proved theorem**.
+`resolventSchwartz_uniformBound`, `cylinderMassOperator_equivariant_of_heat_comm`
+and `torusGreen_uniform_bound` are theorems.
 
 ### Cylinder reflection positivity — **moved to `future/` 2026-05-02**
 
 The entire `Cylinder/ReflectionPositivity.lean` file (Laplace embedding +
 resolvent–Plancherel chain + headline `cylinderGreen_reflection_positive`)
-was moved to `future/CylinderReflectionPositivity.lean`. Reason: a
+was moved to `future/CylinderReflectionPositivity.lean` (deleted from the fork on
+2026-10-22; restore from `0a53a69`). Reason: a
 Mathlib-Fourier-convention bug in the Lorentzian-convolution chain.
 `realFourierMultiplierCLM (lorentzianSymbol ω)` claims kernel
 `e^{-ω|·|}/(2ω)`, but Mathlib's $2\pi$-Fourier convention makes the actual
@@ -90,9 +95,6 @@ Note: `torusGreen_uniform_bound` is a **proved theorem** from `embed_l2_uniform_
 | Name | File | Description |
 |------|------|-------------|
 | `schwartz_dyninMityaginSpace_axiom` | GaussianField.lean | Fallback axiom (commented out). Proved instance used instead. |
-| `NuclearSpaceStd` | future/KolmogorovGaussian | Alternative Gaussian construction via Cipollina's framework |
-| `kolmogorov_gaussian_measure` | future/KolmogorovGaussian | Kolmogorov-Minlos existence |
-| `mehlerKernel_eq_series` | future/PositionKernel | Mehler kernel eigenfunction expansion |
 
 ## Proved Results (formerly axioms)
 

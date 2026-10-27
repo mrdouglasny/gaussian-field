@@ -1,4 +1,6 @@
-import GeneralResults.FourierKernels
-import GeneralResults.NuclearExtensionComplex
-import GeneralResults.SchwartzProducts
-import GeneralResults.SeparatelyContMultilinear
+module
+
+public import GeneralResults.FourierKernels
+public import GeneralResults.NuclearExtensionComplex
+public import GeneralResults.SchwartzProducts
+public import GeneralResults.SeparatelyContMultilinear

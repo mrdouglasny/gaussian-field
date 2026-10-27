@@ -29,9 +29,12 @@ constructions used in the multi-dimensional Hermite expansion proof.
 - `schwartz_slice_partial_pointwise_bound` — pointwise bound via chain rule + CLM norms
 - `schwartz_slice_partial_seminorm_bound` — seminorm bound for scalarized slices
 -/
+module
 
-import SchwartzNuclear.ParametricCalculus
-import SchwartzNuclear.SchwartzHermiteExpansion
+public import SchwartzNuclear.ParametricCalculus
+public import SchwartzNuclear.SchwartzHermiteExpansion
+
+@[expose] public section
 
 open MeasureTheory Real SchwartzMap Measure
 open scoped ContDiff
@@ -181,11 +184,13 @@ noncomputable def schwartz_slice (d : ℕ)
     SchwartzMap ℝ ℝ where
   toFun t := f (euclideanSnoc (d + 1) y t)
   smooth' :=
-    (compCLMOfAntilipschitz ℝ (euclideanSnoc_hasTemperateGrowth d y)
-      (euclideanSnoc_antilipschitz d y) f).smooth'
+    (compCLMOfAntilipschitz ℝ (by exact euclideanSnoc_hasTemperateGrowth d y)
+      (show AntilipschitzWith 1 (euclideanSnoc (d + 1) y) by
+        exact euclideanSnoc_antilipschitz d y) f).smooth'
   decay' :=
-    (compCLMOfAntilipschitz ℝ (euclideanSnoc_hasTemperateGrowth d y)
-      (euclideanSnoc_antilipschitz d y) f).decay'
+    (compCLMOfAntilipschitz ℝ (by exact euclideanSnoc_hasTemperateGrowth d y)
+      (show AntilipschitzWith 1 (euclideanSnoc (d + 1) y) by
+        exact euclideanSnoc_antilipschitz d y) f).decay'
 
 /-! ## A2: Partial Hermite coefficient is Schwartz
 
@@ -416,7 +421,7 @@ private lemma schwartz_slice_y_le_seminorm (d : ℕ)
       _ ≤ ‖iteratedFDeriv ℝ m f' (L y)‖ * 1 := by
           gcongr
           calc ∏ _ : Fin m, ‖L‖ ≤ ∏ _ : Fin m, (1 : ℝ) :=
-                Finset.prod_le_prod (fun _ _ => norm_nonneg _)
+                Finset.prod_le_prod₀ (fun _ _ => norm_nonneg _)
                   (fun _ _ => euclideanSnoc_linearCLM_norm_le d)
             _ = 1 := by simp
       _ = ‖iteratedFDeriv ℝ m f (c + L y)‖ := by rw [mul_one, h_trans]
@@ -582,8 +587,8 @@ noncomputable def schwartz_partial_hermiteCoeff (d : ℕ)
     (n : ℕ) :
     SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ where
   toFun y := hermiteCoeff1D n (schwartz_slice d f y)
-  smooth' := schwartz_partial_hermiteCoeff_smooth d f n
-  decay' := schwartz_partial_hermiteCoeff_decay d f n
+  smooth' := by exact schwartz_partial_hermiteCoeff_smooth d f n
+  decay' := by exact schwartz_partial_hermiteCoeff_decay d f n
 
 -- A3b: Partial coefficient relates to 1D slice (definitionally true)
 lemma schwartz_partial_hermiteCoeff_eq_1D (d : ℕ)
@@ -686,7 +691,7 @@ private lemma euclideanSnoc_Pi_single_norm_le (d : ℕ) (t : ℝ) :
       simp only [EuclideanSpace.equiv, PiLp.continuousLinearEquiv_symm_apply,
         PiLp.toLp_apply, Pi.single_apply]
       by_cases hi : i = Fin.last (d + 1) <;> simp [hi]
-    simp_rw [this, Finset.sum_ite_eq', Finset.mem_univ, if_true]]
+    simp_rw [this, Finset.sum_ite_eq', Finset.mem_univ, ite_true]]
   exact le_of_eq (Real.sqrt_sq (norm_nonneg t))
 
 /-- The map `t ↦ euclideanSnoc y t` is smooth (affine in `t`). -/
@@ -791,7 +796,7 @@ noncomputable def schwartz_slice_partial (d : ℕ)
             ContinuousMultilinearMap.norm_compContinuousLinearMap_le _ _
         _ ≤ ‖iteratedFDeriv ℝ b G' (L_t t)‖ * 1 := by
             gcongr; calc ∏ _ : Fin b, ‖L_t‖ ≤ ∏ _ : Fin b, (1 : ℝ) :=
-                  Finset.prod_le_prod (fun _ _ => norm_nonneg _) (fun _ _ => h_Lt_norm)
+                  Finset.prod_le_prod₀ (fun _ _ => norm_nonneg _) (fun _ _ => h_Lt_norm)
               _ = 1 := by simp
         _ = ‖iteratedFDeriv ℝ b G (c₀ + L_t t)‖ := by
             rw [mul_one]; congr 1; exact iteratedFDeriv_comp_add_left b c₀ (L_t t)
@@ -1031,7 +1036,7 @@ private lemma schwartz_slice_partial_pointwise_bound (d : ℕ)
           ContinuousMultilinearMap.norm_compContinuousLinearMap_le _ _
       _ ≤ ‖iteratedFDeriv ℝ b G' (L_t t)‖ * 1 := by
           gcongr; calc ∏ _ : Fin b, ‖L_t‖ ≤ ∏ _ : Fin b, (1 : ℝ) :=
-                Finset.prod_le_prod (fun _ _ => norm_nonneg _) (fun _ _ => h_Lt_norm)
+                Finset.prod_le_prod₀ (fun _ _ => norm_nonneg _) (fun _ _ => h_Lt_norm)
             _ = 1 := by simp
       _ = ‖iteratedFDeriv ℝ b G (c₀ + L_t t)‖ := by
           rw [mul_one]; congr 1; exact iteratedFDeriv_comp_add_left b c₀ (L_t t)
@@ -1109,7 +1114,7 @@ lemma schwartz_slice_partial_seminorm_bound (d : ℕ) (k' l' a b : ℕ) :
             calc ‖A w‖ ≤ ‖A‖ * ∏ i, ‖w i‖ := A.le_opNorm w
               _ = (∏ i, ‖w i‖) * ‖A‖ := mul_comm _ _
       _ ≤ ∏ i, ‖v i‖ := by
-          apply Finset.prod_le_prod (fun _ _ => norm_nonneg _)
+          apply Finset.prod_le_prod₀ (fun _ _ => norm_nonneg _)
           intro i _
           calc ‖w i‖ = ‖L (v i)‖ := rfl
             _ ≤ ‖L‖ * ‖v i‖ := ContinuousLinearMap.le_opNorm L (v i)

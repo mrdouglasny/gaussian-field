@@ -36,9 +36,12 @@ tensor product (`nuclearTensorProduct_mapCLM_comp`).
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II, §X.12
 - Evans, *Partial Differential Equations*, §2.3
 -/
+module
 
-import Cylinder.FourierMultiplier
-import SmoothCircle.HeatEquivariance
+public import Cylinder.FourierMultiplier
+public import SmoothCircle.HeatEquivariance
+
+@[expose] public section
 
 noncomputable section
 

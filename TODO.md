@@ -1,6 +1,23 @@
 # gaussian-field TODO
 
-**0 axioms remaining (+1 skipped), 0 sorries**
+**0 axioms, 0 sorries** in every library target (2026-10-22).
+
+## Removed from `future/` (2026-10-22)
+
+The Lean files in `future/` that declared axioms or used `sorry` were deleted
+from the fork (restore from `0a53a69` with `git show 0a53a69:future/<file>`).
+None was in a library target or imported by any module.
+
+- `future/KolmogorovGaussian.lean` — opaque `axiom NuclearSpaceStd : … → Prop`
+  and `axiom kolmogorov_gaussian_measure`. The Kolmogorov/Minlos route is
+  proved in OSforGFF (`OSforGFF.MinlosGaussianProved`), which lgt already
+  requires.
+- `future/PositionKernel.lean` — `axiom mehlerKernel_eq_series` (Mehler's
+  formula for the Hermite-function series). Proof target: Mehler's formula;
+  the file's other results depended on it.
+- `future/CylinderReflectionPositivity.lean` — one `sorry`
+  (`lorentzian_convolution_pointwise`) masking 2π-convention errors in the
+  stated constants (see `status.md`).
 
 ## All former axioms moved to `future/`
 

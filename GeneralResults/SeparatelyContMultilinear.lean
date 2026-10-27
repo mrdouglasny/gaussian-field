@@ -20,9 +20,12 @@ in OSreconstruction/Wightman/WightmanAxioms.lean.
 - Bourbaki, "Topological Vector Spaces", III.3.5
 - Rudin, "Functional Analysis", Theorem 2.17
 -/
+module
 
-import GaussianField.Tightness
-import Mathlib.Topology.Algebra.Module.Multilinear.Topology
+public import GaussianField.Tightness
+public import Mathlib.Topology.Algebra.Module.Multilinear.Topology
+
+@[expose] public section
 
 noncomputable section
 

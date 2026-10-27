@@ -24,11 +24,14 @@ uniform second moment bounds is tight.
 - `coordBox_isCompact` — compactness of coordinate boxes as closed subsets
   of the continuous image of a compact product box (Tychonoff + DM reconstruction)
 -/
+module
 
-import GaussianField.ConfigurationEmbedding
-import Mathlib.Analysis.Normed.Group.Tannery
-import Mathlib.Analysis.LocallyConvex.Barrelled
-import Mathlib.Topology.Baire.CompleteMetrizable
+public import GaussianField.ConfigurationEmbedding
+public import Mathlib.Analysis.Normed.Group.Tannery
+public import Mathlib.Analysis.LocallyConvex.Barrelled
+public import Mathlib.Topology.Baire.CompleteMetrizable
+
+@[expose] public section
 
 noncomputable section
 
@@ -564,7 +567,7 @@ private theorem coordBox_isCompact
       have hqε : {f' : E | q f' < ε / (D * C_d * S' + 1)} ∈ nhds (0 : E) :=
         (hq_cont.isOpen_preimage _ isOpen_Iio).mem_nhds (by simp [map_zero]; positivity)
       exact Filter.mem_of_superset hqε (fun f' hf' => by
-        simp only [Real.dist_eq, sub_zero, Set.mem_setOf_eq] at hf' ⊢
+        simp only [Real.dist_eq, sub_zero, Set.mem_ofPred_eq] at hf' ⊢
         have hS'_pos : 0 < S' := by
           have : (∑ m ∈ Finset.range 1, 1 / (1 + (m : ℝ)) ^ 2) ≤ S' :=
             h_inv_summable.sum_le_tsum _ (fun _ _ => by positivity)
@@ -661,7 +664,7 @@ private theorem coordBox_compl_mass_le
     intro ω hω
     rw [coordBox, Set.mem_compl_iff, Set.mem_iInter, not_forall] at hω
     obtain ⟨m, hm⟩ := hω
-    simp only [Set.mem_setOf_eq, not_le] at hm
+    simp only [Set.mem_ofPred_eq, not_le] at hm
     exact Set.mem_iUnion.mpr ⟨m, hm⟩
   -- Step 2: Bound each term via Chebyshev (Markov applied to f^2)
   have h_term_bound : ∀ m, ((μ i) {ω : Configuration E | R m < |ω (hDM.basis m)|}).toReal ≤
@@ -672,7 +675,7 @@ private theorem coordBox_compl_mass_le
     have h_sub : {ω : Configuration E | R m < |ω (hDM.basis m)|} ⊆
         {ω : Configuration E | (R m) ^ 2 ≤ (ω (hDM.basis m)) ^ 2} := by
       intro ω hω
-      simp only [Set.mem_setOf_eq] at hω ⊢
+      simp only [Set.mem_ofPred_eq] at hω ⊢
       calc (R m) ^ 2 ≤ |ω (hDM.basis m)| ^ 2 := sq_le_sq' (by linarith [hR_pos m]) hω.le
         _ = (ω (hDM.basis m)) ^ 2 := by rw [sq_abs]
     -- Markov: (R m)^2 * μ.real{(R m)^2 ≤ f^2} ≤ ∫ f^2

@@ -58,14 +58,17 @@ primary tool will be the existing `latticeGaussianFieldLaw_fourier`
 in `GaussianField/Density.lean` plus characteristic-function uniqueness
 (`MeasureTheory.Measure.ext_of_charFunDual`).
 -/
+module
 
-import GaussianField.Density
-import GaussianField.IsGaussian
-import Lattice.SpectralCovariance
-import Lattice.Covariance
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
-import Mathlib.MeasureTheory.Constructions.Pi
+public import GaussianField.Density
+public import GaussianField.IsGaussian
+public import Lattice.SpectralCovariance
+public import Lattice.Covariance
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
+public import Mathlib.MeasureTheory.Constructions.Pi
+
+@[expose] public section
 
 noncomputable section
 
@@ -156,9 +159,9 @@ theorem latticeCovarianceGJ_eigenvector_inner_self
           (∑ x, (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x * e_k x)) =
       (massEigenvalues d N a mass k)⁻¹ from by
     rw [Finset.sum_eq_single k]
-    · rw [h_inner k, if_pos rfl]; ring
+    · rw [h_inner k, ite_eq_left rfl]; ring
     · intro j _ hjk
-      rw [h_inner j, if_neg hjk]; ring
+      rw [h_inner j, ite_eq_right hjk]; ring
     · intro h; exact (h (Finset.mem_univ _)).elim]
   ring
 
@@ -285,8 +288,8 @@ theorem latticeCovarianceGJ_eigenvector_inner_off
   rw [h_inner k i, h_inner k j]
   by_cases hki : k = i
   · -- k = i, so by i ≠ j, k ≠ j, second indicator is 0
-    rw [if_neg (hki ▸ hij : k ≠ j)]; ring
-  · rw [if_neg hki]; ring
+    rw [ite_eq_right (hki ▸ hij : k ≠ j)]; ring
+  · rw [ite_eq_right hki]; ring
 
 /-- Evaluation of a configuration at a fixed test function, packaged as
 a continuous linear map `Configuration E →L[ℝ] ℝ`. Continuity is
@@ -376,7 +379,8 @@ theorem gffOrthonormalCoord_independent
     gffOrthonormalProj_isGaussian d N a mass ha hmass
   have hX : HasGaussianLaw
       (fun ω : Configuration (FinLatticeField d N) =>
-        fun k => gffOrthonormalCoord d N a mass ha hmass k ω) μ := ⟨hGauss⟩
+        fun k => gffOrthonormalCoord d N a mass ha hmass k ω) μ :=
+    ⟨(gffOrthonormalProj_measurable d N a mass ha hmass).aemeasurable, hGauss⟩
   -- Pairwise covariances vanish for distinct indices.
   refine hX.iIndepFun_of_covariance_eq_zero ?_
   intro i j hij

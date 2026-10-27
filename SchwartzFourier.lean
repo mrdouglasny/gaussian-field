@@ -6,6 +6,8 @@ Fourier multiplier theory on Schwartz space 𝓢(ℝ), with:
 - Uniform seminorm bounds for Fourier multiplier families
 - (Future) Hermite eigenfunction expansion: ℱ(φ_n) = (-i)^n φ_n
 -/
+module
 
-import SchwartzFourier.LaplaceCLM
-import SchwartzFourier.ResolventUniformBound
+public import SchwartzFourier.LaplaceCLM
+public import SchwartzFourier.ResolventUniformBound
+public import SchwartzFourier.MultiplierBound

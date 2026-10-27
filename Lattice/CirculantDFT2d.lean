@@ -19,10 +19,13 @@ the lattice covariance for pure tensors equals the 2D DFT spectral sum.
 
 - Davis, *Circulant Matrices*, Ch. 5
 -/
+module
 
-import Lattice.CirculantDFT
-import Lattice.SpectralCovariance
-import Lattice.Covariance
+public import Lattice.CirculantDFT
+public import Lattice.SpectralCovariance
+public import Lattice.Covariance
+
+@[expose] public section
 
 noncomputable section
 
@@ -89,7 +92,7 @@ theorem massOperator_product_eigenvector (a mass : ℝ) (ha : a ≠ 0)
   rw [Finset.sum_pair (by omega : (0 : Fin 2) ≠ 1)]
   have h10 : ¬((1 : Fin 2) = 0) := by omega
   have h01 : ¬((0 : Fin 2) = 1) := by omega
-  simp only [Fin.isValue, ↓reduceIte, if_neg h10, if_neg h01]
+  simp only [Fin.isValue, ↓reduceIte, ite_eq_right h10, ite_eq_right h01]
   have h1d₁ := dft_1d_eigenvalue_pointwise N a ha m₁ hm₁ (x 0)
   have h1d₂ := dft_1d_eigenvalue_pointwise N a ha m₂ hm₂ (x 1)
   linear_combination
