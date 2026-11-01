@@ -85,7 +85,7 @@ theorem configuration_measurable_of_eval_measurable
   rw [measurable_iff_comap_le]
   show (MeasurableSpace.comap (fun ω f => ω f) MeasurableSpace.pi).comap g ≤ _
   rw [MeasurableSpace.comap_comp]
-  exact (measurable_pi_lambda _ h).comap_le
+  exact (Measurable.of_eval h).comap_le
 
 omit [DyninMityaginSpace E] in
 /-- Each evaluation map ω ↦ ω(f) is measurable w.r.t. the cylindrical σ-algebra. -/
@@ -193,7 +193,7 @@ private lemma coeff_sq_summable (T : E →L[ℝ] H)
   simp only [ENNReal.toReal_ofNat] at hsumm
   have hsumm' : Summable (fun n => ‖(c : ℕ → ℝ) n‖^(2 : ℕ)) := by
     simp only [← Real.rpow_natCast] at hsumm ⊢
-    convert hsumm using 2; rfl
+    convert hsumm using 2
   convert hsumm' using 2 with n
   rw [coeff, show adaptedONB T h_inf n = adaptedBasis T h_inf n from
     (adaptedBasis_eq_ONB T h_inf).symm ▸ rfl]
@@ -508,9 +508,8 @@ instance measure_isProbability (T : E →L[ℝ] H) :
     @IsProbabilityMeasure (Configuration E) instMeasurableSpaceConfiguration
       (measure T) := by
   unfold measure; split_ifs with hfin
-  · exact Measure.isProbabilityMeasure_map
-      (aemeasurable_seriesLimit ((hilbertEmbedding hfin).comp T) ell2_not_finiteDimensional)
-  · exact Measure.isProbabilityMeasure_map (aemeasurable_seriesLimit T hfin)
+  · infer_instance
+  · infer_instance
 
 /-! ## Characteristic Functional -/
 
@@ -554,7 +553,7 @@ private theorem noise_integral_factor (n : ℕ)
     simp only [Finset.mem_range] at ha; omega
   let X : NoiseSpace → (Finset.range n → ℝ) := fun ξ i => ξ i
   let Y : NoiseSpace → ℝ := fun ξ => ξ n
-  have hX_meas : Measurable X := measurable_pi_lambda _ (fun i => measurable_pi_apply _)
+  have hX_meas : Measurable X := Measurable.of_eval (fun i => measurable_pi_apply _)
   have hY_meas : Measurable Y := measurable_pi_apply n
   let Y' : NoiseSpace → ({n} : Finset ℕ) → ℝ := fun ξ i => ξ i
   have hindep' : IndepFun X Y' noiseMeasure :=
@@ -567,7 +566,7 @@ private theorem noise_integral_factor (n : ℕ)
   let extend_to_full : (Finset.range n → ℝ) → NoiseSpace :=
     fun f k => if hk : k < n then f ⟨k, Finset.mem_range.mpr hk⟩ else 0
   have hext_meas : Measurable extend_to_full := by
-    apply measurable_pi_lambda; intro k; by_cases hk : k < n
+    apply Measurable.of_eval; intro k; by_cases hk : k < n
     · simp only [extend_to_full, dif_pos hk]; exact measurable_pi_apply _
     · simp only [extend_to_full, dif_neg hk]; exact measurable_const
   let g' : (Finset.range n → ℝ) → ℂ := g ∘ extend_to_full

@@ -34,7 +34,7 @@ import Mathlib.Topology.Algebra.InfiniteSum.Module
 import Mathlib.Topology.Algebra.InfiniteSum.NatInt
 import Mathlib.Topology.Algebra.InfiniteSum.Order
 import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Logic.Denumerable
+import Mathlib.Basic.Denumerable
 import Mathlib.Topology.Algebra.Module.Basic
 
 open scoped BigOperators
@@ -65,7 +65,6 @@ theorem ell2_basis_orthonormal : Orthonormal ℝ ell2_basis := by
     rw [lp.inner_eq_tsum]
     simp only [lp.coeFn_single, Pi.single_apply]
     convert tsum_zero (α := ℝ) (β := ℕ) with i
-    rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
     simp only [RCLike.inner_apply, conj_trivial]
     split_ifs <;> simp_all
 
@@ -613,7 +612,6 @@ theorem nuclear_sequence_svd
     have h2 := h.mul_left ((σ_ n)⁻¹ ^ 2)
     simp only [← mul_pow] at h2
     convert h2 using 1
-    rfl  -- v4.33: convert now emits an AddCommMonoid instance goal (defeq)
     rw [mul_pow, inv_pow, h_adjnorm, show σ_ n = Real.sqrt (μ_ n) from rfl,
         Real.sq_sqrt (hμ_nn n)]
     have hμ_ne : μ_ n ≠ 0 := by

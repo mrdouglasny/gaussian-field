@@ -118,7 +118,7 @@ theorem measure_invariant_of_covariance_preserved
     (h_cov : ∀ f, @inner ℝ H _ (T (g f)) (T (g f)) = @inner ℝ H _ (T f) (T f)) :
     (measure T).map (configurationPullback g) = measure T := by
   haveI : IsProbabilityMeasure ((measure T).map (configurationPullback g)) :=
-    Measure.isProbabilityMeasure_map (measurable_configurationPullback g).aemeasurable
+    inferInstance
   -- Helper: pushforward integrals reduce to integrals against (measure T).
   -- Apply integral_map then the simp lemma configurationPullback_apply.
   have h_pull_exp : ∀ f : E,
@@ -184,8 +184,7 @@ instance latticeGaussianFieldLaw_isProbability
     MeasureTheory.IsProbabilityMeasure
       (latticeGaussianFieldLaw d N a mass ha hmass) := by
   unfold latticeGaussianFieldLaw
-  exact MeasureTheory.Measure.isProbabilityMeasure_map
-    (measurable_evalMap d N).aemeasurable
+  exact inferInstance
 
 /-- The evaluation map intertwines `Neg` on `Configuration` with pointwise
 `Neg` on `FinLatticeField`. Concretely:

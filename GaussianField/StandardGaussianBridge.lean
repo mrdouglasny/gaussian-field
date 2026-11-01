@@ -376,7 +376,9 @@ theorem gffOrthonormalCoord_independent
     gffOrthonormalProj_isGaussian d N a mass ha hmass
   have hX : HasGaussianLaw
       (fun ω : Configuration (FinLatticeField d N) =>
-        fun k => gffOrthonormalCoord d N a mass ha hmass k ω) μ := ⟨hGauss⟩
+        fun k => gffOrthonormalCoord d N a mass ha hmass k ω) μ :=
+    { aemeasurable := (gffOrthonormalProj_measurable d N a mass ha hmass).aemeasurable
+      isGaussian_map := hGauss }
   -- Pairwise covariances vanish for distinct indices.
   refine hX.iIndepFun_of_covariance_eq_zero ?_
   intro i j hij

@@ -40,7 +40,7 @@ private lemma complex_chain_bound
   calc ‖(iteratedFDeriv ℝ c f.toFun (L x)).compContinuousLinearMap fun _ => L‖
       ≤ ‖iteratedFDeriv ℝ c f.toFun (L x)‖ * ∏ _ : Fin c, ‖L‖ :=
         (iteratedFDeriv ℝ c f.toFun (L x)).norm_compContinuousLinearMap_le _
-    _ ≤ _ * 1 := by gcongr; exact prod_le_one (fun _ _ => norm_nonneg _) (fun _ _ => hL)
+    _ ≤ _ * 1 := by gcongr; exact prod_le_one₀ (fun _ _ => norm_nonneg _) (fun _ _ => hL)
     _ = ‖iteratedFDeriv ℝ c f.toFun (x j)‖ := by simp [L]
 
 /-- Schwartz sup-norm bound: `∃ C, ∀ y, ‖D^c f y‖ ≤ C`. -/
@@ -79,7 +79,7 @@ private lemma complex_product_decay
     have h_chain : ∀ x : Fin n → E,
         ∏ j, ‖iteratedFDeriv ℝ (c j) (fun x : Fin n → E => fs j (x j)) x‖ ≤
           ∏ j, ‖iteratedFDeriv ℝ (c j) (⇑(fs j)) (x j)‖ :=
-      fun x => prod_le_prod (fun j _ => norm_nonneg _)
+      fun x => prod_le_prod₀ (fun j _ => norm_nonneg _)
         (fun j _ => complex_chain_bound (fs j) j (c j) x)
     have hbound0 : ∀ j, ∃ C : ℝ, 0 ≤ C ∧ ∀ y : E, ‖iteratedFDeriv ℝ (c j) (⇑(fs j)) y‖ ≤ C :=
       fun j => schwartz_sup_bound (fs j) (c j)
@@ -107,7 +107,7 @@ private lemma complex_product_decay
             rw [sum_mul]; congr 1; ext i; rw [← mul_prod_erase _ _ (mem_univ i)]; ring
         _ ≤ ∑ i, (Ck i * ∏ j ∈ univ.erase i, C0 j) :=
             sum_le_sum fun i _ => mul_le_mul (hCk i (x i))
-              (prod_le_prod (fun j _ => norm_nonneg _) (fun j _ => hC0 j (x j)))
+              (prod_le_prod₀ (fun j _ => norm_nonneg _) (fun j _ => hC0 j (x j)))
               (prod_nonneg fun j _ => norm_nonneg _) (hCk_nn i)⟩
   -- Combine with Leibniz rule
   choose Cp hCp using fun (p : Sym (Fin n) m) =>
@@ -468,7 +468,7 @@ private def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace
     { toFun := fun f => f x₀, map_add' := fun f g => by simp,
       map_smul' := fun z f => by simp }
   have hbdd : Seminorm.IsBounded (schwartzSeminormFamily ℂ E ℂ)
-      (fun _ : Fin 1 => normSeminorm ℂ ℂ) L := by
+      (fun _ : Unit => normSeminorm ℂ ℂ) L := by
     intro i
     refine ⟨{(0, 0)}, 1, fun f => ?_⟩
     simp only [Finset.sup_singleton, one_smul, Seminorm.comp_apply, coe_normSeminorm, L]
@@ -618,7 +618,7 @@ private def slotInsertionCLM
               (show (↑↑c : WithTop ℕ∞) ≤ ↑(⊤ : ℕ∞) from by exact_mod_cast le_top)]
             calc _ ≤ ‖iteratedFDeriv ℝ c g.toFun (L x)‖ * ∏ _ : Fin c, ‖L‖ :=
                   ContinuousMultilinearMap.norm_compContinuousLinearMap_le _ _
-              _ ≤ _ * 1 := by gcongr; exact Finset.prod_le_one (fun _ _ => norm_nonneg _) (fun _ _ => hL)
+              _ ≤ _ * 1 := by gcongr; exact Finset.prod_le_one₀ (fun _ _ => norm_nonneg _) (fun _ _ => hL)
               _ = _ := by simp [L]
           have h_count_le : ∀ (p : Sym (Fin n) m), p.val.count jj ≤ m :=
             fun p => le_trans (Multiset.count_le_card _ _) (le_of_eq p.prop)
@@ -664,7 +664,7 @@ private def slotInsertionCLM
                         ∏ j ∈ Finset.univ.erase i, (SchwartzMap.seminorm ℝ 0 (p.val.count j)) ((Function.update gs jj f) j)) :=
                   Finset.sum_le_sum fun i _ => mul_le_mul
                     (SchwartzMap.le_seminorm ℝ k _ _ (x i))
-                    (Finset.prod_le_prod (fun j _ => norm_nonneg _) fun j _ => by
+                    (Finset.prod_le_prod₀ (fun j _ => norm_nonneg _) fun j _ => by
                       have h := SchwartzMap.le_seminorm ℝ 0
                         (p.val.count j) ((Function.update gs jj f) j) (x j)
                       simpa only [pow_zero, one_mul] using h)

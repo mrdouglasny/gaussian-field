@@ -52,7 +52,7 @@ theorem pairing_is_gaussian (f : E) :
       gaussianReal 0 (@inner ℝ H _ (T f) (T f) : ℝ).toNNReal := by
   haveI : IsProbabilityMeasure ((measure T).map
       (fun ω : Configuration E => ω f)) :=
-    Measure.isProbabilityMeasure_map (configuration_eval_measurable f).aemeasurable
+    inferInstance
   apply Measure.ext_of_charFun
   funext t
   -- LHS: charFun of the pushforward

@@ -36,7 +36,7 @@ import Nuclear.PointEval
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Logic.Denumerable
+import Mathlib.Basic.Denumerable
 import Mathlib.Logic.Equiv.Fin.Basic
 
 noncomputable section

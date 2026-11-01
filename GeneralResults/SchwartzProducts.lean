@@ -41,7 +41,7 @@ private lemma prod_one_add_ge_one_add_sum {n : ℕ} (a : Fin n → ℝ) (ha : �
     have ha' : ∀ i : Fin n, 0 ≤ a (Fin.castSucc i) := fun i => ha _
     have hih := ih (fun i => a (Fin.castSucc i)) ha'
     have hprod : 1 ≤ ∏ i : Fin n, (1 + a (Fin.castSucc i)) :=
-      Finset.one_le_prod (fun i _ => by linarith [ha' i])
+      Finset.one_le_prod₀ (fun i _ => by linarith [ha' i])
     linarith [le_mul_of_one_le_left (ha (Fin.last n)) hprod, mul_comm
       (∏ i : Fin n, (1 + a (Fin.castSucc i))) (1 + a (Fin.last n))]
 
@@ -82,7 +82,7 @@ private lemma norm_pow_mul_prod_le
           rw [sum_mul]; congr 1; ext i; rw [← mul_prod_erase _ _ (mem_univ i)]; ring
       _ ≤ ∑ i, (Ck i * ∏ j ∈ univ.erase i, C0 j) :=
           sum_le_sum fun i _ => mul_le_mul (hCk i (x i))
-            (prod_le_prod (fun j _ => ha_nn j (x j)) (fun j _ => hC0 j (x j)))
+            (prod_le_prod₀ (fun j _ => ha_nn j (x j)) (fun j _ => hC0 j (x j)))
             (prod_nonneg fun j _ => ha_nn j (x j)) (hCk_nn i)⟩
 
 /-! ## Smoothness and chain rule for f ∘ proj -/
@@ -116,7 +116,7 @@ private lemma norm_iteratedFDeriv_comp_proj_le
       ≤ ‖iteratedFDeriv ℝ m f.toFun (L x)‖ * ∏ _ : Fin m, ‖L‖ :=
         (iteratedFDeriv ℝ m f.toFun (L x)).norm_compContinuousLinearMap_le _
     _ ≤ ‖iteratedFDeriv ℝ m f.toFun (L x)‖ * 1 := by
-        gcongr; exact prod_le_one (fun _ _ => norm_nonneg _) (fun _ _ => hL)
+        gcongr; exact prod_le_one₀ (fun _ _ => norm_nonneg _) (fun _ _ => hL)
     _ = ‖iteratedFDeriv ℝ m f.toFun (x i)‖ := by simp [L]
 
 /-! ## Product of Schwartz functions is Schwartz -/
@@ -161,7 +161,7 @@ private lemma schwartz_product_decay
     have h_chain_prod : ∀ x : Fin n → D,
         ∏ j, ‖iteratedFDeriv ℝ (c j) (fun x : Fin n → D => fs j (x j)) x‖ ≤
           ∏ j, ‖iteratedFDeriv ℝ (c j) (fs j) (x j)‖ :=
-      fun x => prod_le_prod (fun j _ => norm_nonneg _)
+      fun x => prod_le_prod₀ (fun j _ => norm_nonneg _)
         (fun j _ => norm_iteratedFDeriv_comp_proj_le (fs j) j (c j) x)
     -- Apply the distribution bound
     obtain ⟨Cp, hCp⟩ := norm_pow_mul_prod_le hn k

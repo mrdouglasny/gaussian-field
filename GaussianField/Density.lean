@@ -1076,8 +1076,7 @@ theorem latticeGaussianFieldLaw_eq_normalizedGaussianDensityMeasure
       (latticeGaussianFieldLaw d N a mass ha hmass) := by
     letI : MeasureTheory.IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
       rw [latticeGaussianFieldLaw]
-      exact Measure.isProbabilityMeasure_map
-        (measurable_evalMap (d := d) (N := N)).aemeasurable
+      exact inferInstance
     infer_instance
   exact MeasureTheory.Measure.ext_of_charFunDual <|
     (normalizedGaussianDensityMeasure_charFunDual_eq_latticeGaussianFieldLaw
@@ -1103,7 +1102,7 @@ theorem latticeGaussianFieldLaw_univ (a mass : ℝ) (ha : 0 < a) (hmass : 0 < ma
     (latticeGaussianFieldLaw d N a mass ha hmass) Set.univ = 1 := by
   letI : IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
     rw [latticeGaussianFieldLaw]
-    exact Measure.isProbabilityMeasure_map (measurable_evalMap (d := d) (N := N)).aemeasurable
+    exact inferInstance
   exact (measure_univ : (latticeGaussianFieldLaw d N a mass ha hmass) Set.univ = 1)
 
 theorem gaussianDensityNormConst_ne_zero (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
@@ -1138,7 +1137,7 @@ theorem integrable_gaussianDensity (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass
     (d := d) (N := N) a mass ha hmass
   letI : IsProbabilityMeasure (latticeGaussianFieldLaw d N a mass ha hmass) := by
     rw [latticeGaussianFieldLaw]
-    exact Measure.isProbabilityMeasure_map (measurable_evalMap (d := d) (N := N)).aemeasurable
+    exact inferInstance
   have hIntLaw : Integrable (fun _ : FinLatticeField d N => (1 : ℝ))
       (latticeGaussianFieldLaw d N a mass ha hmass) := by
     exact (integrable_const (1 : ℝ))

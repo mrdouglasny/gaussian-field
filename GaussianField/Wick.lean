@@ -98,7 +98,7 @@ private theorem product_memLp : ∀ (n : ℕ) (f : Fin n → E) (p : ℝ≥0),
     have htail : MemLp (fun ω : Configuration E => ∏ i : Fin n, ω (f (Fin.succ i)))
         (↑(2 * p)) (measure T) :=
       ih (fun i => f (Fin.succ i)) (2 * p)
-    exact htail.mul' hf0
+    exact hf0.fun_mul htail
 
 /-- Finite products of evaluation functionals are integrable.
 

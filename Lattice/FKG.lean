@@ -510,7 +510,7 @@ theorem ahlswede_daykin_one_dim_ae
         (ν := (volume : Measure ℝ))).quasiMeasurePreserving
     have hswapped : ∀ᵐ p : ℝ × ℝ, f₁ (Prod.swap p).1 * f₂ (Prod.swap p).2 ≤
         f₃ ((Prod.swap p).1 ⊔ (Prod.swap p).2) * f₄ ((Prod.swap p).1 ⊓ (Prod.swap p).2) :=
-      hq.tendsto_ae.eventually hAD
+      (MeasureTheory.QuasiMeasurePreserving.tendsto_ae hq).eventually hAD
     simpa [Prod.swap, sup_comm, inf_comm] using hswapped
   have hdiag_fst : ∀ᵐ p : ℝ × ℝ, f₁ p.1 * f₂ p.1 ≤ f₃ p.1 * f₄ p.1 :=
     (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))
@@ -608,7 +608,7 @@ theorem ahlswede_daykin_one_dim_ae_lintegral
         (ν := (volume : Measure ℝ))).quasiMeasurePreserving
     have hswapped : ∀ᵐ p : ℝ × ℝ, f₁ (Prod.swap p).1 * f₂ (Prod.swap p).2 ≤
         f₃ ((Prod.swap p).1 ⊔ (Prod.swap p).2) * f₄ ((Prod.swap p).1 ⊓ (Prod.swap p).2) :=
-      hq.tendsto_ae.eventually hAD
+      (MeasureTheory.QuasiMeasurePreserving.tendsto_ae hq).eventually hAD
     simpa [Prod.swap, sup_comm, inf_comm] using hswapped
   have hdiag_fst : ∀ᵐ p : ℝ × ℝ, f₁ p.1 * f₂ p.1 ≤ f₃ p.1 * f₄ p.1 :=
     (Measure.quasiMeasurePreserving_fst (μ := (volume : Measure ℝ))

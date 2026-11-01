@@ -7,7 +7,7 @@ package «GaussianField» where
   ]
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.33.0-rc1"
+  "https://github.com/leanprover-community/mathlib4.git" @ "v4.35.0-rc4"
 
 
 lean_lib «GeneralResults» where

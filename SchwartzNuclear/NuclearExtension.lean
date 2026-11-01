@@ -148,7 +148,7 @@ heartbeat limits (>800k). All mathematical ingredients are proved; the sorry
 is a Lean elaboration performance issue. -/
 private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
     Seminorm.IsBounded (DyninMityaginSpace.p (E := E))
-      (fun _ : Fin 1 => normSeminorm ℝ ℝ)
+      (fun _ : Unit => normSeminorm ℝ ℝ)
       (DyninMityaginSpace.extensionLM (E := E) v hv) := by
   obtain ⟨Cv, hCv, p, hv_bound⟩ := hv
   obtain ⟨Cc, hCc, s, hc_bound⟩ := DyninMityaginSpace.coeff_decay (E := E) (p + 2)
@@ -392,7 +392,7 @@ theorem multilinear_on_basis_bound
           exact mul_le_mul_of_nonneg_left hPhi_gs.le h_prod_pos.le
       _ = ∏ i : Fin n, c i := mul_one _
       _ ≤ ∏ i : Fin n, (2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg) := by
-          apply Finset.prod_le_prod (fun i _ => (hc_pos i).le) (fun i _ => ?_)
+          apply Finset.prod_le_prod₀ (fun i _ => (hc_pos i).le) (fun i _ => ?_)
           show 2 * (q (DyninMityaginSpace.basis (ks i)) + 1) / δ ≤
             2 * (C_bg + 1) / δ * (1 + (ks i : ℝ)) ^ s_bg
           rw [div_mul_eq_mul_div]
@@ -436,7 +436,7 @@ theorem multilinear_on_basis_polyBounded
       ≤ C * ∏ i : Fin n, (1 + (βs m i : ℝ)) ^ s := h_bound (βs m)
     _ ≤ C * ∏ _i : Fin n, A ^ s :=
         mul_le_mul_of_nonneg_left
-          (Finset.prod_le_prod (fun i _ => by positivity) (fun i _ => h_each i)) hC.le
+          (Finset.prod_le_prod₀ (fun i _ => by positivity) (fun i _ => h_each i)) hC.le
     _ = C * A ^ (Finset.card (Finset.univ : Finset (Fin n)) * s) := by
         rw [Finset.prod_const]; ring
     _ = C * A ^ (n * s) := by rw [Finset.card_fin]

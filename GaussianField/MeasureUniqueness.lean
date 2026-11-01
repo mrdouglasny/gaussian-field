@@ -201,7 +201,7 @@ private lemma map_restrict_lin_eq
     μ.map (fun ω : Configuration E =>
       ω (∑ i : ↥I, c i • DyninMityaginSpace.basis (↑i : ℕ))) := by
   have h_restrict_meas : Measurable (I.restrict (π := fun _ : ℕ => ℝ)) :=
-    measurable_pi_lambda _ (fun _ => measurable_pi_apply _)
+    Measurable.of_eval (fun _ => measurable_pi_apply _)
   have h_lin_meas : Measurable (fun x : ↥I → ℝ => ∑ i, c i * x i) :=
     Finset.measurable_sum _ (fun i _ => measurable_const.mul (measurable_pi_apply i))
   rw [Measure.map_map h_lin_meas h_restrict_meas,
@@ -232,18 +232,18 @@ theorem pushforward_eq_of_eval_eq
   set ν₂ := @Measure.map _ _ instMeasurableSpaceConfiguration _
     (configBasisEval (E := E)) μ₂
   haveI : IsProbabilityMeasure ν₁ :=
-    Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable
+    inferInstance
   haveI : IsProbabilityMeasure ν₂ :=
-    Measure.isProbabilityMeasure_map configBasisEval_measurable.aemeasurable
+    inferInstance
   -- Projective family from ν₁'s finite-dimensional marginals
   set P : ∀ I : Finset ℕ, Measure (∀ j : ↥I, ℝ) := fun I => ν₁.map I.restrict
   have h_restrict_meas : ∀ I : Finset ℕ,
       Measurable (I.restrict (π := fun _ : ℕ => ℝ)) :=
-    fun I => measurable_pi_lambda _ (fun _ => measurable_pi_apply _)
+    fun I => Measurable.of_eval (fun _ => measurable_pi_apply _)
   haveI : ∀ I : Finset ℕ, IsFiniteMeasure (P I) := by
     intro I
     haveI : IsProbabilityMeasure (P I) :=
-      Measure.isProbabilityMeasure_map (h_restrict_meas I).aemeasurable
+      inferInstance
     infer_instance
   -- ν₁ is a projective limit (by definition of P)
   have hν₁_proj : IsProjectiveLimit ν₁ P := fun I => rfl
@@ -253,9 +253,9 @@ theorem pushforward_eq_of_eval_eq
     show ν₂.map I.restrict = ν₁.map I.restrict
     symm
     haveI : IsProbabilityMeasure (Measure.map I.restrict ν₁) :=
-      Measure.isProbabilityMeasure_map (h_restrict_meas I).aemeasurable
+      inferInstance
     haveI : IsProbabilityMeasure (Measure.map I.restrict ν₂) :=
-      Measure.isProbabilityMeasure_map (h_restrict_meas I).aemeasurable
+      inferInstance
     apply cramerWold
     intro c
     rw [map_restrict_lin_eq μ₁ I c, map_restrict_lin_eq μ₂ I c]

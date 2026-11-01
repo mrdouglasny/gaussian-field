@@ -903,7 +903,7 @@ theorem latticeGaussianFieldLawAsym_eq_normalizedQuadraticGaussianMeasure
     letI : MeasureTheory.IsProbabilityMeasure
         (latticeGaussianFieldLawAsym Nt Ns a mass ha hmass) := by
       rw [latticeGaussianFieldLawAsym]
-      exact Measure.isProbabilityMeasure_map (measurable_evalMapAsym Nt Ns).aemeasurable
+      exact inferInstance
     infer_instance
   exact MeasureTheory.Measure.ext_of_charFunDual <|
     (normalizedGaussianDensityMeasureAsym_charFunDual_eq_latticeGaussianFieldLawAsym
