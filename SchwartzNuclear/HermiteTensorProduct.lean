@@ -2023,7 +2023,7 @@ noncomputable def hermiteCoeffNdCLM (d : ℕ) (α : MultiIndex d) :
       _ = SchwartzMap.seminorm ℝ 0 0 f * M := integral_const_mul _ _
       _ = M * SchwartzMap.seminorm ℝ 0 0 f := mul_comm _ _
 
-@[simp] private theorem hermiteCoeffNdCLM_apply (d : ℕ) (α : MultiIndex d)
+@[simp] theorem hermiteCoeffNdCLM_apply (d : ℕ) (α : MultiIndex d)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin d)) ℝ) :
     hermiteCoeffNdCLM d α f = hermiteCoeffNd d α f := rfl
 

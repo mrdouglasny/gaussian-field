@@ -135,7 +135,7 @@ def diagMulCLM (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
     RapidDecaySeq.rapidDecay_withSeminorms
     (diagMulLM w hw) (diagMul_isBounded w hw)
 
-@[simp] private theorem diagMulCLM_val (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1)
+@[simp] theorem diagMulCLM_val (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1)
     (a : RapidDecaySeq) (n : ℕ) :
     (diagMulCLM w hw a).val n = w n * a.val n := rfl
 

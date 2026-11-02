@@ -1188,7 +1188,7 @@ noncomputable def greenCLM_left_asym
        rw [greenFunctionBilinear_smul_left, RingHom.id_apply, smul_eq_mul] },
    greenFunctionBilinear_continuous_left_asym Lt Ls mass hmass h⟩
 
-@[simp] private theorem greenCLM_left_apply_asym
+@[simp] theorem greenCLM_left_apply_asym
     (mass : ℝ) (hmass : 0 < mass) (h f : AsymTorusTestFunction Lt Ls) :
     greenCLM_left_asym Lt Ls mass hmass h f =
     greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass f h := rfl
@@ -1201,7 +1201,7 @@ def evalLatticeMapAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
   map_smul' c f := funext fun x => map_smul (evalAsymTorusAtSite Lt Ls Nt Ns x) c f
   cont := continuous_pi fun x => (evalAsymTorusAtSite Lt Ls Nt Ns x).continuous
 
-@[simp] private theorem evalLatticeMapAsym_apply (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+@[simp] theorem evalLatticeMapAsym_apply (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (f : AsymTorusTestFunction Lt Ls) (x : AsymLatticeSites Nt Ns) :
     evalLatticeMapAsym Lt Ls Nt Ns f x = evalAsymTorusAtSite Lt Ls Nt Ns x f := rfl
 

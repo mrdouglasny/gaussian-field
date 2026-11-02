@@ -300,7 +300,7 @@ noncomputable def gffEvalCLM (f : FinLatticeField d N) :
   ⟨(topDualPairing ℝ (FinLatticeField d N)).flip f, WeakDual.eval_continuous f⟩
 
 omit [NeZero N] in
-@[simp] private lemma gffEvalCLM_apply (f : FinLatticeField d N)
+@[simp] lemma gffEvalCLM_apply (f : FinLatticeField d N)
     (ω : Configuration (FinLatticeField d N)) :
     gffEvalCLM d N f ω = ω f := rfl
 

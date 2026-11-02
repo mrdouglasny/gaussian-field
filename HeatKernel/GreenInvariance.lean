@@ -495,7 +495,7 @@ noncomputable def greenCLM_left
        rw [greenFunctionBilinear_smul_left, RingHom.id_apply, smul_eq_mul] },
    greenFunctionBilinear_continuous_left mass hmass h⟩
 
-@[simp] private theorem greenCLM_left_apply
+@[simp] theorem greenCLM_left_apply
     {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
     [HasLaplacianEigenvalues E]

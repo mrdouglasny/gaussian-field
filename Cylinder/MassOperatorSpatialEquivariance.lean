@@ -69,7 +69,7 @@ def massInnerCLM_left
       intro f
       rfl }
 
-@[simp] private theorem massInnerCLM_left_apply
+@[simp] theorem massInnerCLM_left_apply
     (mass : ℝ) (hmass : 0 < mass)
     (f g : CylinderTestFunction L) :
     massInnerCLM_left L mass hmass g f =

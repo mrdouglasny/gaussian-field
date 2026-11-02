@@ -52,7 +52,7 @@ theorem pairSwap_involutive : Function.Involutive pairSwap := fun m => by
 def pairSwapEquiv : ℕ ≃ ℕ :=
   pairSwap_involutive.toPerm pairSwap
 
-@[simp] private theorem pairSwapEquiv_apply (m : ℕ) :
+@[simp] theorem pairSwapEquiv_apply (m : ℕ) :
     pairSwapEquiv m = pairSwap m :=
   congr_fun pairSwap_involutive.coe_toPerm m
 

@@ -483,7 +483,7 @@ def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace ℝ E]
   exact ⟨L, (schwartz_withSeminorms ℂ E ℂ).continuous_of_isBounded
     (norm_withSeminorms ℂ ℂ) L hbdd⟩
 
-@[simp] private lemma schwartzPointEvalCLM_apply (E : Type*)
+@[simp] lemma schwartzPointEvalCLM_apply (E : Type*)
     [NormedAddCommGroup E] [NormedSpace ℝ E] (x₀ : E) (f : SchwartzMap E ℂ) :
     schwartzPointEvalCLM E x₀ f = f x₀ := rfl
 
@@ -768,7 +768,7 @@ def slotInsertionCLM
           _ = (C_w : ℝ) * C' * (s'.sup (schwartzSeminormFamily ℝ D ℝ)) f :=
               by ring⟩)
 
-@[simp] private lemma slotInsertionCLM_apply
+@[simp] lemma slotInsertionCLM_apply
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     {n : ℕ} (hn : 1 ≤ n)

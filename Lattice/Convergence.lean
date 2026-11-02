@@ -524,7 +524,7 @@ noncomputable def greenCLM_left'
        rw [greenFunctionBilinear_smul_left, RingHom.id_apply, smul_eq_mul] },
    greenFunctionBilinear_continuous_left' L mass hmass h⟩
 
-@[simp] private theorem greenCLM_left_apply
+@[simp] theorem greenCLM_left'_apply
     (mass : ℝ) (hmass : 0 < mass) (h f : TorusTestFunction L) :
     greenCLM_left' L mass hmass h f =
     greenFunctionBilinear (E := TorusTestFunction L) mass hmass f h := rfl
@@ -539,7 +539,7 @@ def evalLatticeMap (N : ℕ) [NeZero N] :
   map_smul' c f := funext fun x => map_smul (evalTorusAtSite L N x) c f
   cont := continuous_pi fun x => (evalTorusAtSite L N x).continuous
 
-@[simp] private theorem evalLatticeMap_apply (N : ℕ) [NeZero N]
+@[simp] theorem evalLatticeMap_apply (N : ℕ) [NeZero N]
     (f : TorusTestFunction L) (x : FinLatticeSites 2 N) :
     evalLatticeMap L N f x = evalTorusAtSite L N x f := rfl
 
@@ -756,7 +756,7 @@ theorem lattice_green_tendsto_pure_right
         greenFunctionBilinear (E := TorusTestFunction L) mass hmass
           (DyninMityaginSpace.basis m) (pure g₁ g₂) := by
     have := DyninMityaginSpace.expansion (greenCLM_left' L mass hmass (pure g₁ g₂)) f
-    simp only [greenCLM_left_apply] at this
+    simp only [greenCLM_left'_apply] at this
     exact this
   rw [h_G_expand]
   -- Extract quadratic DFT bounds for g₁, g₂
@@ -1173,7 +1173,7 @@ theorem lattice_green_tendsto_continuum
         greenFunctionBilinear (E := TorusTestFunction L) mass hmass
           f (DyninMityaginSpace.basis m) := by
     have := DyninMityaginSpace.expansion (greenCLM_left' L mass hmass f) g
-    simp only [greenCLM_left_apply] at this
+    simp only [greenCLM_left'_apply] at this
     rw [greenFunctionBilinear_symm mass hmass f g, this]
     congr 1; ext m; rw [greenFunctionBilinear_symm]
   simp_rw [h_expand_g]

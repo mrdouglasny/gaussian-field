@@ -1395,7 +1395,7 @@ def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
     E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] ℝ :=
   (mulBilin.comp φ₁.toLinearMap).compl₂ φ₂.toLinearMap
 
-@[simp] private theorem compBilin_apply
+@[simp] theorem compBilin_apply
     {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
     (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ)
