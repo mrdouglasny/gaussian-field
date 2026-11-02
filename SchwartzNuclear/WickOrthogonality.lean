@@ -41,7 +41,11 @@ Then:
 - Glimm-Jaffe, *Quantum Physics*, §8.6
 -/
 
-import SchwartzNuclear.HermiteWick
+module
+
+public import SchwartzNuclear.HermiteWick
+
+@[expose] public section
 
 noncomputable section
 
@@ -54,13 +58,13 @@ as a `Polynomial ℝ` to leverage Mathlib's polynomial differentiability and
 growth bounds. -/
 
 /-- The Wick polynomial `:x^n:_c` as a formal polynomial. -/
-private def wickPoly : ℕ → ℝ → ℝ[X]
+def wickPoly : ℕ → ℝ → ℝ[X]
   | 0, _ => 1
   | 1, _ => X
   | n + 2, c => X * wickPoly (n + 1) c - Polynomial.C ((n + 1 : ℝ) * c) * wickPoly n c
 
 /-- The Wick monomial equals evaluation of the Wick polynomial. -/
-private theorem wickMonomial_eq_eval (n : ℕ) (c x : ℝ) :
+theorem wickMonomial_eq_eval (n : ℕ) (c x : ℝ) :
     wickMonomial n c x = (wickPoly n c).eval x := by
   induction n using Nat.strongRecOn with
   | _ n ih =>
@@ -73,14 +77,14 @@ private theorem wickMonomial_eq_eval (n : ℕ) (c x : ℝ) :
       rw [ih (k + 1) (by omega), ih k (by omega)]
 
 /-- The Wick monomial is differentiable (it's a polynomial). -/
-private theorem wickMonomial_differentiable (n : ℕ) (c : ℝ) :
+theorem wickMonomial_differentiable (n : ℕ) (c : ℝ) :
     Differentiable ℝ (wickMonomial n c) := by
   have : wickMonomial n c = fun x => (wickPoly n c).eval x := by
     ext x; exact wickMonomial_eq_eval n c x
   rw [this]; exact (wickPoly n c).differentiable
 
 /-- The Wick monomial has polynomial growth (it's bounded by `C * (1 + |x|)^d`). -/
-private theorem wickMonomial_growth (n : ℕ) (c : ℝ) :
+theorem wickMonomial_growth (n : ℕ) (c : ℝ) :
     ∃ (C : ℝ) (d : ℕ), ∀ x : ℝ, |wickMonomial n c x| ≤ C * (1 + |x|) ^ d := by
   suffices h : ∀ (p : ℝ[X]), ∃ (C : ℝ) (d : ℕ), ∀ x : ℝ, |p.eval x| ≤ C * (1 + |x|) ^ d by
     obtain ⟨C, d, hb⟩ := h (wickPoly n c)
@@ -107,7 +111,7 @@ private theorem wickMonomial_growth (n : ℕ) (c : ℝ) :
 
 /-- `HasDerivAt` for `wickMonomial n c` at every point, for all `n` (including `n = 0`).
 The derivative is `n * wickMonomial (n - 1) c x`. -/
-private theorem wickMonomial_hasDerivAt_all (c : ℝ) (n : ℕ) :
+theorem wickMonomial_hasDerivAt_all (c : ℝ) (n : ℕ) :
     ∀ x : ℝ, HasDerivAt (wickMonomial n c) (↑n * wickMonomial (n - 1) c x) x := by
   induction n using Nat.strongRecOn with
   | _ n ih =>
@@ -133,7 +137,7 @@ private theorem wickMonomial_hasDerivAt_all (c : ℝ) (n : ℕ) :
 satisfying Stein's identity with variance `c > 0`. By induction: Stein applied to
 `f(x) = x^{2k+1}` gives `E[x^{2k+2}] = c(2k+1)E[x^{2k}]`, and the RHS is positive
 by `c > 0` and induction, forcing the LHS to be finite and positive. -/
-private theorem stein_even_moment_integrable (c : ℝ) (hc : 0 < c)
+theorem stein_even_moment_integrable (c : ℝ) (hc : 0 < c)
     (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
       (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →
@@ -168,7 +172,7 @@ private theorem stein_even_moment_integrable (c : ℝ) (hc : 0 < c)
 
 /-- For all `x : ℝ` and `n : ℕ`: `|x|^n ≤ 1 + x^{2n}`.
 When `|x| ≤ 1`: `|x|^n ≤ 1`. When `|x| > 1`: `|x|^n ≤ |x|^{2n} = x^{2n}`. -/
-private lemma abs_pow_le_one_add_even_pow (n : ℕ) (x : ℝ) :
+lemma abs_pow_le_one_add_even_pow (n : ℕ) (x : ℝ) :
     |x| ^ n ≤ 1 + x ^ (2 * n) := by
   by_cases h : |x| ≤ 1
   · calc |x| ^ n ≤ 1 ^ n := pow_le_pow_left₀ (abs_nonneg x) h n
@@ -182,7 +186,7 @@ private lemma abs_pow_le_one_add_even_pow (n : ℕ) (x : ℝ) :
 /-- `(1 + |x|)^d` is integrable under a Stein measure. By binomial expansion
 `(1 + |x|)^d = ∑ C(d,k) |x|^k`, each `|x|^k` is integrable since
 `|x|^k ≤ 1 + x^{2k}` and `x^{2k}` is integrable by `stein_even_moment_integrable`. -/
-private theorem oneplusabs_pow_integrable (c : ℝ) (hc : 0 < c)
+theorem oneplusabs_pow_integrable (c : ℝ) (hc : 0 < c)
     (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
       (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →
@@ -209,7 +213,7 @@ identity with variance `c > 0`. Since `wickMonomial n c` is a polynomial, it sat
 `|W_n(x)| ≤ C * (1 + |x|)^d` (from `wickMonomial_growth`). The bound function
 `(1 + |x|)^d` is integrable because all moments are finite under a Stein measure
 (bootstrapped from Stein's identity and `c > 0`). -/
-private theorem wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
+theorem wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
     (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
       (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →
@@ -229,7 +233,7 @@ private theorem wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
 
 /-- Integrability of `x * wickMonomial n c x` under a Stein measure.
 Follows from the recursion: `x * W_{n}(x) = W_{n+1}(x) + n*c*W_{n-1}(x)`. -/
-private theorem xmul_wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
+theorem xmul_wickMonomial_integrable (n : ℕ) (c : ℝ) (hc : 0 < c)
     (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (hμ_stein : ∀ f : ℝ → ℝ, Differentiable ℝ f →
       (∃ C n, ∀ x, |f x| ≤ C * (1 + |x|) ^ n) →

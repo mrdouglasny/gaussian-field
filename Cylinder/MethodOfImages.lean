@@ -53,11 +53,15 @@ geometric series converges uniformly for Lt ≥ 1.
 - Osterwalder-Schrader (1973), §3
 -/
 
-import Cylinder.GreenFunction
-import Cylinder.Basic
-import Torus.AsymmetricTorus
-import Nuclear.GeneralMapCLM
-import SchwartzNuclear.Periodization
+module
+
+public import Cylinder.GreenFunction
+public import Cylinder.Basic
+public import Torus.AsymmetricTorus
+public import Nuclear.GeneralMapCLM
+public import SchwartzNuclear.Periodization
+
+@[expose] public section
 
 noncomputable section
 
@@ -212,16 +216,16 @@ theorem l2InnerProduct_pure
   exact (tsum_mul_tsum_of_summable_norm h1 h2).symm
 
 /-- Local helper: swap Cantor pair components. -/
-private def pairSwap' (m : ℕ) : ℕ :=
+def pairSwap' (m : ℕ) : ℕ :=
   Nat.pair (Nat.unpair m).2 (Nat.unpair m).1
 
-private theorem pairSwap'_involutive : Function.Involutive pairSwap' := fun m => by
+theorem pairSwap'_involutive : Function.Involutive pairSwap' := fun m => by
   show Nat.pair (Nat.unpair (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1)).2
     (Nat.unpair (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1)).1 = m
   rw [Nat.unpair_pair]
   exact Nat.pair_unpair m
 
-private def pairSwap'Equiv : ℕ ≃ ℕ :=
+def pairSwap'Equiv : ℕ ≃ ℕ :=
   pairSwap'_involutive.toPerm pairSwap'
 
 @[simp] private theorem pairSwap'Equiv_apply (m : ℕ) :
@@ -256,7 +260,7 @@ theorem l2InnerProduct_swap
 For any DyninMityaginSpace E: `l2InnerProduct f f ≤ C * q(f)²` where q is
 a continuous seminorm. This follows from coeff_decay at exponent 2:
 `|coeff m f|² ≤ C² * q(f)² / (1+m)⁴`, and `∑ 1/(1+m)⁴ < ∞`. -/
-private theorem l2InnerProduct_le_seminorm
+theorem l2InnerProduct_le_seminorm
     {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E] :
     ∃ (C : ℝ) (_ : 0 < C) (q : Seminorm ℝ E),

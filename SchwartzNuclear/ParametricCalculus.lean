@@ -16,9 +16,15 @@ not yet available in Mathlib. Used as building blocks in the SchwartzNuclear pro
   the result is C^∞ and derivatives commute with the integral.
 -/
 
-import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
-import Mathlib.Analysis.Calculus.ContDiff.FTaylorSeries
-import Mathlib.Analysis.Calculus.ParametricIntegral
+module
+
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+public import Mathlib.Analysis.Calculus.ContDiff.FTaylorSeries
+public import Mathlib.Analysis.Calculus.ParametricIntegral
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+public import Mathlib.Analysis.Calculus.ContDiff.Bounds
+
+@[expose] public section
 
 open MeasureTheory SchwartzMap
 open scoped ContDiff
@@ -30,7 +36,7 @@ instances, while `LinearIsometryEquiv.norm_iteratedFDeriv_comp_left` requires
 `NormedAddCommGroup`. We rebuild the isometry with explicit `NormedAddCommGroup`
 instances to resolve this diamond. -/
 
-private noncomputable def curryLeftLIE {E F : Type*}
+noncomputable def curryLeftLIE {E F : Type*}
     [NormedAddCommGroup E] [NormedSpace ℝ E]
     [NormedAddCommGroup F] [NormedSpace ℝ F] (k : ℕ) :=
   let L := (continuousMultilinearCurryLeftEquiv ℝ (fun _ : Fin (k + 1) => E) F).symm
@@ -42,7 +48,7 @@ private noncomputable def curryLeftLIE {E F : Type*}
     NormedSpace.toModule NormedSpace.toModule
     L.toLinearEquiv L.norm_map'
 
-private lemma curryLeftLIE_coe_eq {E F : Type*}
+lemma curryLeftLIE_coe_eq {E F : Type*}
     [NormedAddCommGroup E] [NormedSpace ℝ E]
     [NormedAddCommGroup F] [NormedSpace ℝ F] (k : ℕ) :
     ⇑(curryLeftLIE (E := E) (F := F) k) =

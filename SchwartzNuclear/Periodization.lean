@@ -29,11 +29,16 @@ uniformly on `[0, L]` for any `n` and any `N > 1`. This gives:
 - Grafakos, *Classical Fourier Analysis*, §3.1.2
 -/
 
-import SmoothCircle.Nuclear
-import SchwartzNuclear.HermiteNuclear
-import Torus.Symmetry
-import Cylinder.Symmetry
-import Mathlib.Topology.Algebra.InfiniteSum.TsumUniformlyOn
+module
+
+public import SmoothCircle.Nuclear
+public import SchwartzNuclear.HermiteNuclear
+public import Torus.Symmetry
+public import Cylinder.Symmetry
+public import Mathlib.Topology.Algebra.InfiniteSum.TsumUniformlyOn
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+
+@[expose] public section
 
 noncomputable section
 
@@ -137,13 +142,13 @@ theorem periodizeFun_periodic (h : SchwartzMap ℝ ℝ) :
   exact Equiv.tsum_eq (Equiv.addRight (1 : ℤ)) (fun j : ℤ => h (t + ↑j * L))
 
 /-- `iteratedFDeriv` of a function that's locally zero vanishes. -/
-private lemma iteratedFDeriv_eq_zero_of_eventuallyEq_zero
+lemma iteratedFDeriv_eq_zero_of_eventuallyEq_zero
     (f : ℝ → ℝ) (x : ℝ) (m : ℕ) (hf : f =ᶠ[nhds x] 0) :
     iteratedFDeriv ℝ m f x = 0 := by
   rw [(hf.iteratedFDeriv ℝ m).eq_of_nhds]; exact congr_fun iteratedFDeriv_fun_zero x
 
 /-- `φ · g` vanishes near `x` when `x ∉ tsupport φ` (since `φ = 0` on the open complement). -/
-private lemma mul_eventuallyEq_zero_outside_tsupport
+lemma mul_eventuallyEq_zero_outside_tsupport
     (φ g : ℝ → ℝ) (x : ℝ) (hx : x ∉ tsupport φ) :
     (fun t => φ t * g t) =ᶠ[nhds x] 0 := by
   exact Filter.eventuallyEq_iff_exists_mem.mpr
@@ -161,7 +166,7 @@ Each `‖D^{m-j} h(x+kL)‖ ≤ S_{2,m-j} / |x+kL|²` by `SchwartzMap.le_seminor
 Remaining formalization: `iteratedDeriv_fun_mul` + `norm_sum_le` for the Leibniz norm
 bound, `IsCompact.exists_isMaxOn` for `‖D^j φ‖` on compact support,
 `SchwartzMap.le_seminorm'` with `k = 2` for each Schwartz derivative factor. -/
-private theorem iteratedFDeriv_product_bound_on_support
+theorem iteratedFDeriv_product_bound_on_support
     (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hcomp : HasCompactSupport φ) (m : ℕ) :
     ∃ (C : ℝ), 0 ≤ C ∧ ∀ (k : ℤ) (x : ℝ), x ∈ tsupport φ → |x + ↑k * L| ≥ 1 →
@@ -237,7 +242,7 @@ The proof case-splits on `x ∈ tsupport φ`:
 - **On support**: `iteratedFDeriv_product_bound_on_support` gives
   `‖D^m(φ · h(·+kL))(x)‖ ≤ C₀ / |x+kL|²`. Since `|x| ≤ R` and `|kL| > 2R`,
   `|x+kL| ≥ |kL|/2`, giving `C₀/|x+kL|² ≤ 4C₀/(|k|L)²`. -/
-private theorem iteratedFDeriv_mul_schwartz_decay
+theorem iteratedFDeriv_mul_schwartz_decay
     (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hcomp : HasCompactSupport φ) (m : ℕ) :
     ∃ (C : ℝ) (K : ℕ), 0 ≤ C ∧ ∀ (k : ℤ), (K : ℤ) < |k| →
@@ -288,7 +293,7 @@ private theorem iteratedFDeriv_mul_schwartz_decay
     simp [h0]; exact div_nonneg (by linarith) (sq_nonneg _)
 
 /-- `C / (|k| * L)²` is summable over `ℤ` (follows from `Σ 1/k²` converging). -/
-private lemma summable_inv_int_sq_mul (C L : ℝ) :
+lemma summable_inv_int_sq_mul (C L : ℝ) :
     Summable (fun k : ℤ => C / ((↑|k| : ℝ) * L) ^ 2) := by
   have heq : (fun k : ℤ => C / ((↑|k| : ℝ) * L) ^ 2) =
       (fun k : ℤ => (C / L ^ 2) * (1 / (↑|k| : ℝ) ^ 2)) := by ext k; ring
@@ -302,7 +307,7 @@ private lemma summable_inv_int_sq_mul (C L : ℝ) :
 /-- The product `φ · h(· + kL)` has `iteratedFDeriv` bounded by a summable function of `k`,
 for cofinitely many `k`. Combines `iteratedFDeriv_mul_schwartz_decay` (the `O(1/k²)` bound)
 with `summable_inv_int_sq_mul` (summability of `1/k²` over `ℤ`). -/
-private theorem bump_periodize_iteratedFDeriv_bound
+theorem bump_periodize_iteratedFDeriv_bound
     (h : SchwartzMap ℝ ℝ) (φ : ℝ → ℝ) (hφ : ContDiff ℝ (⊤ : ℕ∞) φ)
     (hcomp : HasCompactSupport φ) :
     ∃ (v : ℕ → ℤ → ℝ), (∀ m, Summable (v m)) ∧
@@ -417,7 +422,7 @@ def periodizeLM : SchwartzMap ℝ ℝ →ₗ[ℝ] SmoothMap_Circle L ℝ where
 /-- Summable bounds on shifted Schwartz derivatives over compact sets.
 For `K ⊆ [-R, R]` compact, `‖D^m h(t + jL)‖ ≤ u(j)` with `Summable u`.
 Uses `one_add_le_sup_seminorm_apply` for Schwartz decay with order `n + 2 ≥ 2 > 1`. -/
-private lemma schwartz_shifted_summable_bound (h : SchwartzMap ℝ ℝ) (m : ℕ)
+lemma schwartz_shifted_summable_bound (h : SchwartzMap ℝ ℝ) (m : ℕ)
     (K : Set ℝ) (hK : IsCompact K) (n : ℕ) (hn : m ≤ n) :
     ∃ (u : ℤ → ℝ), Summable u ∧ ∀ (j : ℤ) (t : ℝ), t ∈ K →
       ‖iteratedDeriv m (⇑h) (t + ↑j * L)‖ ≤ u j := by

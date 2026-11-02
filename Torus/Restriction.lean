@@ -16,10 +16,14 @@ Defines the 2D torus test function space as a tensor product of circle spaces.
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 -/
 
-import SmoothCircle.Restriction
-import SmoothCircle.Nuclear
-import Nuclear.NuclearTensorProduct
-import GaussianField.Construction
+module
+
+public import SmoothCircle.Restriction
+public import SmoothCircle.Nuclear
+public import Nuclear.NuclearTensorProduct
+public import GaussianField.Construction
+
+@[expose] public section
 
 noncomputable section
 

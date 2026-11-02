@@ -8,10 +8,10 @@ set_option maxHeartbeats 6400000
 
 namespace GaussianField
 
-private def myBlockMI (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) : Fin d → ℕ :=
+def myBlockMI (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) : Fin d → ℕ :=
   fun j => α (finProdFinEquiv (i, j))
 
-private lemma myBlockMI_abs_le (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
+lemma myBlockMI_abs_le (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n) :
     MultiIndex.abs (myBlockMI n d α i) ≤ MultiIndex.abs α := by
   simp only [MultiIndex.abs, myBlockMI]
   calc ∑ j : Fin d, α (finProdFinEquiv (i, j))
@@ -22,13 +22,13 @@ private lemma myBlockMI_abs_le (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fin n
         Finset.sum_le_sum_of_subset_of_nonneg (fun _ _ => mem_univ _) (fun _ _ _ => Nat.zero_le _)
 
 -- Helper: Fin-cast preserves MultiIndex.abs (generalize + rcases approach)
-private lemma abs_cast_general (d : ℕ) (hd : 0 < d) (f : Fin d → ℕ) :
+lemma abs_cast_general (d : ℕ) (hd : 0 < d) (f : Fin d → ℕ) :
     MultiIndex.abs (Nat.succ_pred_eq_of_pos hd ▸ f : Fin (d - 1 + 1) → ℕ) =
     MultiIndex.abs f := by
   generalize d = d₀ at *; rcases d₀ with _ | d'; · omega; · rfl
 
 -- Helper: Fin-cast preserves MultiIndex.abs for the α cast
-private lemma abs_cast_general' (N : ℕ) (hN : 0 < N)
+lemma abs_cast_general' (N : ℕ) (hN : 0 < N)
     (α₀ : Fin (N - 1 + 1) → ℕ) :
     MultiIndex.abs (Nat.succ_pred_eq_of_pos hN ▸ α₀ : Fin N → ℕ) =
     MultiIndex.abs α₀ := by

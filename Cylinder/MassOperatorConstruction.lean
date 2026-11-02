@@ -32,10 +32,14 @@ The resulting sequence is in ℓ² because:
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
 
-import Cylinder.FreeHeatSemigroup
-import Cylinder.PositiveTime
-import GaussianField.Construction
-import SchwartzFourier.ResolventUniformBound
+module
+
+public import Cylinder.FreeHeatSemigroup
+public import Cylinder.PositiveTime
+public import GaussianField.Construction
+public import SchwartzFourier.ResolventUniformBound
+
+@[expose] public section
 
 noncomputable section
 
@@ -163,7 +167,7 @@ the Cantor pairing bound `(1+m) ≤ (1+a)²(1+b)²`:
 /-- Cantor pairing bound: `1 + pair(a,b) ≤ (1+a)² · (1+b)²`.
 
 Proof: `pair(a,b) + 1 ≤ (a+b+1)²` (by omega) and `a+b+1 ≤ (1+a)(1+b)` (since `ab ≥ 0`). -/
-private theorem one_add_pair_le (a b : ℕ) :
+theorem one_add_pair_le (a b : ℕ) :
     (1 + (Nat.pair a b : ℝ)) ≤ (1 + (a : ℝ)) ^ 2 * (1 + (b : ℝ)) ^ 2 := by
   have h1 : Nat.pair a b + 1 ≤ (a + b + 1) * (a + b + 1) := by
     unfold Nat.pair; split <;> nlinarith
@@ -177,7 +181,7 @@ private theorem one_add_pair_le (a b : ℕ) :
 
 /-- `(1+m)² ≤ (1+a)⁴ · (1+b)⁴` for `m = pair(a,b)`.
 Squaring `one_add_pair_le`. -/
-private theorem pair_decay_bound_pow (a b : ℕ) :
+theorem pair_decay_bound_pow (a b : ℕ) :
     (1 + (Nat.pair a b : ℝ)) ^ 2 ≤ (1 + (a : ℝ)) ^ 4 * (1 + (b : ℝ)) ^ 4 :=
   calc (1 + (Nat.pair a b : ℝ)) ^ 2
       ≤ ((1 + (a : ℝ)) ^ 2 * (1 + (b : ℝ)) ^ 2) ^ 2 :=
@@ -622,7 +626,7 @@ theorem massOperatorCoord_decay (mass : ℝ) (hmass : 0 < mass) :
 /-! ## Mass operator definition -/
 
 /-- Helper: package the decay bound for `nuclear_ell2_embedding_from_decay`. -/
-private theorem massOperator_ell2_embedding (mass : ℝ) (hmass : 0 < mass) :
+theorem massOperator_ell2_embedding (mass : ℝ) (hmass : 0 < mass) :
     ∃ (j : CylinderTestFunction L →L[ℝ] ell2'),
       ∀ (f : CylinderTestFunction L) (m : ℕ),
         (j f : ℕ → ℝ) m = massOperatorCoord L mass hmass m f := by

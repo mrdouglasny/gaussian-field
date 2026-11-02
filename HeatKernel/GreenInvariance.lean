@@ -39,8 +39,12 @@ share eigenvalues.
 - Glimm-Jaffe, *Quantum Physics*, §6.4
 -/
 
-import SmoothCircle.FourierTranslation
-import Nuclear.TensorProductFunctorAxioms
+module
+
+public import SmoothCircle.FourierTranslation
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 
@@ -61,7 +65,7 @@ theorem coeff_eq_fourierCoeffReal (m : ℕ) (f : SmoothMap_Circle L ℝ) :
     smoothCircleRapidDecayEquiv, toRapidDecayLM, toRapidDecay]
 
 /-- Reflection preserves the product of Fourier coefficients at every index. -/
-private theorem fourierCoeffReal_reflection_product (m : ℕ)
+theorem fourierCoeffReal_reflection_product (m : ℕ)
     (f g : SmoothMap_Circle L ℝ) :
     fourierCoeffReal (L := L) m (circleReflection L f) *
     fourierCoeffReal (L := L) m (circleReflection L g) =
@@ -203,7 +207,7 @@ theorem greenFunctionBilinear_swap_pure
 /-! ### Eigenvalue degeneracy and mode-pair involution -/
 
 /-- Fourier frequency degeneracy: `fourierFreq (2k-1) = fourierFreq (2k) = k`. -/
-private theorem fourierFreq_cos_eq_sin (k : ℕ) (hk : 0 < k) :
+theorem fourierFreq_cos_eq_sin (k : ℕ) (hk : 0 < k) :
     fourierFreq (2 * k - 1) = fourierFreq (2 * k) := by
   cases k with
   | zero => omega
@@ -216,7 +220,7 @@ private theorem fourierFreq_cos_eq_sin (k : ℕ) (hk : 0 < k) :
     omega
 
 /-- Eigenvalue degeneracy for the circle: paired cos/sin modes share eigenvalues. -/
-private theorem circle_eigenvalue_cos_eq_sin (k : ℕ) (hk : 0 < k) :
+theorem circle_eigenvalue_cos_eq_sin (k : ℕ) (hk : 0 < k) :
     HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (2 * k - 1) =
     HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) (2 * k) := by
   have h := fourierFreq_cos_eq_sin k hk
@@ -315,7 +319,7 @@ theorem coeff_product_paired_translation (v : ℝ)
 /-! ### Translation invariance on factor 1 only -/
 
 /-- Green's function is invariant under translation on the first tensor factor. -/
-private theorem greenFunctionBilinear_translation_factor1
+theorem greenFunctionBilinear_translation_factor1
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) :
     greenFunctionBilinear mass hmass
@@ -456,7 +460,7 @@ theorem greenFunctionBilinear_translation_pure
 
 /-- Continuity of `f ↦ G(f, h)` for fixed `h`, derived from diagonal continuity
 via polarization: `G(f,h) = (G(f+h,f+h) - G(f,f) - G(h,h))/2`. -/
-private theorem greenFunctionBilinear_continuous_left
+theorem greenFunctionBilinear_continuous_left
     {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
     [HasLaplacianEigenvalues E]
@@ -480,7 +484,7 @@ private theorem greenFunctionBilinear_continuous_left
     continuous_const).div_const 2 |>.congr (fun f => (hpol f).symm)
 
 /-- The Green function as a CLM in the first argument, for fixed second argument. -/
-private noncomputable def greenCLM_left
+noncomputable def greenCLM_left
     {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
     [HasLaplacianEigenvalues E]
@@ -500,7 +504,7 @@ private noncomputable def greenCLM_left
 
 /-- Each NTP basis element is a pure tensor of component basis elements,
 assuming biorthogonality `coeff n (basis m) = δ_{n,m}` in each factor. -/
-private theorem ntp_basis_eq_pure
+theorem ntp_basis_eq_pure
     {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
     [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]

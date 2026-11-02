@@ -38,8 +38,14 @@ functional `charFun T f` (proved in `GaussianField.Construction`):
 - Glimm-Jaffe, "Quantum Physics", §6.1 (Wick ordering)
 -/
 
-import GaussianField.Properties
-import Mathlib.Data.Nat.Factorial.DoubleFactorial
+module
+
+public import GaussianField.Properties
+public import Mathlib.Data.Nat.Factorial.DoubleFactorial
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.Calculus.ParametricIntegral
+
+@[expose] public section
 
 noncomputable section
 
@@ -64,7 +70,7 @@ to be well-stated (the integrals must exist). -/
 /-- HolderTriple (2p, 2p, p): `(2p)⁻¹ + (2p)⁻¹ = p⁻¹` in ℝ≥0∞.
 
 This allows Hölder's inequality to be applied as: L^{2p} × L^{2p} → L^p. -/
-private lemma holderTriple_double (p : ℝ≥0∞) :
+lemma holderTriple_double (p : ℝ≥0∞) :
     ENNReal.HolderTriple (2 * p) (2 * p) p where
   inv_add_inv_eq_inv := by
     have h2_ne_zero : (2 : ℝ≥0∞) ≠ 0 := two_ne_zero
@@ -83,7 +89,7 @@ private lemma holderTriple_double (p : ℝ≥0∞) :
 By induction on n, splitting ∏ = head × tail. At each step, `pairing_memLp`
 gives head ∈ L^{2p}, and the IH gives tail ∈ L^{2p}. Hölder's inequality
 via `HolderTriple (2p) (2p) p` gives the product ∈ L^p. -/
-private theorem product_memLp : ∀ (n : ℕ) (f : Fin n → E) (p : ℝ≥0),
+theorem product_memLp : ∀ (n : ℕ) (f : Fin n → E) (p : ℝ≥0),
     MemLp (fun ω : Configuration E => ∏ i, ω (f i)) (↑p) (measure T) := by
   intro n
   induction n with
@@ -127,7 +133,7 @@ by `pairing_integrable`. -/
 /-- Closed-form derivative of `charFun T (t • f₀ + h)` at `t = 0`.
 
 Uses chain rule: `d/dt exp(-½⟨T(t•f₀+h), T(t•f₀+h)⟩)|_{t=0} = -⟨Tf₀,Th⟩ · charFun T h`. -/
-private lemma hasDerivAt_charFun_closed (f₀ h : E) :
+lemma hasDerivAt_charFun_closed (f₀ h : E) :
     HasDerivAt
       (fun t : ℝ => ∫ ω : Configuration E,
         Complex.exp (Complex.I * ↑(ω (t • f₀ + h))) ∂(measure T))
@@ -165,14 +171,14 @@ private lemma hasDerivAt_charFun_closed (f₀ h : E) :
 /-- Leibniz derivative of `∫ exp(I·ω(t•f₀+h)) dμ` at `t = 0`.
 
 Uses `hasDerivAt_integral_of_dominated_loc_of_deriv_le` with domination by `|ω(f₀)|`. -/
-private lemma charFun_integrand_measurable (f : E) :
+lemma charFun_integrand_measurable (f : E) :
     AEStronglyMeasurable
       (fun ω : Configuration E => Complex.exp (Complex.I * ↑(ω f)))
       (measure T) :=
   (((continuous_const.mul Complex.continuous_ofReal).cexp.measurable).comp
     (configuration_eval_measurable f)).aestronglyMeasurable
 
-private lemma charFun_integrand_integrable (f : E) :
+lemma charFun_integrand_integrable (f : E) :
     Integrable
       (fun ω : Configuration E => Complex.exp (Complex.I * ↑(ω f)))
       (measure T) :=
@@ -180,7 +186,7 @@ private lemma charFun_integrand_integrable (f : E) :
     (.of_forall fun ω => by
       rw [Complex.norm_exp_I_mul_ofReal])
 
-private lemma hasDerivAt_charFun_leibniz (f₀ h : E) :
+lemma hasDerivAt_charFun_leibniz (f₀ h : E) :
     HasDerivAt
       (fun t : ℝ => ∫ ω : Configuration E,
         Complex.exp (Complex.I * ↑(ω (t • f₀ + h))) ∂(measure T))
@@ -285,7 +291,7 @@ for proving `gaussian_ibp_general` by induction. -/
 The polynomial weight P(ω) does not depend on t, so the derivative at t = 0
 simply brings down `I·ω(g)` from the exponential. The domination bound
 is `‖P(ω)‖ * ‖ω(g)‖`, integrable when P is a product of evaluation functionals. -/
-private lemma hasDerivAt_weighted_exp_leibniz
+lemma hasDerivAt_weighted_exp_leibniz
     (P : Configuration E → ℂ)
     (hPm : AEStronglyMeasurable P (measure T))
     (g h : E)
@@ -371,7 +377,7 @@ on the boundary term produces two pieces: one fills in the last slot of the
 sum, and the other becomes the new boundary term. -/
 
 /-- Products of evaluation functionals are AEStronglyMeasurable. -/
-private lemma prod_eval_aestronglyMeasurable (n : ℕ) (f : Fin n → E) :
+lemma prod_eval_aestronglyMeasurable (n : ℕ) (f : Fin n → E) :
     AEStronglyMeasurable (fun ω : Configuration E => ∏ i, (↑(ω (f i)) : ℂ))
       (measure T) := by
   apply Finset.aestronglyMeasurable_fun_prod
@@ -381,7 +387,7 @@ private lemma prod_eval_aestronglyMeasurable (n : ℕ) (f : Fin n → E) :
 
 /-- Products of evaluation functionals times exponentials are integrable.
 Follows from `product_integrable` and `‖exp(iω(h))‖ = 1`. -/
-private lemma poly_exp_integrable (n : ℕ) (f : Fin n → E) (h : E) :
+lemma poly_exp_integrable (n : ℕ) (f : Fin n → E) (h : E) :
     Integrable (fun ω : Configuration E =>
       (∏ i, (↑(ω (f i)) : ℂ)) * Complex.exp (Complex.I * ↑(ω h)))
       (measure T) := by
@@ -394,7 +400,7 @@ private lemma poly_exp_integrable (n : ℕ) (f : Fin n → E) (h : E) :
     Complex.norm_real, norm_norm]
 
 /-- The domination bound for applying Leibniz: `‖∏ ω(fᵢ)‖ * ‖ω(g)‖` is integrable. -/
-private lemma poly_exp_bound_integrable (n : ℕ) (f : Fin n → E) (g : E) :
+lemma poly_exp_bound_integrable (n : ℕ) (f : Fin n → E) (g : E) :
     Integrable (fun ω : Configuration E =>
       ‖∏ i, (↑(ω (f i)) : ℂ)‖ * ‖ω g‖)
       (measure T) := by
@@ -414,7 +420,7 @@ private lemma poly_exp_bound_integrable (n : ℕ) (f : Fin n → E) (g : E) :
   exact (product_integrable T (n + 1) f').norm
 
 /-- Weighted products of evaluation functionals times exponentials are integrable. -/
-private lemma weighted_poly_exp_integrable (f₀ : E) (n : ℕ) (f : Fin n → E) (h : E) :
+lemma weighted_poly_exp_integrable (f₀ : E) (n : ℕ) (f : Fin n → E) (h : E) :
     Integrable (fun ω : Configuration E =>
       (↑(ω f₀) : ℂ) * (∏ i, (↑(ω (f i)) : ℂ)) *
       Complex.exp (Complex.I * ↑(ω h)))
@@ -430,7 +436,7 @@ private lemma weighted_poly_exp_integrable (f₀ : E) (n : ℕ) (f : Fin n → E
   exact poly_exp_integrable T (n + 1) f' h
 
 /-- The weighted Leibniz domination bound: `‖↑(ω f₀) * ∏ ω(fᵢ)‖ * ‖ω g‖` is integrable. -/
-private lemma weighted_poly_exp_bound_integrable (f₀ : E) (n : ℕ) (f : Fin n → E) (g : E) :
+lemma weighted_poly_exp_bound_integrable (f₀ : E) (n : ℕ) (f : Fin n → E) (g : E) :
     Integrable (fun ω : Configuration E =>
       ‖(↑(ω f₀) : ℂ) * ∏ i, (↑(ω (f i)) : ℂ)‖ * ‖ω g‖)
       (measure T) := by
@@ -1046,7 +1052,7 @@ end GaussianField
 
 Proof by induction on m with step 2, using (m+2)‼ = (m+2)·m‼:
   ((m+2)‼)² = (m+2)²·(m‼)² ≤ (m+2)²·(m+1)! ≤ (m+3)·(m+2)·(m+1)! = (m+3)! -/
-private lemma dfact_sq_le_succ_fact : ∀ m : ℕ, m.doubleFactorial ^ 2 ≤ (m + 1).factorial
+lemma dfact_sq_le_succ_fact : ∀ m : ℕ, m.doubleFactorial ^ 2 ≤ (m + 1).factorial
   | 0 => by norm_num
   | 1 => by norm_num
   | m + 2 => by

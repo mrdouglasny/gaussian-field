@@ -21,11 +21,15 @@ continuous linear equivalence with `RapidDecaySeq` via the real Fourier transfor
 5. **CLE**: forward ∘ backward = id (by orthogonality), backward ∘ forward = id (by uniqueness)
 -/
 
-import SmoothCircle.Basic
-import Mathlib.Analysis.Calculus.SmoothSeries
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
-import Mathlib.Analysis.Fourier.AddCircle
+module
+
+public import SmoothCircle.Basic
+public import Mathlib.Analysis.Calculus.SmoothSeries
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+public import Mathlib.Analysis.Fourier.AddCircle
+
+@[expose] public section
 
 noncomputable section
 
@@ -47,17 +51,17 @@ For n ≥ 1: integrating by parts k times gives
 `|c_n(f)| ≤ C · p_k(f) / n^k`, hence `|c_n(f)| · (1+n)^k ≤ C' · p_k(f)`.
 Combined: bounded by `C · max(p_0, p_k)`. -/
 -- The derivative of a SmoothMap_Circle element is again a SmoothMap_Circle element.
-private def derivSC (f : SmoothMap_Circle L ℝ) : SmoothMap_Circle L ℝ where
+def derivSC (f : SmoothMap_Circle L ℝ) : SmoothMap_Circle L ℝ where
   toFun := deriv f
   periodic' := by
     have h := f.periodic_iteratedDeriv 1
     simp only [iteratedDeriv_succ, iteratedDeriv_zero] at h; exact h
   smooth' := (contDiff_infty_iff_deriv.mp f.smooth).2
 
-private theorem derivSC_apply (f : SmoothMap_Circle L ℝ) (x : ℝ) :
+theorem derivSC_apply (f : SmoothMap_Circle L ℝ) (x : ℝ) :
     (derivSC f) x = deriv f x := rfl
 
-private theorem sobolevSeminorm_derivSC (f : SmoothMap_Circle L ℝ) (k : ℕ) :
+theorem sobolevSeminorm_derivSC (f : SmoothMap_Circle L ℝ) (k : ℕ) :
     sobolevSeminorm k (derivSC f) ≤ sobolevSeminorm (k + 1) f := by
   apply csSup_le (Set.Nonempty.image _ Icc_nonempty)
   rintro _ ⟨x, hx, rfl⟩
@@ -72,7 +76,7 @@ private theorem sobolevSeminorm_derivSC (f : SmoothMap_Circle L ℝ) (k : ℕ) :
 -- At each step, IBP transfers one derivative from the trig function to f,
 -- with boundary terms vanishing (sin(0) = sin(2πm) = 0 for cos case;
 -- periodicity of f for sin case).
-private theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
+theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
     ∀ f : SmoothMap_Circle L ℝ,
       |∫ x in (0:ℝ)..L, f x * Real.cos (2 * Real.pi * m * x / L)| ≤
         (L / (2 * Real.pi * m)) ^ k * (L * sobolevSeminorm k f) ∧
@@ -243,7 +247,7 @@ private theorem ibp_trig_bound (k : ℕ) (m : ℕ) (hm : 0 < m) :
         _ = _ := by ring
 
 -- IBP bound for Fourier coefficients of periodic functions.
-private theorem fourierCoeff_ibp_bound (k : ℕ) :
+theorem fourierCoeff_ibp_bound (k : ℕ) :
     ∃ C > 0, ∀ (f : SmoothMap_Circle L ℝ) (n : ℕ), n ≥ 1 →
       |fourierCoeffReal (L := L) n f| * ((n : ℝ) + 1) ^ k ≤ C * sobolevSeminorm k f := by
   set A := Real.sqrt (2 / L)
@@ -354,7 +358,7 @@ theorem fourierCoeffReal_decay (k : ℕ) :
 /-! ## Forward map: SmoothMap_Circle → RapidDecaySeq -/
 
 /-- Helper: summability of shifted inverse square series `∑ 1/(1+n)^2`. -/
-private theorem summable_shifted_inv_sq :
+theorem summable_shifted_inv_sq :
     Summable (fun n : ℕ => 1 / ((n : ℝ) + 1) ^ 2) := by
   have h := (Real.summable_nat_pow_inv (p := 2)).mpr (by norm_num)
   refine (h.comp_injective (fun a b h => Nat.succ_injective h)).congr (fun n => ?_)
@@ -455,7 +459,7 @@ theorem summable_fourierBasis_smul (a : RapidDecaySeq) :
       _ = C * |a.val n| := mul_comm _ _
 
 /-- Bound on iteratedFDeriv of a single Fourier term `a_n * ψ_n(x)`. -/
-private theorem norm_iteratedFDeriv_fourierTerm (a : RapidDecaySeq) (k n : ℕ) (x : ℝ)
+theorem norm_iteratedFDeriv_fourierTerm (a : RapidDecaySeq) (k n : ℕ) (x : ℝ)
     (_hk : (k : ℕ∞) ≤ ⊤) :
     ‖iteratedFDeriv ℝ k (fun y => a.val n * fourierBasisFun (L := L) n y) x‖ ≤
       |a.val n| * sobolevSeminorm (L := L) k (fourierBasis n) := by
@@ -511,7 +515,7 @@ def fromRapidDecayLM : RapidDecaySeq →ₗ[ℝ] SmoothMap_Circle L ℝ where
     exact tsum_mul_left
 
 /-- Summability of Fourier term bounds `|a_n| * p_j(ψ_n)` for any rapid decay seq. -/
-private theorem summable_fourierTerm_bound (a : RapidDecaySeq) (j : ℕ) :
+theorem summable_fourierTerm_bound (a : RapidDecaySeq) (j : ℕ) :
     Summable (fun n => |a.val n| * sobolevSeminorm (L := L) j (fourierBasis n)) := by
   obtain ⟨C, _, hbound⟩ := sobolevSeminorm_fourierBasis_le (L := L) j
   exact .of_nonneg_of_le
@@ -643,7 +647,7 @@ theorem toRapidDecay_fromRapidDecay (a : RapidDecaySeq) :
 /-- If all Fourier coefficients of a smooth periodic function are zero,
 the function is zero. Follows from mapping to Mathlib's complex AddCircle L
 and using the uniqueness of continuous functions with vanishing Fourier coefficients. -/
-private theorem eq_zero_of_fourierCoeff_zero (g : SmoothMap_Circle L ℝ)
+theorem eq_zero_of_fourierCoeff_zero (g : SmoothMap_Circle L ℝ)
     (h : ∀ n, fourierCoeffReal (L := L) n g = 0) : g = 0 := by
   -- Convert Set integrals to interval integrals
   have h_Icc_to_interval : ∀ f : ℝ → ℝ, ∫ x in Set.Icc (0:ℝ) L, f x = ∫ x in (0:ℝ)..L, f x := by

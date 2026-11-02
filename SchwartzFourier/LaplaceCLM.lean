@@ -32,10 +32,14 @@ For the explicit seminorm bound, `‖h‖_{L¹} ≤ C · p_{k,0}(h)` for k ≥ 2
 - Reed-Simon II, §IX.3 (Schwartz space properties)
 -/
 
-import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 noncomputable section
 
@@ -47,7 +51,7 @@ namespace GaussianField
 /-! ## Auxiliary bounds -/
 
 /-- `‖exp(-ω·t)‖ ≤ 1` for `t ≥ 0` and `ω > 0`. -/
-private lemma norm_exp_neg_mul_le_one (ω : ℝ) (hω : 0 < ω) (t : ℝ) (ht : 0 ≤ t) :
+lemma norm_exp_neg_mul_le_one (ω : ℝ) (hω : 0 < ω) (t : ℝ) (ht : 0 ≤ t) :
     ‖exp (-ω * t)‖ ≤ 1 := by
   rw [Real.norm_of_nonneg (exp_nonneg _)]
   exact Real.exp_le_one_iff.mpr (by nlinarith)
@@ -58,7 +62,7 @@ private lemma norm_exp_neg_mul_le_one (ω : ℝ) (hω : 0 < ω) (t : ℝ) (ht : 
 
 Proof: `‖h(t) e^{-ωt}‖ ≤ ‖h(t)‖` since `‖e^{-ωt}‖ ≤ 1` for t ≥ 0, ω > 0.
 And `‖h‖` is integrable by `SchwartzMap.integrable.norm`. -/
-private lemma schwartz_integrable_exp_neg (f : SchwartzMap ℝ ℝ) (ω : ℝ) (hω : 0 < ω) :
+lemma schwartz_integrable_exp_neg (f : SchwartzMap ℝ ℝ) (ω : ℝ) (hω : 0 < ω) :
     IntegrableOn (fun t => f.toFun t * exp (-ω * t)) (Ici 0) volume := by
   apply Integrable.mono' f.integrable.norm.integrableOn
   · have hc : Continuous (fun t => exp (-ω * t)) := by fun_prop
@@ -71,7 +75,7 @@ private lemma schwartz_integrable_exp_neg (f : SchwartzMap ℝ ℝ) (ω : ℝ) (
 /-- The norm of the Laplace integral is bounded by `‖h‖_{L¹}`.
 
   `‖∫₀^∞ h(t)e^{-ωt} dt‖ ≤ ∫₀^∞ ‖h(t)‖ dt ≤ ∫_ℝ ‖h(t)‖ dt` -/
-private lemma laplace_integral_le_l1_norm (f : SchwartzMap ℝ ℝ) (ω : ℝ) (hω : 0 < ω) :
+lemma laplace_integral_le_l1_norm (f : SchwartzMap ℝ ℝ) (ω : ℝ) (hω : 0 < ω) :
     ‖∫ t in Ici (0 : ℝ), f.toFun t * exp (-ω * t)‖ ≤
     ∫ t, ‖f.toFun t‖ := by
   calc ‖∫ t in Ici (0 : ℝ), f.toFun t * exp (-ω * t)‖
@@ -91,7 +95,7 @@ private lemma laplace_integral_le_l1_norm (f : SchwartzMap ℝ ℝ) (ω : ℝ) (
 /-! ## Laplace evaluation CLM construction -/
 
 /-- The Laplace evaluation as a linear map. -/
-private def laplaceEvalLinear (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →ₗ[ℝ] ℝ where
+def laplaceEvalLinear (ω : ℝ) (hω : 0 < ω) : SchwartzMap ℝ ℝ →ₗ[ℝ] ℝ where
   toFun f := ∫ t in Ici (0 : ℝ), f.toFun t * exp (-ω * t)
   map_add' f g := by
     show ∫ t in Ici (0 : ℝ), (f + g).toFun t * exp (-ω * t) = _

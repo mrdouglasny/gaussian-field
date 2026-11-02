@@ -28,12 +28,16 @@ density bridge (showing the Gaussian measure has density exp(-½⟨φ,Qφ⟩)).
 - Glimm-Jaffe, §19 (Gaussian measures and covariance operators)
 -/
 
-import Lattice.Laplacian
-import Lattice.FiniteField
-import HeatKernel.Axioms
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Lattice.Laplacian
+public import Lattice.FiniteField
+public import HeatKernel.Axioms
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 noncomputable section
 
@@ -111,7 +115,7 @@ def massEigenvectorBasis (a mass : ℝ) :
 section
 set_option linter.unusedSectionVars false
 /-- Basis decomposition: any lattice field is a linear combination of deltas. -/
-private lemma field_basis_decomp (φ : FinLatticeField d N) :
+lemma field_basis_decomp (φ : FinLatticeField d N) :
     φ = ∑ y : FinLatticeSites d N, φ y • finLatticeDelta d N y := by
   ext x
   simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, finLatticeDelta,

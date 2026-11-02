@@ -14,7 +14,11 @@ All three are proved from theorems in `HermiteFunctions.lean` and
 `SchwartzHermiteExpansion.lean`. No axioms.
 -/
 
-import SchwartzNuclear.SchwartzHermiteExpansion
+module
+
+public import SchwartzNuclear.SchwartzHermiteExpansion
+
+@[expose] public section
 
 open MeasureTheory Real SchwartzMap
 
@@ -104,7 +108,7 @@ NOT individually monotone in k. The bound goes through the (1+‖x‖) framework
     `2^q.1` times the sup over the same finite set. Combined with
     `finset_sup_apply_le`, this gives the sup bounded by itself (with constant),
     which then allows us to bound by any element with a larger constant. -/
-private theorem seminorm_le_sup_of_mem {q : ℕ × ℕ} {k' l' : ℕ}
+theorem seminorm_le_sup_of_mem {q : ℕ × ℕ} {k' l' : ℕ}
     (hk : k' ≤ q.1) (hl : l' ≤ q.2) (f : SchwartzMap ℝ ℝ) :
     SchwartzMap.seminorm ℝ k' l' f ≤
       2 ^ q.1 * (Finset.Iic q).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) f := by

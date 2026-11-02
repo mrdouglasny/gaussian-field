@@ -27,13 +27,17 @@ The tensor product s(ℕ) ⊗̂ s(ℕ) ≅ s(ℕ²) ≅ s(ℕ) via Cantor pairin
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4
 -/
 
-import Nuclear.DyninMityagin
-import Nuclear.NuclearSpace
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.PSeries
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Topology.Algebra.InfiniteSum.Ring
+module
+
+public import Nuclear.DyninMityagin
+public import Nuclear.NuclearSpace
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Topology.Algebra.InfiniteSum.Ring
+
+@[expose] public section
 
 noncomputable section
 
@@ -166,7 +170,7 @@ induced by its topological add group structure.
 3. Convergence `u n → a` in the seminorm topology follows from passing
    the Cauchy bounds through limits of partial sums. -/
 -- Helper: coordinate projection is bounded by seminorm 0
-private theorem coord_le_seminorm0 (a : RapidDecaySeq) (m : ℕ) :
+theorem coord_le_seminorm0 (a : RapidDecaySeq) (m : ℕ) :
     |a.val m| ≤ rapidDecaySeminorm 0 a := by
   show |a.val m| ≤ ∑' n, |a.val n| * (1 + (n : ℝ)) ^ 0
   calc |a.val m|
@@ -176,13 +180,13 @@ private theorem coord_le_seminorm0 (a : RapidDecaySeq) (m : ℕ) :
           (fun j _ => mul_nonneg (abs_nonneg _) (weight_nonneg j 0))
 
 -- Helper: finite sum of weighted coords ≤ seminorm
-private theorem finset_sum_le_seminorm (a : RapidDecaySeq) (k : ℕ) (s : Finset ℕ) :
+theorem finset_sum_le_seminorm (a : RapidDecaySeq) (k : ℕ) (s : Finset ℕ) :
     ∑ m ∈ s, |a.val m| * (1 + (m : ℝ)) ^ k ≤ rapidDecaySeminorm k a :=
   (a.rapid_decay k).sum_le_tsum s (fun m _ => mul_nonneg (abs_nonneg _) (weight_nonneg m k))
 
 -- Helper: Cauchy condition for seminorms. From CauchySeq in the seminorm topology,
 -- extract: for each k and ε > 0, ∃ N, ∀ n m ≥ N, seminorm k (u n - u m) < ε.
-private theorem cauchySeq_seminorm_bound
+theorem cauchySeq_seminorm_bound
     (u : ℕ → RapidDecaySeq)
     (hu : @CauchySeq RapidDecaySeq ℕ
       (IsTopologicalAddGroup.rightUniformSpace RapidDecaySeq) _ u)
@@ -396,7 +400,7 @@ def coeffCLM (m : ℕ) : RapidDecaySeq →L[ℝ] ℝ where
 
 For each seminorm `k` and `ε > 0`, the error `∑_{n ∉ s} |aₙ| · (1+n)^k` is the tail
 of the convergent series `a.rapid_decay k`, hence eventually less than `ε`. -/
-private theorem sum_smul_basisVec_val (a : RapidDecaySeq) (s : Finset ℕ) (n : ℕ) :
+theorem sum_smul_basisVec_val (a : RapidDecaySeq) (s : Finset ℕ) (n : ℕ) :
     (∑ m ∈ s, a.val m • basisVec m).val n = if n ∈ s then a.val n else 0 := by
   induction s using Finset.induction with
   | empty => simp
@@ -708,7 +712,7 @@ theorem fromPairIndex_toPairIndex (p : ℕ) :
 /-! ### Pure tensor embedding -/
 
 /-- The Cantor pairing as an equivalence `ℕ ≃ ℕ × ℕ`. -/
-private def natUnpairEquiv : ℕ ≃ ℕ × ℕ where
+def natUnpairEquiv : ℕ ≃ ℕ × ℕ where
   toFun := Nat.unpair
   invFun p := Nat.pair p.1 p.2
   left_inv := Nat.pair_unpair
@@ -728,7 +732,7 @@ theorem summable_inv_one_add_sq :
 
 /-- The inverse-square series over Cantor-paired indices converges:
 `∑_m 1/((1+fst(m))² · (1+snd(m))²)` is finite. -/
-private theorem summable_unpair_inv_sq :
+theorem summable_unpair_inv_sq :
     Summable (fun m : ℕ =>
       ((1 + ((Nat.unpair m).1 : ℝ)) ^ 2 * (1 + ((Nat.unpair m).2 : ℝ)) ^ 2)⁻¹) := by
   -- Rewrite as product of inverse squares, transfer to ℕ×ℕ via pairing equiv,
@@ -756,7 +760,7 @@ private theorem summable_unpair_inv_sq :
 
 Used to transfer rapid decay of individual coefficient sequences to rapid
 decay of the tensor product sequence indexed via Cantor pairing. -/
-private theorem one_add_pair_le_sq (i j : ℕ) :
+theorem one_add_pair_le_sq (i j : ℕ) :
     (1 + (Nat.pair i j : ℝ)) ≤ (2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2 := by
   have hi : (0 : ℝ) ≤ i := Nat.cast_nonneg i
   have hj : (0 : ℝ) ≤ j := Nat.cast_nonneg j
@@ -1009,7 +1013,7 @@ theorem pure_continuous_left (e₂ : E₂) :
     _ = ↑C * (s₂.sup DyninMityaginSpace.p) e₂ * (s₁.sup DyninMityaginSpace.p) e₁ := by ring
 
 /-- A finset sup of seminorms with `WithSeminorms` has its ball in nhds 0. -/
-private theorem finsetSup_seminorm_ball_mem_nhds
+theorem finsetSup_seminorm_ball_mem_nhds
     {F : Type*} [AddCommGroup F] [Module ℝ F] [TopologicalSpace F]
     [IsTopologicalAddGroup F] [ContinuousSMul ℝ F]
     {ι' : Type} {q : ι' → Seminorm ℝ F} (hq : WithSeminorms q)
@@ -1089,7 +1093,7 @@ variable {G : Type*} [NormedAddCommGroup G] [NormedSpace ℝ G] [CompleteSpace G
 /-- Summability of the lifted series. Given a bilinear map `B : E₁ →ₗ E₂ →ₗ G` that is
 bounded by seminorms, the series `∑ₘ aₘ • B(ψ₁ᵢ, ψ₂ⱼ)` converges for any
 `a : NuclearTensorProduct E₁ E₂`, where `(i,j) = unpair(m)`. -/
-private lemma lift_summable
+lemma lift_summable
     (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
     {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
     {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
@@ -1145,7 +1149,7 @@ private lemma lift_summable
 
 /-- Auxiliary: the norm bound for `lift` as a term-by-term inequality.
 Extracts the common calculation used in both `lift` continuity and `lift_summable`. -/
-private lemma lift_norm_bound
+lemma lift_norm_bound
     (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
     {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
     {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
@@ -1223,7 +1227,7 @@ private lemma lift_norm_bound
     _ = K * RapidDecaySeq.rapidDecaySeminorm N a := by rfl
 
 /-- The underlying linear map for `lift`. -/
-private def liftLM
+def liftLM
     (B : E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] G)
     {C : ℝ} {s₁ : Finset (@DyninMityaginSpace.ι E₁ _ _ _ _ _ _)}
     {s₂ : Finset (@DyninMityaginSpace.ι E₂ _ _ _ _ _ _)}
@@ -1378,7 +1382,7 @@ end Lift
 section Eval
 
 /-- The bilinear multiplication form `(x, y) ↦ x * y` as a bilinear map ℝ →ₗ ℝ →ₗ ℝ. -/
-private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
+def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
   toFun x :=
     { toFun := fun y => x * y
       map_add' := fun y₁ y₂ => mul_add x y₁ y₂
@@ -1387,7 +1391,7 @@ private def mulBilin : ℝ →ₗ[ℝ] ℝ →ₗ[ℝ] ℝ where
   map_smul' r x := by ext; simp [mul_assoc]
 
 /-- Compose the multiplication bilinear form with CLMs on each factor. -/
-private def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
+def compBilin (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
     E₁ →ₗ[ℝ] E₂ →ₗ[ℝ] ℝ :=
   (mulBilin.comp φ₁.toLinearMap).compl₂ φ₂.toLinearMap
 
@@ -1424,7 +1428,7 @@ def evalCLM (φ₁ : E₁ →L[ℝ] ℝ) (φ₂ : E₂ →L[ℝ] ℝ) :
     ((normSeminorm ℝ ℝ).comp φ₂.toLinearMap) hq₂
   -- The bilinear bound: ‖φ₁ e₁ * φ₂ e₂‖ ≤ (C₁ * C₂) * (s₁.sup p) e₁ * (s₂.sup p) e₂
   have hC_pos : (0 : ℝ) < C₁ * C₂ := by positivity
-  exact lift (compBilin φ₁ φ₂) hC_pos (fun e₁ e₂ => by
+  exact lift (compBilin φ₁ φ₂) (s₁ := s₁) (s₂ := s₂) hC_pos (fun e₁ e₂ => by
     simp only [compBilin_apply]
     rw [Real.norm_eq_abs, abs_mul]
     have h₁ : |φ₁ e₁| ≤ C₁ * (s₁.sup DyninMityaginSpace.p) e₁ := by

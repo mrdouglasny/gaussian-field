@@ -60,8 +60,12 @@ reflecting f negates the Fourier variable, and even σ is invariant.
 - Hörmander, *The Analysis of Linear PDOs* Vol. II, §18.1
 -/
 
-import Cylinder.Symmetry
-import Mathlib.Analysis.Distribution.FourierMultiplier
+module
+
+public import Cylinder.Symmetry
+public import Mathlib.Analysis.Distribution.FourierMultiplier
+
+@[expose] public section
 
 noncomputable section
 

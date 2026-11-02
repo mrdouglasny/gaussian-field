@@ -27,11 +27,15 @@ recurrence from `HermiteFunctions.lean`.
 - Glimm-Jaffe, *Quantum Physics*, §8.6
 -/
 
-import SchwartzNuclear.HermiteFunctions
-import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Factorial.BigOperators
-import Mathlib.Data.Fintype.Pi
+module
+
+public import SchwartzNuclear.HermiteFunctions
+public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Factorial.BigOperators
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 noncomputable section
 
@@ -195,16 +199,16 @@ expanded coefficient-wise in `t`. -/
 /-- Auxiliary "double-indexed" sum used in the proof of bivariate Wick
 addition.  Indexes a pair `(a, b) : ℕ × ℕ` with `a + b = n` (encoded
 as `b = n - a` and the implicit constraint `a ≤ n` from the `range`). -/
-private noncomputable def bivariateSum
+noncomputable def bivariateSum
     (n : ℕ) (c₁ c₂ x y : ℝ) : ℝ :=
   ∑ k ∈ Finset.range (n + 1),
     (n.choose k : ℝ) * wickMonomial k c₁ x * wickMonomial (n - k) c₂ y
 
-private lemma bivariateSum_zero (c₁ c₂ x y : ℝ) :
+lemma bivariateSum_zero (c₁ c₂ x y : ℝ) :
     bivariateSum 0 c₁ c₂ x y = 1 := by
   simp [bivariateSum]
 
-private lemma bivariateSum_one (c₁ c₂ x y : ℝ) :
+lemma bivariateSum_one (c₁ c₂ x y : ℝ) :
     bivariateSum 1 c₁ c₂ x y = x + y := by
   simp [bivariateSum, Finset.sum_range_succ]
   ring
@@ -213,7 +217,7 @@ private lemma bivariateSum_one (c₁ c₂ x y : ℝ) :
 
 /-- `(k + 1) · C(n+1, k+1) = (n+1) · C(n, k)`, real-valued form.
 This is `Nat.succ_mul_choose_eq` cast to `ℝ`. -/
-private lemma choose_absorb_left_real (n k : ℕ) :
+lemma choose_absorb_left_real (n k : ℕ) :
     (((k + 1 : ℕ)) : ℝ) * ((n + 1).choose (k + 1) : ℝ) =
       ((n + 1 : ℕ) : ℝ) * (n.choose k : ℝ) := by
   have h := Nat.add_one_mul_choose_eq n k
@@ -223,7 +227,7 @@ private lemma choose_absorb_left_real (n k : ℕ) :
 
 /-- `(n + 1 - k) · C(n+1, k) = (n+1) · C(n, k)` when `k ≤ n`, real-valued form.
 Derived by direct factorial manipulation. -/
-private lemma choose_absorb_right_real (n k : ℕ) (hk : k ≤ n) :
+lemma choose_absorb_right_real (n k : ℕ) (hk : k ≤ n) :
     (((n + 1 - k : ℕ)) : ℝ) * ((n + 1).choose k : ℝ) =
       ((n + 1 : ℕ) : ℝ) * (n.choose k : ℝ) := by
   have hk' : k ≤ n + 1 := Nat.le_succ_of_le hk
@@ -261,7 +265,7 @@ private lemma choose_absorb_right_real (n k : ℕ) (hk : k ≤ n) :
 /-- The bivariate sum satisfies the same three-term Wick recursion as
 `wickMonomial n (c₁ + c₂) (x + y)`.  Combined with matching base cases
 this yields the bivariate addition formula. -/
-private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
+lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
     bivariateSum (n + 2) c₁ c₂ x y =
       (x + y) * bivariateSum (n + 1) c₁ c₂ x y -
         ((n : ℝ) + 1) * (c₁ + c₂) * bivariateSum n c₁ c₂ x y := by
@@ -533,7 +537,7 @@ private lemma bivariateSum_recursion (n : ℕ) (c₁ c₂ x y : ℝ) :
 
 /-- The Wick monomial vanishes for a zero argument and zero variance,
 except at degree 0. -/
-private lemma wickMonomial_zero_zero : ∀ k : ℕ, wickMonomial k (0 : ℝ) (0 : ℝ) =
+lemma wickMonomial_zero_zero : ∀ k : ℕ, wickMonomial k (0 : ℝ) (0 : ℝ) =
     if k = 0 then 1 else 0
   | 0 => by simp
   | 1 => by simp
@@ -582,7 +586,7 @@ using `wickMonomial_add_add` to peel off one summand at a time and
 -/
 
 /-- Multi-indices supported in a Finset `s ⊆ ι` with total degree `k`. -/
-private noncomputable def multiIndicesSupportedIn
+noncomputable def multiIndicesSupportedIn
     {ι : Type*} [Fintype ι] [DecidableEq ι] (s : Finset ι) (k : ℕ) :
     Finset (ι → ℕ) :=
   (Fintype.piFinset (fun _ : ι => Finset.range (k + 1))).filter
@@ -590,7 +594,7 @@ private noncomputable def multiIndicesSupportedIn
 
 /-- The full set `multiIndicesOfTotalDegree` corresponds to the support
 being all of `ι`. -/
-private lemma multiIndicesSupportedIn_univ
+lemma multiIndicesSupportedIn_univ
     {ι : Type*} [Fintype ι] [DecidableEq ι] (k : ℕ) :
     multiIndicesSupportedIn (Finset.univ : Finset ι) k =
     (Fintype.piFinset (fun _ : ι => Finset.range (k + 1))).filter
@@ -601,7 +605,7 @@ private lemma multiIndicesSupportedIn_univ
 
 /-- Empty case: only the zero multi-index is supported in ∅, and only
 at total degree 0. -/
-private lemma multiIndicesSupportedIn_empty
+lemma multiIndicesSupportedIn_empty
     {ι : Type*} [Fintype ι] [DecidableEq ι] (k : ℕ) :
     multiIndicesSupportedIn (∅ : Finset ι) k =
       if k = 0 then {(fun _ => 0 : ι → ℕ)} else ∅ := by
@@ -640,7 +644,7 @@ The products on the RHS are over all of `ι`, but factors with
 
 Proved by `Finset.induction_on s`, peeling off one element at a time
 via `wickMonomial_add_add` and `wickMonomial_homogeneity`. -/
-private theorem wickMonomial_pow_sum_expansion_aux
+theorem wickMonomial_pow_sum_expansion_aux
     {ι : Type*} [Fintype ι] [DecidableEq ι] (γ ξ : ι → ℝ)
     (s : Finset ι) :
     ∀ (k : ℕ),

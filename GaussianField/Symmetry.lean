@@ -29,12 +29,16 @@ specialization of `measure_invariant_of_covariance_preserved`.
   field-law side.
 -/
 
-import GaussianField.MeasureUniqueness
-import GaussianField.Properties
-import Lattice.Covariance
-import GaussianField.Density
-import Mathlib.MeasureTheory.Group.Measure
-import Mathlib.Topology.MetricSpace.Basic
+module
+
+public import GaussianField.MeasureUniqueness
+public import GaussianField.Properties
+public import Lattice.Covariance
+public import GaussianField.Density
+public import Mathlib.MeasureTheory.Group.Measure
+public import Mathlib.Topology.MetricSpace.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -189,7 +193,7 @@ instance latticeGaussianFieldLaw_isProbability
 /-- The evaluation map intertwines `Neg` on `Configuration` with pointwise
 `Neg` on `FinLatticeField`. Concretely:
 `(-(evalMap ω)) = evalMap (configurationPullback negCLM ω)`. -/
-private theorem neg_evalMap_eq_evalMap_configurationPullback
+theorem neg_evalMap_eq_evalMap_configurationPullback
     (ω : Configuration (FinLatticeField d N)) :
     (fun x => -(evalMap d N ω) x) =
       evalMap d N (configurationPullback negCLM ω) := by

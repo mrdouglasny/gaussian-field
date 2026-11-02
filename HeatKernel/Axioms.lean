@@ -22,8 +22,12 @@ for any k (by DyninMityaginSpace.coeff_decay). Choosing k = 2 gives the
 required (1+m)^{-2} decay for the embedding theorem.
 -/
 
-import GaussianField.Construction
-import SmoothCircle.Basic
+module
+
+public import GaussianField.Construction
+public import SmoothCircle.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -45,7 +49,7 @@ def IsBoundedSeq (σ : ℕ → ℝ) : Prop :=
 
 /-- The key decay estimate: for bounded σ and DM-space coefficients,
     |σ_m * coeff_m(f)| ≤ K * (s.sup p) f * (1+m)^{-2}. -/
-private theorem spectral_decay_bound (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) :
+theorem spectral_decay_bound (σ : ℕ → ℝ) (hσ : IsBoundedSeq σ) :
     ∃ (s : Finset (DyninMityaginSpace.ι (E := E))) (K : ℝ) (_ : 0 < K),
     ∀ (m : ℕ) (f : E),
       |(fun m => (σ m) • DyninMityaginSpace.coeff m) m f| ≤

@@ -21,8 +21,12 @@ in OSreconstruction/Wightman/WightmanAxioms.lean.
 - Rudin, "Functional Analysis", Theorem 2.17
 -/
 
-import GaussianField.Tightness
-import Mathlib.Topology.Algebra.Module.Multilinear.Topology
+module
+
+public import GaussianField.Tightness
+public import Mathlib.Topology.Algebra.Module.Multilinear.Topology
+
+@[expose] public section
 
 noncomputable section
 

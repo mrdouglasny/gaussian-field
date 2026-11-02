@@ -25,11 +25,15 @@ Euclidean operators on the cylinder via a single parametric lemma.
   discharge for time reflection via the parametric lemma.
 -/
 
-import Cylinder.MassOperatorConstruction
-import Cylinder.FourierMultiplier
-import SchwartzNuclear.HermiteHilbertBasis
-import Nuclear.NuclearExtension
-import HeatKernel.GreenInvariance
+module
+
+public import Cylinder.MassOperatorConstruction
+public import Cylinder.FourierMultiplier
+public import SchwartzNuclear.HermiteHilbertBasis
+public import Nuclear.NuclearExtension
+public import HeatKernel.GreenInvariance
+
+@[expose] public section
 
 noncomputable section
 
@@ -49,7 +53,7 @@ specialisation `S₂ = schwartzReflection`). The proof generalises
 verbatim because it only uses `nuclearTensorProduct_mapCLM_pure` and
 `ntpSliceSchwartz_pure`, neither of which fixes `S₂`. -/
 
-private theorem ntpSliceSchwartz_tensorMap_id_left
+theorem ntpSliceSchwartz_tensorMap_id_left
     (S₂ : SchwartzMap ℝ ℝ →L[ℝ] SchwartzMap ℝ ℝ) (a : ℕ)
     (f : CylinderTestFunction L) :
     ntpSliceSchwartz L a
@@ -94,7 +98,7 @@ private theorem ntpSliceSchwartz_tensorMap_id_left
 `∫ (Θ g)(t)² dt = ∫ g(t)² dt`, by change of variables `t ↦ -t`.
 `∫ (T_τ g)(t)² dt = ∫ g(t)² dt`, by change of variables `t ↦ t - τ`. -/
 
-private theorem schwartzReflection_integral_sq (g : SchwartzMap ℝ ℝ) :
+theorem schwartzReflection_integral_sq (g : SchwartzMap ℝ ℝ) :
     ∫ t, (schwartzReflection g) t ^ 2 = ∫ t, g t ^ 2 := by
   -- schwartzReflection g t = g (-t) (definitionally; see Cylinder/Symmetry.lean:74).
   have h_eq : (fun t : ℝ => (schwartzReflection g) t ^ 2) =
@@ -103,7 +107,7 @@ private theorem schwartzReflection_integral_sq (g : SchwartzMap ℝ ℝ) :
   rw [h_eq]
   exact MeasureTheory.integral_neg_eq_self (G := ℝ) (fun t => g t ^ 2) MeasureTheory.volume
 
-private theorem schwartzTranslation_integral_sq (τ : ℝ) (g : SchwartzMap ℝ ℝ) :
+theorem schwartzTranslation_integral_sq (τ : ℝ) (g : SchwartzMap ℝ ℝ) :
     ∫ t, (schwartzTranslation τ g) t ^ 2 = ∫ t, g t ^ 2 := by
   -- schwartzTranslation τ g t = g (t - τ) (definitionally).
   have h_eq : (fun t : ℝ => (schwartzTranslation τ g) t ^ 2) =

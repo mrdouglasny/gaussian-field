@@ -7,5 +7,9 @@ Fourier multiplier theory on Schwartz space 𝓢(ℝ), with:
 - (Future) Hermite eigenfunction expansion: ℱ(φ_n) = (-i)^n φ_n
 -/
 
-import SchwartzFourier.LaplaceCLM
-import SchwartzFourier.ResolventUniformBound
+module
+
+public import SchwartzFourier.LaplaceCLM
+public import SchwartzFourier.ResolventUniformBound
+
+@[expose] public section

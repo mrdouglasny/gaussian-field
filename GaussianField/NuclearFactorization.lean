@@ -24,11 +24,15 @@ seminorm) and y_m ∈ H.
 - Gel'fand, Vilenkin, "Generalized Functions" Vol 4, Ch 3-4
 -/
 
-import Nuclear.DyninMityagin
-import Mathlib.Analysis.PSeries
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+module
+
+public import Nuclear.DyninMityagin
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+@[expose] public section
 
 open scoped BigOperators
 open Finset
@@ -56,7 +60,7 @@ lemma summable_one_add_rpow_neg_two :
 
 omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E] in
 /-- The sup of finitely many polynomially-bounded seminorms is polynomially bounded. -/
-private lemma finset_sup_seminorm_poly_bound
+lemma finset_sup_seminorm_poly_bound
     {ι' : Type*} (p' : ι' → Seminorm ℝ E)
     (s : Finset ι')
     (x : ℕ → E)

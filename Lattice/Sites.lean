@@ -16,13 +16,17 @@ and infinite lattices, along with nearest-neighbor structure and ℓ¹ norm.
 - `neighborsFinite` — nearest neighbors with periodic BC
 -/
 
-import Mathlib.Data.Int.Basic
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Data.Int.Basic
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Data.Real.Basic
+
+@[expose] public section
 
 noncomputable section
 

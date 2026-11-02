@@ -1,4 +1,8 @@
-import Lattice.CirculantDFT2d
+module
+
+public import Lattice.CirculantDFT2d
+
+@[expose] public section
 
 noncomputable section
 
@@ -10,7 +14,7 @@ open Real
 variable (N : ℕ) [NeZero N]
 
 /-- Reindex a sum over `ZMod N` as a sum over `Fin N` via `ZMod.val`. -/
-private lemma zmod_sum_eq_fin_sum {α : Type*} [AddCommMonoid α] (g : ℕ → α) :
+lemma zmod_sum_eq_fin_sum {α : Type*} [AddCommMonoid α] (g : ℕ → α) :
     ∑ x : ZMod N, g (ZMod.val x) =
     ∑ n : Fin N, g n.val := by
   exact Fintype.sum_bijective
@@ -25,7 +29,7 @@ private lemma zmod_sum_eq_fin_sum {α : Type*} [AddCommMonoid α] (g : ℕ → �
 
 /-- Raw torus frequency corresponding to the real Fourier mode ordering
 `0, cos(1), sin(1), cos(2), sin(2), ...`. -/
-private noncomputable def realModeToRaw (m : Fin N) : Fin N :=
+noncomputable def realModeToRaw (m : Fin N) : Fin N :=
   match m with
   | ⟨0, _⟩ => 0
   | ⟨n + 1, hm⟩ =>
@@ -35,20 +39,20 @@ private noncomputable def realModeToRaw (m : Fin N) : Fin N :=
       else
         ⟨N - k, by omega⟩
 
-private lemma realModeToRaw_succ_even (n : ℕ) (hm : n + 1 < N)
+lemma realModeToRaw_succ_even (n : ℕ) (hm : n + 1 < N)
     (hn_even : n % 2 = 0) :
     realModeToRaw (N := N) (⟨n + 1, hm⟩ : Fin N) =
       ⟨n / 2 + 1, by omega⟩ := by
   simp [realModeToRaw, hn_even]
 
-private lemma realModeToRaw_succ_odd (n : ℕ) (hm : n + 1 < N)
+lemma realModeToRaw_succ_odd (n : ℕ) (hm : n + 1 < N)
     (hn_odd : n % 2 ≠ 0) :
     realModeToRaw (N := N) (⟨n + 1, hm⟩ : Fin N) =
       ⟨N - (n / 2 + 1), by omega⟩ := by
   simp [realModeToRaw, hn_odd]
 
 /-- Inverse of `realModeToRaw`. -/
-private noncomputable def rawModeToReal (k : Fin N) : Fin N :=
+noncomputable def rawModeToReal (k : Fin N) : Fin N :=
   if hk0 : k.val = 0 then
     0
   else if hk_small : 2 * k.val ≤ N then
@@ -56,7 +60,7 @@ private noncomputable def rawModeToReal (k : Fin N) : Fin N :=
   else
     ⟨2 * (N - k.val), by omega⟩
 
-private lemma rawModeToReal_realModeToRaw (m : Fin N) :
+lemma rawModeToReal_realModeToRaw (m : Fin N) :
     rawModeToReal (N := N) (realModeToRaw (N := N) m) = m := by
   rcases m with ⟨_|n, hm⟩
   · simp [realModeToRaw, rawModeToReal]
@@ -84,7 +88,7 @@ private lemma rawModeToReal_realModeToRaw (m : Fin N) :
         omega
       exact Fin.ext hk_eq
 
-private lemma realModeToRaw_rawModeToReal (k : Fin N) :
+lemma realModeToRaw_rawModeToReal (k : Fin N) :
     realModeToRaw (N := N) (rawModeToReal (N := N) k) = k := by
   rcases k with ⟨k, hk⟩
   by_cases hk0 : k = 0
@@ -119,7 +123,7 @@ private lemma realModeToRaw_rawModeToReal (k : Fin N) :
       simpa using show ((N - ((2 * (N - k) - 1) / 2 + 1) : ℕ) = k) by omega
 
 /-- Equivalence between real Fourier mode labels and raw torus frequencies. -/
-private noncomputable def realModeRawEquiv : Fin N ≃ Fin N where
+noncomputable def realModeRawEquiv : Fin N ≃ Fin N where
   toFun := realModeToRaw (N := N)
   invFun := rawModeToReal (N := N)
   left_inv := rawModeToReal_realModeToRaw (N := N)
@@ -127,7 +131,7 @@ private noncomputable def realModeRawEquiv : Fin N ≃ Fin N where
 
 /-- The raw torus frequency selected by `realModeToRaw` has the same
 1D lattice eigenvalue as the real Fourier mode `m`. -/
-private lemma realModeToRaw_eigenvalue (a : ℝ) (m : Fin N) :
+lemma realModeToRaw_eigenvalue (a : ℝ) (m : Fin N) :
     (4 / a ^ 2) * Real.sin (Real.pi * ((realModeToRaw (N := N) m).val : ℝ) / N) ^ 2 =
       latticeEigenvalue1d N a m := by
   rcases m with ⟨_|n, hm⟩
@@ -205,7 +209,7 @@ theorem sum_rawFrequency_pair_eq_sum_latticeEigenvalue1d_pair
               rw [Finset.sum_comm]
 
 /-- Reindex lattice sites from `ZMod N` coordinates to `Fin N` coordinates. -/
-private noncomputable def finLatticeSitesEquivPiFin (d : ℕ) :
+noncomputable def finLatticeSitesEquivPiFin (d : ℕ) :
     FinLatticeSites d N ≃ (Fin d → Fin N) where
   toFun x i := ⟨ZMod.val (x i), ZMod.val_lt (x i)⟩
   invFun k i := ((k i : Fin N) : ZMod N)
@@ -218,7 +222,7 @@ private noncomputable def finLatticeSitesEquivPiFin (d : ℕ) :
     simp [ZMod.val_natCast, Nat.mod_eq_of_lt (k i).isLt]
 
 /-- Coordinatewise version of `realModeRawEquiv`. -/
-private noncomputable def realModeRawEquivFamily (d : ℕ) :
+noncomputable def realModeRawEquivFamily (d : ℕ) :
     (Fin d → Fin N) ≃ (Fin d → Fin N) where
   toFun k i := realModeToRaw (N := N) (k i)
   invFun k i := rawModeToReal (N := N) (k i)

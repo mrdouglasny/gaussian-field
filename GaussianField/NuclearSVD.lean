@@ -22,20 +22,24 @@ operator A : ℓ² → H, A(e_m) = y_m.
 5. Verify all required properties
 -/
 
-import GaussianField.SpectralTheorem
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
-import Mathlib.Analysis.Normed.Operator.ContinuousLinearMap
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Basic.Denumerable
-import Mathlib.Topology.Algebra.Module.Basic
+module
+
+public import GaussianField.SpectralTheorem
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
+public import Mathlib.Analysis.Normed.Operator.ContinuousLinearMap
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Basic.Denumerable
+public import Mathlib.Topology.Algebra.Module.Basic
+
+@[expose] public section
 
 open scoped BigOperators
 open Filter TopologicalSpace

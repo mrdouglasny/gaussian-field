@@ -37,10 +37,14 @@ the explicit density formula needed for the FKG inequality proof.
 - Simon, "The P(φ)₂ Euclidean (Quantum) Field Theory", Chapter I
 -/
 
-import Lattice.Covariance
-import Lattice.SpectralCovariance
-import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
-import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
+module
+
+public import Lattice.Covariance
+public import Lattice.SpectralCovariance
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
+public import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
+
+@[expose] public section
 
 noncomputable section
 

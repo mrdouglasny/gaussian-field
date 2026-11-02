@@ -11,9 +11,13 @@ on `S(ℝ^{n(d+1)}, ℂ)`, agreeing on product tensors.
 This is the theorem that replaces the axiom in OSreconstruction.
 -/
 
-import GeneralResults.SchwartzProducts
-import SchwartzNuclear.NuclearExtension
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import GeneralResults.SchwartzProducts
+public import SchwartzNuclear.NuclearExtension
+public import Mathlib.Analysis.Complex.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -26,7 +30,7 @@ namespace GaussianField
 /-! ## Auxiliary lemmas for complex product tensor -/
 
 /-- Chain rule bound: `‖D^c(f ∘ proj_j) x‖ ≤ ‖D^c f (x j)‖` for ℂ-valued Schwartz. -/
-private lemma complex_chain_bound
+lemma complex_chain_bound
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {n : ℕ} (f : SchwartzMap E ℂ) (j : Fin n) (c : ℕ) (x : Fin n → E) :
     ‖iteratedFDeriv ℝ c (fun x : Fin n → E => f (x j)) x‖ ≤
@@ -44,7 +48,7 @@ private lemma complex_chain_bound
     _ = ‖iteratedFDeriv ℝ c f.toFun (x j)‖ := by simp [L]
 
 /-- Schwartz sup-norm bound: `∃ C, ∀ y, ‖D^c f y‖ ≤ C`. -/
-private lemma schwartz_sup_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+lemma schwartz_sup_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SchwartzMap E ℂ) (c : ℕ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ y : E, ‖iteratedFDeriv ℝ c (⇑f) y‖ ≤ C := by
   obtain ⟨C, hC⟩ := f.decay' 0 c
@@ -53,7 +57,7 @@ private lemma schwartz_sup_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace
     simpa only [pow_zero, one_mul] using hC y⟩
 
 /-- Schwartz k-decay bound: `∃ C, ∀ y, ‖y‖^k * ‖D^c f y‖ ≤ C`. -/
-private lemma schwartz_k_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+lemma schwartz_k_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SchwartzMap E ℂ) (k c : ℕ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ y : E, ‖y‖ ^ k * ‖iteratedFDeriv ℝ c (⇑f) y‖ ≤ C := by
   obtain ⟨C, hC⟩ := f.decay' k c
@@ -61,7 +65,7 @@ private lemma schwartz_k_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace �
 
 /-- Schwartz decay for ℂ-valued product tensor: distributes `‖x‖^k` across factors.
 Same argument as `schwartz_product_decay` in `SchwartzProducts.lean` but for ℂ-valued. -/
-private lemma complex_product_decay
+lemma complex_product_decay
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {n : ℕ} (hn : 0 < n) (fs : Fin n → SchwartzMap E ℂ) (k m : ℕ) :
     ∃ C, ∀ x : Fin n → E,
@@ -157,12 +161,12 @@ theorem complexProductTensor_apply {E : Type*} [NormedAddCommGroup E] [NormedSpa
 /-! ## Infrastructure for the nuclear extension theorem -/
 
 /-- Embedding of ℝ-valued Schwartz functions into ℂ-valued via `Complex.ofRealCLM`. -/
-private def iotaSchwartz (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] :
+def iotaSchwartz (D : Type*) [NormedAddCommGroup D] [NormedSpace ℝ D] :
     SchwartzMap D ℝ →L[ℝ] SchwartzMap D ℂ :=
   SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.ofRealCLM
 
 /-- The product tensor of real-embedded functions equals the real-embedding of the product. -/
-private lemma complexProductTensor_ofReal
+lemma complexProductTensor_ofReal
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     {n : ℕ} (gs : Fin n → SchwartzMap D ℝ) (x : Fin n → D) :
     complexProductTensor (fun i => iotaSchwartz D (gs i)) x =
@@ -172,7 +176,7 @@ private lemma complexProductTensor_ofReal
   simp [Complex.ofReal_prod]
 
 /-- Decomposition of a ℂ-valued Schwartz function: `f = ι(Re f) + i • ι(Im f)`. -/
-private lemma schwartz_complex_decomp
+lemma schwartz_complex_decomp
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     (f : SchwartzMap D ℂ) :
     f = iotaSchwartz D (SchwartzMap.postcompCLM (𝕜 := ℝ) Complex.reCLM f) +
@@ -183,7 +187,7 @@ private lemma schwartz_complex_decomp
   exact (Complex.re_add_im (f x)).symm
 
 /-- Restrict a ℂ-linear CLM on Schwartz space to an ℝ-linear CLM. -/
-private def clmRestrictReal {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
+def clmRestrictReal {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     (W : SchwartzMap D ℂ →L[ℂ] ℂ) : SchwartzMap D ℂ →L[ℝ] ℂ where
   toFun := W
   map_add' := W.map_add
@@ -196,7 +200,7 @@ private def clmRestrictReal {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ 
   cont := W.cont
 
 /-- Scalar-tower instance needed to restrict multilinear maps from `ℂ` to `ℝ`. -/
-private instance instIsScalarTowerSchwartzMapComplex
+instance instIsScalarTowerSchwartzMapComplex
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D] :
     IsScalarTower ℝ ℂ (SchwartzMap D ℂ) where
   smul_assoc r z f := by
@@ -205,7 +209,7 @@ private instance instIsScalarTowerSchwartzMapComplex
     ring
 
 /-- Updating one factor of `complexProductTensor` by a sum distributes over the tensor. -/
-private lemma complexProductTensor_update_add
+lemma complexProductTensor_update_add
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     {n : ℕ} (fs : Fin n → SchwartzMap D ℂ) (i : Fin n)
     (f g : SchwartzMap D ℂ) :
@@ -235,7 +239,7 @@ private lemma complexProductTensor_update_add
   simp [add_mul]
 
 /-- Updating one factor of `complexProductTensor` by a scalar multiple pulls the scalar out. -/
-private lemma complexProductTensor_update_smul
+lemma complexProductTensor_update_smul
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     {n : ℕ} (fs : Fin n → SchwartzMap D ℂ) (i : Fin n)
     (z : ℂ) (f : SchwartzMap D ℂ) :
@@ -258,7 +262,7 @@ private lemma complexProductTensor_update_smul
   simp [smul_eq_mul, mul_assoc]
 
 /-- Basis values determine a continuous real multilinear map on a Dynin-Mityagin space. -/
-private theorem continuousMultilinear_eq_of_basis_eq
+theorem continuousMultilinear_eq_of_basis_eq
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [DyninMityaginSpace E] [DyninMityaginSpace.HasBiorthogonalBasis E] :
     ∀ {n : ℕ},
@@ -351,7 +355,7 @@ private theorem continuousMultilinear_eq_of_basis_eq
         congrArg (fun f => f (m 0)) h0
 
 /-- A complex multilinear functional is determined by its values on real embedded tuples. -/
-private theorem multilinear_fun_eq_of_real_eq
+theorem multilinear_fun_eq_of_real_eq
     {E0 E : Type*}
     [AddCommGroup E0] [Module ℝ E0]
     [AddCommGroup E] [Module ℂ E]
@@ -462,7 +466,7 @@ private theorem multilinear_fun_eq_of_real_eq
 
 /-- Evaluation of a Schwartz map at a point, as a ℂ-linear CLM.
 `schwartzPointEvalCLM E x₀` maps `f` to `f x₀`. -/
-private def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace ℝ E]
+def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace ℝ E]
     (x₀ : E) : SchwartzMap E ℂ →L[ℂ] ℂ := by
   set L : SchwartzMap E ℂ →ₛₗ[RingHom.id ℂ] ℂ :=
     { toFun := fun f => f x₀, map_add' := fun f g => by simp,
@@ -475,7 +479,7 @@ private def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace
     have h := SchwartzMap.le_seminorm ℂ 0 0 f x₀; simp at h
     calc ‖f x₀‖ ≤ (SchwartzMap.seminorm ℂ 0 0) f := h
       _ = (schwartzSeminormFamily ℂ E ℂ (0, 0)) f := by
-          unfold schwartzSeminormFamily SchwartzMap.seminorm; simp
+          simp [schwartzSeminormFamily]
   exact ⟨L, (schwartz_withSeminorms ℂ E ℂ).continuous_of_isBounded
     (norm_withSeminorms ℂ ℂ) L hbdd⟩
 
@@ -485,7 +489,7 @@ private def schwartzPointEvalCLM (E : Type*) [NormedAddCommGroup E] [NormedSpace
 
 /-- Product tensor is additive in one slot: updating slot `jj` with `f + g`
 gives the sum of the individual product tensors. -/
-private lemma productTensor_update_add
+lemma productTensor_update_add
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     {n : ℕ} (hn : 1 ≤ n)
@@ -512,7 +516,7 @@ private lemma productTensor_update_add
 
 /-- Product tensor is homogeneous in one slot: updating slot `jj` with `a • f`
 gives `a` times the product tensor. -/
-private lemma productTensor_update_smul
+lemma productTensor_update_smul
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     {n : ℕ} (hn : 1 ≤ n)
@@ -538,7 +542,7 @@ The map `f ↦ productTensor(update gs jj f)` from `S(D,ℝ)` to `S(∏D,ℝ)` i
 (proved by `productTensor_update_add/smul`) and continuous (from Schwartz seminorm
 estimates: Leibniz rule + chain rule for `f ∘ proj_jj` + decay of the fixed factors).
 Composing with the CLM `w` gives a CLM `S(D,ℝ) →L[ℝ] ℝ`. -/
-private def slotInsertionCLM
+def slotInsertionCLM
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     {n : ℕ} (hn : 1 ≤ n)

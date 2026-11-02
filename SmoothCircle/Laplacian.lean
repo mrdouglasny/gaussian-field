@@ -22,7 +22,11 @@ and proves it acts on the Fourier basis by eigenvalue multiplication.
 - Stein-Shakarchi, *Fourier Analysis*, Ch. 3
 -/
 
-import SmoothCircle.Eigenvalues
+module
+
+public import SmoothCircle.Eigenvalues
+
+@[expose] public section
 
 noncomputable section
 
@@ -118,11 +122,11 @@ We compute the second derivatives of the real Fourier basis using `HasDerivAt`
 for trig functions composed with linear maps. -/
 
 /-- The angular frequency of the k-th Fourier mode. -/
-private def fourierOmega (k : ℕ) : ℝ := 2 * Real.pi * k / L
+def fourierOmega (k : ℕ) : ℝ := 2 * Real.pi * k / L
 
 omit hL in
 /-- `HasDerivAt` for the linear phase `x ↦ 2πkx/L`. -/
-private theorem hasDerivAt_fourierPhase (k : ℕ) (x : ℝ) :
+theorem hasDerivAt_fourierPhase (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => 2 * Real.pi * (k : ℝ) * x / L) (fourierOmega L k) x := by
   have h : (fun x => 2 * Real.pi * (k : ℝ) * x / L) = (fun x => fourierOmega L k * x) := by
     ext y; simp [fourierOmega]; ring
@@ -131,7 +135,7 @@ private theorem hasDerivAt_fourierPhase (k : ℕ) (x : ℝ) :
 
 omit hL in
 /-- First derivative of `A · cos(2πkx/L)`. -/
-private theorem hasDerivAt_cos_phase (k : ℕ) (x : ℝ) :
+theorem hasDerivAt_cos_phase (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => Real.sqrt (2 / L) * Real.cos (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * fourierOmega L k *
         Real.sin (2 * Real.pi * (k : ℝ) * x / L)) x := by
@@ -142,7 +146,7 @@ private theorem hasDerivAt_cos_phase (k : ℕ) (x : ℝ) :
 
 omit hL in
 /-- First derivative of `A · sin(2πkx/L)`. -/
-private theorem hasDerivAt_sin_phase (k : ℕ) (x : ℝ) :
+theorem hasDerivAt_sin_phase (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => Real.sqrt (2 / L) * Real.sin (2 * Real.pi * (k : ℝ) * x / L))
       (Real.sqrt (2 / L) * fourierOmega L k *
         Real.cos (2 * Real.pi * (k : ℝ) * x / L)) x := by
@@ -153,7 +157,7 @@ private theorem hasDerivAt_sin_phase (k : ℕ) (x : ℝ) :
 
 omit hL in
 /-- Second derivative of `A · cos(2πkx/L)`. -/
-private theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
+theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => -Real.sqrt (2 / L) * fourierOmega L k *
         Real.sin (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * (fourierOmega L k) ^ 2 *
@@ -163,7 +167,7 @@ private theorem hasDerivAt_deriv_cos (k : ℕ) (x : ℝ) :
 
 omit hL in
 /-- Second derivative of `A · sin(2πkx/L)`. -/
-private theorem hasDerivAt_deriv_sin (k : ℕ) (x : ℝ) :
+theorem hasDerivAt_deriv_sin (k : ℕ) (x : ℝ) :
     HasDerivAt (fun x => Real.sqrt (2 / L) * fourierOmega L k *
         Real.cos (2 * Real.pi * (k : ℝ) * x / L))
       (-Real.sqrt (2 / L) * (fourierOmega L k) ^ 2 *
@@ -174,7 +178,7 @@ private theorem hasDerivAt_deriv_sin (k : ℕ) (x : ℝ) :
 /-! ## Eigenvalue equation -/
 
 /-- Helper: two successive `HasDerivAt` steps determine `deriv (deriv f)`. -/
-private theorem deriv_deriv_eq_of_hasDerivAt {f f' : ℝ → ℝ} {f'' : ℝ}
+theorem deriv_deriv_eq_of_hasDerivAt {f f' : ℝ → ℝ} {f'' : ℝ}
     (hf : ∀ y, HasDerivAt f (f' y) y) (hf' : HasDerivAt f' f'' x) :
     deriv (deriv f) x = f'' := by
   have h1 : deriv f = f' := funext (fun y => (hf y).deriv)
@@ -183,7 +187,7 @@ private theorem deriv_deriv_eq_of_hasDerivAt {f f' : ℝ → ℝ} {f'' : ℝ}
 
 omit hL in
 /-- Eigenvalue formula: (2πk/L)² = 4π²k²/L². -/
-private theorem eigenvalue_formula (k : ℕ) :
+theorem eigenvalue_formula_circle (k : ℕ) :
     (2 * Real.pi * (k : ℝ) / L) ^ 2 = 4 * Real.pi ^ 2 * (k : ℝ) ^ 2 / L ^ 2 := by
   ring
 

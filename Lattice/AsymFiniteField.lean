@@ -3,7 +3,11 @@ Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael R. Douglas
 -/
-import Lattice.AsymCovariance
+module
+
+public import Lattice.AsymCovariance
+
+@[expose] public section
 
 /-!
 # `DyninMityaginSpace` instance for the asymmetric lattice field
@@ -23,7 +27,7 @@ open scoped BigOperators
 namespace GaussianField
 
 /-- Enumeration of heterogeneous lattice sites via Fintype. -/
-private noncomputable def asymLatticeSiteEnum (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
+noncomputable def asymLatticeSiteEnum (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
     AsymLatticeSites Nt Ns ≃ Fin (Fintype.card (AsymLatticeSites Nt Ns)) :=
   Fintype.equivFin _
 

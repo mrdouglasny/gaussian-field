@@ -28,13 +28,17 @@ metric-inconsistent `N×N` + geometric-mean-spacing construction.
 Implementation plan: pphi2 `docs/cylinder-isotropic-lattice-implementation.md`.
 -/
 
-import Lattice.Covariance
-import Lattice.Convergence
-import Torus.AsymmetricTorus
-import HeatKernel.Bilinear
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Lattice.Covariance
+public import Lattice.Convergence
+public import Torus.AsymmetricTorus
+public import HeatKernel.Bilinear
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 noncomputable section
 
@@ -87,7 +91,7 @@ noncomputable def finiteLaplacianAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a :
 /-- Translation reindexing (forward) on the heterogeneous lattice: shifting the
 second factor by `+v` is the same as shifting the first by `-v`. Periodicity is
 automatic since `AsymLatticeSites Nt Ns` is a finite additive group. -/
-private lemma asym_sum_mul_translate {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+lemma asym_sum_mul_translate {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
     (h k : AsymLatticeField Nt Ns) (v : AsymLatticeSites Nt Ns) :
     ∑ x, h x * k (x + v) = ∑ x, h (x - v) * k x := by
   symm
@@ -96,7 +100,7 @@ private lemma asym_sum_mul_translate {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
     (fun x => by simp [sub_eq_add_neg])
 
 /-- Translation reindexing (backward) on the heterogeneous lattice. -/
-private lemma asym_sum_mul_translate' {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+lemma asym_sum_mul_translate' {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
     (h k : AsymLatticeField Nt Ns) (v : AsymLatticeSites Nt Ns) :
     ∑ x, h x * k (x - v) = ∑ x, h (x + v) * k x := by
   symm
@@ -276,7 +280,7 @@ defined exactly as in the square case) plus the lattice-specific positivity. The
 abstract = DFT spectral bridge. -/
 
 /-- Basis decomposition: any lattice field is a linear combination of site deltas. -/
-private lemma asym_field_basis_decomp {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+lemma asym_field_basis_decomp {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
     (φ : AsymLatticeField Nt Ns) :
     φ = ∑ y : AsymLatticeSites Nt Ns, φ y • asymLatticeDelta Nt Ns y := by
   ext x
@@ -285,7 +289,7 @@ private lemma asym_field_basis_decomp {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
 
 /-- For a single direction, `∑ₓ f(x)·(f(x+v)+f(x-v)-2f(x)) = -∑ₓ (f(x+v)-f(x))²`. Summation by
 parts on the finite additive group; periodicity is automatic. -/
-private lemma asym_direction_sum_eq_neg_sq {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
+lemma asym_direction_sum_eq_neg_sq {Nt Ns : ℕ} [NeZero Nt] [NeZero Ns]
     (f : AsymLatticeField Nt Ns) (v : AsymLatticeSites Nt Ns) :
     ∑ x, f x * (f (x + v) + f (x - v) - 2 * f x) =
     -(∑ x, (f (x + v) - f x) ^ 2) := by
@@ -762,7 +766,7 @@ theorem abstract_spectral_eq_dft_spectral_2d_asym (Nt Ns : ℕ) [NeZero Nt] [NeZ
 
 /-- The `(m₁, m₂)`-th term of the rectangular lattice Green's function spectral sum: time
 direction on `S¹(Lt)` with `Nt` sites, space on `S¹(Ls)` with `Ns` sites, shared spacing `a`. -/
-private def latticeGreenTerm2dAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
+def latticeGreenTerm2dAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) (p : ℕ × ℕ) : ℝ :=
   latticeDFTCoeff1d Lt Nt f₁ p.1 * latticeDFTCoeff1d Lt Nt g₁ p.1 *
   latticeDFTCoeff1d Ls Ns f₂ p.2 * latticeDFTCoeff1d Ls Ns g₂ p.2 /
@@ -770,7 +774,7 @@ private def latticeGreenTerm2dAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass
    latticeFourierNormSq Nt p.1 * latticeFourierNormSq Ns p.2)
 
 /-- The `(n₁, n₂)`-th term of the continuum rectangular 2D Green's function spectral sum. -/
-private def continuumGreenTerm2dAsym (mass : ℝ)
+def continuumGreenTerm2dAsym (mass : ℝ)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) (p : ℕ × ℕ) : ℝ :=
   DyninMityaginSpace.coeff p.1 f₁ * DyninMityaginSpace.coeff p.1 g₁ *
   DyninMityaginSpace.coeff p.2 f₂ * DyninMityaginSpace.coeff p.2 g₂ /
@@ -778,7 +782,7 @@ private def continuumGreenTerm2dAsym (mass : ℝ)
    HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle Ls ℝ) p.2 + mass ^ 2)
 
 /-- The rectangular lattice Green's term vanishes when either index is out of range. -/
-private theorem latticeGreenTerm2dAsym_zero_of_ge (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
+theorem latticeGreenTerm2dAsym_zero_of_ge (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) (p : ℕ × ℕ)
     (h : Nt ≤ p.1 ∨ Ns ≤ p.2) :
     latticeGreenTerm2dAsym Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p = 0 := by
@@ -789,7 +793,7 @@ private theorem latticeGreenTerm2dAsym_zero_of_ge (Nt Ns : ℕ) [NeZero Nt] [NeZ
 
 /-- Norm bound on each rectangular lattice Green's term, from per-direction DFT quadratic decay.
 Gives `C / (mass² (1+p₁)⁴ (1+p₂)⁴)`, summable over `ℕ × ℕ` and uniform in `Nt, Ns, a`. -/
-private theorem latticeGreenTerm2dAsym_norm_le (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
+theorem latticeGreenTerm2dAsym_norm_le (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] (a mass : ℝ)
     (hmass : 0 < mass)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ)
     {Cf₁ Cg₁ Cf₂ Cg₂ : ℝ}
@@ -873,7 +877,7 @@ private theorem latticeGreenTerm2dAsym_norm_le (Nt Ns : ℕ) [NeZero Nt] [NeZero
     rw [h0, norm_zero]; positivity
 
 /-- Summability of the dominating function `C / (mass² (1+p₁)⁴ (1+p₂)⁴)` over `ℕ × ℕ`. -/
-private theorem summable_bound_asym (mass : ℝ) (hmass : 0 < mass) (C : ℝ) :
+theorem summable_bound_asym (mass : ℝ) (hmass : 0 < mass) (C : ℝ) :
     Summable (fun p : ℕ × ℕ =>
       C / (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4)) := by
   have h1d : Summable (fun n : ℕ => 1 / (1 + (n : ℝ)) ^ 4) := by
@@ -889,7 +893,7 @@ private theorem summable_bound_asym (mass : ℝ) (hmass : 0 < mass) (C : ℝ) :
 
 /-- Each rectangular lattice Green's term converges to the continuum term, along any
 isotropic sequence `(Nt k, Ns k, a k)` with `Nt k · a k = Lt`, `Ns k · a k = Ls`, `a k → 0`. -/
-private theorem latticeGreenTerm2dAsym_tendsto
+theorem latticeGreenTerm2dAsym_tendsto
     (mass : ℝ) (hmass : 0 < mass)
     (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
     (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
@@ -983,7 +987,7 @@ private theorem latticeGreenTerm2dAsym_tendsto
 /-- The rectangular lattice covariance for pure tensors equals the explicit 2D DFT spectral
 sum (range form). From `abstract_spectral_eq_dft_spectral_2d_asym` + the pure-tensor DFT
 coefficient factorization. -/
-private theorem lattice_covariance_pure_eq_2d_spectral_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+theorem lattice_covariance_pure_eq_2d_spectral_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
     covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
@@ -1032,7 +1036,7 @@ private theorem lattice_covariance_pure_eq_2d_spectral_asym (Nt Ns : ℕ) [NeZer
   ring
 
 /-- The rectangular lattice covariance for pure tensors as a `tsum` over `ℕ × ℕ`. -/
-private theorem lattice_covariance_eq_tsum_pure_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+theorem lattice_covariance_eq_tsum_pure_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
     covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
@@ -1048,7 +1052,7 @@ private theorem lattice_covariance_eq_tsum_pure_asym (Nt Ns : ℕ) [NeZero Nt] [
     exact latticeGreenTerm2dAsym_zero_of_ge Lt Ls Nt Ns a mass f₁ g₁ f₂ g₂ p hp
 
 /-- The continuum rectangular Green's function for pure tensors as a `tsum` over `ℕ × ℕ`. -/
-private theorem greenFunctionBilinear_pure_eq_tsum_asym (mass : ℝ) (hmass : 0 < mass)
+theorem greenFunctionBilinear_pure_eq_tsum_asym (mass : ℝ) (hmass : 0 < mass)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ) :
     greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass
       (NuclearTensorProduct.pure f₁ f₂) (NuclearTensorProduct.pure g₁ g₂) =
@@ -1083,7 +1087,7 @@ private theorem greenFunctionBilinear_pure_eq_tsum_asym (mass : ℝ) (hmass : 0 
   exact Nat.pairEquiv.symm.tsum_eq _
 
 /-- **Isotropic rectangular lattice → continuum Green's function (pure tensors).** -/
-private theorem lattice_green_tendsto_continuum_asym_pure
+theorem lattice_green_tendsto_continuum_asym_pure
     (mass : ℝ) (hmass : 0 < mass)
     (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
     (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
@@ -1130,7 +1134,7 @@ private theorem lattice_green_tendsto_continuum_asym_pure
 /-! ### DM-expansion infrastructure (general elements) -/
 
 /-- NTP basis elements of the rectangular torus are pure tensors. -/
-private theorem ntp_basis_eq_pure_asym (m : ℕ) :
+theorem ntp_basis_eq_pure_asym (m : ℕ) :
     DyninMityaginSpace.basis (E := AsymTorusTestFunction Lt Ls) m =
     NuclearTensorProduct.pure
       (DyninMityaginSpace.basis (E := SmoothMap_Circle Lt ℝ) (Nat.unpair m).1)
@@ -1152,7 +1156,7 @@ private theorem ntp_basis_eq_pure_asym (m : ℕ) :
     · simp [h1]
 
 /-- Continuity of `f ↦ G(f, h)` on the rectangular torus, via polarization. -/
-private theorem greenFunctionBilinear_continuous_left_asym
+theorem greenFunctionBilinear_continuous_left_asym
     (mass : ℝ) (hmass : 0 < mass) (h : AsymTorusTestFunction Lt Ls) :
     Continuous (fun f => greenFunctionBilinear
       (E := AsymTorusTestFunction Lt Ls) mass hmass f h) := by
@@ -1175,7 +1179,7 @@ private theorem greenFunctionBilinear_continuous_left_asym
     continuous_const).div_const 2 |>.congr (fun f => (hpol f).symm)
 
 /-- Green function on the rectangular torus as a CLM in the first argument. -/
-private noncomputable def greenCLM_left_asym
+noncomputable def greenCLM_left_asym
     (mass : ℝ) (hmass : 0 < mass) (h : AsymTorusTestFunction Lt Ls) :
     AsymTorusTestFunction Lt Ls →L[ℝ] ℝ :=
   ⟨{ toFun := fun f => greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass f h
@@ -1190,7 +1194,7 @@ private noncomputable def greenCLM_left_asym
     greenFunctionBilinear (E := AsymTorusTestFunction Lt Ls) mass hmass f h := rfl
 
 /-- The restriction map `f ↦ (x ↦ evalAsymTorusAtSite x f)` as a CLM. -/
-private def evalLatticeMapAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
+def evalLatticeMapAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
     AsymTorusTestFunction Lt Ls →L[ℝ] AsymLatticeField Nt Ns where
   toFun f := fun x => evalAsymTorusAtSite Lt Ls Nt Ns x f
   map_add' f₁ f₂ := funext fun x => map_add (evalAsymTorusAtSite Lt Ls Nt Ns x) f₁ f₂
@@ -1202,13 +1206,13 @@ private def evalLatticeMapAsym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns] :
     evalLatticeMapAsym Lt Ls Nt Ns f x = evalAsymTorusAtSite Lt Ls Nt Ns x f := rfl
 
 /-- Lattice covariance CLM in the first argument (for fixed `Nt, Ns, a` and second argument). -/
-private noncomputable def latticeCovCLM_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+noncomputable def latticeCovCLM_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (g : AsymTorusTestFunction Lt Ls) :
     AsymTorusTestFunction Lt Ls →L[ℝ] ℝ :=
   let T := (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass).comp (evalLatticeMapAsym Lt Ls Nt Ns)
   (innerSL ℝ (T g)).comp T
 
-private theorem latticeCovCLM_left_apply_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+theorem latticeCovCLM_left_apply_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymTorusTestFunction Lt Ls) :
     latticeCovCLM_left_asym Lt Ls Nt Ns a mass ha hmass g f =
     covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
@@ -1219,7 +1223,7 @@ private theorem latticeCovCLM_left_apply_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero 
   exact real_inner_comm _ _
 
 /-- DM expansion of the lattice covariance in the first argument. -/
-private theorem covariance_dm_expansion_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+theorem covariance_dm_expansion_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (f g : AsymTorusTestFunction Lt Ls) :
     covariance (spectralLatticeCovarianceAsym Nt Ns a mass ha hmass)
       (fun x => evalAsymTorusAtSite Lt Ls Nt Ns x f)
@@ -1234,7 +1238,7 @@ private theorem covariance_dm_expansion_left_asym (Nt Ns : ℕ) [NeZero Nt] [NeZ
   rw [latticeCovCLM_left_apply_asym]
 
 /-- Summability of `1 / ((1+p₁)²·(1+p₂)²)` over `ℕ × ℕ`. -/
-private theorem summable_inv_sq_sq_asym :
+theorem summable_inv_sq_sq_asym :
     Summable (fun p : ℕ × ℕ =>
       1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2)) := by
   have h1d : Summable (fun n : ℕ => 1 / (1 + (n : ℝ)) ^ 2) := by
@@ -1246,7 +1250,7 @@ private theorem summable_inv_sq_sq_asym :
 
 /-- Uniform bound on `|B(pure(f₁,f₂), pure(g₁,g₂))|` using flat bounds for `f` and quadratic
 bounds for `g`. -/
-private theorem lattice_covariance_pure_abs_le_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
+theorem lattice_covariance_pure_abs_le_asym (Nt Ns : ℕ) [NeZero Nt] [NeZero Ns]
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f₁ g₁ : SmoothMap_Circle Lt ℝ) (f₂ g₂ : SmoothMap_Circle Ls ℝ)
     {Af₁ Af₂ Cg₁ Cg₂ : ℝ}
@@ -1356,7 +1360,7 @@ private theorem lattice_covariance_pure_abs_le_asym (Nt Ns : ℕ) [NeZero Nt] [N
 
 /-- Explicit quadratic DFT bound with Sobolev-seminorm constant (general circle size `L`).
 Allows polynomial-in-`k` bounds for `basis k`. -/
-private theorem latticeDFTCoeff1d_seminorm_quadratic_gen (L : ℝ) [hL : Fact (0 < L)]
+theorem latticeDFTCoeff1d_seminorm_quadratic_gen (L : ℝ) [hL : Fact (0 < L)]
     (f : SmoothMap_Circle L ℝ) (N m : ℕ) :
     |latticeDFTCoeff1d L (N + 1) f m| ≤
       (Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f +
@@ -1397,7 +1401,7 @@ private theorem latticeDFTCoeff1d_seminorm_quadratic_gen (L : ℝ) [hL : Fact (0
     exact div_nonneg hC_nn (by positivity)
 
 /-- **Convergence for general `f`, pure `g`** (Phase A), via DM expansion of `f`. -/
-private theorem lattice_green_tendsto_pure_right_asym
+theorem lattice_green_tendsto_pure_right_asym
     (mass : ℝ) (hmass : 0 < mass)
     (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
     (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
@@ -1575,7 +1579,7 @@ private theorem lattice_green_tendsto_pure_right_asym
 set_option maxHeartbeats 1600000 in
 /-- Uniform-in-`k` polynomial bound on `|B(f, basis m)|` for general `f`, via DM expansion of
 `f` and the basis-basis bounds. -/
-private theorem lattice_covariance_general_basis_bound_asym
+theorem lattice_covariance_general_basis_bound_asym
     (mass : ℝ) (hmass : 0 < mass) (Nt Ns : ℕ → ℕ) (a : ℕ → ℝ)
     (hNt : ∀ k, NeZero (Nt k)) (hNs : ∀ k, NeZero (Ns k))
     (ha : ∀ k, 0 < a k)

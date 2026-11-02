@@ -10,11 +10,15 @@ invariance of the bilinear form `⟪Tf, Tg⟫` on pure tensors and extending
 from pure tensors to all cylinder test functions by the DM basis expansion.
 -/
 
-import Cylinder.MassOperatorConstruction
-import Cylinder.Symmetry
-import HeatKernel.GreenInvariance
-import SmoothCircle.HeatEquivariance
-import Nuclear.NuclearExtension
+module
+
+public import Cylinder.MassOperatorConstruction
+public import Cylinder.Symmetry
+public import HeatKernel.GreenInvariance
+public import SmoothCircle.HeatEquivariance
+public import Nuclear.NuclearExtension
+
+@[expose] public section
 
 noncomputable section
 
@@ -22,12 +26,12 @@ namespace GaussianField
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
-private def massInnerBilinear (mass : ℝ) (hmass : 0 < mass)
+def massInnerBilinear (mass : ℝ) (hmass : 0 < mass)
     (f g : CylinderTestFunction L) : ℝ :=
   @inner ℝ ell2' _ (cylinderMassOperator L mass hmass f)
     (cylinderMassOperator L mass hmass g)
 
-private theorem massInnerBilinear_add_left
+theorem massInnerBilinear_add_left
     (mass : ℝ) (hmass : 0 < mass)
     (f₁ f₂ g : CylinderTestFunction L) :
     massInnerBilinear L mass hmass (f₁ + f₂) g =
@@ -35,21 +39,21 @@ private theorem massInnerBilinear_add_left
         massInnerBilinear L mass hmass f₂ g := by
   simp [massInnerBilinear, inner_add_left]
 
-private theorem massInnerBilinear_smul_left
+theorem massInnerBilinear_smul_left
     (mass : ℝ) (hmass : 0 < mass)
     (c : ℝ) (f g : CylinderTestFunction L) :
     massInnerBilinear L mass hmass (c • f) g =
       c * massInnerBilinear L mass hmass f g := by
   simp [massInnerBilinear, real_inner_smul_left]
 
-private theorem massInnerBilinear_symm
+theorem massInnerBilinear_symm
     (mass : ℝ) (hmass : 0 < mass)
     (f g : CylinderTestFunction L) :
     massInnerBilinear L mass hmass f g =
       massInnerBilinear L mass hmass g f := by
   simp [massInnerBilinear, real_inner_comm]
 
-private def massInnerCLM_left
+def massInnerCLM_left
     (mass : ℝ) (hmass : 0 < mass) (g : CylinderTestFunction L) :
     CylinderTestFunction L →L[ℝ] ℝ :=
   { toLinearMap :=
@@ -71,7 +75,7 @@ private def massInnerCLM_left
     massInnerCLM_left L mass hmass g f =
       massInnerBilinear L mass hmass f g := rfl
 
-private theorem massInner_invariant_of_pure
+theorem massInner_invariant_of_pure
     (mass : ℝ) (hmass : 0 < mass)
     (S : CylinderTestFunction L →L[ℝ] CylinderTestFunction L)
     (hpure : ∀ (e₁ e₁' : SmoothMap_Circle L ℝ) (e₂ e₂' : SchwartzMap ℝ ℝ),
@@ -148,7 +152,7 @@ private theorem massInner_invariant_of_pure
     massInnerCLM_left_apply, sub_eq_zero] using hzero
 
 omit hL in
-private theorem resolventFreq_modePartner (mass : ℝ) (n : ℕ) :
+theorem resolventFreq_modePartner (mass : ℝ) (n : ℕ) :
     resolventFreq L mass n = resolventFreq L mass (modePartner n) := by
   unfold resolventFreq
   congr 2
@@ -173,7 +177,7 @@ private theorem resolventFreq_modePartner (mass : ℝ) (n : ℕ) :
           ((fourierFreq_paired (j + 1) (by omega)).symm)
 
 set_option maxHeartbeats 3000000 in
-private theorem massInner_spatialTranslation_pure
+theorem massInner_spatialTranslation_pure
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
     (f₁ g₁ : SmoothMap_Circle L ℝ) (f₂ g₂ : SchwartzMap ℝ ℝ) :
     massInnerBilinear L mass hmass
@@ -274,7 +278,7 @@ private theorem massInner_spatialTranslation_pure
     simp [smul_eq_mul] at *
     linear_combination c₂f * c₂g * hpaired
 
-private theorem massInner_spatialTranslation_invariant
+theorem massInner_spatialTranslation_invariant
     (mass : ℝ) (hmass : 0 < mass) (v : ℝ)
     (f g : CylinderTestFunction L) :
     massInnerBilinear L mass hmass

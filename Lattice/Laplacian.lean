@@ -26,11 +26,15 @@ On the finite torus with periodic BC, it has eigenvalues:
 The mass operator `-Δ_a + m²` is positive definite when `m > 0`.
 -/
 
-import Lattice.Sites
-import Lattice.FiniteField
-import Lattice.RapidDecayLattice
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Topology.Algebra.Module.Basic
+module
+
+public import Lattice.Sites
+public import Lattice.FiniteField
+public import Lattice.RapidDecayLattice
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Topology.Algebra.Module.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -84,26 +88,26 @@ noncomputable def finiteLaplacian (d N : ℕ) [NeZero N] (a : ℝ) :
 
 /-- The finite Laplacian is self-adjoint (symmetric matrix).
 Proof: exchange of summation indices using periodicity. -/
-private lemma update_add_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
+lemma update_add_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
     (i : Fin d) (c : ZMod N) :
     (fun j => if j = i then x j + c else x j) = x + Pi.single i c := by
   ext j; simp only [Pi.add_apply, Pi.single_apply]
   split_ifs with h <;> simp [h]
 
-private lemma update_sub_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
+lemma update_sub_eq {d N : ℕ} [NeZero N] (x : FinLatticeSites d N)
     (i : Fin d) (c : ZMod N) :
     (fun j => if j = i then x j - c else x j) = x - Pi.single i c := by
   ext j; simp only [Pi.sub_apply, Pi.single_apply]
   split_ifs with h <;> simp [h]
 
-private lemma sum_mul_shift_fwd {d N : ℕ} [NeZero N]
+lemma sum_mul_shift_fwd {d N : ℕ} [NeZero N]
     (h k : FinLatticeField d N) (v : FinLatticeSites d N) :
     ∑ x, h x * k (x + v) = ∑ x, h (x - v) * k x := by
   symm; exact Fintype.sum_equiv (Equiv.addRight (-v))
     (fun x => h (x - v) * k x) (fun x => h x * k (x + v))
     (fun x => by simp [sub_eq_add_neg])
 
-private lemma sum_mul_shift_bwd {d N : ℕ} [NeZero N]
+lemma sum_mul_shift_bwd {d N : ℕ} [NeZero N]
     (h k : FinLatticeField d N) (v : FinLatticeSites d N) :
     ∑ x, h x * k (x - v) = ∑ x, h (x + v) * k x := by
   symm; exact Fintype.sum_equiv (Equiv.addRight v)
@@ -111,7 +115,7 @@ private lemma sum_mul_shift_bwd {d N : ℕ} [NeZero N]
     (fun x => by simp [add_sub_cancel_right])
 
 /-- Helper: The Laplacian inner product for a single direction, after expanding. -/
-private lemma laplacian_direction_eq {d N : ℕ} [NeZero N]
+lemma laplacian_direction_eq {d N : ℕ} [NeZero N]
     (f g : FinLatticeField d N) (i : Fin d) (a : ℝ) :
     ∑ x, f x * (a⁻¹ ^ 2 * ((g (x + Pi.single i (1 : ZMod N)) +
       g (x - Pi.single i (1 : ZMod N))) - 2 * g x)) =
@@ -159,7 +163,7 @@ theorem finiteLaplacian_selfAdjoint (d N : ℕ) [NeZero N] (a : ℝ)
 
 /-- For each lattice direction, the inner product ∑ₓ f(x)·Δᵢf(x) equals
 minus a sum of squares: -(∑ₓ (f(x+eᵢ) - f(x))²). -/
-private lemma direction_sum_eq_neg_sq {d N : ℕ} [NeZero N]
+lemma direction_sum_eq_neg_sq {d N : ℕ} [NeZero N]
     (f : FinLatticeField d N) (i : Fin d) :
     ∑ x : FinLatticeSites d N,
       f x * (f (x + Pi.single i 1) + f (x - Pi.single i 1) - 2 * f x) =
@@ -231,12 +235,12 @@ theorem finiteLaplacian_neg_semidefinite (d N : ℕ) [NeZero N] (a : ℝ) (ha : 
 /-! ## Infinite Laplacian -/
 
 /-- The ℓ¹ norm is invariant under negation. -/
-private lemma latticeNorm_neg {d : ℕ} (v : Fin d → ℤ) :
+lemma latticeNorm_neg {d : ℕ} (v : Fin d → ℤ) :
     latticeNorm (-v) = latticeNorm v := by
   simp only [latticeNorm, Pi.neg_apply, Int.cast_neg, abs_neg]
 
 /-- Shifting a rapidly decaying function by a bounded vector preserves rapid decay. -/
-private lemma shift_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
+lemma shift_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
     (v : Fin d → ℤ) (hv : latticeNorm v ≤ 1) (k : ℕ) :
     Summable (fun x => |f.val (x + v)| * (1 + latticeNorm x) ^ k) := by
   -- Bound: (1+‖x‖) ≤ 2(1+‖x+v‖) because ‖x‖ ≤ ‖x+v‖ + ‖v‖ ≤ ‖x+v‖ + 1
@@ -266,7 +270,7 @@ private lemma shift_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
     exact h_sum.const_smul (2 ^ k : ℝ)
 
 /-- The raw function for the infinite Laplacian. -/
-private def infiniteLaplacianFun (d : ℕ) (a : ℝ)
+def infiniteLaplacianFun (d : ℕ) (a : ℝ)
     (f : RapidDecayLattice d) (x : Fin d → ℤ) : ℝ :=
   a⁻¹ ^ 2 * ∑ i : Fin d,
     (f.val (fun j => x j + stdBasisInt d i j) +
@@ -275,7 +279,7 @@ private def infiniteLaplacianFun (d : ℕ) (a : ℝ)
 
 /-- Tsum bound for shifted rapid decay: the weighted tsum of a shift is bounded by
 2^k times the original weighted tsum. -/
-private lemma shift_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
+lemma shift_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
     (v : Fin d → ℤ) (hv : latticeNorm v ≤ 1) (k : ℕ) :
     ∑' x, |f.val (x + v)| * (1 + latticeNorm x) ^ k ≤
     2 ^ k * ∑' x, |f.val x| * (1 + latticeNorm x) ^ k := by
@@ -312,7 +316,7 @@ private lemma shift_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
     _ = 2 ^ k * ∑' y, |f.val y| * (1 + latticeNorm y) ^ k := by rw [h_reindex]
 
 /-- Summability of shifted terms for the negative basis direction. -/
-private lemma shift_neg_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
+lemma shift_neg_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
     (i : Fin d) (k : ℕ) :
     Summable (fun x => |f.val (fun j => x j - stdBasisInt d i j)| *
       (1 + latticeNorm x) ^ k) := by
@@ -326,7 +330,7 @@ private lemma shift_neg_rapid_decay {d : ℕ} (f : RapidDecayLattice d)
   exact shift_rapid_decay f _ hv k
 
 /-- Tsum bound for negative shifted rapid decay. -/
-private lemma shift_neg_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
+lemma shift_neg_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
     (i : Fin d) (k : ℕ) :
     ∑' x, |f.val (fun j => x j - stdBasisInt d i j)| * (1 + latticeNorm x) ^ k ≤
     2 ^ k * ∑' x, |f.val x| * (1 + latticeNorm x) ^ k := by
@@ -344,7 +348,7 @@ private lemma shift_neg_rapid_decay_tsum_le {d : ℕ} (f : RapidDecayLattice d)
   exact shift_rapid_decay_tsum_le f _ hv k
 
 /-- The infinite Laplacian preserves rapid decay. -/
-private lemma infiniteLaplacian_rapid_decay (d : ℕ) (a : ℝ)
+lemma infiniteLaplacian_rapid_decay (d : ℕ) (a : ℝ)
     (f : RapidDecayLattice d) (k : ℕ) :
     Summable (fun x => |infiniteLaplacianFun d a f x| * (1 + latticeNorm x) ^ k) := by
   -- Strategy: bound |Δf(x)| * w(x) ≤ sum of shifted terms, each summable.
@@ -429,7 +433,7 @@ private lemma infiniteLaplacian_rapid_decay (d : ℕ) (a : ℝ)
     (fun x => mul_nonneg (abs_nonneg _) (RapidDecayLattice.weight_nonneg x k)) h_pw
 
 /-- The infinite Laplacian as a linear map on rapid decay functions. -/
-private def infiniteLaplacianLM (d : ℕ) (a : ℝ) :
+def infiniteLaplacianLM (d : ℕ) (a : ℝ) :
     RapidDecayLattice d →ₗ[ℝ] RapidDecayLattice d where
   toFun f := ⟨infiniteLaplacianFun d a f, infiniteLaplacian_rapid_decay d a f⟩
   map_add' f g := by

@@ -23,10 +23,14 @@ not just Schwartz spaces.
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. 3-4
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Topology.Algebra.Module.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Topology.Algebra.Module.Basic
+
+@[expose] public section
 
 noncomputable section
 

@@ -35,11 +35,15 @@ only through the Green's function. This ensures:
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
 
-import Nuclear.NuclearTensorProduct
-import Mathlib.Analysis.Normed.Group.Tannery
-import Mathlib.Analysis.Normed.Group.FunctionSeries
-import Mathlib.Analysis.LocallyConvex.SeparatingDual
-import Mathlib.Analysis.Normed.Ring.InfiniteSum
+module
+
+public import Nuclear.NuclearTensorProduct
+public import Mathlib.Analysis.Normed.Group.Tannery
+public import Mathlib.Analysis.Normed.Group.FunctionSeries
+public import Mathlib.Analysis.LocallyConvex.SeparatingDual
+public import Mathlib.Analysis.Normed.Ring.InfiniteSum
+
+@[expose] public section
 
 noncomputable section
 
@@ -72,7 +76,7 @@ variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [ContinuousSMul ℝ E] [DyninMityaginSpace E]
 
 /-- Helper: the m-th term of the L² inner product series. -/
-private def l2Term (f g : E) (m : ℕ) : ℝ :=
+def l2Term (f g : E) (m : ℕ) : ℝ :=
   DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g
 
 /-- **L² inner product via Schauder coefficients.**
@@ -128,7 +132,7 @@ theorem l2InnerProduct_summable (f g : E) :
 /-! ## Heat kernel bilinear form -/
 
 /-- Helper: the m-th term of the heat kernel series. -/
-private def heatKernelTerm [HasLaplacianEigenvalues E] (t : ℝ) (f g : E) (m : ℕ) : ℝ :=
+def heatKernelTerm [HasLaplacianEigenvalues E] (t : ℝ) (f g : E) (m : ℕ) : ℝ :=
   Real.exp (-t * HasLaplacianEigenvalues.eigenvalue (E := E) m) *
     DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g
 
@@ -235,7 +239,7 @@ theorem heatKernelBilinear_le_l2 [HasLaplacianEigenvalues E]
 /-! ## Green's function -/
 
 /-- Helper: the m-th term of the Green's function series. -/
-private def greenTerm [HasLaplacianEigenvalues E]
+def greenTerm [HasLaplacianEigenvalues E]
     (mass : ℝ) (f g : E) (m : ℕ) : ℝ :=
   DyninMityaginSpace.coeff m f * DyninMityaginSpace.coeff m g /
     (HasLaplacianEigenvalues.eigenvalue (E := E) m + mass ^ 2)
@@ -581,7 +585,7 @@ instance tensorProductHasLaplacianEigenvalues
 
 /-- Summability of the heat kernel series for `0 ≤ t` (extending `heatKernelBilinear_summable`
 to include `t = 0`). -/
-private theorem heatKernelTerm_summable_nonneg [HasLaplacianEigenvalues E]
+theorem heatKernelTerm_summable_nonneg [HasLaplacianEigenvalues E]
     (t : ℝ) (ht : 0 ≤ t) (f g : E) :
     Summable (heatKernelTerm (E := E) t f g) := by
   rcases eq_or_lt_of_le ht with rfl | hpos
@@ -592,7 +596,7 @@ private theorem heatKernelTerm_summable_nonneg [HasLaplacianEigenvalues E]
 
 /-- The m-th heat kernel term for the tensor product factors as a product
 of individual terms. -/
-private theorem heatKernelTerm_tensorProduct
+theorem heatKernelTerm_tensorProduct
     [HasLaplacianEigenvalues E₁] [HasLaplacianEigenvalues E₂]
     (t : ℝ) (f₁ g₁ : E₁) (f₂ g₂ : E₂) (m : ℕ) :
     heatKernelTerm (E := NuclearTensorProduct E₁ E₂) t
@@ -626,7 +630,7 @@ private theorem heatKernelTerm_tensorProduct
   ring
 
 /-- Norm-summability of heat kernel terms for `0 ≤ t`. -/
-private theorem heatKernelTerm_summable_norm [HasLaplacianEigenvalues E]
+theorem heatKernelTerm_summable_norm [HasLaplacianEigenvalues E]
     (t : ℝ) (ht : 0 ≤ t) (f g : E) :
     Summable (fun m => ‖heatKernelTerm (E := E) t f g m‖) :=
   (heatKernelTerm_summable_nonneg t ht f g).abs.congr

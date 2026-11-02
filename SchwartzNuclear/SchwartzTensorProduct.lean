@@ -23,8 +23,12 @@ and the general result follows by induction on `n`.
 - Trèves, "Topological Vector Spaces, Distributions and Kernels", Ch. 51
 -/
 
-import SchwartzNuclear.HermiteNuclear
-import Nuclear.NuclearTensorProduct
+module
+
+public import SchwartzNuclear.HermiteNuclear
+public import Nuclear.NuclearTensorProduct
+
+@[expose] public section
 
 noncomputable section
 
@@ -83,7 +87,7 @@ def reindexLM (σ : ℕ ≃ ℕ) (hσ_inv : IsPolyBounded σ.symm) :
 
 /-- Seminorm bound for the reindexing map. For each target seminorm `k`,
 the reindexed sequence is bounded by a source seminorm (at a potentially higher index). -/
-private lemma reindexLM_isBounded (σ : ℕ ≃ ℕ)
+lemma reindexLM_isBounded (σ : ℕ ≃ ℕ)
     (hσ_inv : IsPolyBounded σ.symm) :
     Seminorm.IsBounded rapidDecaySeminorm rapidDecaySeminorm (reindexLM σ hσ_inv) := by
   intro k
@@ -154,7 +158,7 @@ namespace NuclearTensorProduct
 /-- The associativity permutation for Cantor pairing.
 Maps the "left-associated" index `pair(pair(i,j), k)` to the
 "right-associated" index `pair(i, pair(j,k))`. -/
-private def assocPerm : ℕ ≃ ℕ :=
+def assocPerm : ℕ ≃ ℕ :=
   -- ℕ → ℕ×ℕ → (ℕ×ℕ)×ℕ → ℕ×(ℕ×ℕ) → ℕ
   Nat.pairEquiv.symm.trans <|
     (Equiv.prodCongr Nat.pairEquiv.symm (Equiv.refl ℕ)).trans <|
@@ -164,7 +168,7 @@ private def assocPerm : ℕ ≃ ℕ :=
 
 /-- Cantor pairing bound: `1 + pair(i,j) ≤ (2(1+i)(1+j))²`.
 Reproduced from NuclearTensorProduct (where it is private). -/
-private lemma one_add_pair_le_sq' (i j : ℕ) :
+lemma one_add_pair_le_sq' (i j : ℕ) :
     (1 + (Nat.pair i j : ℝ)) ≤ (2 * (1 + (i : ℝ)) * (1 + (j : ℝ))) ^ 2 := by
   have hi : (0 : ℝ) ≤ i := Nat.cast_nonneg i
   have hj : (0 : ℝ) ≤ j := Nat.cast_nonneg j
@@ -178,7 +182,7 @@ private lemma one_add_pair_le_sq' (i j : ℕ) :
 
 /-- The associativity permutation is polynomially bounded.
 Components satisfy `i, j, k ≤ n`, so `pair(i, pair(j,k)) ≤ poly(n)`. -/
-private lemma assocPerm_polyBounded : RapidDecaySeq.IsPolyBounded assocPerm := by
+lemma assocPerm_polyBounded : RapidDecaySeq.IsPolyBounded assocPerm := by
   -- pair(a,b) ≤ (2(1+a)(1+b))^2, so double pairing gives degree ≤ 10
   refine ⟨64, by positivity, 10, fun n => ?_⟩
   simp only [assocPerm, Equiv.trans_apply, Equiv.prodCongr_apply, Equiv.prodAssoc_apply,
@@ -219,7 +223,7 @@ private lemma assocPerm_polyBounded : RapidDecaySeq.IsPolyBounded assocPerm := b
 /-- The inverse associativity permutation is polynomially bounded.
 Symmetric to `assocPerm_polyBounded`: components are ≤ n, double Cantor pairing
 gives polynomial growth. -/
-private lemma assocPerm_symm_polyBounded : RapidDecaySeq.IsPolyBounded assocPerm.symm := by
+lemma assocPerm_symm_polyBounded : RapidDecaySeq.IsPolyBounded assocPerm.symm := by
   -- assocPerm.symm maps pair(i, pair(j,k)) to pair(pair(i,j), k)
   -- All components i,j,k ≤ n, so the result is polynomially bounded
   refine ⟨64, by positivity, 10, fun n => ?_⟩

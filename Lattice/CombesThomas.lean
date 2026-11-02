@@ -42,10 +42,14 @@ The proof uses the Combes-Thomas conjugation trick:
 - `CombesThomas.exponential_decay` — the main decay estimate
 -/
 
-import Lattice.Sites
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+module
+
+public import Lattice.Sites
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+
+@[expose] public section
 
 noncomputable section
 

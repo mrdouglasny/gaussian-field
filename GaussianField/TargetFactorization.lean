@@ -22,8 +22,12 @@ The key point is that the ONB is *output* (adapted to T's nuclear structure),
 not input — the construction fails for arbitrary ONBs.
 -/
 
-import GaussianField.NuclearFactorization
-import GaussianField.NuclearSVD
+module
+
+public import GaussianField.NuclearFactorization
+public import GaussianField.NuclearSVD
+
+@[expose] public section
 
 open scoped BigOperators
 open Filter TopologicalSpace

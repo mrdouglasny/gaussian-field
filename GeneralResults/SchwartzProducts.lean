@@ -17,9 +17,13 @@ for `f ∘ proj_i` and Schwartz decay of each factor, using the distribution of
 `productHermite_schwartz_dense` is a standard density result (Reed-Simon V.13).
 -/
 
-import SchwartzNuclear.HermiteNuclear
-import SchwartzNuclear.SchwartzTensorProduct
-import Mathlib.Analysis.Calculus.ContDiff.Bounds
+module
+
+public import SchwartzNuclear.HermiteNuclear
+public import SchwartzNuclear.SchwartzTensorProduct
+public import Mathlib.Analysis.Calculus.ContDiff.Bounds
+
+@[expose] public section
 
 noncomputable section
 
@@ -32,7 +36,7 @@ namespace GaussianField
 /-! ## Auxiliary lemmas for product Schwartz decay -/
 
 /-- `∏ᵢ (1 + aᵢ) ≥ 1 + ∑ᵢ aᵢ` for nonneg `aᵢ`. Standard inequality by induction. -/
-private lemma prod_one_add_ge_one_add_sum {n : ℕ} (a : Fin n → ℝ) (ha : ∀ i, 0 ≤ a i) :
+lemma prod_one_add_ge_one_add_sum {n : ℕ} (a : Fin n → ℝ) (ha : ∀ i, 0 ≤ a i) :
     1 + ∑ i, a i ≤ ∏ i, (1 + a i) := by
   induction n with
   | zero => simp
@@ -47,7 +51,7 @@ private lemma prod_one_add_ge_one_add_sum {n : ℕ} (a : Fin n → ℝ) (ha : �
 
 /-- For the pi-sup-norm, `‖x‖^k ≤ ∑ᵢ ‖x i‖^k`. The sup is achieved at some component,
 so `‖x‖^k` equals one of the terms and is bounded by the full sum. -/
-private lemma pi_norm_pow_le_sum {n : ℕ} {D : Type*} [NormedAddCommGroup D]
+lemma pi_norm_pow_le_sum {n : ℕ} {D : Type*} [NormedAddCommGroup D]
     (x : Fin n → D) (k : ℕ) (hn : 0 < n) :
     ‖x‖ ^ k ≤ ∑ i : Fin n, ‖x i‖ ^ k := by
   haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
@@ -64,7 +68,7 @@ private lemma pi_norm_pow_le_sum {n : ℕ} {D : Type*} [NormedAddCommGroup D]
 /-- Distribution of `‖x‖^k` across a product of nonneg functions on separate variables.
 Key technique: `‖x‖^k ≤ ∑ᵢ ‖xᵢ‖^k`, then absorb each `‖xᵢ‖^k` into the i-th factor
 using its k-decay bound, while bounding the remaining factors by their 0-decay bounds. -/
-private lemma norm_pow_mul_prod_le
+lemma norm_pow_mul_prod_le
     {D : Type*} [NormedAddCommGroup D]
     {n : ℕ} (hn : 0 < n) (k : ℕ)
     (a : Fin n → D → ℝ) (ha_nn : ∀ j y, 0 ≤ a j y)
@@ -89,7 +93,7 @@ private lemma norm_pow_mul_prod_le
 
 /-- The projection `fun x : Fin n → D => x i` composed with a Schwartz function
 is smooth on the product domain. -/
-private lemma contDiff_schwartz_comp_proj
+lemma contDiff_schwartz_comp_proj
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     {n : ℕ} (f : SchwartzMap D ℝ) (i : Fin n) :
     ContDiff ℝ (⊤ : ℕ∞) (fun x : Fin n → D => f (x i)) :=
@@ -99,7 +103,7 @@ private lemma contDiff_schwartz_comp_proj
 /-- Norm bound for the iterated Fréchet derivative of `f ∘ proj_i`.
 Using the chain rule for CLMs: `iteratedFDeriv (f ∘ L) x = (iteratedFDeriv f (L x)).compCLM L`,
 and `‖compCLM L‖ ≤ ‖original‖ * ‖L‖^m ≤ ‖original‖` since `‖proj_i‖ ≤ 1`. -/
-private lemma norm_iteratedFDeriv_comp_proj_le
+lemma norm_iteratedFDeriv_comp_proj_le
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     {n : ℕ} (f : SchwartzMap D ℝ) (i : Fin n) (m : ℕ) (x : Fin n → D) :
     ‖iteratedFDeriv ℝ m (fun x : Fin n → D => f (x i)) x‖ ≤
@@ -136,7 +140,7 @@ The formal proof applies the Leibniz rule to reduce to a finite sum of products,
 bounds each product factor via the chain rule, then applies `norm_pow_mul_prod_le`
 to handle the `‖x‖^k` weight. Since the Leibniz sum is finite with constant
 coefficients, the result is bounded. -/
-private lemma schwartz_product_decay
+lemma schwartz_product_decay
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     (n : ℕ) (hn : 0 < n) (fs : Fin n → SchwartzMap D ℝ) (k m : ℕ) :
     ∃ C, ∀ x : Fin n → D,
@@ -245,7 +249,7 @@ theorem schwartzProductTensor_schwartz
 
 /-- A continuous linear functional on a DyninMityaginSpace that vanishes on all basis
 elements is zero. Immediate from the DM expansion `φ f = ∑' m, coeff_m(f) * φ(basis_m)`. -/
-private lemma clm_zero_of_basis_zero {E : Type*} [AddCommGroup E] [Module ℝ E]
+lemma clm_zero_of_basis_zero {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     [DyninMityaginSpace E]
     (φ : E →L[ℝ] ℝ)
@@ -254,7 +258,7 @@ private lemma clm_zero_of_basis_zero {E : Type*} [AddCommGroup E] [Module ℝ E]
   ext f; rw [DyninMityaginSpace.expansion φ f]; simp [h]
 
 /-- Currying as a continuous linear equivalence on finite function spaces. -/
-private noncomputable def curryCLE (n d : ℕ) :
+noncomputable def curryCLE (n d : ℕ) :
     ((Fin n × Fin d) → ℝ) ≃L[ℝ] (Fin n → Fin d → ℝ) := by
   refine ContinuousLinearEquiv.mk (LinearEquiv.curry ℝ ℝ (Fin n) (Fin d)) ?_ ?_
   · simpa [LinearEquiv.curry, Function.curry] using
@@ -290,7 +294,7 @@ noncomputable def blockMultiIndex (n d : ℕ) (α : Fin (n * d) → ℕ) (i : Fi
 /-- `schwartzRapidDecayEquivFin d hd` inverse applied to `basisVec m` yields the
 multi-dimensional Hermite function `hermiteFunctionNd d α` where `α` is the multi-index
 corresponding to `m` via `multiIndexEquiv`. Handles both `d = 1` and `d ≥ 2` cases. -/
-private lemma equivFin_symm_basisVec (d : ℕ) (hd : 0 < d) (m : ℕ)
+lemma equivFin_symm_basisVec (d : ℕ) (hd : 0 < d) (m : ℕ)
     (y : EuclideanSpace ℝ (Fin d)) :
     ((schwartzRapidDecayEquivFin d hd).symm (RapidDecaySeq.basisVec m)) y =
     hermiteFunctionNd d (Nat.succ_pred_eq_of_pos hd ▸ (multiIndexEquiv (d - 1)).symm m) y := by
@@ -309,7 +313,7 @@ private lemma equivFin_symm_basisVec (d : ℕ) (hd : 0 < d) (m : ℕ)
 /-- Cast roundtrip: applying `multiIndexEquiv.symm ∘ multiIndexEquiv` to a Fin-cast
 multi-index and casting back recovers the original. Uses proof irrelevance and
 the fact that `d - 1 + 1 = d` is definitional for `d = d' + 1`. -/
-private lemma cast_equiv_roundtrip (d : ℕ) (hd : 0 < d) (β : Fin d → ℕ) :
+lemma cast_equiv_roundtrip (d : ℕ) (hd : 0 < d) (β : Fin d → ℕ) :
     (Nat.succ_pred_eq_of_pos hd ▸
       (multiIndexEquiv (d - 1)).symm ((multiIndexEquiv (d - 1))
         (Nat.succ_pred_eq_of_pos hd ▸ β)) : Fin d → ℕ) = β := by
@@ -384,7 +388,7 @@ This is the core bound, stated without reference to `Module.finrank`. -/
 -- We know 1 + pbi m i ≤ bound, because pbi is defined as multiIndexEquiv ∘ blockMultiIndex ∘ multiIndexEquiv.symm.
 -- The bound follows regardless of what Module.finrank is — it only needs d > 0.
 -- Polynomial growth for productBasisIndicesAux with successor dimensions.
-private theorem pbiAux_succ_bound (n' d' : ℕ) :
+theorem pbiAux_succ_bound (n' d' : ℕ) :
     ∃ C > 0, ∃ q : ℕ, ∀ (m : ℕ) (i : Fin (n' + 1)),
       (productBasisIndicesAux (n' + 1) (d' + 1) (Nat.succ_pos n') (Nat.succ_pos d') m i : ℝ) ≤
         C * (1 + (m : ℝ)) ^ q := by

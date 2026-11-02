@@ -35,22 +35,26 @@ C(f,g) = ⟨T(f), T(g)⟩_H.
 - See `Properties.lean` for moments and integrability.
 -/
 
-import GaussianField.TargetFactorization
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.Distributions.Gaussian.Basic
-import Mathlib.Probability.ProductMeasure
-import Mathlib.Probability.Independence.InfinitePi
-import Mathlib.Probability.Independence.Integration
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Analysis.Fourier.BoundedContinuousFunctionChar
-import Mathlib.Analysis.Fourier.FourierTransform
-import Mathlib.Analysis.InnerProductSpace.Dual
-import Mathlib.Analysis.InnerProductSpace.ProdL2
-import Mathlib.Analysis.Normed.Lp.MeasurableSpace
-import Mathlib.MeasureTheory.Group.IntegralConvolution
-import Mathlib.MeasureTheory.Integral.Pi
-import Mathlib.MeasureTheory.Measure.FiniteMeasureExt
-import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
+module
+
+public import GaussianField.TargetFactorization
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Probability.Distributions.Gaussian.Basic
+public import Mathlib.Probability.ProductMeasure
+public import Mathlib.Probability.Independence.InfinitePi
+public import Mathlib.Probability.Independence.Integration
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.Analysis.Fourier.BoundedContinuousFunctionChar
+public import Mathlib.Analysis.Fourier.FourierTransform
+public import Mathlib.Analysis.InnerProductSpace.Dual
+public import Mathlib.Analysis.InnerProductSpace.ProdL2
+public import Mathlib.Analysis.Normed.Lp.MeasurableSpace
+public import Mathlib.MeasureTheory.Group.IntegralConvolution
+public import Mathlib.MeasureTheory.Integral.Pi
+public import Mathlib.MeasureTheory.Measure.FiniteMeasureExt
+public import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
+
+@[expose] public section
 
 noncomputable section
 
@@ -109,83 +113,83 @@ and nuclear vectors v. -/
 
 set_option linter.defProp false in
 /-- The full factorization result, privately stored. -/
-private noncomputable def fullFactorization
+noncomputable def fullFactorization
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H) :=
   nuclear_clm_target_factorization h_inf T
 
 set_option linter.defProp false in
-private noncomputable def factProps (T : E →L[ℝ] H)
+noncomputable def factProps (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec
 
 /-- The adapted ONB from the nuclear factorization. -/
-private noncomputable def adaptedONB (T : E →L[ℝ] H)
+noncomputable def adaptedONB (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : ℕ → H :=
   (fullFactorization T h_inf).choose
 
 /-- The intermediate Hilbert space type K from the factorization. -/
-private noncomputable def FactK (T : E →L[ℝ] H)
+noncomputable def FactK (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : Type :=
   (fullFactorization T h_inf).choose_spec.choose
 
-private noncomputable instance instNACG_FactK (T : E →L[ℝ] H)
+noncomputable instance instNACG_FactK (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : NormedAddCommGroup (FactK T h_inf) :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose
 
-private noncomputable instance instIPS_FactK (T : E →L[ℝ] H)
+noncomputable instance instIPS_FactK (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : InnerProductSpace ℝ (FactK T h_inf) :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose
 
-private noncomputable instance instCS_FactK (T : E →L[ℝ] H)
+noncomputable instance instCS_FactK (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : CompleteSpace (FactK T h_inf) :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose
 
 /-- The CLM j : E → K from the factorization. -/
-private noncomputable def factJ (T : E →L[ℝ] H)
+noncomputable def factJ (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : E →L[ℝ] FactK T h_inf :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose
 
 /-- The vectors v_n ∈ K from the factorization. -/
-private noncomputable def factV (T : E →L[ℝ] H)
+noncomputable def factV (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : ℕ → FactK T h_inf :=
   (fullFactorization T h_inf).choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose_spec.choose
 
-private lemma adaptedONB_orthonormal (T : E →L[ℝ] H)
+lemma adaptedONB_orthonormal (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : Orthonormal ℝ (adaptedONB T h_inf) :=
   (factProps T h_inf).1
 
-private lemma adaptedONB_spans (T : E →L[ℝ] H)
+lemma adaptedONB_spans (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :
     ⊤ ≤ (Submodule.span ℝ (Set.range (adaptedONB T h_inf))).topologicalClosure :=
   (factProps T h_inf).2.1
 
-private lemma factV_summable (T : E →L[ℝ] H)
+lemma factV_summable (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : Summable (fun n => ‖factV T h_inf n‖) :=
   (factProps T h_inf).2.2.1
 
-private lemma factV_inner_eq (T : E →L[ℝ] H)
+lemma factV_inner_eq (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (f : E) (n : ℕ) :
     @inner ℝ H _ (adaptedONB T h_inf n) (T f) =
     @inner ℝ (FactK T h_inf) _ (factV T h_inf n) (factJ T h_inf f) :=
   (factProps T h_inf).2.2.2 f n
 
 /-- The adapted HilbertBasis for real Parseval identity. -/
-private noncomputable def adaptedBasis (T : E →L[ℝ] H)
+noncomputable def adaptedBasis (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) : HilbertBasis ℕ ℝ H :=
   HilbertBasis.mk (adaptedONB_orthonormal T h_inf) (adaptedONB_spans T h_inf)
 
-private lemma adaptedBasis_eq_ONB (T : E →L[ℝ] H)
+lemma adaptedBasis_eq_ONB (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :
     ⇑(adaptedBasis T h_inf) = adaptedONB T h_inf :=
   HilbertBasis.coe_mk _ _
 
 /-- The coefficient of T f in the n-th ONB direction. -/
-private noncomputable def coeff (T : E →L[ℝ] H)
+noncomputable def coeff (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (n : ℕ) (f : E) : ℝ :=
   @inner ℝ H _ (adaptedONB T h_inf n) (T f)
 
 /-- Summability of squared coefficients (by Parseval). -/
-private lemma coeff_sq_summable (T : E →L[ℝ] H)
+lemma coeff_sq_summable (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (f : E) :
     Summable (fun n => (coeff T h_inf n f) ^ 2) := by
   set c := (adaptedBasis T h_inf).repr (T f) with hc_def
@@ -203,7 +207,7 @@ private lemma coeff_sq_summable (T : E →L[ℝ] H)
   simp [sq_abs, ← hc_def]
 
 /-- Parseval identity: sum of squared coefficients = ‖T f‖². -/
-private lemma coeff_parseval (T : E →L[ℝ] H)
+lemma coeff_parseval (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (f : E) :
     ∑' n, (coeff T h_inf n f) ^ 2 = ‖T f‖ ^ 2 := by
   set x := T f with hx_def
@@ -232,21 +236,21 @@ private lemma coeff_parseval (T : E →L[ℝ] H)
 abbrev NoiseSpace := ℕ → ℝ
 
 /-- The infinite product measure of standard Gaussians. -/
-private noncomputable def noiseMeasure : Measure NoiseSpace :=
+noncomputable def noiseMeasure : Measure NoiseSpace :=
   Measure.infinitePi (fun _ => gaussianReal 0 1)
 
-private instance noiseMeasure_isProbability : IsProbabilityMeasure noiseMeasure :=
+instance noiseMeasure_isProbability : IsProbabilityMeasure noiseMeasure :=
   Measure.instIsProbabilityMeasureForallInfinitePi _
 
 /-! ## Series Limit Map -/
 
 /-- Predicate: ξ is "good" if the K-valued Gaussian series converges. -/
-private def IsGoodNoise (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
+def IsGoodNoise (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (ξ : NoiseSpace) : Prop :=
   Summable (fun n => ξ n • factV T h_inf n)
 
 /-- K-valued summability implies scalar summability for each test function. -/
-private lemma IsGoodNoise.scalar_summable
+lemma IsGoodNoise.scalar_summable
     {T : E →L[ℝ] H} {h_inf : ¬ FiniteDimensional ℝ H} {ξ : NoiseSpace}
     (h : IsGoodNoise T h_inf ξ) (f : E) :
     Summable (fun n => ξ n * coeff T h_inf n f) := by
@@ -256,7 +260,7 @@ private lemma IsGoodNoise.scalar_summable
         ← factV_inner_eq T h_inf f n]; rfl
 
 /-- The series limit as a raw function. -/
-private noncomputable def seriesLimitFun
+noncomputable def seriesLimitFun
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (ξ : NoiseSpace) (f : E) : ℝ :=
   if IsGoodNoise T h_inf ξ
@@ -264,7 +268,7 @@ private noncomputable def seriesLimitFun
   else 0
 
 /-- The series limit as a linear map. -/
-private noncomputable def seriesLimitLinear
+noncomputable def seriesLimitLinear
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (ξ : NoiseSpace) : E →ₗ[ℝ] ℝ where
   toFun := seriesLimitFun T h_inf ξ
@@ -292,7 +296,7 @@ private noncomputable def seriesLimitLinear
 
 /-- The series limit as an element of Configuration E (weak dual).
     Continuity is proved via CLM composition through K. -/
-private noncomputable def seriesLimit
+noncomputable def seriesLimit
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (ξ : NoiseSpace) : Configuration E :=
   ⟨seriesLimitLinear T h_inf ξ, by
@@ -333,7 +337,7 @@ set_option maxHeartbeats 1600000 in
     Proof uses Tonelli's theorem:
     E[∑ ‖ξₙ vₙ‖] = ∑ E[|ξₙ|] ‖vₙ‖ = C · ∑ ‖vₙ‖ < ∞
     so ∑ ‖ξₙ vₙ‖ < ∞ a.s., hence ∑ ξₙ vₙ converges a.s. -/
-private theorem hilbert_gaussian_series_converges
+theorem hilbert_gaussian_series_converges
     {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteSpace K]
     (v : ℕ → K) (hv : Summable (fun n => ‖v n‖)) :
     ∀ᵐ ξ ∂(Measure.infinitePi (fun _ : ℕ => gaussianReal 0 1)),
@@ -381,13 +385,13 @@ private theorem hilbert_gaussian_series_converges
     exact hξ''.of_norm
 
 /-- IsGoodNoise holds a.e. under noiseMeasure. -/
-private theorem isGoodNoise_ae (T : E →L[ℝ] H)
+theorem isGoodNoise_ae (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :
     ∀ᵐ ξ ∂noiseMeasure, IsGoodNoise T h_inf ξ :=
   hilbert_gaussian_series_converges (factV T h_inf) (factV_summable T h_inf)
 
 /-- The limUnder of partial sums is measurable (for a fixed test function). -/
-private theorem limUnder_partialSum_measurable
+theorem limUnder_partialSum_measurable
     (T : E →L[ℝ] H) (h_inf : ¬ FiniteDimensional ℝ H)
     (φ : E) :
     Measurable (fun ξ : NoiseSpace =>
@@ -405,7 +409,7 @@ private theorem limUnder_partialSum_measurable
   exact ((measurable_pi_apply k).stronglyMeasurable).mul stronglyMeasurable_const
 
 /-- The series limit is AE-measurable. -/
-private theorem aemeasurable_seriesLimit (T : E →L[ℝ] H)
+theorem aemeasurable_seriesLimit (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) :
     AEMeasurable (seriesLimit T h_inf) noiseMeasure := by
   have h_null : noiseMeasure {ξ | ¬IsGoodNoise T h_inf ξ} = 0 :=
@@ -447,14 +451,14 @@ to work without requiring `¬ FiniteDimensional ℝ H`. -/
 
 /-- Isometric embedding of a finite-dimensional H into ℓ² via an ONB.
     Maps x ↦ ∑_i ⟨b_i, x⟩ • e_i where b is the stdOrthonormalBasis of H. -/
-private noncomputable def hilbertEmbedding (hfin : FiniteDimensional ℝ H) : H →L[ℝ] ell2' := by
+noncomputable def hilbertEmbedding (hfin : FiniteDimensional ℝ H) : H →L[ℝ] ell2' := by
   haveI := hfin
   exact ∑ i : Fin (Module.finrank ℝ H),
     (innerSL ℝ ((stdOrthonormalBasis ℝ H) i)).smulRight (ell2_basis i.val)
 
 omit [CompleteSpace H] [SeparableSpace H] in
 /-- The embedding maps x to ∑_i ⟨b_i, x⟩ • e_i. -/
-private lemma hilbertEmbedding_apply (hfin : FiniteDimensional ℝ H) (x : H) :
+lemma hilbertEmbedding_apply (hfin : FiniteDimensional ℝ H) (x : H) :
     hilbertEmbedding hfin x = ∑ i : Fin (Module.finrank ℝ H),
       @inner ℝ H _ ((stdOrthonormalBasis ℝ H) i) x • ell2_basis i.val := by
   simp only [hilbertEmbedding, sum_apply,
@@ -464,7 +468,7 @@ omit [CompleteSpace H] [SeparableSpace H] in
 /-- The embedding preserves inner products.
     Both sides equal Σ_i ⟨b_i, x⟩ * ⟨b_i, y⟩: the RHS by Parseval for the
     finite ONB, the LHS by orthonormality of ell2_basis. -/
-private lemma hilbertEmbedding_inner (hfin : FiniteDimensional ℝ H) (x y : H) :
+lemma hilbertEmbedding_inner (hfin : FiniteDimensional ℝ H) (x y : H) :
     @inner ℝ ell2' _ (hilbertEmbedding hfin x) (hilbertEmbedding hfin y) =
     @inner ℝ H _ x y := by
   haveI := hfin
@@ -514,7 +518,7 @@ instance measure_isProbability (T : E →L[ℝ] H) :
 /-! ## Characteristic Functional -/
 
 /-- For a.e. ξ, partial sums converge to the series limit. -/
-private theorem partialSum_tendsto (T : E →L[ℝ] H)
+theorem partialSum_tendsto (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (f : E) :
     ∀ᵐ ξ ∂noiseMeasure, Filter.Tendsto
       (fun N => ∑ k ∈ Finset.range N, ξ k * coeff T h_inf k f)
@@ -530,7 +534,7 @@ private theorem partialSum_tendsto (T : E →L[ℝ] H)
   exact hsummable.hasSum.tendsto_sum_nat
 
 /-- Coordinate projections are iIndepFun under the noise measure. -/
-private theorem coord_projections_indep :
+theorem coord_projections_indep :
     iIndepFun (m := fun _ => inferInstance)
     (fun i (ξ : NoiseSpace) ↦ ξ i) noiseMeasure := by
   have h := @iIndepFun_infinitePi ℕ (fun _ => ℝ) (fun _ => inferInstance)
@@ -540,7 +544,7 @@ private theorem coord_projections_indep :
   exact h
 
 /-- Independence factorization for integrals over the noise measure. -/
-private theorem noise_integral_factor (n : ℕ)
+theorem noise_integral_factor (n : ℕ)
     (g : NoiseSpace → ℂ) (h : ℝ → ℂ)
     (hg : ∀ ξ ξ', (∀ k < n, ξ k = ξ' k) → g ξ = g ξ')
     (hg_meas : Measurable g)
@@ -587,7 +591,7 @@ private theorem noise_integral_factor (n : ℕ)
     hg'_meas.aestronglyMeasurable hh_meas.aestronglyMeasurable
 
 /-- Characteristic functional of the partial sum. -/
-private theorem partial_sum_charFun (T : E →L[ℝ] H)
+theorem partial_sum_charFun (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (f : E) (N : ℕ) :
     ∫ ξ, Complex.exp (Complex.I * ↑(∑ k ∈ Finset.range N,
       ξ k * coeff T h_inf k f)) ∂noiseMeasure =
@@ -632,7 +636,7 @@ private theorem partial_sum_charFun (T : E →L[ℝ] H)
 
 /-- Core computation: the noise integral equals the Gaussian characteristic functional.
     Proved for infinite-dimensional H where the nuclear SVD applies. -/
-private theorem charFun_noise_integral (T : E →L[ℝ] H)
+theorem charFun_noise_integral (T : E →L[ℝ] H)
     (h_inf : ¬ FiniteDimensional ℝ H) (f : E) :
     ∫ ξ : NoiseSpace, Complex.exp (Complex.I * ↑(seriesLimit T h_inf ξ f)) ∂noiseMeasure =
     Complex.exp (-(1/2 : ℂ) * ↑(@inner ℝ H _ (T f) (T f))) := by

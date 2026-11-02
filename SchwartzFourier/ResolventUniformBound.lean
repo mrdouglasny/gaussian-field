@@ -32,7 +32,11 @@ that are NOT monotone in ω. The factorization avoids this issue.
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 -/
 
-import Cylinder.FourierMultiplier
+module
+
+public import Cylinder.FourierMultiplier
+
+@[expose] public section
 
 noncomputable section
 
@@ -167,7 +171,7 @@ uniform polynomial derivative bounds. The scaling identity
 `fourierMultiplier_schwartz_bound` then yields the uniform seminorm bound. -/
 
 /-- Scaling identity for the resolvent symbol. -/
-private theorem resolventSymbol_scaling' {ω : ℝ} (hω : 0 < ω) :
+theorem resolventSymbol_scaling' {ω : ℝ} (hω : 0 < ω) :
     resolventSymbol ω = fun p => ω⁻¹ * resolventSymbol 1 (ω⁻¹ * p) := by
   funext p
   unfold resolventSymbol
@@ -180,7 +184,7 @@ private theorem resolventSymbol_scaling' {ω : ℝ} (hω : 0 < ω) :
     Real.rpow_neg (sq_nonneg ω), ← Real.sqrt_eq_rpow, Real.sqrt_sq hω.le]
 
 /-- Scaling of iterated derivatives of the resolvent symbol. -/
-private theorem iteratedDeriv_resolventSymbol_scaling {ω : ℝ} (hω : 0 < ω) (m : ℕ) :
+theorem iteratedDeriv_resolventSymbol_scaling {ω : ℝ} (hω : 0 < ω) (m : ℕ) :
     iteratedDeriv m (resolventSymbol ω) =
       fun p => ω⁻¹ * (ω⁻¹) ^ m * iteratedDeriv m (resolventSymbol 1) (ω⁻¹ * p) := by
   have hcontTop := (resolventSymbol_hasTemperateGrowth 1 zero_lt_one).1

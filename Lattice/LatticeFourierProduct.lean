@@ -1,4 +1,8 @@
-import Lattice.CirculantDFT2d
+module
+
+public import Lattice.CirculantDFT2d
+
+@[expose] public section
 
 noncomputable section
 
@@ -35,7 +39,7 @@ def latticeFourierProductCoeff (d : ℕ) (f : FinLatticeSites d N → ℝ)
   simp [latticeFourierProductNormSq, Fin.prod_univ_succ]
 
 omit [NeZero N] in
-private theorem sum_finModes_succ {α : Type*} [AddCommMonoid α]
+theorem sum_finModes_succ {α : Type*} [AddCommMonoid α]
     (d : ℕ) (F : (Fin (d + 1) → Fin N) → α) :
     ∑ m : (Fin (d + 1) → Fin N), F m =
       ∑ m₀ : Fin N, ∑ ms : (Fin d → Fin N), F (Fin.cons m₀ ms) := by
@@ -343,7 +347,7 @@ theorem massOperator_surjective (d : ℕ) (a mass : ℝ)
   exact (massOperator d N a mass).toLinearMap.surjective_of_injective hinj
 
 omit [NeZero N] in
-private lemma latticeFourierProductBasisFun_update (d : ℕ) (m : Fin d → Fin N)
+lemma latticeFourierProductBasisFun_update (d : ℕ) (m : Fin d → Fin N)
     (x : FinLatticeSites d N) (i : Fin d) (z : ZMod N) :
     latticeFourierProductBasisFun N d m (Function.update x i z) =
       latticeFourierBasisFun N (m i) z *

@@ -15,12 +15,16 @@ with a natural DyninMityaginSpace instance via delta-function basis.
 - `HasPointEval` instance — evaluation at lattice sites
 -/
 
-import Lattice.Sites
-import Nuclear.DyninMityagin
-import Nuclear.NuclearTensorProduct
-import Nuclear.PointEval
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.LinearAlgebra.Dimension.Finrank
+module
+
+public import Lattice.Sites
+public import Nuclear.DyninMityagin
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.PointEval
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+
+@[expose] public section
 
 noncomputable section
 
@@ -51,7 +55,7 @@ This means rapid decay holds trivially (eventually-zero sequences). -/
 variable (d N : ℕ) [NeZero N]
 
 /-- Enumeration of finite lattice sites via Fintype. -/
-private noncomputable def finLatticeSiteEnum :
+noncomputable def finLatticeSiteEnum :
     FinLatticeSites d N ≃ Fin (Fintype.card (FinLatticeSites d N)) :=
   Fintype.equivFin _
 

@@ -31,17 +31,21 @@ No sorries.
   Key: DM expansion + `measurable_of_tendsto_metrizable` for partial sums.
 -/
 
-import GaussianField.Construction
-import Nuclear.DyninMityagin
-import Nuclear.NuclearSpace
-import Mathlib.MeasureTheory.Measure.Prokhorov
-import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
-import Mathlib.MeasureTheory.Measure.Comap
-import Mathlib.MeasureTheory.Measure.Portmanteau
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Metrizable
-import Mathlib.Topology.Sequences
-import Mathlib.Topology.Metrizable.Basic
-import Mathlib.Topology.TietzeExtension
+module
+
+public import GaussianField.Construction
+public import Nuclear.DyninMityagin
+public import Nuclear.NuclearSpace
+public import Mathlib.MeasureTheory.Measure.Prokhorov
+public import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
+public import Mathlib.MeasureTheory.Measure.Comap
+public import Mathlib.MeasureTheory.Measure.Portmanteau
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Metrizable
+public import Mathlib.Topology.Sequences
+public import Mathlib.Topology.Metrizable.Basic
+public import Mathlib.Topology.TietzeExtension
+
+@[expose] public section
 
 noncomputable section
 

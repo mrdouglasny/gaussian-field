@@ -36,13 +36,17 @@ intermediate axioms and `tendsto_tsum_of_dominated_convergence` (Tannery):
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
 
-import Lattice.Covariance
-import Torus.Evaluation
-import HeatKernel.Bilinear
-import SmoothCircle.Eigenvalues
-import Lattice.HeatKernelConvergence1d
-import Lattice.CirculantDFT
-import Lattice.CirculantDFT2d
+module
+
+public import Lattice.Covariance
+public import Torus.Evaluation
+public import HeatKernel.Bilinear
+public import SmoothCircle.Eigenvalues
+public import Lattice.HeatKernelConvergence1d
+public import Lattice.CirculantDFT
+public import Lattice.CirculantDFT2d
+
+@[expose] public section
 
 noncomputable section
 
@@ -138,7 +142,7 @@ theorem latticeDFTCoeff1d_quadratic_bound (f : SmoothMap_Circle L ℝ) :
 /-! ## 2D spectral terms -/
 
 /-- The `(m₁, m₂)`-th term of the 2D lattice Green's function spectral sum. -/
-private def latticeGreenTerm2d (N : ℕ) (mass : ℝ)
+def latticeGreenTerm2d (N : ℕ) (mass : ℝ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) (p : ℕ × ℕ) : ℝ :=
   latticeDFTCoeff1d L (N + 1) f₁ p.1 * latticeDFTCoeff1d L (N + 1) g₁ p.1 *
   latticeDFTCoeff1d L (N + 1) f₂ p.2 * latticeDFTCoeff1d L (N + 1) g₂ p.2 /
@@ -147,7 +151,7 @@ private def latticeGreenTerm2d (N : ℕ) (mass : ℝ)
    latticeFourierNormSq (N + 1) p.1 * latticeFourierNormSq (N + 1) p.2)
 
 /-- The `(n₁, n₂)`-th term of the continuum 2D Green's function spectral sum. -/
-private def continuumGreenTerm2d (mass : ℝ)
+def continuumGreenTerm2d (mass : ℝ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) (p : ℕ × ℕ) : ℝ :=
   DyninMityaginSpace.coeff p.1 f₁ * DyninMityaginSpace.coeff p.1 g₁ *
   DyninMityaginSpace.coeff p.2 f₂ * DyninMityaginSpace.coeff p.2 g₂ /
@@ -155,7 +159,7 @@ private def continuumGreenTerm2d (mass : ℝ)
    HasLaplacianEigenvalues.eigenvalue (E := SmoothMap_Circle L ℝ) p.2 + mass ^ 2)
 
 /-- Lattice Green's term vanishes when either index is out of range. -/
-private theorem latticeGreenTerm2d_zero_of_ge (N : ℕ) (mass : ℝ)
+theorem latticeGreenTerm2d_zero_of_ge (N : ℕ) (mass : ℝ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) (p : ℕ × ℕ)
     (h : N + 1 ≤ p.1 ∨ N + 1 ≤ p.2) :
     latticeGreenTerm2d L N mass f₁ g₁ f₂ g₂ p = 0 := by
@@ -167,7 +171,7 @@ private theorem latticeGreenTerm2d_zero_of_ge (N : ℕ) (mass : ℝ)
 /-! ## Connecting lattice covariance to ℕ × ℕ tsum -/
 
 /-- The lattice covariance (via circulant axiom) equals `∑' p, latticeGreenTerm2d p`. -/
-private theorem lattice_covariance_eq_tsum_pure
+theorem lattice_covariance_eq_tsum_pure
     (mass : ℝ) (hmass : 0 < mass) (N : ℕ)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) :
     covariance
@@ -188,7 +192,7 @@ private theorem lattice_covariance_eq_tsum_pure
 /-! ## Connecting continuum Green's function to ℕ × ℕ tsum -/
 
 /-- The continuum Green's function for pure tensors equals `∑' p, continuumGreenTerm2d p`. -/
-private theorem greenFunctionBilinear_pure_eq_tsum
+theorem greenFunctionBilinear_pure_eq_tsum
     (mass : ℝ) (hmass : 0 < mass)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) :
     greenFunctionBilinear (E := TorusTestFunction L) mass hmass
@@ -228,7 +232,7 @@ private theorem greenFunctionBilinear_pure_eq_tsum
 /-! ## Pointwise convergence of each term -/
 
 /-- Each lattice Green's term converges to the continuum term. -/
-private theorem latticeGreenTerm2d_tendsto
+theorem latticeGreenTerm2d_tendsto
     (mass : ℝ) (hmass : 0 < mass)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ) (p : ℕ × ℕ) :
     Tendsto (fun N : ℕ => latticeGreenTerm2d L N mass f₁ g₁ f₂ g₂ p)
@@ -292,7 +296,7 @@ private theorem latticeGreenTerm2d_tendsto
 
 Uses all four quadratic DFT bounds to get `C / ((1+m₁)⁴(1+m₂)⁴ mass²)`,
 which is summable over `ℕ × ℕ`. -/
-private theorem latticeGreenTerm2d_norm_le
+theorem latticeGreenTerm2d_norm_le
     (mass : ℝ) (hmass : 0 < mass)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ)
     {Cf₁ Cg₁ Cf₂ Cg₂ : ℝ}
@@ -405,7 +409,7 @@ private theorem latticeGreenTerm2d_norm_le
     rw [h0, norm_zero]; positivity
 
 /-- Summability of `C / (mass² (1+m₁)⁴ (1+m₂)⁴)` over `ℕ × ℕ`. -/
-private theorem summable_bound
+theorem summable_bound
     (mass : ℝ) (hmass : 0 < mass) (C : ℝ) :
     Summable (fun p : ℕ × ℕ =>
       C / (mass ^ 2 * (1 + (p.1 : ℝ)) ^ 4 * (1 + (p.2 : ℝ)) ^ 4)) := by
@@ -467,7 +471,7 @@ theorem lattice_green_tendsto_continuum_pure
 /-! ### Helper lemmas (reproved from GreenInvariance.lean where private) -/
 
 /-- NTP basis elements are pure tensors (given biorthogonality in each factor). -/
-private theorem ntp_basis_eq_pure (m : ℕ) :
+theorem ntp_basis_eq_pure' (m : ℕ) :
     DyninMityaginSpace.basis
       (E := NuclearTensorProduct (SmoothMap_Circle L ℝ) (SmoothMap_Circle L ℝ)) m =
     pure (DyninMityaginSpace.basis (E := SmoothMap_Circle L ℝ) (Nat.unpair m).1)
@@ -488,7 +492,7 @@ private theorem ntp_basis_eq_pure (m : ℕ) :
     · simp [h1]
 
 /-- Continuity of `f ↦ G(f, h)` via polarization. -/
-private theorem greenFunctionBilinear_continuous_left
+theorem greenFunctionBilinear_continuous_left'
     (mass : ℝ) (hmass : 0 < mass) (h : TorusTestFunction L) :
     Continuous (fun f => greenFunctionBilinear
       (E := TorusTestFunction L) mass hmass f h) := by
@@ -511,24 +515,24 @@ private theorem greenFunctionBilinear_continuous_left
     continuous_const).div_const 2 |>.congr (fun f => (hpol f).symm)
 
 /-- Green function as CLM in first argument. -/
-private noncomputable def greenCLM_left
+noncomputable def greenCLM_left'
     (mass : ℝ) (hmass : 0 < mass) (h : TorusTestFunction L) :
     TorusTestFunction L →L[ℝ] ℝ :=
   ⟨{ toFun := fun f => greenFunctionBilinear (E := TorusTestFunction L) mass hmass f h
      map_add' := fun f₁ f₂ => greenFunctionBilinear_add_left mass hmass f₁ f₂ h
      map_smul' := fun c f => by
        rw [greenFunctionBilinear_smul_left, RingHom.id_apply, smul_eq_mul] },
-   greenFunctionBilinear_continuous_left L mass hmass h⟩
+   greenFunctionBilinear_continuous_left' L mass hmass h⟩
 
 @[simp] private theorem greenCLM_left_apply
     (mass : ℝ) (hmass : 0 < mass) (h f : TorusTestFunction L) :
-    greenCLM_left L mass hmass h f =
+    greenCLM_left' L mass hmass h f =
     greenFunctionBilinear (E := TorusTestFunction L) mass hmass f h := rfl
 
 /-! ### Lattice evaluation CLM -/
 
 /-- The restriction map `f ↦ (x ↦ evalTorusAtSite x f)` as a CLM. -/
-private def evalLatticeMap (N : ℕ) [NeZero N] :
+def evalLatticeMap (N : ℕ) [NeZero N] :
     TorusTestFunction L →L[ℝ] FinLatticeField 2 N where
   toFun f := fun x => evalTorusAtSite L N x f
   map_add' f₁ f₂ := funext fun x => map_add (evalTorusAtSite L N x) f₁ f₂
@@ -540,7 +544,7 @@ private def evalLatticeMap (N : ℕ) [NeZero N] :
     evalLatticeMap L N f x = evalTorusAtSite L N x f := rfl
 
 /-- Lattice covariance CLM in the first argument (for fixed N and second argument). -/
-private noncomputable def latticeCovCLM_left (N : ℕ) [NeZero N]
+noncomputable def latticeCovCLM_left (N : ℕ) [NeZero N]
     (mass : ℝ) (hmass : 0 < mass) (ha : 0 < circleSpacing L N)
     (g : TorusTestFunction L) :
     TorusTestFunction L →L[ℝ] ℝ :=
@@ -548,7 +552,7 @@ private noncomputable def latticeCovCLM_left (N : ℕ) [NeZero N]
     (evalLatticeMap L N)
   (innerSL ℝ (T g)).comp T
 
-private theorem latticeCovCLM_left_apply (N : ℕ) [NeZero N]
+theorem latticeCovCLM_left_apply (N : ℕ) [NeZero N]
     (mass : ℝ) (hmass : 0 < mass) (ha : 0 < circleSpacing L N)
     (f g : TorusTestFunction L) :
     latticeCovCLM_left L N mass hmass ha g f =
@@ -562,7 +566,7 @@ private theorem latticeCovCLM_left_apply (N : ℕ) [NeZero N]
 /-! ### DM expansion identities for lattice covariance -/
 
 /-- B_N(f, g) = ∑' m, coeff(m, f) * B_N(basis m, g) via Dynin-Mityagin expansion. -/
-private theorem covariance_dm_expansion_left (mass : ℝ) (hmass : 0 < mass) (N : ℕ)
+theorem covariance_dm_expansion_left (mass : ℝ) (hmass : 0 < mass) (N : ℕ)
     (f g : TorusTestFunction L) :
     covariance
       (latticeCovariance 2 (N + 1) (circleSpacing L (N + 1)) mass
@@ -585,7 +589,7 @@ private theorem covariance_dm_expansion_left (mass : ℝ) (hmass : 0 < mass) (N 
 /-! ### Mixed norm bounds for domination -/
 
 /-- Summability of `C / ((1+p₁)² · (1+p₂)²)` over `ℕ × ℕ`. -/
-private theorem summable_inv_sq_sq :
+theorem summable_inv_sq_sq :
     Summable (fun p : ℕ × ℕ =>
       1 / ((1 + (p.1 : ℝ)) ^ 2 * (1 + (p.2 : ℝ)) ^ 2)) := by
   have h1d : Summable (fun n : ℕ => 1 / (1 + (n : ℝ)) ^ 2) := by
@@ -598,7 +602,7 @@ private theorem summable_inv_sq_sq :
 
 /-- Uniform bound on `|B_N(pure(f₁,f₂), pure(g₁,g₂))|` using flat bounds for f and
 quadratic bounds for g. -/
-private theorem lattice_covariance_pure_abs_le
+theorem lattice_covariance_pure_abs_le
     (mass : ℝ) (hmass : 0 < mass)
     (f₁ g₁ f₂ g₂ : SmoothMap_Circle L ℝ)
     {Af₁ Af₂ Cg₁ Cg₂ : ℝ}
@@ -720,7 +724,7 @@ private theorem lattice_covariance_pure_abs_le
 /-- Convergence for general f, pure g: uses DM expansion in f, with Tannery's
 theorem for dominated convergence. The domination uses the flat DFT bound
 for basis elements and quadratic DFT bound for g₁, g₂. -/
-private theorem lattice_green_tendsto_pure_right
+theorem lattice_green_tendsto_pure_right
     (mass : ℝ) (hmass : 0 < mass)
     (f : TorusTestFunction L) (g₁ g₂ : SmoothMap_Circle L ℝ) :
     Tendsto
@@ -751,7 +755,7 @@ private theorem lattice_green_tendsto_pure_right
       ∑' m, DyninMityaginSpace.coeff m f *
         greenFunctionBilinear (E := TorusTestFunction L) mass hmass
           (DyninMityaginSpace.basis m) (pure g₁ g₂) := by
-    have := DyninMityaginSpace.expansion (greenCLM_left L mass hmass (pure g₁ g₂)) f
+    have := DyninMityaginSpace.expansion (greenCLM_left' L mass hmass (pure g₁ g₂)) f
     simp only [greenCLM_left_apply] at this
     exact this
   rw [h_G_expand]
@@ -786,7 +790,7 @@ private theorem lattice_green_tendsto_pure_right
       Sb ^ 2 * Cg₁ * Cg₂ * S₂ / mass ^ 2 *
         (1 + ((Nat.unpair m).1 : ℝ)) ^ r₀ * (1 + ((Nat.unpair m).2 : ℝ)) ^ r₀ := by
     intro m N
-    rw [ntp_basis_eq_pure L m]
+    rw [ntp_basis_eq_pure' L m]
     calc |covariance _ (fun x => evalTorusAtSite L (N + 1) x
             (pure (DyninMityaginSpace.basis (Nat.unpair m).1)
                   (DyninMityaginSpace.basis (Nat.unpair m).2)))
@@ -864,7 +868,7 @@ private theorem lattice_green_tendsto_pure_right
   · -- Pointwise convergence: basis(m) is pure, so use lattice_green_tendsto_continuum_pure
     intro m
     apply Filter.Tendsto.const_mul
-    rw [ntp_basis_eq_pure L m]
+    rw [ntp_basis_eq_pure' L m]
     exact lattice_green_tendsto_continuum_pure L mass hmass _ g₁ _ g₂
   · -- Domination
     apply Filter.Eventually.of_forall
@@ -885,7 +889,7 @@ private theorem lattice_green_tendsto_pure_right
 /-- The explicit quadratic DFT bound with seminorm-based constant.
 Unlike `latticeDFTCoeff1d_quadratic_bound`, this gives the constant explicitly
 in terms of Sobolev seminorms, allowing polynomial-in-k bounds for basis(k). -/
-private theorem latticeDFTCoeff1d_seminorm_quadratic (f : SmoothMap_Circle L ℝ)
+theorem latticeDFTCoeff1d_seminorm_quadratic (f : SmoothMap_Circle L ℝ)
     (N m : ℕ) :
     |latticeDFTCoeff1d L (N + 1) f m| ≤
       (Real.sqrt (2 * L) * SmoothMap_Circle.sobolevSeminorm 0 f +
@@ -932,7 +936,7 @@ set_option maxHeartbeats 1600000 in
 /-- Uniform-in-N polynomial bound on |B_N(f, basis m)| for general f.
 Uses DM expansion of f, basis-basis bounds from `lattice_covariance_pure_abs_le`,
 and `coeff_decay` summability. -/
-private theorem lattice_covariance_general_basis_bound
+theorem lattice_covariance_general_basis_bound
     (mass : ℝ) (hmass : 0 < mass) (f : TorusTestFunction L) :
     ∃ C_B : ℝ, 0 < C_B ∧ ∃ s_B : ℕ, ∀ N m,
       |covariance
@@ -1004,7 +1008,7 @@ private theorem lattice_covariance_general_basis_bound
         (fun x => evalTorusAtSite L (N + 1) x (DyninMityaginSpace.basis m))| ≤
       K_bb * (1 + (n : ℝ)) ^ (2 * r₀) * (1 + (m : ℝ)) ^ (2 * rq) := by
     intro N n m
-    rw [ntp_basis_eq_pure L n, ntp_basis_eq_pure L m]
+    rw [ntp_basis_eq_pure' L n, ntp_basis_eq_pure' L m]
     calc _ ≤ (Sb * (1 + ((Nat.unpair n).1 : ℝ)) ^ r₀) *
               (Cq * (1 + ((Nat.unpair m).1 : ℝ)) ^ rq) *
               (Sb * (1 + ((Nat.unpair n).2 : ℝ)) ^ r₀) *
@@ -1168,7 +1172,7 @@ theorem lattice_green_tendsto_continuum
       ∑' m, DyninMityaginSpace.coeff m g *
         greenFunctionBilinear (E := TorusTestFunction L) mass hmass
           f (DyninMityaginSpace.basis m) := by
-    have := DyninMityaginSpace.expansion (greenCLM_left L mass hmass f) g
+    have := DyninMityaginSpace.expansion (greenCLM_left' L mass hmass f) g
     simp only [greenCLM_left_apply] at this
     rw [greenFunctionBilinear_symm mass hmass f g, this]
     congr 1; ext m; rw [greenFunctionBilinear_symm]
@@ -1206,7 +1210,7 @@ theorem lattice_green_tendsto_continuum
   · -- Pointwise convergence: basis(m) is pure, so use Phase A
     intro m
     apply Filter.Tendsto.const_mul
-    rw [ntp_basis_eq_pure L m]
+    rw [ntp_basis_eq_pure' L m]
     exact lattice_green_tendsto_pure_right L mass hmass f _ _
   · -- Domination: trivial from the uniform polynomial bound
     apply Filter.Eventually.of_forall

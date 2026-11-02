@@ -14,7 +14,11 @@ isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq` constructed in
   on any nontrivial finite-dimensional real normed space.
 -/
 
-import SchwartzNuclear.HermiteTensorProduct
+module
+
+public import SchwartzNuclear.HermiteTensorProduct
+
+@[expose] public section
 
 noncomputable section
 

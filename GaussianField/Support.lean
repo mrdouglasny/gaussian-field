@@ -28,9 +28,13 @@ to the DyninMityaginSpace basis.
 - Simon, *The P(φ)₂ Euclidean (Quantum) Field Theory*, Ch. II
 -/
 
-import GaussianField.Properties
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
-import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
+module
+
+public import GaussianField.Properties
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
+
+@[expose] public section
 
 noncomputable section
 
@@ -107,7 +111,7 @@ theorem basis_sq_aestronglyMeasurable (T : E →L[ℝ] H) (n : ℕ) :
 
 /-- The enorm sum condition needed for `integral_tsum`: the tsum of
     lintegrals of enorms is finite when T is Hilbert-Schmidt. -/
-private theorem enorm_tsum_ne_top (T : E →L[ℝ] H) (hHS : IsHilbertSchmidt T) :
+theorem enorm_tsum_ne_top (T : E →L[ℝ] H) (hHS : IsHilbertSchmidt T) :
     (∑' n, ∫⁻ ω, ‖(ω (DyninMityaginSpace.basis n)) ^ 2‖ₑ
       ∂(measure T)) ≠ ⊤ := by
   -- Convert enorm of nonneg real to ofReal

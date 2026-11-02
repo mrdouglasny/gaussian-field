@@ -350,7 +350,7 @@ theorem laplaceEmbeddingCoord_decay (mass : ℝ) (hmass : 0 < mass) :
       linarith
 
 /-- Helper: package the decay bound for `nuclear_ell2_embedding_from_decay`. -/
-private def laplaceEmbedding_ell2 (mass : ℝ) (hmass : 0 < mass) :
+def laplaceEmbedding_ell2 (mass : ℝ) (hmass : 0 < mass) :
     ∃ (j : CylinderTestFunction L →L[ℝ] ell2'),
       ∀ (f : CylinderTestFunction L) (a : ℕ),
         (j f : ℕ → ℝ) a = laplaceEmbeddingCoord L mass hmass a f := by
@@ -663,7 +663,7 @@ theorem resolvent_laplace_inner
 
 Blocked by: `smoothCircle_coeff_basis` not imported (in HeatKernel/GreenInvariance),
 `schwartz1d_coeff_basis` not yet proved, and some private definitions. -/
-private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
+theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunction L) :
     ntpSliceSchwartz L a (cylinderTimeReflection L f) =
     schwartzReflection (ntpSliceSchwartz L a f) := by
   -- Two CLMs agree iff they agree on DM basis (Schauder expansion + HasSum uniqueness)
@@ -708,7 +708,7 @@ private theorem ntpSliceSchwartz_timeReflection (a : ℕ) (f : CylinderTestFunct
   exact h1.unique h2
 
 /-- Slicing preserves positive-time support. -/
-private theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
+theorem ntpSliceSchwartz_positive_time (a : ℕ) (f : CylinderTestFunction L)
     (hf : f ∈ cylinderPositiveTimeSubmodule L) :
     ntpSliceSchwartz L a f ∈ schwartzPositiveTimeSubmodule :=
   ntpSliceSchwartz_maps_positive L a f hf

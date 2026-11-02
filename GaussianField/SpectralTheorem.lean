@@ -25,15 +25,19 @@ Hilbert space, there exist a HilbertBasis of eigenvectors and eigenvalues
 - Brezis, "Functional Analysis", Thm 6.11
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Rayleigh
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
-import Mathlib.Analysis.InnerProductSpace.Spectrum
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Tactic.Module
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Analysis.InnerProductSpace.l2Space
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Rayleigh
+public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Tactic.Module
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 noncomputable section
 
@@ -52,7 +56,7 @@ needed by the eigenspace spanning proof. The eigenvalue is ±‖T‖.
 Proof adapted from CompactEigenvector.lean in aqft2. -/
 
 set_option maxHeartbeats 800000 in
-private theorem hasEigenvector_aux
+theorem hasEigenvector_aux
     [Nontrivial E]
     (T : E →L[ℝ] E) (hT : IsSelfAdjoint T) (hK : IsCompactOperator T) (hne : T ≠ 0) :
     ∃ (μ : ℝ) (x : E), x ≠ 0 ∧ (T : E →ₗ[ℝ] E) x = μ • x ∧ |μ| = ‖T‖ := by
@@ -311,7 +315,7 @@ theorem compact_selfAdjoint_orthogonalComplement_iSup_eigenspaces_eq_bot
 
 /-! ### Helper: Eigenvector Hilbert basis (Zorn construction) -/
 
-private theorem eigenvector_basis
+theorem eigenvector_basis
     (T : E →L[ℝ] E) (hT : IsSelfAdjoint T) (hK : IsCompactOperator T) :
     ∃ (ι : Type u) (b : HilbertBasis ι ℝ E) (eigenval : ι → ℝ),
       ∀ i, (T : E →ₗ[ℝ] E) (b i) = eigenval i • b i := by

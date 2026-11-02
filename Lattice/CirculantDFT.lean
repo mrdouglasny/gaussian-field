@@ -25,7 +25,12 @@ full 1D lattice-to-continuum convergence.
 - Katznelson, *Harmonic Analysis*, §I.2
 -/
 
-import Lattice.HeatKernelConvergence1d
+module
+
+public import Lattice.HeatKernelConvergence1d
+public import Mathlib.Analysis.Calculus.Taylor
+
+@[expose] public section
 
 noncomputable section
 
@@ -117,7 +122,7 @@ theorem sin_zmod_pred (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
 /-! ## Pure trig eigenvector identities -/
 
 /-- `1 - cos(2x) = 2sin²(x)` -/
-private lemma one_sub_cos_double (x : ℝ) : 1 - cos (2 * x) = 2 * sin x ^ 2 := by
+lemma one_sub_cos_double (x : ℝ) : 1 - cos (2 * x) = 2 * sin x ^ 2 := by
   linarith [sin_sq_eq_half_sub x]
 
 /-- **Cosine eigenvector identity (pure trig).**
@@ -837,17 +842,17 @@ theorem latticeFourierNormSq_eq_one (N : ℕ) [NeZero N] (m : ℕ) (hm : 0 < m) 
 /-! ## Lattice Fourier basis orthogonality -/
 
 /-- Product-to-sum: cos a * cos b = (cos(a-b) + cos(a+b))/2. -/
-private theorem cos_mul_cos (a b : ℝ) :
+theorem cos_mul_cos (a b : ℝ) :
     cos a * cos b = (cos (a - b) + cos (a + b)) / 2 := by
   linarith [cos_add a b, cos_sub a b]
 
 /-- Product-to-sum: sin a * sin b = (cos(a-b) - cos(a+b))/2. -/
-private theorem sin_mul_sin (a b : ℝ) :
+theorem sin_mul_sin (a b : ℝ) :
     sin a * sin b = (cos (a - b) - cos (a + b)) / 2 := by
   linarith [cos_add a b, cos_sub a b]
 
 /-- Product-to-sum: cos a * sin b = (sin(a+b) - sin(a-b))/2. -/
-private theorem cos_mul_sin (a b : ℝ) :
+theorem cos_mul_sin (a b : ℝ) :
     cos a * sin b = (sin (a + b) - sin (a - b)) / 2 := by
   linarith [sin_add a b, sin_sub a b]
 
@@ -972,7 +977,7 @@ This uses: cos(θ+δ) + cos(θ-δ) = 2cos(θ)cos(δ), so
              = 2a⁻²(1 - cos(δ))cos(θ) = (4/a²)sin²(πk/N)·cos(θ). -/
 
 /-- Sum of cos at shifted argument: cos(k·(z+1)) + cos(k·(z-1)) = 2cos(kz)cos(k). -/
-private theorem cos_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
+theorem cos_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
     cos (2 * π * ↑k * ((z + 1 : ZMod N).val : ℝ) / ↑N) +
     cos (2 * π * ↑k * ((z - 1 : ZMod N).val : ℝ) / ↑N) =
     2 * cos (2 * π * ↑k * (z.val : ℝ) / ↑N) *
@@ -1024,7 +1029,7 @@ theorem negLaplacian1d_cos_eigenvalue (N : ℕ) [NeZero N] (a : ℝ) (_ha : a �
   ring
 
 /-- Sum of sin at shifted arguments: sin(k·(z+1)) + sin(k·(z-1)) = 2sin(kz)cos(k). -/
-private theorem sin_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
+theorem sin_shift_sum (N : ℕ) [NeZero N] (k : ℕ) (z : ZMod N) :
     sin (2 * π * ↑k * ((z + 1 : ZMod N).val : ℝ) / ↑N) +
     sin (2 * π * ↑k * ((z - 1 : ZMod N).val : ℝ) / ↑N) =
     2 * sin (2 * π * ↑k * (z.val : ℝ) / ↑N) *
@@ -1186,7 +1191,7 @@ theorem latticeFourierNormSq_pos (N : ℕ) [NeZero N] (m : ℕ) (hm : m < N) :
     · rw [latticeFourierNormSq_eq_one N (n + 1) (by omega) hm hNyq]; exact one_pos
 
 /-- At the Nyquist mode, the norm squared is 2. -/
-private theorem latticeFourierNormSq_nyquist (N : ℕ) [NeZero N] (n : ℕ)
+theorem latticeFourierNormSq_nyquist (N : ℕ) [NeZero N] (n : ℕ)
     (_hn_lt : n + 1 < N) (hn_even : n % 2 = 0)
     (hNyq : 2 * SmoothMap_Circle.fourierFreq (n + 1) = N) :
     latticeFourierNormSq N (n + 1) = 2 := by
@@ -1495,14 +1500,14 @@ theorem latticeHeatKernelBilinear1d_eq_spectral' (N : ℕ) [NeZero N] (t : ℝ)
 
 /-- The m-th corrected lattice heat kernel term at lattice size N.
 Includes the `/ latticeFourierNormSq` factor that corrects the Nyquist mode. -/
-private def latticeHeatTerm1d (N : ℕ) [NeZero N] (t : ℝ)
+def latticeHeatTerm1d (N : ℕ) [NeZero N] (t : ℝ)
     (f g : SmoothMap_Circle L ℝ) (m : ℕ) : ℝ :=
   Real.exp (-t * latticeEigenvalue1d N (circleSpacing L N) m) *
     latticeDFTCoeff1d L N f m * latticeDFTCoeff1d L N g m /
     latticeFourierNormSq N m
 
 /-- Lattice heat kernel term vanishes for m ≥ N. -/
-private theorem latticeHeatTerm1d_zero_of_ge (N : ℕ) [NeZero N] (t : ℝ)
+theorem latticeHeatTerm1d_zero_of_ge (N : ℕ) [NeZero N] (t : ℝ)
     (f g : SmoothMap_Circle L ℝ) (m : ℕ) (hm : N ≤ m) :
     latticeHeatTerm1d L N t f g m = 0 := by
   unfold latticeHeatTerm1d
@@ -1510,7 +1515,7 @@ private theorem latticeHeatTerm1d_zero_of_ge (N : ℕ) [NeZero N] (t : ℝ)
   ring
 
 /-- The lattice bilinear equals the tsum of corrected lattice heat terms. -/
-private theorem latticeHeatKernelBilinear1d_eq_tsum (N : ℕ) [NeZero N] (t : ℝ)
+theorem latticeHeatKernelBilinear1d_eq_tsum (N : ℕ) [NeZero N] (t : ℝ)
     (f g : SmoothMap_Circle L ℝ) :
     latticeHeatKernelBilinear1d L N t f g =
     ∑' m, latticeHeatTerm1d L N t f g m := by

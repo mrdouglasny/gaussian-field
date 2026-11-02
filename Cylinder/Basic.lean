@@ -28,10 +28,14 @@ product of nuclear spaces), so the Bochner-Minlos theorem applies.
 - Osterwalder-Schrader (1973, 1975)
 -/
 
-import SmoothCircle.Nuclear
-import SchwartzNuclear.HermiteNuclear
-import Nuclear.NuclearTensorProduct
-import GaussianField.Construction
+module
+
+public import SmoothCircle.Nuclear
+public import SchwartzNuclear.HermiteNuclear
+public import Nuclear.NuclearTensorProduct
+public import GaussianField.Construction
+
+@[expose] public section
 
 noncomputable section
 

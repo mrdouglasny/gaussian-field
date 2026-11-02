@@ -33,11 +33,15 @@ The standard proof proceeds via the Gross log-Sobolev inequality:
 - Glimm-Jaffe, Quantum Physics, Ch. 8
 -/
 
-import GaussianField.Properties
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.MeasureTheory.Integral.Gamma
+module
+
+public import GaussianField.Properties
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.MeasureTheory.Integral.Gamma
+
+@[expose] public section
 
 noncomputable section
 
@@ -63,7 +67,7 @@ This is a standard identity obtained by substituting u = x²/2 in the Gaussian
 integral and recognizing the Gamma function.
 
 Reference: Any probability textbook, e.g. Feller, Vol. II, Ch. II. -/
-private lemma gaussian_abs_moment_std_aux (k : ℝ) (hk : 0 ≤ k) :
+lemma gaussian_abs_moment_std_aux (k : ℝ) (hk : 0 ≤ k) :
     ∫ x : ℝ, |x| ^ k ∂(gaussianReal 0 1) =
       (√(2 * π))⁻¹ * (2 * ((1/2 : ℝ) ^ (-(k+1)/2) * (1/2) * Real.Gamma ((k+1)/2))) := by
   -- Step 1: Convert from gaussianReal measure to density form (Lebesgue integral)
@@ -136,7 +140,7 @@ lemma gaussian_abs_moment_std (k : ℝ) (hk : 0 ≤ k) :
 
 /-- The fourth moment of the standard Gaussian: E[Z⁴] = 3 for Z ~ N(0,1).
     Proved via `iteratedDeriv 4 (mgf id (gaussianReal 0 1)) 0 = 3`. -/
-private lemma deriv_exp_half_sq :
+lemma deriv_exp_half_sq :
     deriv (fun t : ℝ => rexp (t ^ 2 / 2)) = fun t => t * rexp (t ^ 2 / 2) := by
   ext t
   have h : HasDerivAt (fun t : ℝ => t ^ 2 / 2) t t := by
@@ -144,21 +148,21 @@ private lemma deriv_exp_half_sq :
     simp at this; exact this
   rw [(h.exp).deriv]; ring
 
-private lemma hasDerivAt_exp_half_sq (t : ℝ) :
+lemma hasDerivAt_exp_half_sq (t : ℝ) :
     HasDerivAt (fun t : ℝ => rexp (t ^ 2 / 2)) (t * rexp (t ^ 2 / 2)) t := by
   have h : HasDerivAt (fun t : ℝ => t ^ 2 / 2) t t := by
     have := (hasDerivAt_pow 2 t).div_const (2 : ℝ)
     simp at this; exact this
   convert h.exp using 1 ; first | rfl | (ring)
 
-private lemma hasDerivAt_t_mul_exp (t : ℝ) :
+lemma hasDerivAt_t_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => t * rexp (t ^ 2 / 2))
       ((1 + t ^ 2) * rexp (t ^ 2 / 2)) t := by
   have h1 : HasDerivAt (fun t : ℝ => t) 1 t := hasDerivAt_id t
   have := h1.mul (hasDerivAt_exp_half_sq t)
   convert this using 1 <;> first | rfl | (ring)
 
-private lemma hasDerivAt_quad_mul_exp (t : ℝ) :
+lemma hasDerivAt_quad_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => (1 + t ^ 2) * rexp (t ^ 2 / 2))
       ((3 * t + t ^ 3) * rexp (t ^ 2 / 2)) t := by
   have hp : HasDerivAt (fun t : ℝ => 1 + t ^ 2) (2 * t) t := by
@@ -166,7 +170,7 @@ private lemma hasDerivAt_quad_mul_exp (t : ℝ) :
   have := hp.mul (hasDerivAt_exp_half_sq t)
   convert this using 1 <;> first | rfl | (ring)
 
-private lemma hasDerivAt_cubic_mul_exp (t : ℝ) :
+lemma hasDerivAt_cubic_mul_exp (t : ℝ) :
     HasDerivAt (fun t : ℝ => (3 * t + t ^ 3) * rexp (t ^ 2 / 2))
       ((3 + 6 * t ^ 2 + t ^ 4) * rexp (t ^ 2 / 2)) t := by
   have hp : HasDerivAt (fun t : ℝ => 3 * t + t ^ 3) (3 + 3 * t ^ 2) t := by

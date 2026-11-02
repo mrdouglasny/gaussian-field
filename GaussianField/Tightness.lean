@@ -25,10 +25,14 @@ uniform second moment bounds is tight.
   of the continuous image of a compact product box (Tychonoff + DM reconstruction)
 -/
 
-import GaussianField.ConfigurationEmbedding
-import Mathlib.Analysis.Normed.Group.Tannery
-import Mathlib.Analysis.LocallyConvex.Barrelled
-import Mathlib.Topology.Baire.CompleteMetrizable
+module
+
+public import GaussianField.ConfigurationEmbedding
+public import Mathlib.Analysis.Normed.Group.Tannery
+public import Mathlib.Analysis.LocallyConvex.Barrelled
+public import Mathlib.Topology.Baire.CompleteMetrizable
+
+@[expose] public section
 
 noncomputable section
 
@@ -61,7 +65,7 @@ instance DyninMityaginSpace.instBaireSpace : BaireSpace E := by
 
 /-! ## Uniform bound from pointwise second moments (barrel theorem) -/
 
-private lemma dm_sequentialSpace : SequentialSpace E := by
+lemma dm_sequentialSpace : SequentialSpace E := by
   haveI := hDM.h_countable
   letI : UniformSpace E := IsTopologicalAddGroup.rightUniformSpace E
   haveI : IsUniformAddGroup E := isUniformAddGroup_of_addCommGroup
@@ -77,7 +81,7 @@ private lemma dm_sequentialSpace : SequentialSpace E := by
 Follows from Fatou's lemma: if `f_n → f`, then `ω(f_n) → ω(f)` for each `ω`
 (by continuity of `ω`), so `(ω f_n)² → (ω f)²` pointwise, and Fatou gives
 `∫ (ω f)² ≤ liminf ∫ (ω f_n)²`. -/
-private lemma lowerSemicontinuous_second_moment
+lemma lowerSemicontinuous_second_moment
     {ι : Type*}
     (μ : ι → @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (h_int : ∀ (f : E) (i : ι),
@@ -165,7 +169,7 @@ private lemma lowerSemicontinuous_second_moment
 Each `f ↦ ∫ (ω f)² dμ_i` is lower semicontinuous (by Fatou), so
 `{f | ∫ (ω f)² ≤ n}` is closed, and V_n is a countable/arbitrary intersection
 of closed sets. -/
-private lemma isClosed_sublevel_all
+lemma isClosed_sublevel_all
     {ι : Type*}
     (μ : ι → @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (h_int : ∀ (f : E) (i : ι),
@@ -183,7 +187,7 @@ omit hDM in
 /-- Parallelogram bound for second moments: if `∫(ω(x+cf))² ≤ N` and
 `∫(ω(x-cf))² ≤ N`, then `c² * ∫(ωf)² ≤ N`. Uses the identity
 `(a+b)²+(a-b)² = 2a²+2b²` and nonnegativity of `∫(ωx)²`. -/
-private lemma parallelogram_second_moment_bound
+lemma parallelogram_second_moment_bound
     (μ_i : @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (h_int_f : Integrable (fun ω : Configuration E => (ω f) ^ 2) μ_i)
     (h_int_x : Integrable (fun ω : Configuration E => (ω x) ^ 2) μ_i)
@@ -251,7 +255,7 @@ private lemma parallelogram_second_moment_bound
   have hx_nn : 0 ≤ ∫ ω', (ω' x) ^ 2 ∂μ_i := integral_nonneg fun _ => sq_nonneg _
   linarith
 
-private theorem uniform_bound_from_pointwise
+theorem uniform_bound_from_pointwise
     {ι : Type*}
     (μ : ι → @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (_hprob : ∀ i, @IsProbabilityMeasure _ instMeasurableSpaceConfiguration (μ i))
@@ -401,7 +405,7 @@ private theorem uniform_bound_from_pointwise
 
 /-! ## Growth bound on basis moments -/
 
-private theorem basis_moment_poly_bound
+theorem basis_moment_poly_bound
     {ι : Type*}
     (μ : ι → @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (sd : Finset hDM.ι) (M : ℝ) (hM : 0 < M)
@@ -431,17 +435,17 @@ private theorem basis_moment_poly_bound
 /-! ## Coordinate box -/
 
 /-- The set of ω with |ω(ψ_m)| ≤ D·(1+m)^r for all m. -/
-private def coordBox (D : ℝ) (r : ℕ) : Set (Configuration E) :=
+def coordBox (D : ℝ) (r : ℕ) : Set (Configuration E) :=
   ⋂ m : ℕ, {ω | |ω (hDM.basis m)| ≤ D * (1 + (m : ℝ)) ^ r}
 
-private theorem coordBox_closed (D : ℝ) (r : ℕ) :
+theorem coordBox_closed (D : ℝ) (r : ℕ) :
     IsClosed (coordBox (hDM := hDM) D r) := by
   apply isClosed_iInter; intro m
   apply isClosed_le
   · exact continuous_abs.comp (WeakDual.eval_continuous _)
   · exact continuous_const
 
-private theorem coordBox_measurable (D : ℝ) (r : ℕ) :
+theorem coordBox_measurable (D : ℝ) (r : ℕ) :
     @MeasurableSet _ instMeasurableSpaceConfiguration
       (coordBox (hDM := hDM) D r) := by
   apply MeasurableSet.iInter; intro m
@@ -450,7 +454,7 @@ private theorem coordBox_measurable (D : ℝ) (r : ℕ) :
   · exact measurable_const
 
 /-- Summability of `|coeff m f| * (1 + m) ^ r` for any `r`, via `coeff_decay`. -/
-private lemma summable_coeff_mul_pow (f : E) (r : ℕ) :
+lemma summable_coeff_mul_pow (f : E) (r : ℕ) :
     Summable (fun m => |hDM.coeff m f| * (1 + (m : ℝ)) ^ r) := by
   obtain ⟨C_d, hC_d, s_d, hdecay⟩ := hDM.coeff_decay (r + 2)
   apply Summable.of_nonneg_of_le
@@ -476,7 +480,7 @@ The coordBox is the set of ω with |ω(ψ_m)| ≤ D·(1+m)^r for all m. We show 
 3. **coordBox ⊆ image**: Any ω in coordBox has configBasisEval(ω) in the product box,
    and the reconstruction map recovers ω (by DM expansion uniqueness).
 4. **Conclude**: coordBox is a closed subset of a compact image, hence compact. -/
-private theorem coordBox_isCompact
+theorem coordBox_isCompact
     (D : ℝ) (_hD : 0 < D) (r : ℕ) :
     IsCompact (coordBox (hDM := hDM) D r) := by
   -- Step 1: Product box ∏_m Icc(-(D·(1+m)^r), D·(1+m)^r) is compact by Tychonoff
@@ -625,7 +629,7 @@ private theorem coordBox_isCompact
 
 /-! ## Chebyshev + union bound -/
 
-private theorem coordBox_compl_mass_le
+theorem coordBox_compl_mass_le
     {ι : Type*}
     (μ : ι → @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (hprob : ∀ i, @IsProbabilityMeasure _ instMeasurableSpaceConfiguration (μ i))

@@ -18,8 +18,12 @@ sequence space isomorphism `SchwartzMap D ℝ ≃L[ℝ] RapidDecaySeq`.
 - Thangavelu, "Lectures on Hermite and Laguerre Expansions", Ch. 1
 -/
 
-import SchwartzNuclear.HermiteFunctions
-import SchwartzNuclear.SchwartzHermiteExpansion
-import SchwartzNuclear.Basis1D
-import SchwartzNuclear.SchwartzSlicing
-import SchwartzNuclear.HermiteNuclear
+module
+
+public import SchwartzNuclear.HermiteFunctions
+public import SchwartzNuclear.SchwartzHermiteExpansion
+public import SchwartzNuclear.Basis1D
+public import SchwartzNuclear.SchwartzSlicing
+public import SchwartzNuclear.HermiteNuclear
+
+@[expose] public section

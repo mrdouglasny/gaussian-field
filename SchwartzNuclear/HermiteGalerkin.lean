@@ -99,9 +99,13 @@ plus the OU↔HO similarity-transform bridge in the docstring above.
   the multi-D version stated below.
 -/
 
-import SchwartzNuclear.HermiteTensorProduct
-import Mathlib.Data.Finset.Basic
-import GeneralResults.SeparationOfVariables
+module
+
+public import SchwartzNuclear.HermiteTensorProduct
+public import Mathlib.Data.Finset.Basic
+public import GeneralResults.SeparationOfVariables
+
+@[expose] public section
 
 noncomputable section
 

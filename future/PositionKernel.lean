@@ -527,7 +527,7 @@ theorem mehlerKernel_semigroup (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
     Since fourierFreq 0 = 0 and fourierFreq (n+1) = n/2 + 1, the frequency is at least 1
     for n ≥ 1, and grows like n/2. The bound 4·(fourierFreq n)² ≥ n follows because
     (n/2 + 1)² ≥ (n+1)/4 for all n. -/
-private lemma fourierFreq_sq_bound (n : ℕ) :
+lemma fourierFreq_sq_bound (n : ℕ) :
     (↑n : ℝ) ≤ 4 * (↑(SmoothMap_Circle.fourierFreq n) : ℝ) ^ 2 := by
   rcases n with _ | n
   · -- n = 0: 0 ≤ 0
@@ -549,7 +549,7 @@ private lemma fourierFreq_sq_bound (n : ℕ) :
 
 /-- Geometric decay bound for circle heat kernel coefficients:
     `exp(-c * (fourierFreq n)²) ≤ exp(-c/4)^n` for c > 0. -/
-private lemma circleHeatKernel_geometric_bound {c : ℝ} (hc : 0 < c) (n : ℕ) :
+lemma circleHeatKernel_geometric_bound {c : ℝ} (hc : 0 < c) (n : ℕ) :
     -(c * (↑(SmoothMap_Circle.fourierFreq n) : ℝ) ^ 2) ≤ -(c / 4 * ↑n) := by
   have hff := fourierFreq_sq_bound n
   nlinarith
@@ -616,14 +616,14 @@ theorem circleHeatKernel_symmetric (L : ℝ) [Fact (0 < L)]
   exact tsum_congr (fun n => by ring)
 
 /-- The even Hurwitz kernel is positive for t > 0 (sum of positive Gaussians). -/
-private theorem evenKernel_pos (a : ℝ) {t : ℝ} (ht : 0 < t) :
+theorem evenKernel_pos (a : ℝ) {t : ℝ} (ht : 0 < t) :
     0 < HurwitzZeta.evenKernel (↑a) t := by
   rw [← (HurwitzZeta.hasSum_int_evenKernel a ht).tsum_eq]
   exact Summable.tsum_pos (HurwitzZeta.hasSum_int_evenKernel a ht).summable
     (fun n => le_of_lt (exp_pos _)) (0 : ℤ) (exp_pos _)
 
 /-- The cosine Hurwitz kernel is positive for s > 0. -/
-private theorem cosKernel_pos (a : ℝ) {s : ℝ} (hs : 0 < s) :
+theorem cosKernel_pos (a : ℝ) {s : ℝ} (hs : 0 < s) :
     0 < HurwitzZeta.cosKernel (↑a) s := by
   -- Use functional equation: evenKernel a (1/s) = 1/(1/s)^(1/2) * cosKernel a s
   have h_fe := HurwitzZeta.evenKernel_functional_equation (↑a : UnitAddCircle) (1 / s)
@@ -639,7 +639,7 @@ private theorem cosKernel_pos (a : ℝ) {s : ℝ} (hs : 0 < s) :
   · exact absurd ha (not_lt.mpr h_coeff_pos.le)
 
 /-- Helper: fourierBasisFun at odd index 2k+1 is the cosine function with frequency k+1. -/
-private lemma fourierBasisFun_odd (k : ℕ) (x : ℝ) :
+lemma fourierBasisFun_odd (k : ℕ) (x : ℝ) :
     @fourierBasisFun L (2 * k + 1) x =
     sqrt (2 / L) * cos (2 * π * ↑(k + 1) * x / L) := by
   show @fourierBasisFun L ((2 * k) + 1) x = _
@@ -647,7 +647,7 @@ private lemma fourierBasisFun_odd (k : ℕ) (x : ℝ) :
     show (2 * k) / 2 + 1 = k + 1 from by omega]
 
 /-- Helper: fourierBasisFun at even index 2k+2 is the sine function with frequency k+1. -/
-private lemma fourierBasisFun_even (k : ℕ) (x : ℝ) :
+lemma fourierBasisFun_even (k : ℕ) (x : ℝ) :
     @fourierBasisFun L (2 * k + 2) x =
     sqrt (2 / L) * sin (2 * π * ↑(k + 1) * x / L) := by
   show @fourierBasisFun L ((2 * k + 1) + 1) x = _
@@ -655,13 +655,13 @@ private lemma fourierBasisFun_even (k : ℕ) (x : ℝ) :
     show (2 * k + 1) / 2 + 1 = k + 1 from by omega]
 
 /-- Helper: fourierFreq at index 2k+1 equals k+1. -/
-private lemma fourierFreq_odd (k : ℕ) :
+lemma fourierFreq_odd (k : ℕ) :
     SmoothMap_Circle.fourierFreq (2 * k + 1) = k + 1 := by
   show SmoothMap_Circle.fourierFreq ((2 * k) + 1) = _
   simp [SmoothMap_Circle.fourierFreq, show (2 * k) / 2 + 1 = k + 1 from by omega]
 
 /-- Helper: fourierFreq at index 2k+2 equals k+1. -/
-private lemma fourierFreq_even (k : ℕ) :
+lemma fourierFreq_even (k : ℕ) :
     SmoothMap_Circle.fourierFreq (2 * k + 2) = k + 1 := by
   show SmoothMap_Circle.fourierFreq ((2 * k + 1) + 1) = _
   simp [SmoothMap_Circle.fourierFreq, show (2 * k + 1) / 2 + 1 = k + 1 from by omega]
@@ -669,7 +669,7 @@ private lemma fourierFreq_even (k : ℕ) :
 /-- Pairing identity: for the circle heat kernel series, the terms at index 2k+1 and 2k+2
 (a cos/sin pair with the same frequency k+1) combine to give
   (2/L) * exp(-t(2π(k+1)/L)²) * cos(2π(k+1)(θ₁-θ₂)/L). -/
-private lemma circleHeatKernel_pair (L : ℝ) [hL : Fact (0 < L)]
+lemma circleHeatKernel_pair (L : ℝ) [hL : Fact (0 < L)]
     (t θ₁ θ₂ : ℝ) (k : ℕ) :
     let f := fun n => exp (-(t * (2 * π * ↑(SmoothMap_Circle.fourierFreq n) / L) ^ 2)) *
       fourierBasisFun (L := L) n θ₁ * fourierBasisFun (L := L) n θ₂
@@ -697,7 +697,7 @@ private lemma circleHeatKernel_pair (L : ℝ) [hL : Fact (0 < L)]
 
 set_option maxHeartbeats 400000 in
 /-- The circle heat kernel equals (1/L) * cosKernel((θ₁-θ₂)/L, 4πt/L²). -/
-private theorem circleHeatKernel_eq_cosKernel (L : ℝ) [hL : Fact (0 < L)]
+theorem circleHeatKernel_eq_cosKernel (L : ℝ) [hL : Fact (0 < L)]
     (t θ₁ θ₂ : ℝ) (ht : 0 < t) :
     circleHeatKernel L t θ₁ θ₂ =
     (1 / L) * HurwitzZeta.cosKernel (↑((θ₁ - θ₂) / L)) (4 * π * t / L ^ 2) := by
@@ -1320,7 +1320,7 @@ theorem cylinderEval_summable (L : ℝ) [Fact (0 < L)]
 These are standard dominated-convergence corollaries used below as
 measure-theoretic infrastructure. -/
 
-private theorem integrable_tsum_of_summable_integral_norm
+theorem integrable_tsum_of_summable_integral_norm
     {α E : Type*} [MeasurableSpace α]
     [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] (μ : Measure α)
     (F : ℕ → α → E)
@@ -1374,7 +1374,7 @@ private theorem integrable_tsum_of_summable_integral_norm
     exact lt_of_le_of_lt hlin_left hlin_right
   exact ⟨hmeas, (hasFiniteIntegral_iff_enorm).2 hfinite⟩
 
-private theorem integral_norm_tsum_le_tsum_integral_norm
+theorem integral_norm_tsum_le_tsum_integral_norm
     {α E : Type*} [MeasurableSpace α]
     [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] (μ : Measure α)
     (F : ℕ → α → E)
@@ -1413,7 +1413,7 @@ set_option maxHeartbeats 800000 in
 
     Expand K_osc as eigenfunction series, use triangle inequality and
     `∫ |ψ_j * φ_k| ≤ 1` (AM-GM + orthonormality). -/
-private lemma mehlerKernel_hermite_integral_abs_bound (t : ℝ) (ht : 0 < t) (x : ℝ) :
+lemma mehlerKernel_hermite_integral_abs_bound (t : ℝ) (ht : 0 < t) (x : ℝ) :
     ∃ B : ℝ, 0 ≤ B ∧ ∀ k : ℕ,
       ∫ x', |mehlerKernel t x x' * hermiteFunction k x'| ≤ B := by
   have h_ψψ_le : ∀ j k : ℕ,

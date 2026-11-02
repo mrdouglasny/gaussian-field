@@ -27,11 +27,15 @@ As N → ∞, `sinc(πk/N) → 1`, so `λ_k → (2πk/L)²` = continuum eigenval
 - Simon, *The P(φ)₂ Euclidean QFT*, Ch. I
 -/
 
-import Lattice.HeatKernel
-import SmoothCircle.Restriction
-import SmoothCircle.Eigenvalues
-import SmoothCircle.Nuclear
-import HeatKernel.Bilinear
+module
+
+public import Lattice.HeatKernel
+public import SmoothCircle.Restriction
+public import SmoothCircle.Eigenvalues
+public import SmoothCircle.Nuclear
+public import HeatKernel.Bilinear
+
+@[expose] public section
 
 noncomputable section
 
@@ -59,7 +63,7 @@ def latticeHeatKernelBilinear1d (N : ℕ) [NeZero N] (t : ℝ)
 /-! ## Eigenvalue convergence -/
 
 /-- `1/(N+1) → 0` as `N → ∞`. -/
-private theorem tendsto_inv_succ :
+theorem tendsto_inv_succ :
     Tendsto (fun N : ℕ => (1 : ℝ) / ((N : ℝ) + 1)) atTop (nhds 0) := by
   simp_rw [one_div]
   apply Filter.Tendsto.comp tendsto_inv_atTop_zero
@@ -68,7 +72,7 @@ private theorem tendsto_inv_succ :
   · exact tendsto_const_nhds
 
 /-- `c/(N+1) → 0` as `N → ∞` for any constant c. -/
-private theorem tendsto_const_div_succ (c : ℝ) :
+theorem tendsto_const_div_succ (c : ℝ) :
     Tendsto (fun N : ℕ => c / ((N : ℝ) + 1)) atTop (nhds 0) := by
   have h := tendsto_inv_succ
   simp_rw [show ∀ N : ℕ, c / ((N : ℝ) + 1) = c * (1 / ((N : ℝ) + 1)) from
@@ -142,7 +146,7 @@ def latticeFourierBasisFun (N : ℕ) : ℕ → ZMod N → ℝ
       fun z => Real.sqrt (2 / N) * Real.sin (2 * π * k * (ZMod.val z : ℝ) / N)
 
 /-- The lattice Fourier basis functions are uniformly bounded by `√(2/N)`. -/
-private theorem latticeFourierBasisFun_abs_le (N : ℕ) [NeZero N] (m : ℕ) (z : ZMod N) :
+theorem latticeFourierBasisFun_abs_le (N : ℕ) [NeZero N] (m : ℕ) (z : ZMod N) :
     |latticeFourierBasisFun N m z| ≤ Real.sqrt (2 / N) := by
   cases m with
   | zero =>
@@ -302,7 +306,7 @@ theorem latticeEigenvalue1d_tendsto_continuum (m : ℕ) :
 Since `fourierFreq m = (m-1)/2 + 1` for `m ≥ 1`, we have
 `2 · fourierFreq m ≥ m` and `fourierFreq m ≥ 1`, giving
 `fourierFreq(m)² ≥ fourierFreq(m) ≥ m/2`. -/
-private theorem fourierFreq_sq_ge_half (m : ℕ) (hm : 1 ≤ m) :
+theorem fourierFreq_sq_ge_half (m : ℕ) (hm : 1 ≤ m) :
     (m : ℝ) / 2 ≤ (SmoothMap_Circle.fourierFreq m : ℝ) ^ 2 := by
   have h_freq_ge_1 : (1 : ℝ) ≤ (SmoothMap_Circle.fourierFreq m : ℝ) := by
     have : 1 ≤ SmoothMap_Circle.fourierFreq m := by
@@ -410,7 +414,7 @@ theorem latticeHeatKernelBilinear1d_eq_mathlib_spectral (N : ℕ) [NeZero N] (t 
 /-- **Normalization identity**: the product of circle restriction and lattice
 Fourier basis equals (L/N) times the product of the original function with
 the continuum Fourier basis, both evaluated at the lattice point. -/
-private theorem restriction_times_latticeBasis
+theorem restriction_times_latticeBasis
     (N : ℕ) [NeZero N] (f : SmoothMap_Circle L ℝ) (m : ℕ) (_hm : m < N)
     (z : ZMod N) :
     circleRestriction L N f z * latticeFourierBasisFun N m z =
@@ -477,7 +481,7 @@ private theorem restriction_times_latticeBasis
             (Real.sqrt (2 / L) * sin (2 * π * ↑(n / 2 + 1) * circlePoint L N z / L))) := by ring
 
 /-- The lattice DFT coefficient equals a Riemann sum of f times fourierBasisFun. -/
-private theorem latticeDFTCoeff1d_eq_riemann_sum
+theorem latticeDFTCoeff1d_eq_riemann_sum
     (N : ℕ) [NeZero N] (f : SmoothMap_Circle L ℝ) (m : ℕ) (hm : m < N) :
     latticeDFTCoeff1d L N f m =
     ∑ z : ZMod N, (L / N) * (f (circlePoint L N z) *

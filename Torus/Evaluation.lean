@@ -29,11 +29,15 @@ where `r_N` is the circle restriction map (sampling with √(L/N) normalization)
 - Treves, *Topological Vector Spaces, Distributions, and Kernels* §43
 -/
 
-import Torus.Restriction
-import Torus.Symmetry
-import Lattice.FiniteField
-import Nuclear.TensorProductFunctorAxioms
-import HeatKernel.GreenInvariance
+module
+
+public import Torus.Restriction
+public import Torus.Symmetry
+public import Lattice.FiniteField
+public import Nuclear.TensorProductFunctorAxioms
+public import HeatKernel.GreenInvariance
+
+@[expose] public section
 
 noncomputable section
 
@@ -45,23 +49,23 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 
 /-! ## Circle point periodicity lemmas -/
 
-private lemma zmod_val_neg_add_val_dvd (N : ℕ) [NeZero N] (k : ZMod N) :
+lemma zmod_val_neg_add_val_dvd (N : ℕ) [NeZero N] (k : ZMod N) :
     N ∣ ((-k).val + k.val) := by
   have h2 := ZMod.val_add (-k) k
   rw [show -k + k = (0 : ZMod N) from neg_add_cancel k, ZMod.val_zero] at h2
   exact Nat.dvd_of_mod_eq_zero h2.symm
 
-private lemma zmod_val_sub_intCast_dvd (N : ℕ) [NeZero N] (k : ZMod N) (j : ℤ) :
+lemma zmod_val_sub_intCast_dvd (N : ℕ) [NeZero N] (k : ZMod N) (j : ℤ) :
     (N : ℤ) ∣ ((k.val : ℤ) - j - ((k - (j : ZMod N)).val : ℤ)) := by
   rw [← ZMod.intCast_zmod_eq_zero_iff_dvd]; push_cast; simp [ZMod.natCast_val]
 
-private lemma periodic_add_int_mul {f : ℝ → ℝ} {c : ℝ} (hf : Function.Periodic f c)
+lemma periodic_add_int_mul {f : ℝ → ℝ} {c : ℝ} (hf : Function.Periodic f c)
     (x : ℝ) (n : ℤ) : f (x + n * c) = f x := by
   rw [show x + n * c = x - (-n) • c from by simp [zsmul_eq_mul]]
   exact hf.sub_zsmul_eq (-n)
 
 /-- `g(-circlePoint(k)) = g(circlePoint(-k))` by L-periodicity of smooth circle functions. -/
-private lemma smooth_neg_circlePoint (N : ℕ) [NeZero N]
+lemma smooth_neg_circlePoint (N : ℕ) [NeZero N]
     (g : SmoothMap_Circle L ℝ) (k : ZMod N) :
     g (-(circlePoint L N k)) = g (circlePoint L N (-k)) := by
   simp only [circlePoint]
@@ -77,7 +81,7 @@ private lemma smooth_neg_circlePoint (N : ℕ) [NeZero N]
   exact hper.sub_nsmul_eq m
 
 /-- `g(circlePoint(k) - j*spacing) = g(circlePoint(k - j))` by L-periodicity. -/
-private lemma smooth_sub_circlePoint (N : ℕ) [NeZero N]
+lemma smooth_sub_circlePoint (N : ℕ) [NeZero N]
     (g : SmoothMap_Circle L ℝ) (k : ZMod N) (j : ℤ) :
     g (circlePoint L N k - circleSpacing L N * j) =
     g (circlePoint L N (k - (j : ZMod N))) := by

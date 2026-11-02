@@ -50,9 +50,13 @@ is proved in `GaussianField/CramerWold.lean` via `charFunDual` injectivity.
   uses `instMeasurableSpaceConfiguration_eq_comap`.
 -/
 
-import GaussianField.ConfigurationEmbedding
-import GaussianField.CramerWold
-import Mathlib.Probability.Distributions.Gaussian.Real
+module
+
+public import GaussianField.ConfigurationEmbedding
+public import GaussianField.CramerWold
+public import Mathlib.Probability.Distributions.Gaussian.Real
+
+@[expose] public section
 
 noncomputable section
 
@@ -193,7 +197,7 @@ theorem eval_map_eq_of_covariance
 
 /-- Composing restriction to `I` and a linear functional with `configBasisEval` gives
     evaluation at a linear combination of basis vectors. -/
-private lemma map_restrict_lin_eq
+lemma map_restrict_lin_eq
     (μ : @Measure (Configuration E) instMeasurableSpaceConfiguration)
     (I : Finset ℕ) (c : ↥I → ℝ) :
     ((μ.map (configBasisEval (E := E))).map I.restrict).map

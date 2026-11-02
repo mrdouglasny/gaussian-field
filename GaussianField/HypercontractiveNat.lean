@@ -26,8 +26,12 @@ double factorials.
 - Glimm-Jaffe, Quantum Physics, Ch. 8
 -/
 
-import GaussianField.Hypercontractive
-import Mathlib.Data.Nat.Factorial.DoubleFactorial
+module
+
+public import GaussianField.Hypercontractive
+public import Mathlib.Data.Nat.Factorial.DoubleFactorial
+
+@[expose] public section
 
 noncomputable section
 
@@ -84,7 +88,7 @@ and bound each block.
 /-- The double factorial (2*k - 1)‼ expressed as a product of odd numbers.
 
 We show (2*k - 1)‼ = ∏_{i ∈ range k} (2*i + 1). -/
-private lemma doubleFactorial_as_prod (k : ℕ) :
+lemma doubleFactorial_as_prod (k : ℕ) :
     (2 * k - 1)‼ = ∏ i ∈ Finset.range k, (2 * i + 1) := by
   induction k with
   | zero => simp
@@ -96,7 +100,7 @@ private lemma doubleFactorial_as_prod (k : ℕ) :
 
 /-- Repartition: the product over m*n indices can be written as a double
 product over n blocks of m elements each. Uses `Finset.prod_range_add`. -/
-private lemma prod_repartition {α : Type*} [CommMonoid α] (f : ℕ → α) (m n : ℕ) :
+lemma prod_repartition {α : Type*} [CommMonoid α] (f : ℕ → α) (m n : ℕ) :
     ∏ k ∈ Finset.range (m * n), f k =
       ∏ i ∈ Finset.range n, ∏ j ∈ Finset.range m, f (m * i + j) := by
   induction n with
@@ -109,7 +113,7 @@ private lemma prod_repartition {α : Type*} [CommMonoid α] (f : ℕ → α) (m 
 2*(m*i + j) + 1 ≤ (2*m - 1) * (2*i + 1).
 
 This bounds every element in the i-th block by the block's upper bound. -/
-private lemma block_element_bound (m : ℕ) (hm : 1 ≤ m) (i j : ℕ) (hj : j < m) :
+lemma block_element_bound (m : ℕ) (hm : 1 ≤ m) (i j : ℕ) (hj : j < m) :
     2 * (m * i + j) + 1 ≤ (2 * m - 1) * (2 * i + 1) := by
   -- Uses: 2*(m*i+j)+1 ≤ 2*(m*i+m-1)+1 = 2*m*(i+1)-1 ≤ (2m-1)*(2i+1)
   -- The last step: (2m-1)*(2i+1) = 4mi+2m-2i-1 ≥ 2mi+2m-1 = 2m(i+1)-1
@@ -121,7 +125,7 @@ private lemma block_element_bound (m : ℕ) (hm : 1 ≤ m) (i j : ℕ) (hj : j <
 
 /-- Each block of m consecutive odd numbers has product ≤ ((2m-1)*(2i+1))^m,
 because each factor is ≤ (2m-1)*(2i+1). -/
-private lemma block_prod_bound (m : ℕ) (hm : 1 ≤ m) (i : ℕ) :
+lemma block_prod_bound (m : ℕ) (hm : 1 ≤ m) (i : ℕ) :
     ∏ j ∈ Finset.range m, (2 * (m * i + j) + 1) ≤
       ((2 * m - 1) * (2 * i + 1)) ^ m := by
   calc ∏ j ∈ Finset.range m, (2 * (m * i + j) + 1)

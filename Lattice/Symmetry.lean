@@ -30,7 +30,11 @@ By `Commute.exp_right` (Mathlib), commuting with `-Δ` automatically gives
 commutation with `K_t = exp(-t·(-Δ))` and hence Green's function invariance.
 -/
 
-import Lattice.HeatKernel
+module
+
+public import Lattice.HeatKernel
+
+@[expose] public section
 
 noncomputable section
 
@@ -99,7 +103,7 @@ theorem finiteLaplacian_translation_commute (a : ℝ) (v : FinLatticeSites d N)
 set_option linter.unusedSectionVars false in
 /-- Shifting the delta function: `δ_{y+v} = T_v(δ_y)`.
 `δ_{y+v}(z) = 1 iff z = y+v iff z-v = y = δ_y(z-v) = (T_v δ_y)(z)`. -/
-private theorem finLatticeDelta_shift (v : FinLatticeSites d N)
+theorem finLatticeDelta_shift (v : FinLatticeSites d N)
     (y : FinLatticeSites d N) :
     finLatticeDelta d N (y + v) =
     latticeTranslationFun d N v (finLatticeDelta d N y) := by
@@ -210,7 +214,7 @@ theorem finiteLaplacian_reflection_commute (a : ℝ)
 
 set_option linter.unusedSectionVars false in
 /-- Delta function under negation: `δ_{-y}(z) = δ_y(-z)`. -/
-private theorem finLatticeDelta_neg (y : FinLatticeSites d N) :
+theorem finLatticeDelta_neg (y : FinLatticeSites d N) :
     finLatticeDelta d N (-y) =
     latticeFullReflectionFun d N (finLatticeDelta d N y) := by
   ext z

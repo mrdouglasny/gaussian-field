@@ -42,7 +42,11 @@ means t ∈ (0, L/2) ⊂ ℝ/Lℤ and wraparound must be handled.
 - Glimm-Jaffe, *Quantum Physics*, §6.1
 -/
 
-import Cylinder.Symmetry
+module
+
+public import Cylinder.Symmetry
+
+@[expose] public section
 
 noncomputable section
 
@@ -55,7 +59,7 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 /-! ## Positive-time submodule -/
 
 /-- The set of positive-time pure tensors: `g ⊗ h` where h vanishes on (-∞, 0]. -/
-private def positiveTimePureTensors :
+def positiveTimePureTensors :
     Set (CylinderTestFunction L) :=
   {f | ∃ (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ),
     h ∈ schwartzPositiveTimeSubmodule ∧ f = pure g h}
@@ -85,7 +89,7 @@ abbrev CylinderPositiveTimeTestFunction :=
 /-! ## Negative-time submodule -/
 
 /-- The set of negative-time pure tensors: `g ⊗ h` where h vanishes on [0, ∞). -/
-private def negativeTimePureTensors :
+def negativeTimePureTensors :
     Set (CylinderTestFunction L) :=
   {f | ∃ (g : SmoothMap_Circle L ℝ) (h : SchwartzMap ℝ ℝ),
     h ∈ schwartzNegativeTimeSubmodule ∧ f = pure g h}
@@ -102,7 +106,7 @@ def cylinderNegativeTimeSubmodule :
 
 /-- Time reflection maps positive-time pure tensors to negative-time pure tensors:
 `Θ(g ⊗ h) = g ⊗ Θh`, and if h vanishes on (-∞, 0] then Θh vanishes on [0, ∞). -/
-private theorem timeReflection_maps_pos_to_neg
+theorem timeReflection_maps_pos_to_neg
     {f : CylinderTestFunction L} (hf : f ∈ positiveTimePureTensors L) :
     cylinderTimeReflection L f ∈ negativeTimePureTensors L := by
   obtain ⟨g, h, hh, rfl⟩ := hf
@@ -277,7 +281,7 @@ theorem ntpSliceSchwartz_maps_positive (a : ℕ)
 
 /-- The slice CLM maps `cylinderNegativeTimeSubmodule` into
 `schwartzNegativeTimeSubmodule`. -/
-private theorem ntpSliceSchwartz_maps_negative (a : ℕ)
+theorem ntpSliceSchwartz_maps_negative (a : ℕ)
     (f : CylinderTestFunction L)
     (hf : f ∈ cylinderNegativeTimeSubmodule L) :
     ntpSliceSchwartz L a f ∈ schwartzNegativeTimeSubmodule := by
@@ -302,7 +306,7 @@ private theorem ntpSliceSchwartz_maps_negative (a : ℕ)
 
 /-- The positive-time and negative-time Schwartz submodules are disjoint:
 if h vanishes on (-∞,0] AND on [0,∞) then h = 0. -/
-private theorem schwartz_posNeg_disjoint :
+theorem schwartz_posNeg_disjoint :
     schwartzPositiveTimeSubmodule ⊓ schwartzNegativeTimeSubmodule = ⊥ := by
   rw [Submodule.eq_bot_iff]
   intro h ⟨hpos, hneg⟩
@@ -398,7 +402,7 @@ only on the S¹ factor and leaves the temporal support unchanged. -/
 
 /-- Spatial translation maps positive-time pure tensors to positive-time
 pure tensors: `T_v(g ⊗ h) = (T_v g) ⊗ h`, preserving the temporal factor. -/
-private theorem spatialTranslation_maps_generators (v : ℝ)
+theorem spatialTranslation_maps_generators (v : ℝ)
     {f : CylinderTestFunction L} (hf : f ∈ positiveTimePureTensors L) :
     cylinderSpatialTranslation L v f ∈ positiveTimePureTensors L := by
   obtain ⟨g, h, hh, rfl⟩ := hf

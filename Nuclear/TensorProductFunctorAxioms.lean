@@ -25,7 +25,11 @@ tensor product, preserving composition and identity.
 - Trèves, *Topological Vector Spaces, Distributions, and Kernels*, Ch. 43, 50
 -/
 
-import Nuclear.NuclearTensorProduct
+module
+
+public import Nuclear.NuclearTensorProduct
+
+@[expose] public section
 
 noncomputable section
 
@@ -36,23 +40,23 @@ open NuclearTensorProduct
 /-! ## Swap implementation -/
 
 /-- Swap the components of a Cantor pair index. -/
-private def pairSwap (m : ℕ) : ℕ :=
+def pairSwap (m : ℕ) : ℕ :=
   Nat.pair (Nat.unpair m).2 (Nat.unpair m).1
 
-private theorem pairSwap_involutive : Function.Involutive pairSwap := fun m => by
+theorem pairSwap_involutive : Function.Involutive pairSwap := fun m => by
   show Nat.pair (Nat.unpair (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1)).2
     (Nat.unpair (Nat.pair (Nat.unpair m).2 (Nat.unpair m).1)).1 = m
   rw [Nat.unpair_pair]
   exact Nat.pair_unpair m
 
-private def pairSwapEquiv : ℕ ≃ ℕ :=
+def pairSwapEquiv : ℕ ≃ ℕ :=
   pairSwap_involutive.toPerm pairSwap
 
 @[simp] private theorem pairSwapEquiv_apply (m : ℕ) :
     pairSwapEquiv m = pairSwap m :=
   congr_fun pairSwap_involutive.coe_toPerm m
 
-private theorem one_add_le_sq_pairSwap (m : ℕ) :
+theorem one_add_le_sq_pairSwap (m : ℕ) :
     (1 + (m : ℝ)) ≤ 4 * (1 + (pairSwap m : ℝ)) ^ 2 := by
   set a := (Nat.unpair m).1
   set b := (Nat.unpair m).2
@@ -66,7 +70,7 @@ private theorem one_add_le_sq_pairSwap (m : ℕ) :
     rw [hm]; exact_mod_cast nat_pair_bound a b
   nlinarith
 
-private def swapRapidDecay (f : RapidDecaySeq) : RapidDecaySeq where
+def swapRapidDecay (f : RapidDecaySeq) : RapidDecaySeq where
   val m := f.val (pairSwap m)
   rapid_decay k := by
     apply Summable.of_nonneg_of_le
@@ -89,7 +93,7 @@ private def swapRapidDecay (f : RapidDecaySeq) : RapidDecaySeq where
       exact (pairSwapEquiv.summable_iff.mpr (f.rapid_decay (2 * k))).const_smul ((4 : ℝ) ^ k)
 
 set_option maxHeartbeats 400000 in
-private theorem swap_seminorm_bound (k : ℕ) (f : RapidDecaySeq) :
+theorem swap_seminorm_bound (k : ℕ) (f : RapidDecaySeq) :
     RapidDecaySeq.rapidDecaySeminorm k (swapRapidDecay f) ≤
     (4 : ℝ) ^ k * RapidDecaySeq.rapidDecaySeminorm (2 * k) f := by
   show ∑' m, |f.val (pairSwap m)| * (1 + (m : ℝ)) ^ k ≤
@@ -120,7 +124,7 @@ private theorem swap_seminorm_bound (k : ℕ) (f : RapidDecaySeq) :
     exact (pairSwapEquiv.summable_iff.mpr (f.rapid_decay (2 * k))).const_smul ((4 : ℝ) ^ k)
   exact ((swapRapidDecay f).rapid_decay k).tsum_le_tsum h_term h_sum
 
-private def swapLM
+def swapLM
     {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace E₁]
     [IsTopologicalAddGroup E₁] [ContinuousSMul ℝ E₁] [DyninMityaginSpace E₁]
     {E₂ : Type*} [AddCommGroup E₂] [Module ℝ E₂] [TopologicalSpace E₂]
@@ -309,7 +313,7 @@ theorem mapImage_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[�
         gcongr; linarith [NNReal.coe_nonneg C]
 
 set_option maxHeartbeats 400000 in
-private theorem mapInner_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+theorem mapInner_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : RapidDecaySeq) (n : ℕ) :
     Summable (fun m => f.val m * (mapImage T₁ T₂ m).val n) := by
   classical
@@ -326,7 +330,7 @@ private theorem mapInner_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L
     _ = K * (|f.val m| * (1 + (m : ℝ)) ^ S) := by ring
 
 /-- Summability of `∑ₘ |fₘ| * seminorm_k(Φ(m))` using polynomial bound on Φ. -/
-private theorem mapCoeff_seminorm_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+theorem mapCoeff_seminorm_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : RapidDecaySeq) (k : ℕ) :
     Summable (fun m => |f.val m| *
       RapidDecaySeq.rapidDecaySeminorm k (mapImage T₁ T₂ m)) := by
@@ -339,7 +343,7 @@ private theorem mapCoeff_seminorm_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : 
 
 /-- Pointwise bound on the mapped value times weight:
 `|Φ(m).val n| * (1+n)^k ≤ seminorm_{k+2}(Φ(m)) / (1+n)^2`. -/
-private theorem mapImage_val_weight_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+theorem mapImage_val_weight_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (m n k : ℕ) :
     |(mapImage T₁ T₂ m).val n| * (1 + (n : ℝ)) ^ k ≤
     RapidDecaySeq.rapidDecaySeminorm (k + 2) (mapImage T₁ T₂ m) *
@@ -352,7 +356,7 @@ private theorem mapImage_val_weight_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E
         val_le_seminorm _ n (k + 2)
 
 /-- Summability of the absolute-value series for mapCLM. -/
-private theorem mapInner_abs_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+theorem mapInner_abs_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : RapidDecaySeq) (n : ℕ) :
     Summable (fun m => |f.val m| * |(mapImage T₁ T₂ m).val n|) := by
   classical
@@ -370,7 +374,7 @@ private theorem mapInner_abs_summable (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ 
 
 set_option maxHeartbeats 800000 in
 /-- Bound on the mapped sum at each output index. -/
-private theorem mapVal_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+theorem mapVal_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : RapidDecaySeq) (n k : ℕ) :
     |∑' m, f.val m * (mapImage T₁ T₂ m).val n| * (1 + (n : ℝ)) ^ k ≤
     (∑' m, |f.val m| * RapidDecaySeq.rapidDecaySeminorm (k + 2)
@@ -411,7 +415,7 @@ private theorem mapVal_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ]
     _ = _ := tsum_mul_right
 
 /-- The mapped rapid decay sequence. -/
-private def mapRapidDecay (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+def mapRapidDecay (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (f : RapidDecaySeq) : RapidDecaySeq where
   val n := ∑' m, f.val m * (mapImage T₁ T₂ m).val n
   rapid_decay k :=
@@ -422,7 +426,7 @@ private def mapRapidDecay (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E�
 
 set_option maxHeartbeats 800000 in
 /-- Seminorm bound: `seminorm_k(map f) ≤ K · seminorm_S(f)`. -/
-private theorem mapRapidDecay_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
+theorem mapRapidDecay_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂)
     (k : ℕ) : ∃ K > 0, ∃ S : ℕ, ∀ (f : RapidDecaySeq),
     RapidDecaySeq.rapidDecaySeminorm k (mapRapidDecay T₁ T₂ f) ≤
     K * RapidDecaySeq.rapidDecaySeminorm S f := by
@@ -456,7 +460,7 @@ private theorem mapRapidDecay_seminorm_bound (T₁ : E₁ →L[ℝ] E₁) (T₂ 
 
 set_option maxHeartbeats 400000 in
 /-- The map as a linear map on RapidDecaySeq. -/
-private def mapLM (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) :
+def mapLM (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) :
     RapidDecaySeq →ₗ[ℝ] RapidDecaySeq where
   toFun := mapRapidDecay T₁ T₂
   map_add' f g := by
@@ -471,7 +475,7 @@ private def mapLM (T₁ : E₁ →L[ℝ] E₁) (T₂ : E₂ →L[ℝ] E₂) :
 set_option maxHeartbeats 800000 in
 /-- Norm-summability of `c(m,f) * c(n, T(ψ_m))`: the coefficient product series
 converges absolutely, using coeff_decay + CLM continuity + basis_growth. -/
-private theorem norm_summable_coeff_comp_CLM
+theorem norm_summable_coeff_comp_CLM
     {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
     (T : E →L[ℝ] E) (f : E) (n : ℕ) :

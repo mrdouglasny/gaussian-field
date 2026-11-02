@@ -30,10 +30,14 @@ every such `L` is evaluation at some `f ∈ E`:
 Our existing `pairing_is_gaussian` then immediately gives the result.
 -/
 
-import GaussianField.Properties
-import Mathlib.Probability.Distributions.Gaussian.Basic
-import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
-import Mathlib.LinearAlgebra.Dual.Lemmas
+module
+
+public import GaussianField.Properties
+public import Mathlib.Probability.Distributions.Gaussian.Basic
+public import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
+public import Mathlib.LinearAlgebra.Dual.Lemmas
+
+@[expose] public section
 
 noncomputable section
 

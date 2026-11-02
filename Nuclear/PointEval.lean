@@ -15,9 +15,13 @@ nuclear tensor products, and finite-dimensional function spaces.
 - Instances for `SchwartzMap`, `SmoothMap_Circle`, `NuclearTensorProduct`, `Fin N → ℝ`
 -/
 
-import Nuclear.NuclearTensorProduct
-import SmoothCircle.Basic
-import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+module
+
+public import Nuclear.NuclearTensorProduct
+public import SmoothCircle.Basic
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+
+@[expose] public section
 
 noncomputable section
 

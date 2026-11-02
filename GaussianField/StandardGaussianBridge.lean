@@ -59,13 +59,17 @@ in `GaussianField/Density.lean` plus characteristic-function uniqueness
 (`MeasureTheory.Measure.ext_of_charFunDual`).
 -/
 
-import GaussianField.Density
-import GaussianField.IsGaussian
-import Lattice.SpectralCovariance
-import Lattice.Covariance
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
-import Mathlib.MeasureTheory.Constructions.Pi
+module
+
+public import GaussianField.Density
+public import GaussianField.IsGaussian
+public import Lattice.SpectralCovariance
+public import Lattice.Covariance
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
+public import Mathlib.MeasureTheory.Constructions.Pi
+
+@[expose] public section
 
 noncomputable section
 
@@ -291,7 +295,7 @@ theorem latticeCovarianceGJ_eigenvector_inner_off
 /-- Evaluation of a configuration at a fixed test function, packaged as
 a continuous linear map `Configuration E →L[ℝ] ℝ`. Continuity is
 `WeakDual.eval_continuous`; linearity is the topological-dual pairing. -/
-private noncomputable def gffEvalCLM (f : FinLatticeField d N) :
+noncomputable def gffEvalCLM (f : FinLatticeField d N) :
     Configuration (FinLatticeField d N) →L[ℝ] ℝ :=
   ⟨(topDualPairing ℝ (FinLatticeField d N)).flip f, WeakDual.eval_continuous f⟩
 
@@ -303,7 +307,7 @@ omit [NeZero N] in
 /-- The orthogonalization map `ω ↦ (k ↦ ω(e_k) · √(a^d λ_k))` packaged
 as a continuous linear map. Used to discharge joint Gaussianness in
 `gffOrthonormalCoord_independent`. -/
-private noncomputable def gffOrthonormalProjCLM
+noncomputable def gffOrthonormalProjCLM
     (a mass : ℝ) (_ha : 0 < a) (_hmass : 0 < mass) :
     Configuration (FinLatticeField d N) →L[ℝ] (FinLatticeSites d N → ℝ) :=
   ContinuousLinearMap.pi fun k =>
@@ -311,7 +315,7 @@ private noncomputable def gffOrthonormalProjCLM
       gffEvalCLM d N
         (fun x => (massEigenvectorBasis d N a mass k : EuclideanSpace ℝ _) x)
 
-private lemma gffOrthonormalProjCLM_eq
+lemma gffOrthonormalProjCLM_eq
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     ((gffOrthonormalProjCLM d N a mass ha hmass) :
         Configuration (FinLatticeField d N) → FinLatticeSites d N → ℝ) =
@@ -338,7 +342,7 @@ instance latticeGaussianMeasure_isGaussian
     IsGaussian (latticeGaussianMeasure d N a mass ha hmass) :=
   GaussianField.measure_isGaussian _
 
-private theorem gffOrthonormalProj_isGaussian
+theorem gffOrthonormalProj_isGaussian
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) :
     IsGaussian ((latticeGaussianMeasure d N a mass ha hmass).map
       (gffOrthonormalProj d N a mass ha hmass)) := by

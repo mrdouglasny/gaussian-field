@@ -85,11 +85,15 @@ The DMS basis for 𝓢(ℝ) is Hermite functions, but the resolvent
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II, §X.12
 -/
 
-import Cylinder.MassOperatorConstruction
-import Cylinder.MassOperatorEquivariance
-import Cylinder.MassOperatorSpatialEquivariance
-import Cylinder.MassOperatorRangeDense
-import Mathlib.Analysis.Normed.Operator.Extend
+module
+
+public import Cylinder.MassOperatorConstruction
+public import Cylinder.MassOperatorEquivariance
+public import Cylinder.MassOperatorSpatialEquivariance
+public import Cylinder.MassOperatorRangeDense
+public import Mathlib.Analysis.Normed.Operator.Extend
+
+@[expose] public section
 
 noncomputable section
 

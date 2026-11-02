@@ -4,7 +4,11 @@ Released under Apache 2.0 license.
 
 Ported from Phi4/GreenFunction/OneDimGreen.lean to gaussian-field.
 -/
-import Cylinder.Basic
+module
+
+public import Cylinder.Basic
+
+@[expose] public section
 
 /-!
 # 1D Green's Function and Reflection Positivity

@@ -17,7 +17,11 @@ Key identities for the 1D resolvent/free kernel, ported from OSforGFF.
 - Glimm-Jaffe, *Quantum Physics*, method-of-images
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 noncomputable section
 

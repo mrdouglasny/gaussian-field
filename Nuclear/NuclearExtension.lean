@@ -39,7 +39,11 @@ Then use E₁ ⊗̂ (E₂ ⊗̂ ... ⊗̂ Eₙ) ≅ E₁ ⊗̂ E₂ ⊗̂ ... �
 - Treves, "Topological Vector Spaces", Ch. 51
 -/
 
-import Nuclear.NuclearTensorProduct
+module
+
+public import Nuclear.NuclearTensorProduct
+
+@[expose] public section
 
 noncomputable section
 

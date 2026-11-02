@@ -29,13 +29,19 @@ to be exported:
 - `hermiteFunction_contDiff` (smoothness)
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
-import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
-import Mathlib.Analysis.PSeries
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Analysis.Distribution.TemperateGrowth
-import SchwartzNuclear.HermiteFunctions
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
+public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Analysis.Distribution.TemperateGrowth
+public import SchwartzNuclear.HermiteFunctions
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+public import Mathlib.Analysis.Calculus.SmoothSeries
+
+@[expose] public section
 
 open MeasureTheory Real SchwartzMap
 open scoped BigOperators
@@ -107,11 +113,11 @@ NOTE: Currently blocked because `mul_x_hermiteFunction` and
 /-- The harmonic oscillator eigenvalue equation:
     -ψₙ''(x) + x² ψₙ(x) = (2n+1) ψₙ(x). -/
 -- Helper: differentiability of hermiteFunction
-private theorem hermiteFunction_differentiable (k : ℕ) : Differentiable ℝ (hermiteFunction k) :=
+theorem hermiteFunction_differentiable (k : ℕ) : Differentiable ℝ (hermiteFunction k) :=
   (hermiteFunction_contDiff k 1).differentiable_one
 
 -- Helper: second derivative of hermiteFunction
-private theorem deriv2_hermiteFunction (n : ℕ) (x : ℝ) :
+theorem deriv2_hermiteFunction (n : ℕ) (x : ℝ) :
     deriv (deriv (hermiteFunction n)) x =
     Real.sqrt ((↑n : ℝ) / 2) * Real.sqrt ((↑(n - 1) : ℝ) / 2) * hermiteFunction (n - 1 - 1) x -
     Real.sqrt ((↑n : ℝ) / 2) * Real.sqrt ((↑n : ℝ) / 2) * hermiteFunction n x -
@@ -148,7 +154,7 @@ private theorem deriv2_hermiteFunction (n : ℕ) (x : ℝ) :
 -- Helper: x^2 * hermiteFunction expanded via mul_x_hermiteFunction twice.
 -- The ψ_{n-1+1} term equals ψ_n when n ≥ 1 and the coefficient vanishes when n = 0,
 -- so we handle the two cases separately.
-private theorem x_sq_mul_hermiteFunction (n : ℕ) (x : ℝ) :
+theorem x_sq_mul_hermiteFunction (n : ℕ) (x : ℝ) :
     x ^ 2 * hermiteFunction n x =
     Real.sqrt ((↑(n + 1) : ℝ) / 2) * Real.sqrt ((↑(n + 2) : ℝ) / 2) * hermiteFunction (n + 2) x +
     Real.sqrt ((↑(n + 1) : ℝ) / 2) * Real.sqrt ((↑(n + 1) : ℝ) / 2) * hermiteFunction n x +
@@ -353,7 +359,7 @@ This gives super-polynomial decay of Hermite coefficients.
     For any k, there exist C > 0 and seminorm index q such that
     |cₙ(f)| · (1+n)^k ≤ C · p_q(f) for all f ∈ 𝓢 and n ∈ ℕ. -/
 -- Helper: Cauchy-Schwarz for integrals
-private lemma cauchy_schwarz_integral (f g : ℝ → ℝ) (hf : Integrable (fun x => f x ^ 2))
+lemma cauchy_schwarz_integral (f g : ℝ → ℝ) (hf : Integrable (fun x => f x ^ 2))
     (hg : Integrable (fun x => g x ^ 2)) (hfg : Integrable (fun x => f x * g x)) :
     |∫ x, f x * g x| ≤ Real.sqrt (∫ x, f x ^ 2) * Real.sqrt (∫ x, g x ^ 2) := by
   -- Set notation
@@ -416,7 +422,7 @@ private lemma cauchy_schwarz_integral (f g : ℝ → ℝ) (hf : Integrable (fun 
       _ = Real.sqrt A * Real.sqrt B := by rw [Real.sqrt_mul hA_nn]
 
 -- Cauchy-Schwarz bound: |∫ f·ψₙ| ≤ √(∫ f²)
-private lemma abs_hermiteCoeff1D_le_sqrt_integral_sq (n : ℕ) (f : SchwartzMap ℝ ℝ) :
+lemma abs_hermiteCoeff1D_le_sqrt_integral_sq (n : ℕ) (f : SchwartzMap ℝ ℝ) :
     |hermiteCoeff1D n f| ≤ Real.sqrt (∫ x, f x ^ 2) := by
   unfold hermiteCoeff1D
   have hint : Integrable (fun x => f x * hermiteFunction n x) :=
@@ -436,17 +442,17 @@ private lemma abs_hermiteCoeff1D_le_sqrt_integral_sq (n : ℕ) (f : SchwartzMap 
     _ = Real.sqrt (∫ x, f x ^ 2) := by rw [horth, Real.sqrt_one, mul_one]
 
 -- x² has temperate growth (needed for smulLeftCLM)
-private lemma hasTemperateGrowth_x_sq :
+lemma hasTemperateGrowth_x_sq :
     Function.HasTemperateGrowth (fun x : ℝ => x ^ 2) := by
   have : (fun x : ℝ => x ^ 2) = fun x => x * x := by ext; ring
   rw [this]; exact Function.HasTemperateGrowth.id'.mul .id'
 
 -- The harmonic oscillator H = -d²/dx² + x² as a CLM on Schwartz space
-private def harmonicOscillator : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ) :=
+def harmonicOscillator : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ) :=
   -(derivCLM ℝ ℝ ∘L derivCLM ℝ ℝ) + smulLeftCLM ℝ (fun x : ℝ => x ^ 2)
 
 -- Pointwise: (H f)(x) = -f''(x) + x²f(x)
-private lemma harmonicOscillator_apply (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+lemma harmonicOscillator_apply (f : SchwartzMap ℝ ℝ) (x : ℝ) :
     harmonicOscillator f x = -(iteratedDeriv 2 (⇑f) x) + x ^ 2 * f x := by
   simp only [harmonicOscillator, add_apply, neg_apply,
     ContinuousLinearMap.comp_apply]
@@ -458,7 +464,7 @@ private lemma harmonicOscillator_apply (f : SchwartzMap ℝ ℝ) (x : ℝ) :
   rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
 
 -- Coefficient identity: cₙ(H f) = (2n+1) cₙ(f)
-private lemma hermiteCoeff1D_harmonicOscillator (n : ℕ) (f : SchwartzMap ℝ ℝ) :
+lemma hermiteCoeff1D_harmonicOscillator (n : ℕ) (f : SchwartzMap ℝ ℝ) :
     hermiteCoeff1D n (harmonicOscillator f) = (2 * ↑n + 1) * hermiteCoeff1D n f := by
   unfold hermiteCoeff1D
   have : (fun x => harmonicOscillator f x * hermiteFunction n x) =
@@ -467,7 +473,7 @@ private lemma hermiteCoeff1D_harmonicOscillator (n : ℕ) (f : SchwartzMap ℝ �
   rw [this]; exact hermiteCoeff_harmonic_oscillator n f
 
 -- Iteration: cₙ(H^m f) = (2n+1)^m cₙ(f)
-private lemma hermiteCoeff1D_harmonicOscillator_pow :
+lemma hermiteCoeff1D_harmonicOscillator_pow :
     ∀ (m n : ℕ) (f : SchwartzMap ℝ ℝ),
     hermiteCoeff1D n ((harmonicOscillator ^ m) f) =
       (2 * ↑n + 1) ^ m * hermiteCoeff1D n f := by
@@ -479,7 +485,7 @@ private lemma hermiteCoeff1D_harmonicOscillator_pow :
       hermiteCoeff1D_harmonicOscillator, pow_succ]; ring
 
 -- L² norm ≤ sup-seminorms for Schwartz functions
-private lemma schwartz_l2_le_sup_seminorm :
+lemma schwartz_l2_le_sup_seminorm :
     ∃ (q : ℕ × ℕ) (C : ℝ), 0 < C ∧ ∀ (f : SchwartzMap ℝ ℝ),
       Real.sqrt (∫ x, (f x) ^ 2) ≤
         C * (Finset.Iic q).sup (fun p => SchwartzMap.seminorm ℝ p.1 p.2) f := by
@@ -539,7 +545,7 @@ private lemma schwartz_l2_le_sup_seminorm :
     _ ≤ (2 * Real.sqrt I + 1) * S := by nlinarith [Real.sqrt_nonneg I]
 
 -- Helper: a single seminorm of T f is bounded by finitely many seminorms of f
-private lemma clm_single_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ))
+lemma clm_single_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ))
     (k l : ℕ) :
     ∃ (s : Finset (ℕ × ℕ)) (C : NNReal), C ≠ 0 ∧
       (SchwartzMap.seminorm ℝ k l).comp T.toLinearMap ≤
@@ -553,7 +559,7 @@ private lemma clm_single_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (Sc
 
 -- Helper: for any finite set of index pairs, the sup of seminorms of T f is bounded
 set_option maxHeartbeats 800000 in
-private lemma clm_finset_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ)) :
+lemma clm_finset_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ)) :
     ∀ (S : Finset (ℕ × ℕ)),
     ∃ (q : ℕ × ℕ) (C : ℝ), 0 < C ∧ ∀ (f : SchwartzMap ℝ ℝ),
       S.sup (fun p => SchwartzMap.seminorm ℝ p.1 p.2) (T f) ≤
@@ -609,7 +615,7 @@ private lemma clm_finset_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ]
             gcongr; linarith [le_max_left C_s (C_a : ℝ)]
 
 -- Helper: sup-seminorms of T f bounded by sup-seminorms of f (single step, Iic version)
-private lemma clm_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ))
+lemma clm_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ))
     (q₀ : ℕ × ℕ) :
     ∃ (q : ℕ × ℕ) (C : ℝ), 0 < C ∧ ∀ (f : SchwartzMap ℝ ℝ),
       (Finset.Iic q₀).sup (fun p => SchwartzMap.seminorm ℝ p.1 p.2) (T f) ≤
@@ -617,7 +623,7 @@ private lemma clm_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (Schwa
   clm_finset_sup_seminorm_bound T (Finset.Iic q₀)
 
 -- sup-seminorms of T^m f bounded by sup-seminorms of f (for any CLM T)
-private lemma pow_clm_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ))
+lemma pow_clm_sup_seminorm_bound (T : (SchwartzMap ℝ ℝ) →L[ℝ] (SchwartzMap ℝ ℝ))
     (m : ℕ) (q₀ : ℕ × ℕ) :
     ∃ (q : ℕ × ℕ) (C : ℝ), 0 < C ∧ ∀ (f : SchwartzMap ℝ ℝ),
       (Finset.Iic q₀).sup (fun p => SchwartzMap.seminorm ℝ p.1 p.2) ((T ^ m) f) ≤
@@ -756,17 +762,17 @@ and both are continuous, g = f everywhere.
 /-- The Hermite expansion of a Schwartz function converges in L² to f.
     This follows from `hermiteFunction_orthonormal` and `hermiteFunction_complete`. -/
 -- Helper: integrability of f * ψₙ
-private lemma schwartz_mul_hermite_integrable (f : SchwartzMap ℝ ℝ) (n : ℕ) :
+lemma schwartz_mul_hermite_integrable (f : SchwartzMap ℝ ℝ) (n : ℕ) :
     Integrable (fun x => f x * hermiteFunction n x) volume :=
   (f.memLp 2 volume).integrable_mul (hermiteFunction_memLp n)
 
 -- Helper: integrability of ψₙ * ψₘ
-private lemma hermite_mul_hermite_integrable (n m : ℕ) :
+lemma hermite_mul_hermite_integrable (n m : ℕ) :
     Integrable (fun x => hermiteFunction n x * hermiteFunction m x) volume :=
   (hermiteFunction_memLp n).integrable_mul (hermiteFunction_memLp m)
 
 -- Helper: integrability of (partial sum) * ψₘ
-private lemma partial_sum_mul_hermite_integrable (f : SchwartzMap ℝ ℝ) (N m : ℕ) :
+lemma partial_sum_mul_hermite_integrable (f : SchwartzMap ℝ ℝ) (N m : ℕ) :
     Integrable (fun x => (∑ n ∈ Finset.range N,
       hermiteCoeff1D n f * hermiteFunction n x) * hermiteFunction m x) volume := by
   simp_rw [Finset.sum_mul]
@@ -776,7 +782,7 @@ private lemma partial_sum_mul_hermite_integrable (f : SchwartzMap ℝ ℝ) (N m 
     (by filter_upwards with x; ring)
 
 -- Helper: the orthogonality identity ∫ (∑ cₙψₙ) * ψₘ = cₘ for m < N
-private lemma partial_sum_inner_hermite (f : SchwartzMap ℝ ℝ) (N m : ℕ) (hm : m < N) :
+lemma partial_sum_inner_hermite (f : SchwartzMap ℝ ℝ) (N m : ℕ) (hm : m < N) :
     ∫ x, (∑ n ∈ Finset.range N,
       hermiteCoeff1D n f * hermiteFunction n x) * hermiteFunction m x =
     hermiteCoeff1D m f := by
@@ -792,7 +798,7 @@ private lemma partial_sum_inner_hermite (f : SchwartzMap ℝ ℝ) (N m : ℕ) (h
     mul_ite, mul_zero]
 
 -- Helper: the L² norm of the partial sum: ∫ (∑ cₙψₙ)² = ∑ cₙ²
-private lemma partial_sum_l2_norm_sq (f : SchwartzMap ℝ ℝ) (N : ℕ) :
+lemma partial_sum_l2_norm_sq (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     ∫ x, (∑ n ∈ Finset.range N,
       hermiteCoeff1D n f * hermiteFunction n x) ^ 2 =
     ∑ n ∈ Finset.range N, hermiteCoeff1D n f ^ 2 := by
@@ -810,7 +816,7 @@ private lemma partial_sum_l2_norm_sq (f : SchwartzMap ℝ ℝ) (N : ℕ) :
   rw [partial_sum_inner_hermite f N m (Finset.mem_range.mp hm), sq]
 
 -- Helper: the cross term ∫ f * (∑ cₙψₙ) = ∑ cₙ²
-private lemma cross_term_integral (f : SchwartzMap ℝ ℝ) (N : ℕ) :
+lemma cross_term_integral (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     ∫ x, f x * (∑ n ∈ Finset.range N,
       hermiteCoeff1D n f * hermiteFunction n x) =
     ∑ n ∈ Finset.range N, hermiteCoeff1D n f ^ 2 := by
@@ -824,7 +830,7 @@ private lemma cross_term_integral (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     integral_const_mul]; unfold hermiteCoeff1D; ring
 
 -- Bessel's identity: ∫ (f - ∑ cₙψₙ)² = ∫ f² - ∑ cₙ²
-private lemma bessel_identity (f : SchwartzMap ℝ ℝ) (N : ℕ) :
+lemma bessel_identity (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     ∫ x, (f x - ∑ n ∈ Finset.range N,
       hermiteCoeff1D n f * hermiteFunction n x) ^ 2 =
     (∫ x, (f x) ^ 2) - ∑ n ∈ Finset.range N, hermiteCoeff1D n f ^ 2 := by
@@ -858,12 +864,12 @@ private lemma bessel_identity (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     _ = _ := by ring
 
 -- Helper: ∫ f² ≥ 0
-private lemma integral_f_sq_nonneg (f : SchwartzMap ℝ ℝ) :
+lemma integral_f_sq_nonneg (f : SchwartzMap ℝ ℝ) :
     0 ≤ ∫ x, (f x) ^ 2 :=
   integral_nonneg (fun x => sq_nonneg (f x))
 
 -- Helper: Bessel's inequality
-private lemma bessel_inequality (f : SchwartzMap ℝ ℝ) (N : ℕ) :
+lemma bessel_inequality (f : SchwartzMap ℝ ℝ) (N : ℕ) :
     ∑ n ∈ Finset.range N, hermiteCoeff1D n f ^ 2 ≤ ∫ x, (f x) ^ 2 := by
   have h := bessel_identity f N
   have hnn : 0 ≤ ∫ x, (f x - ∑ n ∈ Finset.range N,
@@ -872,7 +878,7 @@ private lemma bessel_inequality (f : SchwartzMap ℝ ℝ) (N : ℕ) :
   linarith
 
 -- Helper: summability of hermiteCoeff squares (Bessel's inequality)
-private lemma hermiteCoeff_sq_summable (f : SchwartzMap ℝ ℝ) :
+lemma hermiteCoeff_sq_summable (f : SchwartzMap ℝ ℝ) :
     Summable (fun n => hermiteCoeff1D n f ^ 2) :=
   summable_of_sum_le (fun _ => sq_nonneg _) (fun u => by
     calc ∑ x ∈ u, hermiteCoeff1D x f ^ 2
@@ -885,7 +891,7 @@ private lemma hermiteCoeff_sq_summable (f : SchwartzMap ℝ ℝ) :
       _ ≤ ∫ x, (f x) ^ 2 := bessel_inequality f _)
 
 -- Helper: the Hermite series ∑ cₙ ψₙ(x) converges absolutely at every point.
-private lemma hermite_series_summable_pointwise (f : SchwartzMap ℝ ℝ) (x : ℝ) :
+lemma hermite_series_summable_pointwise (f : SchwartzMap ℝ ℝ) (x : ℝ) :
     Summable (fun n => hermiteCoeff1D n f * hermiteFunction n x) := by
   apply Summable.of_norm_bounded (g := fun n => |hermiteCoeff1D n f| *
     SchwartzMap.seminorm ℝ 0 0 (schwartzHermiteBasis1D n))
@@ -898,7 +904,7 @@ private lemma hermite_series_summable_pointwise (f : SchwartzMap ℝ ℝ) (x : �
     rwa [schwartzHermiteBasis1D_apply, Real.norm_eq_abs] at h
 
 -- Helper: |cₙ(f)| is summable (super-polynomial decay ⇒ summable)
-private lemma hermiteCoeff_abs_summable (f : SchwartzMap ℝ ℝ) :
+lemma hermiteCoeff_abs_summable (f : SchwartzMap ℝ ℝ) :
     Summable (fun n => |hermiteCoeff1D n f|) := by
   obtain ⟨C, q, hC, h_dec⟩ := hermiteCoeff1D_decay 2
   set S := (Finset.Iic q).sup (fun m => SchwartzMap.seminorm ℝ m.1 m.2) f
@@ -925,7 +931,7 @@ private lemma hermiteCoeff_abs_summable (f : SchwartzMap ℝ ℝ) :
 
 -- Helper: the pointwise tsum ∑' cₙψₙ is in L²
 -- Proof: by Fatou's lemma. S_N² → (∑'cₙψₙ)² pointwise, and ∫S_N² = ∑_{n<N} cₙ² ≤ ∫f².
-private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
+lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
     MemLp (fun x => ∑' n, hermiteCoeff1D n f * hermiteFunction n x) 2 volume := by
   -- Define partial sums S_N(x) = ∑_{n<N} cₙ ψₙ(x)
   set S : ℕ → ℝ → ℝ := fun N x =>
@@ -981,7 +987,7 @@ private lemma hermite_series_memLp (f : SchwartzMap ℝ ℝ) :
 
 -- Helper: integral of tsum · ψₘ equals tsum of integrals
 -- Uses integral_tsum with dominated convergence
-private lemma integral_tsum_mul_hermite (f : SchwartzMap ℝ ℝ) (m : ℕ) :
+lemma integral_tsum_mul_hermite (f : SchwartzMap ℝ ℝ) (m : ℕ) :
     ∫ x, (∑' n, hermiteCoeff1D n f * hermiteFunction n x) * hermiteFunction m x =
     ∑' n, ∫ x, hermiteCoeff1D n f * hermiteFunction n x * hermiteFunction m x := by
   -- Step 1: (∑' cₙψₙ) * ψₘ = ∑' cₙψₙψₘ using tsum_mul_right
@@ -1070,7 +1076,7 @@ private lemma integral_tsum_mul_hermite (f : SchwartzMap ℝ ℝ) (m : ℕ) :
       exact ENNReal.tsum_le_tsum h_bound)]
 
 -- The Hermite series converges to f a.e. (key lemma, uses hermiteFunction_complete)
-private lemma hermite_series_eq_f_ae (f : SchwartzMap ℝ ℝ) :
+lemma hermite_series_eq_f_ae (f : SchwartzMap ℝ ℝ) :
     (fun x => f x - ∑' n, hermiteCoeff1D n f * hermiteFunction n x) =ᵐ[volume] 0 := by
   apply hermiteFunction_complete
   · -- MemLp (f - ∑' cₙψₙ) 2
@@ -1097,7 +1103,7 @@ private lemma hermite_series_eq_f_ae (f : SchwartzMap ℝ ℝ) :
 -- Parseval's identity: ∫ f² = ∑' cₙ²
 -- Uses hermite_series_eq_f_ae + Fatou's lemma for ≤ direction.
 set_option maxHeartbeats 800000 in
-private lemma parseval_identity (f : SchwartzMap ℝ ℝ) :
+lemma parseval_identity (f : SchwartzMap ℝ ℝ) :
     ∫ x, (f x) ^ 2 = ∑' n, hermiteCoeff1D n f ^ 2 := by
   apply le_antisymm
   · -- ≤ direction: ∫f² ≤ ∑' cₙ²
@@ -1193,20 +1199,20 @@ for any CLM T : 𝓢(ℝ,ℝ) →L[ℝ] H,
 -/
 
 -- Helper: the norm bound for each term ψₙ(x) by p_{0,0} seminorm
-private lemma hermiteFunction_norm_le_seminorm (n : ℕ) (x : ℝ) :
+lemma hermiteFunction_norm_le_seminorm (n : ℕ) (x : ℝ) :
     |hermiteFunction n x| ≤ SchwartzMap.seminorm ℝ 0 0 (schwartzHermiteBasis1D n) := by
   have h := SchwartzMap.le_seminorm ℝ 0 0 (schwartzHermiteBasis1D n) x
   simp only [pow_zero, one_mul, norm_iteratedFDeriv_zero] at h
   rwa [schwartzHermiteBasis1D_apply, Real.norm_eq_abs] at h
 
 -- Helper: iteratedFDeriv of schwartzHermiteBasis1D equals that of hermiteFunction
-private lemma iteratedFDeriv_schwartzHermiteBasis1D_eq (n k : ℕ) (x : ℝ) :
+lemma iteratedFDeriv_schwartzHermiteBasis1D_eq (n k : ℕ) (x : ℝ) :
     iteratedFDeriv ℝ k (⇑(schwartzHermiteBasis1D n)) x =
     iteratedFDeriv ℝ k (hermiteFunction n) x := by
   exact congr_arg (iteratedFDeriv ℝ k · x) (schwartzHermiteBasis1D_coe n)
 
 -- Helper: uniform bound on iteratedFDeriv of cₙ * ψₙ by |cₙ| * p_{0,k}(ψₙ)
-private lemma hermite_term_iteratedFDeriv_bound (f : SchwartzMap ℝ ℝ) (k n : ℕ) (x : ℝ) :
+lemma hermite_term_iteratedFDeriv_bound (f : SchwartzMap ℝ ℝ) (k n : ℕ) (x : ℝ) :
     ‖iteratedFDeriv ℝ k (fun y => hermiteCoeff1D n f * hermiteFunction n y) x‖ ≤
     |hermiteCoeff1D n f| * SchwartzMap.seminorm ℝ 0 k (schwartzHermiteBasis1D n) := by
   have hsm : iteratedFDeriv ℝ k (fun y => hermiteCoeff1D n f * hermiteFunction n y) x =
@@ -1222,13 +1228,13 @@ private lemma hermite_term_iteratedFDeriv_bound (f : SchwartzMap ℝ ℝ) (k n :
     rwa [iteratedFDeriv_schwartzHermiteBasis1D_eq] at h) (abs_nonneg _)
 
 -- Helper: summability of the uniform bounds
-private lemma hermite_term_bound_summable (f : SchwartzMap ℝ ℝ) (k : ℕ) :
+lemma hermite_term_bound_summable (f : SchwartzMap ℝ ℝ) (k : ℕ) :
     Summable (fun n => |hermiteCoeff1D n f| *
       SchwartzMap.seminorm ℝ 0 k (schwartzHermiteBasis1D n)) :=
   hermite_expansion_seminorm_summable f 0 k
 
 -- Helper: f(x) = ∑' cₙ ψₙ(x) for ALL x (not just a.e.)
-private lemma hermite_series_eq_f_everywhere (f : SchwartzMap ℝ ℝ) :
+lemma hermite_series_eq_f_everywhere (f : SchwartzMap ℝ ℝ) :
     ∀ x, f x = ∑' n, hermiteCoeff1D n f * hermiteFunction n x := by
   have hae := hermite_series_eq_f_ae f
   have h_cont : Continuous (fun x => ∑' n, hermiteCoeff1D n f * hermiteFunction n x) :=
@@ -1245,7 +1251,7 @@ private lemma hermite_series_eq_f_everywhere (f : SchwartzMap ℝ ℝ) :
   exact congr_fun ((f.continuous.ae_eq_iff_eq volume h_cont).mp hae')
 
 -- Helper: termwise differentiation of the Hermite series
-private lemma hermite_series_iteratedFDeriv (f : SchwartzMap ℝ ℝ) (l : ℕ) (x : ℝ) :
+lemma hermite_series_iteratedFDeriv (f : SchwartzMap ℝ ℝ) (l : ℕ) (x : ℝ) :
     iteratedFDeriv ℝ l (fun y => ∑' n, hermiteCoeff1D n f * hermiteFunction n y) x =
     ∑' n, iteratedFDeriv ℝ l (fun y => hermiteCoeff1D n f * hermiteFunction n y) x := by
   apply iteratedFDeriv_tsum_apply (N := ⊤)
@@ -1265,7 +1271,7 @@ private lemma hermite_series_iteratedFDeriv (f : SchwartzMap ℝ ℝ) (l : ℕ) 
        So the remainder r = f - ∑_{i∈s} cᵢψᵢ satisfies D^l(r)(x) = ∑'_{i∉s} cᵢ D^l(ψᵢ)(x)
     3. For each x: ‖x‖^k · ‖D^l(r)(x)‖ ≤ ∑'_{i∉s} |cᵢ| · ‖x‖^k · ‖D^l(ψᵢ)(x)‖
     4. Bound by ∑'_{i∉s} |cᵢ| · p_{k,l}(ψᵢ) ≤ ε (from vanishing condition). -/
-private lemma schwartz_seminorm_remainder_le (f : SchwartzMap ℝ ℝ) (k l : ℕ)
+lemma schwartz_seminorm_remainder_le (f : SchwartzMap ℝ ℝ) (k l : ℕ)
     (s : Finset ℕ) {ε : ℝ} (hε : 0 ≤ ε)
     (h_vanish : ∀ t : Finset ℕ, Disjoint t s →
       ∑ i ∈ t, |hermiteCoeff1D i f| *

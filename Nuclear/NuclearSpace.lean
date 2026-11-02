@@ -32,10 +32,14 @@ DM structure directly from the Hermite basis.
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4
 -/
 
-import Nuclear.DyninMityagin
-import Mathlib.Analysis.Convex.Cone.Extension
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Analysis.PSeries
+module
+
+public import Nuclear.DyninMityagin
+public import Mathlib.Analysis.Convex.Cone.Extension
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Analysis.PSeries
+
+@[expose] public section
 
 noncomputable section
 
@@ -264,7 +268,7 @@ If for every finite set `t` disjoint from `s`, the partial sum
 
 The proof uses Hahn-Banach to find a CLF `φ` attaining `p_i` at the error,
 then the expansion axiom to express `φ(error)` as a tail of the Schauder series. -/
-private lemma schauder_remainder_le
+lemma schauder_remainder_le
     {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     [hN : DyninMityaginSpace E]

@@ -39,8 +39,12 @@ Reflection `(Θf)(x) = f(-x)` preserves cosines and negates sines:
 - Katznelson, *An Introduction to Harmonic Analysis*, Ch. I
 -/
 
-import SmoothCircle.Eigenvalues
-import Torus.Symmetry
+module
+
+public import SmoothCircle.Eigenvalues
+public import Torus.Symmetry
+
+@[expose] public section
 
 noncomputable section
 
@@ -54,7 +58,7 @@ variable (L : ℝ) [hL : Fact (0 < L)]
 
 omit hL in
 /-- Cosine basis functions are even: `fourierBasisFun (2k-1) (-x) = fourierBasisFun (2k-1) x`. -/
-private lemma fourierBasisFun_even_cos (k : ℕ) (hk : 0 < k) (x : ℝ) :
+lemma fourierBasisFun_even_cos (k : ℕ) (hk : 0 < k) (x : ℝ) :
     fourierBasisFun (L := L) (2 * k - 1) (-x) = fourierBasisFun (L := L) (2 * k - 1) x := by
   rw [show (2 * k - 1 : ℕ) = 2 * (k - 1) + 1 from by omega]
   simp only [fourierBasisFun, if_pos (show 2 * (k - 1) % 2 = 0 from by omega)]
@@ -65,7 +69,7 @@ private lemma fourierBasisFun_even_cos (k : ℕ) (hk : 0 < k) (x : ℝ) :
 
 omit hL in
 /-- Sine basis functions are odd: `fourierBasisFun (2k) (-x) = -fourierBasisFun (2k) x`. -/
-private lemma fourierBasisFun_odd_sin (k : ℕ) (hk : 0 < k) (x : ℝ) :
+lemma fourierBasisFun_odd_sin (k : ℕ) (hk : 0 < k) (x : ℝ) :
     fourierBasisFun (L := L) (2 * k) (-x) = -(fourierBasisFun (L := L) (2 * k) x) := by
   rw [show (2 * k : ℕ) = (2 * k - 1) + 1 from by omega]
   simp only [fourierBasisFun, if_neg (show ¬((2 * k - 1) % 2 = 0) from by omega)]
@@ -74,7 +78,7 @@ private lemma fourierBasisFun_odd_sin (k : ℕ) (hk : 0 < k) (x : ℝ) :
       Real.sin_neg, mul_neg]
 
 /-- Integral of a periodic function composed with negation equals the original. -/
-private theorem integral_Icc_comp_neg_of_periodic
+theorem integral_Icc_comp_neg_of_periodic
     (g : ℝ → ℝ) (_hg : Continuous g) (hper : Function.Periodic g L) :
     ∫ x in Set.Icc 0 L, g (-x) = ∫ x in Set.Icc 0 L, g x := by
   have hL_pos := hL.out
@@ -89,7 +93,7 @@ private theorem integral_Icc_comp_neg_of_periodic
   exact h
 
 /-- Integral of a periodic function composed with translation equals the original. -/
-private theorem integral_Icc_comp_sub_of_periodic
+theorem integral_Icc_comp_sub_of_periodic
     (g : ℝ → ℝ) (_hg : Continuous g) (hper : Function.Periodic g L) (v : ℝ) :
     ∫ x in Set.Icc 0 L, g (x - v) = ∫ x in Set.Icc 0 L, g x := by
   have hL_pos := hL.out
@@ -104,7 +108,7 @@ private theorem integral_Icc_comp_sub_of_periodic
 
 omit hL in
 /-- Explicit cosine formula for `fourierBasisFun (2k-1)`. -/
-private lemma fourierBasisFun_cos_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
+lemma fourierBasisFun_cos_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
     fourierBasisFun (L := L) (2 * k - 1) y =
     Real.sqrt (2 / L) * Real.cos (2 * Real.pi * ↑k * y / L) := by
   rw [show (2 * k - 1 : ℕ) = 2 * (k - 1) + 1 from by omega]
@@ -113,7 +117,7 @@ private lemma fourierBasisFun_cos_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
 
 omit hL in
 /-- Explicit sine formula for `fourierBasisFun (2k)`. -/
-private lemma fourierBasisFun_sin_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
+lemma fourierBasisFun_sin_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
     fourierBasisFun (L := L) (2 * k) y =
     Real.sqrt (2 / L) * Real.sin (2 * Real.pi * ↑k * y / L) := by
   rw [show (2 * k : ℕ) = (2 * k - 1) + 1 from by omega]
@@ -122,7 +126,7 @@ private lemma fourierBasisFun_sin_eq (k : ℕ) (hk : 0 < k) (y : ℝ) :
 
 omit hL in
 /-- Addition formula: `basis(2k-1)(x+v) = cos(θ)·basis(2k-1)(x) - sin(θ)·basis(2k)(x)`. -/
-private lemma fourierBasisFun_cos_add (k : ℕ) (hk : 0 < k) (x v : ℝ) :
+lemma fourierBasisFun_cos_add (k : ℕ) (hk : 0 < k) (x v : ℝ) :
     fourierBasisFun (L := L) (2 * k - 1) (x + v) =
     Real.cos (2 * Real.pi * k * v / L) * fourierBasisFun (L := L) (2 * k - 1) x -
     Real.sin (2 * Real.pi * k * v / L) * fourierBasisFun (L := L) (2 * k) x := by
@@ -134,7 +138,7 @@ private lemma fourierBasisFun_cos_add (k : ℕ) (hk : 0 < k) (x v : ℝ) :
 
 omit hL in
 /-- Addition formula: `basis(2k)(x+v) = sin(θ)·basis(2k-1)(x) + cos(θ)·basis(2k)(x)`. -/
-private lemma fourierBasisFun_sin_add (k : ℕ) (hk : 0 < k) (x v : ℝ) :
+lemma fourierBasisFun_sin_add (k : ℕ) (hk : 0 < k) (x v : ℝ) :
     fourierBasisFun (L := L) (2 * k) (x + v) =
     Real.sin (2 * Real.pi * k * v / L) * fourierBasisFun (L := L) (2 * k - 1) x +
     Real.cos (2 * Real.pi * k * v / L) * fourierBasisFun (L := L) (2 * k) x := by

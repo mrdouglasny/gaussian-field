@@ -72,10 +72,15 @@ live downstream in pphi2's `PolynomialChaosBridge.lean`; this file
 provides only the generic Gaussian-Hilbert-space identifications.
 -/
 
-import GaussianField.StandardGaussianBridge
-import GaussianField.Wick
-import SchwartzNuclear.HermiteWick
-import SchwartzNuclear.HermiteFunctions
+module
+
+public import GaussianField.StandardGaussianBridge
+public import GaussianField.Wick
+public import SchwartzNuclear.HermiteWick
+public import SchwartzNuclear.HermiteFunctions
+public import Mathlib.Data.Nat.Choose.Multinomial
+
+@[expose] public section
 
 noncomputable section
 
@@ -365,7 +370,7 @@ identity decouples `gffSiteVariance` from the explicit `(a^d)⁻¹` and
 `λ_j⁻¹` factors. -/
 
 /-- The orthogonalized eigenvector coefficient: `γ_j(x) = e_j(x) / √(a^d λ_j)`. -/
-private noncomputable def gffEigenCoeff
+noncomputable def gffEigenCoeff
     (a mass : ℝ) (j x : FinLatticeSites d N) : ℝ :=
   (massEigenvectorBasis d N a mass j : EuclideanSpace ℝ _) x /
     Real.sqrt (a^d * massEigenvalues d N a mass j)
@@ -423,7 +428,7 @@ lemma eigenbasis_completeness
   exact h_y
 
 /-- Spectral expansion: `ω(δ_x) = ∑_j γ_j(x) · ξ_j(ω)`. -/
-private lemma omega_eval_delta_eq_sum_gamma_xi
+lemma omega_eval_delta_eq_sum_gamma_xi
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (x : FinLatticeSites d N)
     (ω : Configuration (FinLatticeField d N)) :
@@ -462,7 +467,7 @@ private lemma omega_eval_delta_eq_sum_gamma_xi
   field_simp
 
 /-- The site variance equals `∑_j γ_j(x)²`. -/
-private lemma gffSiteVariance_eq_sum_gamma_sq
+lemma gffSiteVariance_eq_sum_gamma_sq
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass) (x : FinLatticeSites d N) :
     gffSiteVariance d N a mass ha hmass x =
     ∑ j, (gffEigenCoeff d N a mass j x)^2 := by
@@ -487,7 +492,7 @@ private lemma gffSiteVariance_eq_sum_gamma_sq
 /-- The explicit coefficient appearing in the multinomial Wick expansion:
 `(k!/∏α_j!) · ∏ γ_j(x)^{α_j}` for multi-indices of total degree `k`,
 zero otherwise. Used in `siteWickMonomial_eigenbasis_expansion`. -/
-private noncomputable def siteWickExpansionCoeff
+noncomputable def siteWickExpansionCoeff
     (a mass : ℝ) (k : ℕ) (x : FinLatticeSites d N)
     (α : FinLatticeSites d N → ℕ) : ℝ :=
   if MultiIndexLattice.totalDegree α = k then
@@ -496,7 +501,7 @@ private noncomputable def siteWickExpansionCoeff
   else 0
 
 /-- The explicit-coefficient function vanishes outside the right degree. -/
-private lemma siteWickExpansionCoeff_eq_zero
+lemma siteWickExpansionCoeff_eq_zero
     (a mass : ℝ) (k : ℕ) (x : FinLatticeSites d N)
     (α : FinLatticeSites d N → ℕ)
     (hα : MultiIndexLattice.totalDegree α ≠ k) :
@@ -581,7 +586,7 @@ variable (d N : ℕ) [NeZero N]
 `multiIndicesOfTotalDegree (FinLatticeSites d N) k`. The two differ
 only by the `MultiIndexLattice.totalDegree` wrapper unfolding to
 `∑ j, α j`. -/
-private lemma multiIndicesOfDegree_eq_generic (k : ℕ) :
+lemma multiIndicesOfDegree_eq_generic (k : ℕ) :
     multiIndicesOfDegree d N k =
       multiIndicesOfTotalDegree (FinLatticeSites d N) k := by
   classical
@@ -766,7 +771,7 @@ sum over multi-indices of total degree `n`. Refines
 `siteWickMonomial_eigenbasis_expansion` by exposing the explicit
 coefficient `(n! / ∏ α_j!) · ∏ γ_j(x)^{α_j}` rather than wrapping it
 behind an existential. -/
-private lemma wickMonomial_at_site_eq_eigen_sum
+lemma wickMonomial_at_site_eq_eigen_sum
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (n : ℕ) (x : FinLatticeSites d N)
     (ω : Configuration (FinLatticeField d N)) :
@@ -783,7 +788,7 @@ private lemma wickMonomial_at_site_eq_eigen_sum
         (fun j => gffOrthonormalCoord d N a mass ha hmass j ω) n]
   rfl
 
-private lemma integrable_pow_gaussianReal_one (k : ℕ) :
+lemma integrable_pow_gaussianReal_one (k : ℕ) :
     MeasureTheory.Integrable (fun x : ℝ => x ^ k)
       (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
   cases k with
@@ -806,7 +811,7 @@ private lemma integrable_pow_gaussianReal_one (k : ℕ) :
       rw [← MeasureTheory.integrable_norm_iff h_meas]
       simpa [norm_pow] using h_norm
 
-private lemma integrable_polynomial_gaussianReal_one (p : Polynomial ℝ) :
+lemma integrable_polynomial_gaussianReal_one (p : Polynomial ℝ) :
     MeasureTheory.Integrable (fun x : ℝ => p.eval x)
       (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
   have h_eval :
@@ -818,7 +823,7 @@ private lemma integrable_polynomial_gaussianReal_one (p : Polynomial ℝ) :
   exact MeasureTheory.integrable_finsetSum _ fun i hi =>
     (integrable_pow_gaussianReal_one i).const_mul (p.coeff i)
 
-private lemma integrable_wickMonomial_mul_gaussianReal_one (m n : ℕ) :
+lemma integrable_wickMonomial_mul_gaussianReal_one (m n : ℕ) :
     MeasureTheory.Integrable (fun x : ℝ => wickMonomial m 1 x * wickMonomial n 1 x)
       (ProbabilityTheory.gaussianReal (0 : ℝ) (1 : NNReal)) := by
   have h_eq :
@@ -831,7 +836,7 @@ private lemma integrable_wickMonomial_mul_gaussianReal_one (m n : ℕ) :
   rw [h_eq]
   exact integrable_polynomial_gaussianReal_one ((hermiteR m) * (hermiteR n))
 
-private lemma integrable_gffMultiWickMonomial_mul
+lemma integrable_gffMultiWickMonomial_mul
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (α β : FinLatticeSites d N → ℕ) :
     MeasureTheory.Integrable
@@ -861,7 +866,7 @@ private lemma integrable_gffMultiWickMonomial_mul
   filter_upwards with ω
   simp [f, gffOrthonormalProj, gffMultiWickMonomial, ← Finset.prod_mul_distrib]
 
-private lemma multiIndicesOfTotalDegree_eq_piAntidiag (n : ℕ) :
+lemma multiIndicesOfTotalDegree_eq_piAntidiag (n : ℕ) :
     multiIndicesOfTotalDegree (FinLatticeSites d N) n =
       Finset.piAntidiag Finset.univ n := by
   ext α
@@ -881,7 +886,7 @@ private lemma multiIndicesOfTotalDegree_eq_piAntidiag (n : ℕ) :
         (Finset.single_le_sum (fun j _ => Nat.zero_le (α j)) (Finset.mem_univ i))
     exact Nat.lt_succ_of_le (hsum ▸ h_le)
 
-private lemma sum_pow_eq_sum_multiIndices (f : FinLatticeSites d N → ℝ) (n : ℕ) :
+lemma sum_pow_eq_sum_multiIndices (f : FinLatticeSites d N → ℝ) (n : ℕ) :
     (∑ j, f j) ^ n =
       ∑ α ∈ multiIndicesOfTotalDegree (FinLatticeSites d N) n,
         ((n.factorial : ℝ) / ∏ j, ((α j).factorial : ℝ)) *
@@ -1161,7 +1166,7 @@ lemma gffSmearedCovariance_self
   rw [sq]
 
 /-- `ω(f) = ∑_j Γ_j(f) · ξ_j(ω)` — smeared spectral expansion, by `ω`-linearity. -/
-private lemma omega_eval_smeared_eq_sum_gamma_xi
+lemma omega_eval_smeared_eq_sum_gamma_xi
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (f : FinLatticeField d N) (ω : Configuration (FinLatticeField d N)) :
     ω f = ∑ j, gffSmearedCoeff d N a mass f j *
@@ -1182,7 +1187,7 @@ private lemma omega_eval_smeared_eq_sum_gamma_xi
 /-- Smeared analogue of `wickMonomial_at_site_eq_eigen_sum`: the Wick monomial of
 the smeared field, with matched Wick constant `∑_j Γ_j(f)² = Var ω(f)`, expands
 over eigenbasis multi-indices of total degree `n`. -/
-private lemma wickMonomial_at_smeared_eq_eigen_sum
+lemma wickMonomial_at_smeared_eq_eigen_sum
     (a mass : ℝ) (ha : 0 < a) (hmass : 0 < mass)
     (n : ℕ) (f : FinLatticeField d N)
     (ω : Configuration (FinLatticeField d N)) :

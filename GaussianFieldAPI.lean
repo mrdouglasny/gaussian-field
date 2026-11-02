@@ -22,10 +22,14 @@ key definitions and restates proved theorems in a clean axiomatic form.
 - SpacetimeData instances → downstream repos
 -/
 
-import GaussianField
-import Nuclear.PointEval
-import Nuclear.Complexification
-import HeatKernel
+module
+
+public import GaussianField
+public import Nuclear.PointEval
+public import Nuclear.Complexification
+public import HeatKernel
+
+@[expose] public section
 
 /-! ## Section 1: HasPointEval -/
 

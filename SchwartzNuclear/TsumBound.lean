@@ -5,7 +5,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Tsum bound helpers for nuclear extension
 -/
 
-import SchwartzNuclear.HermiteNuclear
+module
+
+public import SchwartzNuclear.HermiteNuclear
+
+@[expose] public section
 
 noncomputable section
 

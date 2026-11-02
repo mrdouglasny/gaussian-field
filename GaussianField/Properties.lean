@@ -22,9 +22,13 @@ Downstream consequences of the characteristic functional identity.
 - `pairing_memLp`: w(f) is in Lᵖ for all finite p (Fernique-type)
 -/
 
-import GaussianField.Construction
-import Mathlib.Probability.Moments.Variance
-import Mathlib.MeasureTheory.Function.L2Space
+module
+
+public import GaussianField.Construction
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.MeasureTheory.Function.L2Space
+
+@[expose] public section
 
 noncomputable section
 

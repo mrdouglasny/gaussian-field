@@ -29,8 +29,12 @@ level: the input and output NTP spaces can be different.
 - Treves, *Topological Vector Spaces*, Ch. 50 (nuclear spaces)
 -/
 
-import Nuclear.NuclearTensorProduct
-import Nuclear.TensorProductFunctorAxioms
+module
+
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 
@@ -63,7 +67,7 @@ variable {E₁ : Type*} [AddCommGroup E₁] [Module ℝ E₁] [TopologicalSpace 
 /-- The image of basis vector `m` under `T₁ ⊗ T₂` (general version):
 `Φ(m) = pure(T₁(ψ^{E₁}_a), T₂(ψ^{E₂}_b))` where `(a,b) = unpair(m)`,
 with the result living in `NTP F₁ F₂`. -/
-private def mapImageGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) (m : ℕ) :
+def mapImageGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) (m : ℕ) :
     NuclearTensorProduct F₁ F₂ :=
   NuclearTensorProduct.pure
     (T₁ (DyninMityaginSpace.basis (Nat.unpair m).1))
@@ -72,7 +76,7 @@ private def mapImageGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂
 /-- Polynomial bound on seminorms of `mapImageGen`.
 `seminorm_k(Φ(m)) ≤ K * (1+m)^S`.
 Same proof as `mapImage_seminorm_bound` but with cross-type CLMs. -/
-private theorem mapImageGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) (k : ℕ) :
+theorem mapImageGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) (k : ℕ) :
     ∃ K > 0, ∃ S : ℕ, ∀ m,
     RapidDecaySeq.rapidDecaySeminorm k (mapImageGen T₁ T₂ m) ≤ K * (1 + (m : ℝ)) ^ S := by
   classical
@@ -150,7 +154,7 @@ private theorem mapImageGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : 
         gcongr; linarith [NNReal.coe_nonneg C]
 
 set_option maxHeartbeats 400000 in
-private theorem mapInnerGen_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+theorem mapInnerGen_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (f : RapidDecaySeq) (n : ℕ) :
     Summable (fun m => f.val m * (mapImageGen T₁ T₂ m).val n) := by
   classical
@@ -167,7 +171,7 @@ private theorem mapInnerGen_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ �
     _ = K * (|f.val m| * (1 + (m : ℝ)) ^ S) := by ring
 
 /-- Summability of `∑ₘ |fₘ| * seminorm_k(Φ(m))` using polynomial bound on Φ. -/
-private theorem mapCoeffGen_seminorm_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+theorem mapCoeffGen_seminorm_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (f : RapidDecaySeq) (k : ℕ) :
     Summable (fun m => |f.val m| *
       RapidDecaySeq.rapidDecaySeminorm k (mapImageGen T₁ T₂ m)) := by
@@ -180,7 +184,7 @@ private theorem mapCoeffGen_seminorm_summable (T₁ : E₁ →L[ℝ] F₁) (T₂
 
 /-- Pointwise bound on the mapped value times weight:
 `|Φ(m).val n| * (1+n)^k ≤ seminorm_{k+2}(Φ(m)) / (1+n)^2`. -/
-private theorem mapImageGen_val_weight_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+theorem mapImageGen_val_weight_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (m n k : ℕ) :
     |(mapImageGen T₁ T₂ m).val n| * (1 + (n : ℝ)) ^ k ≤
     RapidDecaySeq.rapidDecaySeminorm (k + 2) (mapImageGen T₁ T₂ m) *
@@ -193,7 +197,7 @@ private theorem mapImageGen_val_weight_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ 
         val_le_seminorm _ n (k + 2)
 
 /-- Summability of the absolute-value series for mapCLM_general. -/
-private theorem mapInnerGen_abs_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+theorem mapInnerGen_abs_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (f : RapidDecaySeq) (n : ℕ) :
     Summable (fun m => |f.val m| * |(mapImageGen T₁ T₂ m).val n|) := by
   classical
@@ -211,7 +215,7 @@ private theorem mapInnerGen_abs_summable (T₁ : E₁ →L[ℝ] F₁) (T₂ : E�
 
 set_option maxHeartbeats 800000 in
 /-- Bound on the mapped sum at each output index. -/
-private theorem mapValGen_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+theorem mapValGen_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (f : RapidDecaySeq) (n k : ℕ) :
     |∑' m, f.val m * (mapImageGen T₁ T₂ m).val n| * (1 + (n : ℝ)) ^ k ≤
     (∑' m, |f.val m| * RapidDecaySeq.rapidDecaySeminorm (k + 2)
@@ -252,7 +256,7 @@ private theorem mapValGen_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[�
     _ = _ := tsum_mul_right
 
 /-- The mapped rapid decay sequence (general version). -/
-private def mapRapidDecayGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+def mapRapidDecayGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (f : RapidDecaySeq) : RapidDecaySeq where
   val n := ∑' m, f.val m * (mapImageGen T₁ T₂ m).val n
   rapid_decay k :=
@@ -263,7 +267,7 @@ private def mapRapidDecayGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ]
 
 set_option maxHeartbeats 800000 in
 /-- Seminorm bound: `seminorm_k(map f) ≤ K · seminorm_S(f)`. -/
-private theorem mapRapidDecayGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
+theorem mapRapidDecayGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂)
     (k : ℕ) : ∃ K > 0, ∃ S : ℕ, ∀ (f : RapidDecaySeq),
     RapidDecaySeq.rapidDecaySeminorm k (mapRapidDecayGen T₁ T₂ f) ≤
     K * RapidDecaySeq.rapidDecaySeminorm S f := by
@@ -297,7 +301,7 @@ private theorem mapRapidDecayGen_seminorm_bound (T₁ : E₁ →L[ℝ] F₁) (T�
 
 set_option maxHeartbeats 400000 in
 /-- The map as a linear map on RapidDecaySeq. -/
-private def mapLMGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) :
+def mapLMGen (T₁ : E₁ →L[ℝ] F₁) (T₂ : E₂ →L[ℝ] F₂) :
     NuclearTensorProduct E₁ E₂ →ₗ[ℝ] NuclearTensorProduct F₁ F₂ where
   toFun := mapRapidDecayGen T₁ T₂
   map_add' f g := by
@@ -331,7 +335,7 @@ set_option maxHeartbeats 800000 in
 /-- Norm-summability of `c_{E}(m,f) * c_{F}(n, T(ψ^E_m))`: the coefficient product series
 converges absolutely, using coeff_decay + CLM continuity + basis_growth.
 This is the cross-type version of `norm_summable_coeff_comp_CLM`. -/
-private theorem norm_summable_coeff_comp_CLM_general
+theorem norm_summable_coeff_comp_CLM_general
     {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] [DyninMityaginSpace E]
     {F : Type*} [AddCommGroup F] [Module ℝ F] [TopologicalSpace F]

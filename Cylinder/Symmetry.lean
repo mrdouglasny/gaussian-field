@@ -41,9 +41,13 @@ giving a clean decomposition into future and past. No wraparound issues.
 - Osterwalder-Schrader (1973), Axiom (A3)
 -/
 
-import Cylinder.Basic
-import Torus.Symmetry
-import Nuclear.TensorProductFunctorAxioms
+module
+
+public import Cylinder.Basic
+public import Torus.Symmetry
+public import Nuclear.TensorProductFunctorAxioms
+
+@[expose] public section
 
 noncomputable section
 

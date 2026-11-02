@@ -30,14 +30,18 @@ one-dimensional case rather than via an `ℤ^d ≃ ℕ` reindexing.
 - Dynin-Mityagin, via the general transfer constructor `ofRapidDecayEquiv`
 -/
 
-import Lattice.Sites
-import Nuclear.NuclearTensorProduct
-import Nuclear.PointEval
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Basic.Denumerable
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Lattice.Sites
+public import Nuclear.NuclearTensorProduct
+public import Nuclear.PointEval
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Topology.Algebra.InfiniteSum.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Basic.Denumerable
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -187,7 +191,7 @@ and coordinate peeling (`Fin.succFunEquiv`). -/
 /-- Cantor-pairing enumeration of ℤ^{d+1}: bijection with ℕ via iterated
 pairing. Constructed using `Fin.succFunEquiv` (peeling off one coordinate)
 and `Denumerable.eqv` (encoding products and ℤ as ℕ). -/
-private def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
+def latticeEnumSucc : (d : ℕ) → (Fin (d + 1) → ℤ) ≃ ℕ
   | 0 => (Equiv.funUnique (Fin 1) ℤ).trans Equiv.intEquivNat
   | d + 1 =>
     (Fin.succFunEquiv ℤ (d + 1)).trans
@@ -204,7 +208,7 @@ def latticeEnum (d : ℕ) [NeZero d] : (Fin d → ℤ) ≃ ℕ := by
       exact latticeEnumSucc d
 
 /-- Quantitative bound for the integer decoder used by `Equiv.intEquivNat`. -/
-private lemma natAbs_intEquivNat_symm_le_succ (n : ℕ) :
+lemma natAbs_intEquivNat_symm_le_succ (n : ℕ) :
     Int.natAbs (Equiv.intEquivNat.symm n) ≤ n + 1 := by
   change Int.natAbs (Sum.elim Int.ofNat Int.negSucc
     (if n.bodd = true then Sum.inr n.div2 else Sum.inl n.div2)) ≤ n + 1
@@ -223,7 +227,7 @@ private lemma natAbs_intEquivNat_symm_le_succ (n : ℕ) :
     omega
 
 /-- Real-valued form of `natAbs_intEquivNat_symm_le_succ`. -/
-private lemma abs_intEquivNat_symm_cast_le_succ (n : ℕ) :
+lemma abs_intEquivNat_symm_cast_le_succ (n : ℕ) :
     |((Equiv.intEquivNat.symm n : ℤ) : ℝ)| ≤ n + 1 := by
   let z : ℤ := Equiv.intEquivNat.symm n
   have hnat : Int.natAbs z ≤ n + 1 := by
@@ -240,7 +244,7 @@ private lemma abs_intEquivNat_symm_cast_le_succ (n : ℕ) :
     _ ≤ (n + 1 : ℝ) := hreal
 
 /-- Forward growth bound for `Equiv.intEquivNat`. -/
-private lemma intEquivNat_le_two_natAbs_add_one (z : ℤ) :
+lemma intEquivNat_le_two_natAbs_add_one (z : ℤ) :
     Equiv.intEquivNat z ≤ 2 * Int.natAbs z + 1 := by
   cases z with
   | ofNat n =>
@@ -251,13 +255,13 @@ private lemma intEquivNat_le_two_natAbs_add_one (z : ℤ) :
       omega
 
 /-- Coordinate-wise absolute values are bounded by the ℓ¹ norm. -/
-private lemma abs_coord_le_latticeNorm {d : ℕ} (x : Fin d → ℤ) (i : Fin d) :
+lemma abs_coord_le_latticeNorm {d : ℕ} (x : Fin d → ℤ) (i : Fin d) :
     |(x i : ℝ)| ≤ latticeNorm x := by
   unfold latticeNorm
   exact Finset.single_le_sum (fun j _ => abs_nonneg ((x j : ℤ) : ℝ)) (by simp)
 
 /-- Real bound for `Nat.pair`: quadratic in the total size of inputs. -/
-private lemma pair_cast_le_square (a b : ℕ) :
+lemma pair_cast_le_square (a b : ℕ) :
     (Nat.pair a b : ℝ) ≤ (a + b + 1 : ℝ) ^ 2 := by
   have hlt : Nat.pair a b < (max a b + 1) ^ 2 := Nat.pair_lt_max_add_one_sq a b
   have hle1 : Nat.pair a b ≤ (max a b + 1) ^ 2 := Nat.le_of_lt hlt
@@ -268,7 +272,7 @@ private lemma pair_cast_le_square (a b : ℕ) :
   exact_mod_cast (le_trans hle1 hle2)
 
 /-- Real-valued forward growth bound for integer encoding. -/
-private lemma intEquivNat_cast_le_three_mul (z : ℤ) :
+lemma intEquivNat_cast_le_three_mul (z : ℤ) :
     (Equiv.intEquivNat z : ℝ) ≤ 3 * (1 + |(z : ℝ)|) := by
   have hnat : Equiv.intEquivNat z ≤ 2 * Int.natAbs z + 1 :=
     intEquivNat_le_two_natAbs_add_one z
@@ -285,14 +289,14 @@ private lemma intEquivNat_cast_le_three_mul (z : ℤ) :
     _ ≤ 3 * (1 + |(z : ℝ)|) := by nlinarith
 
 /-- Splitting formula for the ℓ¹ norm under `Fin.succFunEquiv`. -/
-private lemma latticeNorm_succFunEquiv_symm (d : ℕ) (p : (Fin d → ℤ) × ℤ) :
+lemma latticeNorm_succFunEquiv_symm (d : ℕ) (p : (Fin d → ℤ) × ℤ) :
     latticeNorm ((Fin.succFunEquiv ℤ d).symm p) =
       latticeNorm p.1 + |(p.2 : ℝ)| := by
   rcases p with ⟨x, z⟩
   simp [latticeNorm, Fin.succFunEquiv, Fin.sum_univ_add]
 
 /-- Inverse polynomial growth for the recursively defined enumeration. -/
-private theorem latticeEnumSucc_norm_bound :
+theorem latticeEnumSucc_norm_bound :
     ∀ d : ℕ, ∃ C > (0 : ℝ), ∃ p : ℕ, ∀ m : ℕ,
       latticeNorm ((latticeEnumSucc d).symm m) ≤ C * (1 + (m : ℝ)) ^ p
   | 0 => by
@@ -370,7 +374,7 @@ theorem latticeEnum_norm_bound (d : ℕ) [NeZero d] :
 
 /-- Converse polynomial bound: points with small norm have polynomially small
 index. -/
-private theorem latticeEnumSucc_index_bound :
+theorem latticeEnumSucc_index_bound :
     ∀ d : ℕ, ∃ C > (0 : ℝ), ∃ q : ℕ, ∀ x : Fin (d + 1) → ℤ,
       (latticeEnumSucc d x : ℝ) ≤ C * (1 + latticeNorm x) ^ q
   | 0 => by

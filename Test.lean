@@ -4,12 +4,17 @@
   End-to-end tests: verify the Gaussian measure pipeline elaborates for
   all concrete nuclear space instances and their tensor products.
 -/
-import SmoothCircle.Nuclear
-import SchwartzNuclear.HermiteNuclear
-import GaussianField.Construction
-import GaussianField.Properties
-import GaussianField.IsGaussian
-import HeatKernel
+module
+
+public import SmoothCircle.Nuclear
+public import SchwartzNuclear.HermiteNuclear
+public import GaussianField.Construction
+public import GaussianField.Properties
+public import GaussianField.IsGaussian
+public import HeatKernel
+
+@[expose] public section
+
 -- import HeatKernel.PositionKernel  -- moved to future/
 
 noncomputable section

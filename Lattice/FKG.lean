@@ -84,11 +84,15 @@ massOperator_offDiag_nonpos → quadraticForm_submodular → gaussianDensity_fkg
 - Simon, "The P(φ)₂ Euclidean (Quantum) Field Theory", §IV
 -/
 
-import Lattice.Covariance
-import GaussianField.Density
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Constructions.Pi
+module
+
+public import Lattice.Covariance
+public import GaussianField.Density
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Constructions.Pi
+
+@[expose] public section
 
 noncomputable section
 
@@ -1962,7 +1966,7 @@ def IsFieldMonotone (F : Configuration (FinLatticeField d N) → ℝ) : Prop :=
 
 /-- Basis decomposition: any field configuration is a linear combination
 of delta functions. -/
-private lemma field_basis_decomposition (φ : FinLatticeField d N) :
+lemma field_basis_decomposition (φ : FinLatticeField d N) :
     φ = ∑ y : FinLatticeSites d N, φ y • finLatticeDelta d N y := by
   ext x
   simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, finLatticeDelta,
@@ -1976,7 +1980,7 @@ values φ(x). -/
 
 /-- Lift field values to a configuration (continuous linear functional).
 Given `φ : FinLatticeField d N`, constructs the CLM `f ↦ ∑ x, f(x) · φ(x)`. -/
-private def liftToConfig (φ : FinLatticeField d N) :
+def liftToConfig (φ : FinLatticeField d N) :
     Configuration (FinLatticeField d N) :=
   { toFun := fun f => ∑ x : FinLatticeSites d N, f x * φ x
     map_add' := fun f g => by
@@ -1987,14 +1991,14 @@ private def liftToConfig (φ : FinLatticeField d N) :
       (continuous_apply i).mul continuous_const) }
 
 /-- Lifting preserves delta function evaluation: `(liftToConfig φ)(δ_x) = φ(x)`. -/
-private lemma liftToConfig_delta (φ : FinLatticeField d N) (x : FinLatticeSites d N) :
+lemma liftToConfig_delta (φ : FinLatticeField d N) (x : FinLatticeSites d N) :
     (liftToConfig d N φ) (finLatticeDelta d N x) = φ x := by
   show ∑ z : FinLatticeSites d N, (finLatticeDelta d N x) z * φ z = φ x
   simp only [finLatticeDelta, ite_mul, one_mul, zero_mul,
     Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- Any configuration equals the lift of its field values. -/
-private lemma config_eq_liftToConfig (ω : Configuration (FinLatticeField d N)) :
+lemma config_eq_liftToConfig (ω : Configuration (FinLatticeField d N)) :
     ω = liftToConfig d N (fun x => ω (finLatticeDelta d N x)) := by
   apply ContinuousLinearMap.ext; intro f
   show ω f = ∑ z : FinLatticeSites d N, f z * ω (finLatticeDelta d N z)
@@ -2005,7 +2009,7 @@ private lemma config_eq_liftToConfig (ω : Configuration (FinLatticeField d N)) 
 /-- `liftToConfig` is measurable (continuous linear map between finite-dim spaces).
 The map φ ↦ (f ↦ ∑ x, f(x) * φ(x)) is continuous in φ (each component is a
 finite sum of continuous functions), hence measurable. -/
-private theorem measurable_liftToConfig :
+theorem measurable_liftToConfig :
     Measurable (liftToConfig (d := d) (N := N)) := by
   refine configuration_measurable_of_eval_measurable
     (g := liftToConfig (d := d) (N := N)) ?_
@@ -2017,7 +2021,7 @@ private theorem measurable_liftToConfig :
     (fun x _ => measurable_const.mul (measurable_pi_apply x))
 
 /-- `IsFieldMonotone` implies `Monotone` for the lifted function. -/
-private lemma isFieldMonotone_lift {F : Configuration (FinLatticeField d N) → ℝ}
+lemma isFieldMonotone_lift {F : Configuration (FinLatticeField d N) → ℝ}
     (hF : IsFieldMonotone d N F) :
     Monotone (fun φ : FinLatticeField d N => F (liftToConfig d N φ)) := by
   intro φ₁ φ₂ hle
@@ -2067,7 +2071,7 @@ theorem massOperator_offDiag_nonpos (d N : ℕ) [NeZero N] (a mass : ℝ)
 
 /-- The mass operator applied to φ, evaluated at x, equals the sum over
 matrix entries times field values. -/
-private lemma massOperator_apply_eq_sum (a mass : ℝ) (φ : FinLatticeField d N)
+lemma massOperator_apply_eq_sum (a mass : ℝ) (φ : FinLatticeField d N)
     (x : FinLatticeSites d N) :
     (massOperator d N a mass φ) x =
     ∑ y : FinLatticeSites d N, massOperatorEntry d N a mass x y * φ y := by
@@ -2077,7 +2081,7 @@ private lemma massOperator_apply_eq_sum (a mass : ℝ) (φ : FinLatticeField d N
   congr 1; ext y; ring
 
 /-- The quadratic form `⟨φ, Qφ⟩` equals the double sum of matrix entries. -/
-private lemma massOperator_bilinear_eq_sum (a mass : ℝ) (φ : FinLatticeField d N) :
+lemma massOperator_bilinear_eq_sum (a mass : ℝ) (φ : FinLatticeField d N) :
     ∑ x, φ x * (massOperator d N a mass φ) x =
     ∑ x, ∑ y, massOperatorEntry d N a mass x y * φ x * φ y := by
   congr 1; ext x

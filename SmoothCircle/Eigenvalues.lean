@@ -22,8 +22,12 @@ The real Fourier basis on S¹_L is indexed by ℕ via `fourierFreq`:
 The eigenvalue at index n is `(2π·fourierFreq(n)/L)²`.
 -/
 
-import SmoothCircle.Nuclear
-import HeatKernel.Bilinear
+module
+
+public import SmoothCircle.Nuclear
+public import HeatKernel.Bilinear
+
+@[expose] public section
 
 noncomputable section
 

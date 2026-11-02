@@ -32,8 +32,12 @@ The symmetric torus `TorusTestFunction L` is the special case `Lt = Ls = L`.
 - Simon, *The P(φ)₂ Euclidean QFT*, Chapter VIII
 -/
 
-import Torus.Restriction
-import Torus.Symmetry
+module
+
+public import Torus.Restriction
+public import Torus.Symmetry
+
+@[expose] public section
 
 noncomputable section
 

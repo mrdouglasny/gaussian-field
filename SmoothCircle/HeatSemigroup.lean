@@ -33,7 +33,11 @@ Since `e^{-tλ_n} ≤ 1` for t ≥ 0, this preserves rapid decay.
 - Evans, *Partial Differential Equations*, §2.3
 -/
 
-import SmoothCircle.Laplacian
+module
+
+public import SmoothCircle.Laplacian
+
+@[expose] public section
 
 noncomputable section
 
@@ -76,7 +80,7 @@ A bounded weight sequence `w : ℕ → ℝ` with `|w_n| ≤ 1` defines a CLM
 on `RapidDecaySeq` by pointwise multiplication. -/
 
 /-- Pointwise multiplication by a bounded sequence preserves rapid decay. -/
-private def diagMulFun (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1)
+def diagMulFun (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1)
     (a : RapidDecaySeq) : RapidDecaySeq where
   val n := w n * a.val n
   rapid_decay k := by
@@ -93,7 +97,7 @@ private def diagMulFun (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1)
         _ = |a.val n| * (1 + (n : ℝ)) ^ k := by ring
     · exact a.rapid_decay k
 
-private def diagMulLM (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
+def diagMulLM (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
     RapidDecaySeq →ₗ[ℝ] RapidDecaySeq where
   toFun := diagMulFun w hw
   map_add' a b := by
@@ -103,7 +107,7 @@ private def diagMulLM (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
     ext n; show w n * (r • a).val n = (r • diagMulFun w hw a).val n
     simp [diagMulFun, RapidDecaySeq.smul_val, mul_left_comm]
 
-private theorem diagMul_isBounded (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
+theorem diagMul_isBounded (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
     Seminorm.IsBounded RapidDecaySeq.rapidDecaySeminorm
       RapidDecaySeq.rapidDecaySeminorm (diagMulLM w hw) := by
   intro k
@@ -123,7 +127,7 @@ private theorem diagMul_isBounded (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
     (a.rapid_decay k)
 
 /-- Diagonal multiplication by a bounded (|w_n| ≤ 1) sequence as a CLM. -/
-private def diagMulCLM (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
+def diagMulCLM (w : ℕ → ℝ) (hw : ∀ n, |w n| ≤ 1) :
     RapidDecaySeq →L[ℝ] RapidDecaySeq where
   toLinearMap := diagMulLM w hw
   cont := WithSeminorms.continuous_of_isBounded

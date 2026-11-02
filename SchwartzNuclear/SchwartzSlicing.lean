@@ -30,19 +30,24 @@ constructions used in the multi-dimensional Hermite expansion proof.
 - `schwartz_slice_partial_seminorm_bound` — seminorm bound for scalarized slices
 -/
 
-import SchwartzNuclear.ParametricCalculus
-import SchwartzNuclear.SchwartzHermiteExpansion
+module
+
+public import SchwartzNuclear.ParametricCalculus
+public import SchwartzNuclear.SchwartzHermiteExpansion
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+
+@[expose] public section
 
 open MeasureTheory Real SchwartzMap Measure
 open scoped ContDiff
 
 /-- In `WithTop ℕ∞`, `∞ + ↑n = ∞` so `∞ + ↑n ≤ ∞`. -/
-private lemma le_infty_add (n : ℕ) : (∞ : WithTop ℕ∞) + ↑n ≤ ∞ := by
+lemma le_infty_add (n : ℕ) : (∞ : WithTop ℕ∞) + ↑n ≤ ∞ := by
   show (↑(⊤ : ℕ∞) : WithTop ℕ∞) + ↑(↑n : ℕ∞) ≤ ↑(⊤ : ℕ∞)
   rw [← WithTop.coe_add, WithTop.coe_le_coe]; exact le_of_eq (top_add _)
 
 /-- In `WithTop ℕ∞`, `↑n ≤ ∞`. -/
-private lemma nat_le_infty (n : ℕ) : (↑n : WithTop ℕ∞) ≤ ∞ :=
+lemma nat_le_infty (n : ℕ) : (↑n : WithTop ℕ∞) ≤ ∞ :=
   (show (↑(↑n : ℕ∞) : WithTop ℕ∞) ≤ ↑(⊤ : ℕ∞) from WithTop.coe_le_coe.mpr le_top)
 
 noncomputable section
@@ -72,7 +77,7 @@ lemma euclideanSnoc_init_last (d : ℕ) (x : EuclideanSpace ℝ (Fin (d + 1))) :
   · intro j; simp [Fin.snoc_castSucc]
 
 /-- `euclideanSnoc d y` has temperate growth as a function of `t`. -/
-private lemma euclideanSnoc_hasTemperateGrowth (d : ℕ)
+lemma euclideanSnoc_hasTemperateGrowth (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) :
     Function.HasTemperateGrowth (euclideanSnoc (d + 1) y) := by
   -- The linear part: embed ℝ as the last coordinate in EuclideanSpace
@@ -106,7 +111,7 @@ private lemma euclideanSnoc_hasTemperateGrowth (d : ℕ)
     L.hasTemperateGrowth
 
 /-- `euclideanSnoc d y` is antilipschitz (in fact isometric) in `t`. -/
-private lemma euclideanSnoc_antilipschitz (d : ℕ)
+lemma euclideanSnoc_antilipschitz (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) :
     AntilipschitzWith 1 (euclideanSnoc (d + 1) y) := by
   refine AntilipschitzWith.of_le_mul_dist (fun s t => ?_)
@@ -129,7 +134,7 @@ private lemma euclideanSnoc_antilipschitz (d : ℕ)
 
 /-- The norm of `euclideanSnoc y t` satisfies `‖y‖² + t² = ‖euclideanSnoc y t‖²`.
 This is because snoc just appends one coordinate. -/
-private lemma euclideanSnoc_norm_sq (d : ℕ)
+lemma euclideanSnoc_norm_sq (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
     ‖euclideanSnoc (d + 1) y t‖ ^ 2 = ‖y‖ ^ 2 + t ^ 2 := by
   have hlast : (euclideanSnoc (d + 1) y t) (Fin.last (d + 1)) = t := by
@@ -152,7 +157,7 @@ private lemma euclideanSnoc_norm_sq (d : ℕ)
 
 /-- The first `d+1` coordinates contribute to the norm:
 `‖y‖ ≤ ‖euclideanSnoc (d+1) y t‖`. -/
-private lemma euclideanSnoc_norm_ge_left (d : ℕ)
+lemma euclideanSnoc_norm_ge_left (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
     ‖y‖ ≤ ‖euclideanSnoc (d + 1) y t‖ := by
   rw [← Real.sqrt_sq (norm_nonneg y),
@@ -163,7 +168,7 @@ private lemma euclideanSnoc_norm_ge_left (d : ℕ)
 
 /-- The last coordinate contributes to the norm:
 `|t| ≤ ‖euclideanSnoc (d+1) y t‖`. -/
-private lemma euclideanSnoc_norm_ge_right (d : ℕ)
+lemma euclideanSnoc_norm_ge_right (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
     ‖t‖ ≤ ‖euclideanSnoc (d + 1) y t‖ := by
   rw [← Real.sqrt_sq (norm_nonneg t),
@@ -210,7 +215,7 @@ Use the key norm bound `‖y‖ ≤ ‖euclideanSnoc y t‖` (`euclideanSnoc_nor
 
 /-- The integrand `f(euclideanSnoc y t) * hermiteFunction n t` is dominated
 by `(seminorm ℝ 0 0 f) * |hermiteFunction n t|`, which is `y`-independent. -/
-private lemma hermiteCoeff_integrand_bound (d : ℕ)
+lemma hermiteCoeff_integrand_bound (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
     ‖f (euclideanSnoc (d + 1) y t) * hermiteFunction n t‖ ≤
@@ -219,7 +224,7 @@ private lemma hermiteCoeff_integrand_bound (d : ℕ)
   exact mul_le_mul_of_nonneg_right (norm_le_seminorm ℝ f _) (norm_nonneg _)
 
 /-- The dominating function `C * |hermiteFunction n t|` is integrable in `t`. -/
-private lemma hermiteCoeff_bound_integrable (n : ℕ) (C : ℝ) :
+lemma hermiteCoeff_bound_integrable (n : ℕ) (C : ℝ) :
     Integrable (fun t : ℝ => C * ‖hermiteFunction n t‖) := by
   apply Integrable.const_mul
   rw [show (fun t => ‖hermiteFunction n t‖) =
@@ -230,7 +235,7 @@ private lemma hermiteCoeff_bound_integrable (n : ℕ) (C : ℝ) :
 /-- For fixed `t`, the map `y ↦ euclideanSnoc y t` is continuous.
 Proved via 1-Lipschitz: changing `y` by `δ` changes `euclideanSnoc y t` by at most `δ`
 since only the first `d+1` coordinates change. -/
-private lemma continuous_euclideanSnoc_y (d : ℕ) (t : ℝ) :
+lemma continuous_euclideanSnoc_y (d : ℕ) (t : ℝ) :
     Continuous (fun y : EuclideanSpace ℝ (Fin (d + 1)) =>
       euclideanSnoc (d + 1) y t) := by
   apply LipschitzWith.continuous (K := 1)
@@ -253,7 +258,7 @@ private lemma continuous_euclideanSnoc_y (d : ℕ) (t : ℝ) :
 /-- For fixed `t`, the map `y ↦ euclideanSnoc y t` has temperate growth.
 This is because the map is affine: `euclideanSnoc y t = c + L(y)` where
 `L` is the castSucc isometric embedding and `c = euclideanSnoc 0 t = (0,...,0,t)`. -/
-private lemma euclideanSnoc_y_hasTemperateGrowth (d : ℕ) (t : ℝ) :
+lemma euclideanSnoc_y_hasTemperateGrowth (d : ℕ) (t : ℝ) :
     Function.HasTemperateGrowth (fun y : EuclideanSpace ℝ (Fin (d + 1)) =>
       euclideanSnoc (d + 1) y t) := by
   -- Constant part
@@ -297,7 +302,7 @@ private lemma euclideanSnoc_y_hasTemperateGrowth (d : ℕ) (t : ℝ) :
 
 /-- For fixed `t`, the map `y ↦ euclideanSnoc y t` is antilipschitz with constant 1.
 This is because only the first d+1 coordinates change while the last stays fixed at `t`. -/
-private lemma euclideanSnoc_y_antilipschitz (d : ℕ) (t : ℝ) :
+lemma euclideanSnoc_y_antilipschitz (d : ℕ) (t : ℝ) :
     AntilipschitzWith 1 (fun y : EuclideanSpace ℝ (Fin (d + 1)) =>
       euclideanSnoc (d + 1) y t) := by
   refine AntilipschitzWith.of_le_mul_dist (fun y₁ y₂ => ?_)
@@ -320,7 +325,7 @@ private lemma euclideanSnoc_y_antilipschitz (d : ℕ) (t : ℝ) :
     sq_nonneg (‖euclideanSnoc (d + 1) y₁ t - euclideanSnoc (d + 1) y₂ t‖ - ‖y₁ - y₂‖)]
 
 /-- For fixed `t`, the composition `f ∘ euclideanSnoc · t` is a Schwartz function of `y`. -/
-private noncomputable def schwartz_slice_y (d : ℕ)
+noncomputable def schwartz_slice_y (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
     (t : ℝ) : SchwartzMap (EuclideanSpace ℝ (Fin (d + 1))) ℝ :=
   compCLMOfAntilipschitz ℝ (euclideanSnoc_y_hasTemperateGrowth d t)
@@ -328,7 +333,7 @@ private noncomputable def schwartz_slice_y (d : ℕ)
 
 /-- The linear part of `y ↦ euclideanSnoc y t`: the CLM `y ↦ euclideanSnoc y 0`
 that isometrically embeds the first d+1 coordinates. -/
-private noncomputable def euclideanSnoc_linearCLM (d : ℕ) :
+noncomputable def euclideanSnoc_linearCLM (d : ℕ) :
     EuclideanSpace ℝ (Fin (d + 1)) →L[ℝ] EuclideanSpace ℝ (Fin (d + 2)) :=
   LinearMap.mkContinuous
     { toFun := fun y => euclideanSnoc (d + 1) y 0
@@ -353,11 +358,11 @@ private noncomputable def euclideanSnoc_linearCLM (d : ℕ) :
       nlinarith [norm_nonneg (euclideanSnoc (d + 1) y 0), norm_nonneg y,
         sq_nonneg (‖euclideanSnoc (d + 1) y 0‖ - ‖y‖)])
 
-private lemma euclideanSnoc_linearCLM_apply (d : ℕ)
+lemma euclideanSnoc_linearCLM_apply (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) :
     euclideanSnoc_linearCLM d y = euclideanSnoc (d + 1) y 0 := rfl
 
-private lemma euclideanSnoc_decomp (d : ℕ) (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
+lemma euclideanSnoc_decomp (d : ℕ) (y : EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
     euclideanSnoc (d + 1) y t =
       euclideanSnoc (d + 1) 0 t + euclideanSnoc_linearCLM d y := by
   ext i
@@ -367,7 +372,7 @@ private lemma euclideanSnoc_decomp (d : ℕ) (y : EuclideanSpace ℝ (Fin (d + 1
   · simp [Fin.snoc_last]
   · intro j; simp [Fin.snoc_castSucc]
 
-private lemma euclideanSnoc_linearCLM_norm_le (d : ℕ) :
+lemma euclideanSnoc_linearCLM_norm_le (d : ℕ) :
     ‖euclideanSnoc_linearCLM d‖ ≤ 1 :=
   LinearMap.mkContinuous_norm_le _ zero_le_one _
 
@@ -375,7 +380,7 @@ private lemma euclideanSnoc_linearCLM_norm_le (d : ℕ) :
 bounded by the seminorm of `f`, uniformly in `t`. This uses the chain rule
 for the affine isometric embedding `y ↦ euclideanSnoc y t` together with
 `euclideanSnoc_norm_ge_left` to transfer the polynomial weight. -/
-private lemma schwartz_slice_y_le_seminorm (d : ℕ)
+lemma schwartz_slice_y_le_seminorm (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
     (t : ℝ) (k m : ℕ) (y : EuclideanSpace ℝ (Fin (d + 1))) :
     ‖y‖ ^ k * ‖iteratedFDeriv ℝ m (schwartz_slice_y d f t) y‖ ≤
@@ -431,7 +436,7 @@ private lemma schwartz_slice_y_le_seminorm (d : ℕ)
         gcongr; exact euclideanSnoc_norm_ge_left d y t
     _ ≤ f.seminorm ℝ k m := SchwartzMap.le_seminorm ℝ k m f _
 
-private lemma contDiff_parametric_hermiteCoeff (d : ℕ)
+lemma contDiff_parametric_hermiteCoeff (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (n : ℕ) :
     ContDiff ℝ ∞
       (fun y => ∫ t, f (euclideanSnoc (d + 1) y t) * hermiteFunction n t) ∧
@@ -509,7 +514,7 @@ private lemma contDiff_parametric_hermiteCoeff (d : ℕ)
 
 /-- Smoothness of the partial Hermite coefficient: the function
 `y ↦ ∫ f(y,t) ψ_n(t) dt` is `C^∞` in `y`. -/
-private lemma schwartz_partial_hermiteCoeff_smooth (d : ℕ)
+lemma schwartz_partial_hermiteCoeff_smooth (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
     (n : ℕ) :
     ContDiff ℝ ∞ (fun y => hermiteCoeff1D n (schwartz_slice d f y)) :=
@@ -521,7 +526,7 @@ private lemma schwartz_partial_hermiteCoeff_smooth (d : ℕ)
 Uses `contDiff_parametric_hermiteCoeff` to commute derivatives with the integral,
 then `schwartz_slice_y_le_seminorm` for the pointwise bound on each slice,
 and integrates against `|ψ_n(t)| dt`. -/
-private lemma schwartz_partial_hermiteCoeff_decay (d : ℕ)
+lemma schwartz_partial_hermiteCoeff_decay (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ)
     (n : ℕ) (k m : ℕ) :
     ∃ C : ℝ, ∀ y : EuclideanSpace ℝ (Fin (d + 1)),
@@ -644,7 +649,7 @@ reducing to a 1D problem solvable by `hermiteCoeff1D_decay`. -/
 /-- Chain rule: the `l'`-th derivative in `y` of `f(euclideanSnoc y t)` evaluated at vectors
 `v` equals the `l'`-th derivative of `f` at `euclideanSnoc y t` evaluated at `L(v_i)` where
 `L = euclideanSnoc_linearCLM d`. -/
-private lemma schwartz_slice_partial_chain_rule (d : ℕ)
+lemma schwartz_slice_partial_chain_rule (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (l' : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1)))
     (v : Fin l' → EuclideanSpace ℝ (Fin (d + 1))) (t : ℝ) :
@@ -671,7 +676,7 @@ private lemma schwartz_slice_partial_chain_rule (d : ℕ)
 
 /-- The norm of `Pi.single (Fin.last (d+1)) t` embedded into EuclideanSpace is `‖t‖`.
 Used for the `L_t` norm bound in several places. -/
-private lemma euclideanSnoc_Pi_single_norm_le (d : ℕ) (t : ℝ) :
+lemma euclideanSnoc_Pi_single_norm_le (d : ℕ) (t : ℝ) :
     ‖(EuclideanSpace.equiv (Fin (d + 2)) ℝ).symm
       (Pi.single (Fin.last (d + 1)) t)‖ ≤ ‖t‖ := by
   rw [EuclideanSpace.norm_eq]
@@ -690,7 +695,7 @@ private lemma euclideanSnoc_Pi_single_norm_le (d : ℕ) (t : ℝ) :
   exact le_of_eq (Real.sqrt_sq (norm_nonneg t))
 
 /-- The map `t ↦ euclideanSnoc y t` is smooth (affine in `t`). -/
-private lemma euclideanSnoc_t_contDiff (d : ℕ)
+lemma euclideanSnoc_t_contDiff (d : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1))) :
     ContDiff ℝ ∞ (fun t : ℝ => euclideanSnoc (d + 1) y t) := by
   unfold euclideanSnoc
@@ -970,7 +975,7 @@ lemma schwartz_partial_hermiteCoeff_iteratedFDeriv (d : ℕ)
 /-- Pointwise bound for the scalarized slice: for each `t`,
 `‖y‖^k * ‖t‖^a * ‖D^b_t[slice_partial](t)‖ ≤ ‖apply w‖ * f.seminorm (k+a) (b+l')`.
 Combines the chain rule, CLM norm bounds, and Schwartz decay. -/
-private lemma schwartz_slice_partial_pointwise_bound (d : ℕ)
+lemma schwartz_slice_partial_pointwise_bound (d : ℕ)
     (f : SchwartzMap (EuclideanSpace ℝ (Fin (d + 2))) ℝ) (l' : ℕ)
     (y : EuclideanSpace ℝ (Fin (d + 1)))
     (v : Fin l' → EuclideanSpace ℝ (Fin (d + 1))) (k a b : ℕ) (t : ℝ) :

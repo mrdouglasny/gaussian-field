@@ -3,9 +3,13 @@ Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael R. Douglas
 -/
-import Lattice.AsymCovariance
-import Lattice.AsymFiniteField
-import GaussianField.Density
+module
+
+public import Lattice.AsymCovariance
+public import Lattice.AsymFiniteField
+public import GaussianField.Density
+
+@[expose] public section
 
 /-!
 # Asymmetric-lattice Gaussian density bridge

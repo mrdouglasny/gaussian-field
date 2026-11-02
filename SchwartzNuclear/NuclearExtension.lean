@@ -19,10 +19,14 @@ uniquely to a continuous linear functional on the Schwartz space of the product 
 - Reed-Simon, "Methods of Modern Mathematical Physics I", Theorem V.13
 -/
 
-import SchwartzNuclear.HermiteNuclear
-import SchwartzNuclear.TsumBound
-import GeneralResults.SchwartzProducts
-import Mathlib.Topology.Algebra.InfiniteSum.Ring
+module
+
+public import SchwartzNuclear.HermiteNuclear
+public import SchwartzNuclear.TsumBound
+public import GeneralResults.SchwartzProducts
+public import Mathlib.Topology.Algebra.InfiniteSum.Ring
+
+@[expose] public section
 
 noncomputable section
 
@@ -86,7 +90,7 @@ theorem DyninMityaginSpace.summable_coeff_mul_polyBounded
   exact this.congr (fun m => by rw [one_div]; congr 1; ring)
 
 /-- The linear map `f ↦ Σ coeff_m(f) · v_m`. -/
-private def DyninMityaginSpace.extensionLM (v : ℕ → ℝ) (hv : PolyBounded v) :
+def DyninMityaginSpace.extensionLM (v : ℕ → ℝ) (hv : PolyBounded v) :
     E →ₗ[ℝ] ℝ where
   toFun f := ∑' m, DyninMityaginSpace.coeff (E := E) m f * v m
   map_add' f g := by
@@ -106,14 +110,14 @@ private def DyninMityaginSpace.extensionLM (v : ℕ → ℝ) (hv : PolyBounded v
     exact tsum_congr (fun m => by simp [map_smul, smul_eq_mul, mul_assoc])
 
 /-- Helper: the shifted p-series `Σ 1/(m+1)^2` converges. -/
-private theorem summable_one_div_add_one_sq :
+theorem summable_one_div_add_one_sq :
     Summable (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1) ^ 2) := by
   have := (summable_nat_add_iff 1).mpr
     (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2))
   exact this.congr (fun m => by push_cast; ring_nf)
 
 /-- Pointwise bound: `|c_m(f) · v_m| ≤ CvCc · p_s(f) / (1+m)^2`. -/
-private theorem DyninMityaginSpace.coeff_mul_poly_bound (v : ℕ → ℝ)
+theorem DyninMityaginSpace.coeff_mul_poly_bound (v : ℕ → ℝ)
     {Cv Cc : ℝ} {p : ℕ} {s : Finset (DyninMityaginSpace.ι (E := E))}
     (hv_bound : ∀ m, |v m| ≤ Cv * (1 + (m : ℝ)) ^ p)
     (hc_bound : ∀ (f : E) (m : ℕ),
@@ -146,7 +150,7 @@ The bound follows from `coeff_mul_poly_bound` (pointwise) +
 Note: `Summable.tsum_le_tsum` on abstract DyninMityaginSpace types exceeds
 heartbeat limits (>800k). All mathematical ingredients are proved; the sorry
 is a Lean elaboration performance issue. -/
-private theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
+theorem DyninMityaginSpace.extensionLM_isBounded (v : ℕ → ℝ) (hv : PolyBounded v) :
     Seminorm.IsBounded (DyninMityaginSpace.p (E := E))
       (fun _ : Unit => normSeminorm ℝ ℝ)
       (DyninMityaginSpace.extensionLM (E := E) v hv) := by
@@ -280,7 +284,7 @@ theorem schwartz_clm_zero_of_vanish_on_product_basis
 
 /-- `Finset.sup` of basis_growth bounds: the sup of finitely many DM seminorms
 applied to basis vectors grows polynomially. -/
-private theorem basis_growth_finset_sup
+theorem basis_growth_finset_sup
     {D : Type*} [NormedAddCommGroup D] [NormedSpace ℝ D]
     [FiniteDimensional ℝ D] [Nontrivial D] [MeasurableSpace D] [BorelSpace D]
     (s_idx : Finset (DyninMityaginSpace.ι (E := SchwartzMap D ℝ))) :

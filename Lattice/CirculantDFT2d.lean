@@ -20,9 +20,13 @@ the lattice covariance for pure tensors equals the 2D DFT spectral sum.
 - Davis, *Circulant Matrices*, Ch. 5
 -/
 
-import Lattice.CirculantDFT
-import Lattice.SpectralCovariance
-import Lattice.Covariance
+module
+
+public import Lattice.CirculantDFT
+public import Lattice.SpectralCovariance
+public import Lattice.Covariance
+
+@[expose] public section
 
 noncomputable section
 

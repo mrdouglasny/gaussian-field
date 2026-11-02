@@ -9,9 +9,13 @@ Proves that the cylinder mass operator has dense range in `ell2'` by
 constructing explicit preimages of the standard basis vectors.
 -/
 
-import Cylinder.MassOperatorConstruction
-import HeatKernel.GreenInvariance
-import Mathlib.Analysis.InnerProductSpace.l2Space
+module
+
+public import Cylinder.MassOperatorConstruction
+public import HeatKernel.GreenInvariance
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 noncomputable section
 
@@ -19,7 +23,7 @@ namespace GaussianField
 
 variable (L : ℝ) [hL : Fact (0 < L)]
 
-private def cylinderMassOperator_witness
+def cylinderMassOperator_witness
     (mass : ℝ) (hmass : 0 < mass) (n : ℕ) :
     CylinderTestFunction L :=
   NuclearTensorProduct.pure
@@ -28,7 +32,7 @@ private def cylinderMassOperator_witness
       (resolventFreq_pos L mass hmass (Nat.unpair n).1)).symm
       (DyninMityaginSpace.basis (E := SchwartzMap ℝ ℝ) (Nat.unpair n).2))
 
-private theorem cylinderMassOperator_witness_eq_basis
+theorem cylinderMassOperator_witness_eq_basis
     (mass : ℝ) (hmass : 0 < mass) (n : ℕ) :
     cylinderMassOperator L mass hmass
       (cylinderMassOperator_witness L mass hmass n) =
@@ -66,7 +70,7 @@ private theorem cylinderMassOperator_witness_eq_basis
     rw [← hm_pair, ← hn_pair]
     simp [ha]
 
-private theorem ell2_single_span_dense :
+theorem ell2_single_span_dense :
     (Submodule.span ℝ (Set.range (fun n : ℕ => (lp.single 2 n (1 : ℝ) : ell2')))).topologicalClosure = ⊤ := by
   rw [eq_top_iff]
   intro x _

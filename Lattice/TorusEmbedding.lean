@@ -30,9 +30,13 @@ This embedding is key for:
 - Fourier analysis on the lattice via AddCircle's Fourier theory
 -/
 
-import Lattice.Sites
-import Mathlib.Topology.Instances.AddCircle.Real
-import Mathlib.Algebra.Group.Pi.Lemmas
+module
+
+public import Lattice.Sites
+public import Mathlib.Topology.Instances.AddCircle.Real
+public import Mathlib.Algebra.Group.Pi.Lemmas
+
+@[expose] public section
 
 noncomputable section
 

@@ -23,13 +23,17 @@ with topology given by the family of Sobolev sup-norms
 basis with polynomial growth and rapid coefficient decay.
 -/
 
-import Nuclear.NuclearTensorProduct
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.Topology.Order.Compact
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+module
+
+public import Nuclear.NuclearTensorProduct
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+
+@[expose] public section
 
 noncomputable section
 
@@ -80,7 +84,7 @@ instance instZero : Zero (SmoothMap_Circle L ℝ) :=
 @[simp] theorem coe_zero : (↑(0 : SmoothMap_Circle L ℝ) : ℝ → ℝ) = 0 := rfl
 @[simp] theorem zero_apply (x : ℝ) : (0 : SmoothMap_Circle L ℝ) x = 0 := rfl
 
-private theorem periodic_add (f g : SmoothMap_Circle L ℝ) :
+theorem periodic_add (f g : SmoothMap_Circle L ℝ) :
     Function.Periodic (f + g : ℝ → ℝ) L :=
   fun x => show f (x + L) + g (x + L) = f x + g x by
     rw [f.periodic x, g.periodic x]
@@ -90,7 +94,7 @@ instance instAdd : Add (SmoothMap_Circle L ℝ) :=
 
 @[simp] theorem add_apply (f g : SmoothMap_Circle L ℝ) (x : ℝ) : (f + g) x = f x + g x := rfl
 
-private theorem periodic_neg (f : SmoothMap_Circle L ℝ) :
+theorem periodic_neg (f : SmoothMap_Circle L ℝ) :
     Function.Periodic (fun x => -f x) L :=
   fun x => show -f (x + L) = -f x by rw [f.periodic x]
 
@@ -99,7 +103,7 @@ instance instNeg : Neg (SmoothMap_Circle L ℝ) :=
 
 @[simp] theorem neg_apply (f : SmoothMap_Circle L ℝ) (x : ℝ) : (-f) x = -f x := rfl
 
-private theorem periodic_sub (f g : SmoothMap_Circle L ℝ) :
+theorem periodic_sub (f g : SmoothMap_Circle L ℝ) :
     Function.Periodic (fun x => f x - g x) L :=
   fun x => show f (x + L) - g (x + L) = f x - g x by
     rw [f.periodic x, g.periodic x]
@@ -107,7 +111,7 @@ private theorem periodic_sub (f g : SmoothMap_Circle L ℝ) :
 instance instSub : Sub (SmoothMap_Circle L ℝ) :=
   ⟨fun f g => ⟨fun x => f x - g x, periodic_sub f g, f.smooth.sub g.smooth⟩⟩
 
-private theorem periodic_smul (r : ℝ) (f : SmoothMap_Circle L ℝ) :
+theorem periodic_smul (r : ℝ) (f : SmoothMap_Circle L ℝ) :
     Function.Periodic (fun x => r * f x) L :=
   fun x => show r * f (x + L) = r * f x by rw [f.periodic x]
 
@@ -443,21 +447,21 @@ def fourierCoeffCLM (n : ℕ) : SmoothMap_Circle L ℝ →L[ℝ] ℝ where
 /-! ### Orthogonality -/
 
 -- Convert set integral on Icc to interval integral
-private theorem setIntegral_Icc_eq_intervalIntegral (f : ℝ → ℝ) (a b : ℝ) (hab : a ≤ b)
+theorem setIntegral_Icc_eq_intervalIntegral (f : ℝ → ℝ) (a b : ℝ) (hab : a ≤ b)
     (_hf : IntervalIntegrable f MeasureTheory.volume a b) :
     ∫ x in Set.Icc a b, f x = ∫ x in a..b, f x := by
   rw [MeasureTheory.integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le hab]
 
 -- Integral of cos(2πkx/L) over [0, L] is 0 for k ≥ 1
-private theorem sin_two_pi_mul_nat (k : ℕ) : Real.sin (2 * Real.pi * k) = 0 := by
+theorem sin_two_pi_mul_nat (k : ℕ) : Real.sin (2 * Real.pi * k) = 0 := by
   simpa [mul_assoc, mul_left_comm, mul_comm] using
     (Real.sin_nat_mul_two_pi_sub (x := (0 : ℝ)) k)
 
-private theorem cos_two_pi_mul_nat (k : ℕ) : Real.cos (2 * Real.pi * k) = 1 := by
+theorem cos_two_pi_mul_nat (k : ℕ) : Real.cos (2 * Real.pi * k) = 1 := by
   simpa [mul_assoc, mul_left_comm, mul_comm] using
     (Real.cos_nat_mul_two_pi k)
 
-private theorem integral_cos_period (k : ℕ) (hk : 0 < k) :
+theorem integral_cos_period (k : ℕ) (hk : 0 < k) :
     ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) = 0 := by
   set c := 2 * Real.pi * k / L
   have hc : c ≠ 0 := by simp only [c]; exact div_ne_zero (by positivity) (ne_of_gt hL.out)
@@ -471,7 +475,7 @@ private theorem integral_cos_period (k : ℕ) (hk : 0 < k) :
     smul_zero]
 
 -- Integral of sin(2πkx/L) over [0, L] is 0 for k ≥ 1
-private theorem integral_sin_period (k : ℕ) (hk : 0 < k) :
+theorem integral_sin_period (k : ℕ) (hk : 0 < k) :
     ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * k * x / L) = 0 := by
   set c := 2 * Real.pi * k / L
   have hc : c ≠ 0 := by simp only [c]; exact div_ne_zero (by positivity) (ne_of_gt hL.out)
@@ -486,7 +490,7 @@ private theorem integral_sin_period (k : ℕ) (hk : 0 < k) :
 
 -- Helper: integral of cos/sin over [0, L] with integer frequency is 0
 -- For general integer n ≠ 0, ∫₀ᴸ cos(2πnx/L) = 0 and ∫₀ᴸ sin(2πnx/L) = 0
-private theorem integral_period_change_var_int (n : ℤ) (hn : n ≠ 0) (f : ℝ → ℝ) :
+theorem integral_period_change_var_int (n : ℤ) (hn : n ≠ 0) (f : ℝ → ℝ) :
     ∫ x in (0 : ℝ)..L, f (2 * Real.pi * n * x / L) =
       (2 * Real.pi * n / L)⁻¹ * ∫ x in (0 : ℝ)..(2 * Real.pi * n), f x := by
   set c := 2 * Real.pi * n / L
@@ -502,7 +506,7 @@ private theorem integral_period_change_var_int (n : ℤ) (hn : n ≠ 0) (f : ℝ
   rw [intervalIntegral.integral_comp_mul_left _ hc, mul_zero, hcL]
   simp [smul_eq_mul]
 
-private theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
+theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
     ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * n * x / L) = 0 := by
   rw [integral_period_change_var_int (L := L) n hn Real.cos, integral_cos]
   -- sin(2πn) = 0 for integer n
@@ -511,7 +515,7 @@ private theorem integral_cos_int_period (n : ℤ) (hn : n ≠ 0) :
       (Real.sin_int_mul_two_pi_sub (x := (0 : ℝ)) n)
   rw [h1, Real.sin_zero, sub_self, mul_zero]
 
-private theorem integral_sin_int_period (n : ℤ) (hn : n ≠ 0) :
+theorem integral_sin_int_period (n : ℤ) (hn : n ≠ 0) :
     ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * n * x / L) = 0 := by
   rw [integral_period_change_var_int (L := L) n hn Real.sin, integral_sin]
   -- cos(2πn) = 1 for integer n, so cos(0) - cos(2πn) = 1 - 1 = 0
@@ -521,7 +525,7 @@ private theorem integral_sin_int_period (n : ℤ) (hn : n ≠ 0) :
   rw [Real.cos_zero, h1, sub_self, mul_zero]
 
 -- Integral of cos(2πkx/L)·cos(2πℓx/L) over [0, L]
-private theorem integral_cos_cos (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
+theorem integral_cos_cos (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
     ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) *
       Real.cos (2 * Real.pi * ℓ * x / L) = if k = ℓ then L / 2 else 0 := by
   -- Product-to-sum: cos A · cos B = (cos(A-B) + cos(A+B))/2
@@ -558,7 +562,7 @@ private theorem integral_cos_cos (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
     rw [integral_cos_int_period (k - ℓ : ℤ) (by omega), zero_div]
 
 -- Integral of sin(2πkx/L)·sin(2πℓx/L) over [0, L]
-private theorem integral_sin_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
+theorem integral_sin_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
     ∫ x in (0 : ℝ)..L, Real.sin (2 * Real.pi * k * x / L) *
       Real.sin (2 * Real.pi * ℓ * x / L) = if k = ℓ then L / 2 else 0 := by
   -- Product-to-sum: sin A · sin B = (cos(A-B) - cos(A+B))/2
@@ -591,7 +595,7 @@ private theorem integral_sin_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
     rw [integral_cos_int_period (k - ℓ : ℤ) (by omega), zero_div]
 
 -- Integral of cos(2πkx/L)·sin(2πℓx/L) over [0, L] is 0
-private theorem integral_cos_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
+theorem integral_cos_sin (k ℓ : ℕ) (hk : 0 < k) (hℓ : 0 < ℓ) :
     ∫ x in (0 : ℝ)..L, Real.cos (2 * Real.pi * k * x / L) *
       Real.sin (2 * Real.pi * ℓ * x / L) = 0 := by
   -- Product-to-sum: cos A · sin B = (sin(A+B) - sin(A-B))/2
@@ -748,7 +752,7 @@ theorem fourierCoeffReal_fourierBasis (i j : ℕ) :
 /-! ### Sobolev seminorm of Fourier basis: polynomial growth -/
 
 /-- Pointwise derivative bound for `A * cos(c * x)`. -/
-private theorem norm_iteratedDeriv_cos_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA : 0 ≤ A) :
+theorem norm_iteratedDeriv_cos_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA : 0 ≤ A) :
     ‖iteratedDeriv k (fun x => A * Real.cos (c * x)) x‖ ≤ A * |c| ^ k := by
   rw [iteratedDeriv_const_mul_field,
       congr_fun (@iteratedDeriv_comp_const_mul ℝ _ k Real.cos
@@ -760,7 +764,7 @@ private theorem norm_iteratedDeriv_cos_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA :
       (pow_nonneg (abs_nonneg _) _)).trans (mul_one _).le) hA
 
 /-- Pointwise derivative bound for `A * sin(c * x)`. -/
-private theorem norm_iteratedDeriv_sin_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA : 0 ≤ A) :
+theorem norm_iteratedDeriv_sin_mul (A c : ℝ) (k : ℕ) (x : ℝ) (hA : 0 ≤ A) :
     ‖iteratedDeriv k (fun x => A * Real.sin (c * x)) x‖ ≤ A * |c| ^ k := by
   rw [iteratedDeriv_const_mul_field,
       congr_fun (@iteratedDeriv_comp_const_mul ℝ _ k Real.sin

@@ -28,8 +28,12 @@ with the 2×2 rotation matrix on each pair.
 - Reed-Simon, *Methods of Modern Mathematical Physics* Vol. II, §X.12
 -/
 
-import SmoothCircle.HeatSemigroup
-import SmoothCircle.FourierTranslation
+module
+
+public import SmoothCircle.HeatSemigroup
+public import SmoothCircle.FourierTranslation
+
+@[expose] public section
 
 noncomputable section
 
@@ -69,7 +73,7 @@ theorem heatWeight_paired (t : ℝ) (k : ℕ) (hk : 0 < k) :
 /-! ## Heat semigroup commutes with translation -/
 
 /-- `smoothCircleRapidDecayEquiv` extracts Fourier coefficients. -/
-private lemma equiv_val (f : SmoothMap_Circle L ℝ) (n : ℕ) :
+lemma equiv_val (f : SmoothMap_Circle L ℝ) (n : ℕ) :
     (smoothCircleRapidDecayEquiv (L := L) f).val n = fourierCoeffReal n f := rfl
 
 /-- The circle heat semigroup commutes with spatial translation.
